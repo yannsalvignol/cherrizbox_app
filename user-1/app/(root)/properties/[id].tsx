@@ -1,7 +1,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Image, ImageBackground, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Image, ImageBackground, Linking, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { getAllPosts } from '../../../lib/appwrite';
+import { initiateSubscription } from '../../../lib/subscription';
 
 const Property = () => {
   const { id } = useLocalSearchParams();
@@ -70,6 +71,32 @@ const Property = () => {
       }, 200);
     }
   }, [loading, post]);
+
+  const handleJoinBox = async () => {
+    try {
+      console.log('Starting subscription process...');
+      const checkoutUrl = await initiateSubscription();
+      console.log('Got checkout URL:', checkoutUrl);
+      
+      if (checkoutUrl) {
+        // Open the Stripe Checkout URL in the device's browser
+        const supported = await Linking.canOpenURL(checkoutUrl);
+        console.log('Can open URL:', supported);
+        
+        if (supported) {
+          await Linking.openURL(checkoutUrl);
+        } else {
+          Alert.alert('Error', 'Cannot open payment page');
+        }
+      }
+    } catch (error) {
+      console.error('Join box error:', error);
+      Alert.alert(
+        'Subscription Error',
+        error instanceof Error ? error.message : 'Failed to initiate subscription'
+      );
+    }
+  };
 
   if (loading) {
     return (
@@ -218,7 +245,10 @@ const Property = () => {
                     </View>
                   </View>
                 </View>
-                <TouchableOpacity style={{ marginTop: 30, backgroundColor: '#FB2355', borderRadius: 20, paddingVertical: 12, paddingHorizontal: 100 }}>
+                <TouchableOpacity 
+                  style={{ marginTop: 30, backgroundColor: '#FB2355', borderRadius: 20, paddingVertical: 12, paddingHorizontal: 100 }}
+                  onPress={handleJoinBox}
+                >
                   <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', fontFamily: 'questrial' }}>
                     Join {titleParam || post.title || 'this'}'s box
                   </Text>

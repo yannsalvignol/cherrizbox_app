@@ -3,6 +3,7 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from "react";
+import { useDeepLinking } from './deep-linking';
 import "./global.css";
 
 // Keep the splash screen visible while we fetch resources
@@ -25,6 +26,9 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded]);
+
+  // Initialize deep linking
+  useDeepLinking();
 
   if (!fontsLoaded) {
     return null;
