@@ -20,7 +20,8 @@ export const config = {
     profileCollectionId: '681214cd0017348ba59b',
     videoCollectionId: '67e54c4b0012b5d71cbe',
     photoCollectionId: '67e6e13600234c3bff8b',
-    storageId: '67e54f5e001b77aae0cd'
+    storageId: '67e54f5e001b77aae0cd',
+    activeSubscriptionsCollectionId: '6845323f00001bda7f89'
 };
 
 export const client = new Client();
@@ -327,5 +328,55 @@ export const getProfilePictureUrl = (photoIdOrUri: string | null): string | null
     } catch (error) {
         console.error("Error getting profile picture URL:", error);
         return null;
+    }
+};
+
+export const getSubscriptionCount = async (creatorName: string): Promise<number> => {
+    try {
+        const subscriptions = await databases.listDocuments(
+            config.databaseId,
+            config.activeSubscriptionsCollectionId,
+            [Query.equal('creatorName', creatorName)]
+        );
+        
+        // Count unique userIds
+        const uniqueSubscribers = new Set(subscriptions.documents.map(sub => sub.userId));
+        return uniqueSubscribers.size;
+    } catch (error) {
+        console.error("Error getting subscription count:", error);
+        return 0;
+    }
+};
+
+export const isUserSubscribed = async (userId: string, creatorName: string): Promise<boolean> => {
+    try {
+        const subscriptions = await databases.listDocuments(
+            config.databaseId,
+            config.activeSubscriptionsCollectionId,
+            [
+                Query.equal('userId', userId),
+                Query.equal('creatorName', creatorName)
+            ]
+        );
+        
+        return subscriptions.documents.length > 0;
+    } catch (error) {
+        console.error("Error checking subscription:", error);
+        return false;
+    }
+};
+
+export const getUserSubscriptions = async (userId: string) => {
+    try {
+        const subscriptions = await databases.listDocuments(
+            config.databaseId,
+            config.activeSubscriptionsCollectionId,
+            [Query.equal('userId', userId)]
+        );
+        
+        return subscriptions.documents;
+    } catch (error) {
+        console.error("Error getting user subscriptions:", error);
+        return [];
     }
 };

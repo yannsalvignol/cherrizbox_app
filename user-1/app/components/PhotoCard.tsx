@@ -20,12 +20,16 @@ interface PhotoCardProps {
     photo: MediaItem;
     index?: number;
     scrollY?: any;
+    isSubscribed?: boolean;
+    isCancelled?: boolean;
+    scrolling?: boolean;
 }
 
-const PhotoCard = ({ photo, index = 0, scrollY }: PhotoCardProps) => {
+const PhotoCard = ({ photo, index = 0, scrollY, isSubscribed = false, isCancelled = false, scrolling = false }: PhotoCardProps) => {
     const router = useRouter();
     const scaleAnim = useRef(new Animated.Value(1)).current;
     const opacityAnim = useRef(new Animated.Value(1)).current;
+    const translateX = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
         const delay = index * 50;
@@ -52,6 +56,22 @@ const PhotoCard = ({ photo, index = 0, scrollY }: PhotoCardProps) => {
                 friction: 5,
             }),
         ]).start();
+
+        // Start the gradient animation
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(translateX, {
+                    toValue: 50,
+                    duration: 3000,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(translateX, {
+                    toValue: 0,
+                    duration: 3000,
+                    useNativeDriver: true,
+                }),
+            ])
+        ).start();
     }, []);
 
     const photoTitle = photo.title || 'Untitled';
@@ -93,9 +113,9 @@ const PhotoCard = ({ photo, index = 0, scrollY }: PhotoCardProps) => {
                 shadowOpacity: 0.18,
                 shadowRadius: 16,
                 elevation: 8,
-                borderRadius: 22,
-                marginBottom: 16,
+                borderRadius: 20,
                 backgroundColor: 'transparent',
+                width: '100%',
             }}
         >
             <LinearGradient
@@ -103,18 +123,24 @@ const PhotoCard = ({ photo, index = 0, scrollY }: PhotoCardProps) => {
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={{
-                    borderRadius: 22,
+                    borderRadius: 20,
                     padding: 2,
+                    width: '100%',
                 }}
             >
                 <TouchableOpacity
                     activeOpacity={0.92}
-                    style={{ width: cardWidth, borderRadius: 20, overflow: 'hidden', backgroundColor: '#18181b' }}
+                    style={{ 
+                        width: '100%', 
+                        borderRadius: 18, 
+                        overflow: 'hidden', 
+                        backgroundColor: '#18181b' 
+                    }}
                     onPress={() => router.push(`/properties/${photo.$id}`)}
                     onPressIn={handlePressIn}
                     onPressOut={handlePressOut}
                 >
-                    <View style={{ borderRadius: 10, overflow: 'hidden', position: 'relative' }}>
+                    <View style={{ borderRadius: 18, overflow: 'hidden', position: 'relative' }}>
                         {/* Image */}
                         {photo.thumbnail || photo.imageUrl || photo.fileUrl ? (
                             <Image
@@ -132,18 +158,61 @@ const PhotoCard = ({ photo, index = 0, scrollY }: PhotoCardProps) => {
                             position: 'absolute',
                             bottom: 10,
                             left: 11,
-                            backgroundColor: 'rgba(0,0,0,0.55)',
                             borderRadius: 16,
                             paddingVertical: 7,
                             paddingHorizontal: 18,
                             maxWidth: '80%',
+                            overflow: 'hidden',
                         }}>
+                            {isSubscribed && !isCancelled ? (
+                                <View style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    borderRadius: 16,
+                                    overflow: 'hidden',
+                                }}>
+                                    <Animated.View style={{
+                                        position: 'absolute',
+                                        top: 0,
+                                        left: -50,
+                                        right: -50,
+                                        bottom: 0,
+                                        transform: [{ translateX }],
+                                    }}>
+                                        <LinearGradient
+                                            colors={['rgba(251, 35, 85, 0.7)', 'rgba(255, 215, 0, 0.7)', 'rgba(251, 35, 85, 0.7)']}
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 1, y: 0 }}
+                                            style={{
+                                                position: 'absolute',
+                                                top: 0,
+                                                left: 0,
+                                                right: 0,
+                                                bottom: 0,
+                                            }}
+                                        />
+                                    </Animated.View>
+                                </View>
+                            ) : (
+                                <View style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    backgroundColor: 'rgba(0,0,0,0.55)',
+                                    borderRadius: 16,
+                                }} />
+                            )}
                             <Text style={{
                                 color: '#fff',
                                 fontWeight: '700',
                                 fontSize: 16,
                                 letterSpacing: 0.2,
-                                textShadowColor: 'rgba(0,0,0,0.18)',
+                                textShadowColor: 'rgba(0,0,0,0.3)',
                                 textShadowOffset: { width: 0, height: 1 },
                                 textShadowRadius: 4,
                             }} numberOfLines={1}>

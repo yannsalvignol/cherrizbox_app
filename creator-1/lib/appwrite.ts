@@ -20,7 +20,8 @@ export const config = {
     profileCollectionId: '681214cd0017348ba59b',
     videoCollectionId: '67e54c4b0012b5d71cbe',
     photoCollectionId: '67e6e13600234c3bff8b',
-    storageId: '67e54f5e001b77aae0cd'
+    storageId: '67e54f5e001b77aae0cd',
+    activeSubscriptionsCollectionId: '6845323f00001bda7f89'
 };
 
 export const client = new Client();
@@ -453,4 +454,112 @@ export function isProfileComplete(profile: any): boolean {
         }
     }
     return true;
-}
+};
+
+
+export const getSubscriptionCount = async (creatorName: string): Promise<number> => {
+    try {
+        const subscriptions = await databases.listDocuments(
+            config.databaseId,
+            config.activeSubscriptionsCollectionId,
+            [Query.equal('creatorName', creatorName)]
+        );
+        
+        // Count unique userIds
+        const uniqueSubscribers = new Set(subscriptions.documents.map(sub => sub.userId));
+        return uniqueSubscribers.size;
+    } catch (error) {
+        console.error("Error getting subscription count:", error);
+        return 0;
+    }
+};
+
+export const isUserSubscribed = async (userId: string, creatorName: string): Promise<boolean> => {
+    try {
+        const subscriptions = await databases.listDocuments(
+            config.databaseId,
+            config.activeSubscriptionsCollectionId,
+            [
+                Query.equal('userId', userId),
+                Query.equal('creatorName', creatorName),
+                Query.equal('status', 'active')
+            ]
+        );
+        
+        return subscriptions.documents.length > 0;
+    } catch (error) {
+        console.error("Error checking subscription status:", error);
+        return false;
+    }
+};
+
+export const createSubscription = async (userId: string, creatorName: string, subscriptionId: string, interval: 'month' | 'year'): Promise<any> => {
+    try {
+        const subscription = await databases.createDocument(
+            config.databaseId,
+            config.activeSubscriptionsCollectionId,
+            ID.unique(),
+            {
+                userId,
+                creatorName,
+                stripeSubscriptionId: subscriptionId,
+                interval,
+                status: 'active',
+                startDate: new Date().toISOString(),
+                $permissions: [
+                    `read("user:${userId}")`,
+                    `write("user:${userId}")`
+                ]
+            }
+        );
+        
+        return subscription;
+    } catch (error) {
+        console.error("Error creating subscription:", error);
+        throw error;
+    }
+};
+
+export const updateSubscriptionStatus = async (subscriptionId: string, status: 'active' | 'cancelled' | 'expired'): Promise<any> => {
+    try {
+        const subscription = await databases.listDocuments(
+            config.databaseId,
+            config.activeSubscriptionsCollectionId,
+            [Query.equal('stripeSubscriptionId', subscriptionId)]
+        );
+
+        if (subscription.documents.length === 0) {
+            throw new Error('Subscription not found');
+        }
+
+        const updatedSubscription = await databases.updateDocument(
+            config.databaseId,
+            config.activeSubscriptionsCollectionId,
+            subscription.documents[0].$id,
+            {
+                status,
+                ...(status === 'cancelled' && { endDate: new Date().toISOString() })
+            }
+        );
+
+        return updatedSubscription;
+    } catch (error) {
+        console.error("Error updating subscription status:", error);
+        throw error;
+    }
+};
+
+export const getUserSubscriptions = async (userId: string) => {
+    try {
+        const subscriptions = await databases.listDocuments(
+            config.databaseId,
+            config.activeSubscriptionsCollectionId,
+            [Query.equal('userId', userId)]
+        );
+        
+        return subscriptions.documents;
+    } catch (error) {
+        console.error("Error getting user subscriptions:", error);
+        return [];
+    }
+};

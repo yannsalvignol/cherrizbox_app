@@ -1,21 +1,42 @@
 import { Ionicons } from '@expo/vector-icons'
 import { Query } from 'appwrite'
+import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
-import { Image, Pressable, Text, TouchableOpacity, View } from 'react-native'
+import { Image, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native'
+import Modal from 'react-native-modal'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { config, databases, getCurrentUser, getUserProfile } from '../../../lib/appwrite'
+import { config, databases, getCurrentUser, getUserProfile, getUserSubscriptions } from '../../../lib/appwrite'
+import { cancelSubscription } from '../../../lib/subscription'
+
+interface Subscription {
+    $id: string;
+    userId: string;
+    status: 'active' | 'cancelled';
+    createdAt: string;
+    planCurrency: string;
+    planInterval: string;
+    creatorName: string;
+    creatorAccountId: string;
+    renewalDate: string;
+    stripeSubscriptionId: string;
+}
 
 export default function Profile() {
   const router = useRouter();
   const [isPaidContent, setIsPaidContent] = useState(false);
   const [profile, setProfile] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
-  const [selectedToggle, setSelectedToggle] = useState<'membership' | 'earnings' | 'posts'>('membership');
+  const [selectedToggle, setSelectedToggle] = useState<'membership' | 'earnings' | 'creators'>('membership');
   const [hasExistingGroup, setHasExistingGroup] = useState(false);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [isUnsubscribeModalVisible, setIsUnsubscribeModalVisible] = useState(false);
+  const [selectedCreator, setSelectedCreator] = useState<{ name: string; subscriptionId: string } | null>(null);
+  const [isProcessingUnsubscribe, setIsProcessingUnsubscribe] = useState(false);
+  const [modalMessage, setModalMessage] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
   // For swipe toggle
-  const toggleOptions = ['membership', 'earnings', 'posts'] as const;
+  const toggleOptions = ['membership', 'earnings', 'creators'] as const;
   const toggleIndex = toggleOptions.indexOf(selectedToggle);
 
   useEffect(() => {
@@ -40,9 +61,30 @@ export default function Profile() {
           ]
         );
         setHasExistingGroup(response.documents.length > 0);
+
+        // Load user subscriptions
+        const userSubscriptions = await getUserSubscriptions(user.$id);
+        
+        // Filter out active subscriptions that have a cancelled counterpart
+        const filteredSubscriptions = userSubscriptions.filter((sub, index, self) => {
+          if (sub.status === 'cancelled') return true;
+          
+          // If this is an active subscription, check if there's a cancelled one with the same stripeSubscriptionId
+          const hasCancelledCounterpart = self.some(
+            otherSub => 
+              otherSub.status === 'cancelled' && 
+              otherSub.stripeSubscriptionId === sub.stripeSubscriptionId
+          );
+          
+          return !hasCancelledCounterpart;
+        });
+
+        setSubscriptions(filteredSubscriptions);
       }
     } catch (error) {
       console.error("Error loading user data:", error);
+      setModalMessage({ type: 'error', message: 'Failed to load user data' });
+      setIsUnsubscribeModalVisible(true);
     }
   };
 
@@ -52,6 +94,177 @@ export default function Profile() {
       return;
     }
     router.push('/my_page');
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const handleUnsubscribe = (creatorName: string, subscriptionId: string) => {
+    setSelectedCreator({ name: creatorName, subscriptionId });
+    setIsUnsubscribeModalVisible(true);
+  };
+
+  const confirmUnsubscribe = async () => {
+    if (!selectedCreator) return;
+    
+    setIsProcessingUnsubscribe(true);
+
+    try {
+      await cancelSubscription(selectedCreator.subscriptionId);
+      setModalMessage({ type: 'success', message: `Successfully unsubscribed from ${selectedCreator.name}` });
+      
+      // Refresh subscriptions list
+      const currentUser = await getCurrentUser();
+      if (currentUser) {
+        const updatedSubscriptions = await getUserSubscriptions(currentUser.$id);
+        setSubscriptions(updatedSubscriptions);
+      }
+    } catch (error) {
+      setModalMessage({ 
+        type: 'error', 
+        message: error instanceof Error ? error.message : 'Failed to unsubscribe'
+      });
+    } finally {
+      setIsProcessingUnsubscribe(false);
+    }
+  };
+
+  const closeModal = () => {
+    setIsUnsubscribeModalVisible(false);
+    setSelectedCreator(null);
+    setModalMessage(null);
+  };
+
+  const renderContent = () => {
+    switch (selectedToggle) {
+      case 'creators':
+        return (
+          <ScrollView className="w-full">
+            {subscriptions.length > 0 ? (
+              subscriptions.map((subscription) => (
+                <View 
+                  key={subscription.$id}
+                  className="mb-3"
+                >
+                  {subscription.status === 'active' ? (
+                    <View style={{
+                      padding: 2,
+                      borderRadius: 20,
+                      backgroundColor: 'rgba(255,255,255,0.1)',
+                      width: '100%',
+                    }}>
+                      <LinearGradient
+                        colors={['#FB2355', '#FFD700', '#FB2355']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={{
+                          padding: 1,
+                          borderRadius: 19,
+                          width: '100%',
+                        }}
+                      >
+                        <View style={{
+                          backgroundColor: '#1A1A1A',
+                          borderRadius: 18,
+                          overflow: 'hidden',
+                          width: '100%',
+                          padding: 16,
+                        }}>
+                          <View className="flex-row justify-between items-start mb-2">
+                            <View>
+                              <Text style={{ color: 'white', fontSize: 18, fontFamily: 'questrial', fontWeight: 'bold' }}>
+                                {subscription.creatorName}
+                              </Text>
+                            </View>
+                            <TouchableOpacity 
+                              className="bg-[#FB2355] px-3 py-1 rounded-full"
+                              onPress={() => handleUnsubscribe(subscription.creatorName, subscription.stripeSubscriptionId)}
+                            >
+                              <Text style={{ color: 'white', fontFamily: 'questrial' }}>Unsubscribe</Text>
+                            </TouchableOpacity>
+                          </View>
+                          <View className="flex-row justify-between mb-1">
+                            <Text style={{ color: '#888', fontFamily: 'questrial' }}>Plan:</Text>
+                            <Text style={{ color: 'white', fontFamily: 'questrial' }}>
+                              {subscription.planInterval}ly ({subscription.planCurrency})
+                            </Text>
+                          </View>
+                          <View className="flex-row justify-between mb-1">
+                            <Text style={{ color: '#888', fontFamily: 'questrial' }}>Subscribed:</Text>
+                            <Text style={{ color: 'white', fontFamily: 'questrial' }}>
+                              {formatDate(subscription.createdAt)}
+                            </Text>
+                          </View>
+                          <View className="flex-row justify-between">
+                            <Text style={{ color: '#888', fontFamily: 'questrial' }}>Renews:</Text>
+                            <Text style={{ color: 'white', fontFamily: 'questrial' }}>
+                              {formatDate(subscription.renewalDate)}
+                            </Text>
+                          </View>
+                        </View>
+                      </LinearGradient>
+                    </View>
+                  ) : (
+                    <View className="bg-[#1A1A1A] rounded-lg p-4 border border-red-500">
+                      <View className="flex-row justify-between items-start mb-2">
+                        <View>
+                          <Text style={{ color: '#F44336', fontSize: 18, fontFamily: 'questrial', fontWeight: 'bold' }}>
+                            {subscription.creatorName}
+                          </Text>
+                          <Text style={{ color: '#F44336', fontFamily: 'questrial', fontSize: 12 }}>
+                            Cancelled on {formatDate(subscription.createdAt)}
+                          </Text>
+                        </View>
+                      </View>
+                      <View className="flex-row justify-between mb-1">
+                        <Text style={{ color: '#888', fontFamily: 'questrial' }}>Plan:</Text>
+                        <Text style={{ color: '#F44336', fontFamily: 'questrial' }}>
+                          {subscription.planInterval}ly ({subscription.planCurrency})
+                        </Text>
+                      </View>
+                      <View className="flex-row justify-between mb-1">
+                        <Text style={{ color: '#888', fontFamily: 'questrial' }}>Subscribed:</Text>
+                        <Text style={{ color: '#F44336', fontFamily: 'questrial' }}>
+                          {formatDate(subscription.createdAt)}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                </View>
+              ))
+            ) : (
+              <View className="items-center justify-center py-8">
+                <Text style={{ color: 'white', fontSize: 16, fontFamily: 'questrial', textAlign: 'center' }}>
+                  You haven't subscribed to any creators yet
+                </Text>
+              </View>
+            )}
+          </ScrollView>
+        );
+      case 'membership':
+        return (
+          <View className="items-center justify-center py-8">
+            <Text style={{ color: 'white', fontSize: 16, fontFamily: 'questrial', textAlign: 'center' }}>
+              Membership details coming soon
+            </Text>
+          </View>
+        );
+      case 'earnings':
+        return (
+          <View className="items-center justify-center py-8">
+            <Text style={{ color: 'white', fontSize: 16, fontFamily: 'questrial', textAlign: 'center' }}>
+              Earnings feature coming soon
+            </Text>
+          </View>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
@@ -129,7 +342,7 @@ export default function Profile() {
         </View>
         
         {/* Action Buttons */}
-        <View className="w-full px-6">
+        <View className="w-full px-6 mb-6">
           <TouchableOpacity 
             className="w-full bg-[#1A1A1A] py-2 rounded-lg items-center flex-row justify-center mb-1"
             onPress={() => router.push('/edit-profile')}
@@ -181,13 +394,15 @@ export default function Profile() {
               />
             </View>
           </TouchableOpacity>
+        </View>
 
+        {/* Toggle Section */}
+        <View className="w-full px-6">
           {/* Swipe-style Toggle group */}
           <View style={{
             flexDirection: 'row',
             backgroundColor: '#1A1A1A',
             borderRadius: 999,
-            marginTop: 6,
             marginBottom: 18,
             overflow: 'hidden',
             position: 'relative',
@@ -216,6 +431,8 @@ export default function Profile() {
               </Pressable>
             ))}
           </View>
+
+          {renderContent()}
         </View>
       </View>
 
@@ -230,6 +447,85 @@ export default function Profile() {
           </Text>
         </TouchableOpacity>
       </View>
+
+      <Modal
+        isVisible={isUnsubscribeModalVisible}
+        onBackdropPress={closeModal}
+        onBackButtonPress={closeModal}
+        style={{ margin: 0, justifyContent: 'center', alignItems: 'center' }}
+      >
+        <View className="bg-[#1A1A1A] rounded-2xl p-6 w-[90%] max-w-[400px]">
+          {modalMessage ? (
+            <>
+              <Text style={[
+                { color: modalMessage.type === 'success' ? '#4CAF50' : '#F44336' },
+                { fontSize: 20, fontFamily: 'questrial', fontWeight: 'bold', textAlign: 'center', marginBottom: 16 }
+              ]}>
+                {modalMessage.type === 'success' ? 'Success' : 'Error'}
+              </Text>
+              <Text style={[
+                { color: 'white', fontSize: 16, fontFamily: 'questrial', textAlign: 'center', marginBottom: 24 }
+              ]}>
+                {modalMessage.message}
+              </Text>
+              <TouchableOpacity
+                style={[
+                  { backgroundColor: '#4CAF50', padding: 12, borderRadius: 8, alignItems: 'center' },
+                  { marginTop: 24 }
+                ]}
+                onPress={closeModal}
+              >
+                <Text style={[
+                  { color: 'white', fontFamily: 'questrial', fontSize: 16, fontWeight: 'bold' }
+                ]}>
+                  OK
+                </Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <Text style={{ color: 'white', fontSize: 20, fontFamily: 'questrial', fontWeight: 'bold', textAlign: 'center', marginBottom: 16 }}>
+                Confirm Unsubscribe
+              </Text>
+              <Text style={{ color: 'white', fontSize: 16, fontFamily: 'questrial', textAlign: 'center', marginBottom: 24 }}>
+                Are you sure you want to unsubscribe from {selectedCreator?.name}?
+              </Text>
+              <View className="flex-row justify-between">
+                <TouchableOpacity
+                  style={[
+                    { backgroundColor: '#F44336', padding: 12, borderRadius: 8, flex: 1, marginRight: 2 },
+                    { disabled: isProcessingUnsubscribe }
+                  ]}
+                  onPress={confirmUnsubscribe}
+                  disabled={isProcessingUnsubscribe}
+                >
+                  <Text style={[
+                    { color: 'white', fontFamily: 'questrial', fontSize: 16, fontWeight: 'bold', textAlign: 'center' },
+                    { disabled: isProcessingUnsubscribe }
+                  ]}>
+                    {isProcessingUnsubscribe ? 'Processing...' : 'Unsubscribe'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    { backgroundColor: '#9E9E9E', padding: 12, borderRadius: 8, flex: 1, marginLeft: 2 },
+                    { disabled: isProcessingUnsubscribe }
+                  ]}
+                  onPress={closeModal}
+                  disabled={isProcessingUnsubscribe}
+                >
+                  <Text style={[
+                    { color: 'white', fontFamily: 'questrial', fontSize: 16, fontWeight: 'bold', textAlign: 'center' },
+                    { disabled: isProcessingUnsubscribe }
+                  ]}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+        </View>
+      </Modal>
     </SafeAreaView>
   )
 }

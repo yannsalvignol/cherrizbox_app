@@ -1,4 +1,4 @@
-import { Client, Databases, Query } from 'react-native-appwrite';
+import { Client, Databases, Query } from 'appwrite';
 import { config, getCurrentUser } from './appwrite';
 
 const FUNCTION_ID = '683ecdc6003c80bf5cfd';
@@ -80,13 +80,19 @@ export async function initiateSubscription(amount: number, interval: 'month' | '
       throw new Error('User email is required for subscription');
     }
 
-    // Get the creator ID
+    // Get the creator's ID
     const creatorId = await getCreatorId(creatorName);
+    console.log('Found creator ID:', creatorId);
+
+    const subscriptionPath = `/subscribe?creatorName=${encodeURIComponent(creatorName)}&creatorId=${encodeURIComponent(creatorId)}&price=${amount}&interval=${interval}&email=${encodeURIComponent(currentUser.email)}`;
+    console.log('Subscription URL:', subscriptionPath);
 
     const requestBody = {
-      path: `/subscribe?creatorName=${encodeURIComponent(creatorName)}&creatorId=${encodeURIComponent(creatorId)}&price=${amount}&interval=${interval}&email=${encodeURIComponent(currentUser.email)}`,
+      path: subscriptionPath,
       email: currentUser.email
     };
+
+    console.log('Full request body:', JSON.stringify(requestBody, null, 2));
 
     const response = await fetch(FUNCTION_ENDPOINT, {
       method: 'POST',
@@ -108,6 +114,7 @@ export async function initiateSubscription(amount: number, interval: 'month' | '
 
     try {
       const data = JSON.parse(await response.text());
+      console.log('Function response:', JSON.stringify(data, null, 2));
       
       // Look for the Stripe checkout URL in the location header
       const locationHeader = data.responseHeaders?.find(
@@ -115,15 +122,18 @@ export async function initiateSubscription(amount: number, interval: 'month' | '
       );
 
       if (locationHeader?.value) {
+        console.log('Stripe checkout URL:', locationHeader.value);
         return locationHeader.value;
       } else {
         throw new Error('No checkout URL found in response');
       }
     } catch (parseError) {
+      console.error('Error parsing function response:', parseError);
       throw new Error('Failed to process function response');
     }
   } catch (error) {
     if (error instanceof Error) {
+      console.error('Subscription error:', error.message);
       throw new Error(`Subscription failed: ${error.message}`);
     }
     throw error;
@@ -157,4 +167,4 @@ export async function cancelSubscription(subscriptionId: string) {
     console.error('Error in cancelSubscription:', error);
     throw error;
   }
-}
+} 

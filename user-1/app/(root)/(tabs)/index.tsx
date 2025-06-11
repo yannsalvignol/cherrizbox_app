@@ -1,5 +1,7 @@
-import { getAllPosts, getUserProfile } from '@/lib/appwrite';
+import { config, databases, getAllPosts, getUserProfile, isUserSubscribed } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
+import { Query } from 'appwrite';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Dimensions, Image, Keyboard, RefreshControl, Text, TouchableOpacity, View } from 'react-native';
@@ -24,6 +26,8 @@ interface Post {
     $databaseId: string;
     $permissions: string[];
     PhotoTopics?: string;
+    isSubscribed?: boolean;
+    isCancelled?: boolean;
 }
 
 export default function Index() {
@@ -48,8 +52,38 @@ export default function Index() {
                 ...post,
                 type: post.type === 'photo' ? 'photo' : 'video'
             })) as Post[];
-            setPosts(typedPosts);
-            setFilteredPosts(typedPosts);
+
+            // Check subscription status for each post
+            if (user?.$id) {
+                const postsWithSubscription = await Promise.all(
+                    typedPosts.map(async (post) => {
+                        const isSubscribed = await isUserSubscribed(user.$id, post.title || '');
+                        // Get subscription status from the database
+                        const subscriptions = await databases.listDocuments(
+                            config.databaseId,
+                            config.activeSubscriptionsCollectionId,
+                            [
+                                Query.equal('userId', user.$id),
+                                Query.equal('creatorName', post.title || '')
+                            ]
+                        );
+                        const isCancelled = subscriptions.documents.some(sub => sub.status === 'cancelled');
+                        return { ...post, isSubscribed, isCancelled };
+                    })
+                );
+                // Sort posts: active subscriptions first, then by creation date
+                const sortedPosts = postsWithSubscription.sort((a, b) => {
+                    if (a.isSubscribed && !a.isCancelled && (!b.isSubscribed || b.isCancelled)) return -1;
+                    if ((!a.isSubscribed || a.isCancelled) && b.isSubscribed && !b.isCancelled) return 1;
+                    // If subscription status is the same, sort by creation date
+                    return new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime();
+                });
+                setPosts(sortedPosts);
+                setFilteredPosts(sortedPosts);
+            } else {
+                setPosts(typedPosts);
+                setFilteredPosts(typedPosts);
+            }
         } catch (error) {
             console.error('Error loading posts:', error);
         } finally {
@@ -240,7 +274,52 @@ export default function Index() {
                         <View className="flex-row flex-wrap justify-between">
                             {filteredPosts.map((post, index) => (
                                 post.type === "photo" ? (
-                                    <PhotoCard key={post.$id} photo={post} index={index} scrollY={scrollY} scrolling={scrolling} />
+                                    <View key={post.$id} style={{ marginBottom: 16, width: cardWidth }}>
+                                        {post.isSubscribed && !post.isCancelled ? (
+                                            <View style={{
+                                                padding: 2,
+                                                borderRadius: 20,
+                                                backgroundColor: 'rgba(255,255,255,0.1)',
+                                                width: '100%',
+                                            }}>
+                                                <LinearGradient
+                                                    colors={['#FB2355', '#FFD700', '#FB2355']}
+                                                    start={{ x: 0, y: 0 }}
+                                                    end={{ x: 1, y: 1 }}
+                                                    style={{
+                                                        padding: 1,
+                                                        borderRadius: 19,
+                                                        width: '100%',
+                                                    }}
+                                                >
+                                                    <View style={{
+                                                        backgroundColor: 'black',
+                                                        borderRadius: 18,
+                                                        overflow: 'hidden',
+                                                        width: '100%',
+                                                    }}>
+                                                        <PhotoCard 
+                                                            photo={post} 
+                                                            index={index} 
+                                                            scrollY={scrollY} 
+                                                            scrolling={scrolling}
+                                                            isSubscribed={post.isSubscribed} 
+                                                            isCancelled={post.isCancelled}
+                                                        />
+                                                    </View>
+                                                </LinearGradient>
+                                            </View>
+                                        ) : (
+                                            <PhotoCard 
+                                                photo={post} 
+                                                index={index} 
+                                                scrollY={scrollY} 
+                                                scrolling={scrolling}
+                                                isSubscribed={post.isSubscribed} 
+                                                isCancelled={post.isCancelled}
+                                            />
+                                        )}
+                                    </View>
                                 ) : (
                                     <TouchableOpacity 
                                         key={post.$id} 

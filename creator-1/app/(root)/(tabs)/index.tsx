@@ -1,4 +1,4 @@
-import { getAllPosts, getUserProfile } from '@/lib/appwrite';
+import { getAllPosts, getUserProfile, isUserSubscribed } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
@@ -24,6 +24,7 @@ interface Post {
     $databaseId: string;
     $permissions: string[];
     PhotoTopics?: string;
+    isSubscribed?: boolean;
 }
 
 export default function Index() {
@@ -48,8 +49,28 @@ export default function Index() {
                 ...post,
                 type: post.type === 'photo' ? 'photo' : 'video'
             })) as Post[];
-            setPosts(typedPosts);
-            setFilteredPosts(typedPosts);
+
+            // Check subscription status for each post
+            if (user?.$id) {
+                const postsWithSubscription = await Promise.all(
+                    typedPosts.map(async (post) => {
+                        const isSubscribed = await isUserSubscribed(user.$id, post.title || '');
+                        return { ...post, isSubscribed };
+                    })
+                );
+                // Sort posts: subscribed first, then by creation date
+                const sortedPosts = postsWithSubscription.sort((a, b) => {
+                    if (a.isSubscribed && !b.isSubscribed) return -1;
+                    if (!a.isSubscribed && b.isSubscribed) return 1;
+                    // If subscription status is the same, sort by creation date
+                    return new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime();
+                });
+                setPosts(sortedPosts);
+                setFilteredPosts(sortedPosts);
+            } else {
+                setPosts(typedPosts);
+                setFilteredPosts(typedPosts);
+            }
         } catch (error) {
             console.error('Error loading posts:', error);
         } finally {
@@ -251,7 +272,15 @@ export default function Index() {
                         <View className="flex-row flex-wrap justify-between">
                             {filteredPosts.map((post, index) => (
                                 post.type === "photo" ? (
-                                    <PhotoCard key={post.$id} photo={post} index={index} scrollY={scrollY} scrolling={scrolling} />
+                                    <View key={post.$id} style={{ marginBottom: 16, width: cardWidth }}>
+                                        <PhotoCard 
+                                            photo={post} 
+                                            index={index} 
+                                            scrollY={scrollY} 
+                                            scrolling={scrolling}
+                                            isSubscribed={post.isSubscribed} 
+                                        />
+                                    </View>
                                 ) : (
                                     <TouchableOpacity 
                                         key={post.$id} 

@@ -1,14 +1,21 @@
+import { useGlobalContext } from '@/lib/global-provider';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Image, ImageBackground, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
-import { getAllPosts } from '../../../lib/appwrite';
+import { ActivityIndicator, Alert, Animated, Image, ImageBackground, Linking, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { getAllPosts, getSubscriptionCount, isUserSubscribed } from '../../../lib/appwrite';
+import { initiateSubscription } from '../../../lib/subscription';
 
 const Property = () => {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { user } = useGlobalContext();
   const [post, setPost] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showBioModal, setShowBioModal] = useState(false);
+  const [selectedPricing, setSelectedPricing] = useState<'monthly' | 'yearly'>('monthly');
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [isSubscribed, setIsSubscribed] = useState(false);
   const params = useLocalSearchParams();
   const imageParam = params.image as string | undefined;
   const titleParam = params.title as string | undefined;
@@ -26,6 +33,18 @@ const Property = () => {
         const allPosts = await getAllPosts();
         const found = allPosts.find((p: any) => p.$id === id);
         setPost(found);
+        
+        if (found) {
+          const creatorName = titleParam || found.title || 'this';
+          const count = await getSubscriptionCount(creatorName);
+          setFollowerCount(count);
+
+          // Check if user is subscribed
+          if (user?.$id) {
+            const subscribed = await isUserSubscribed(user.$id, creatorName);
+            setIsSubscribed(subscribed);
+          }
+        }
       } catch (e) {
         setPost(null);
       } finally {
@@ -33,7 +52,7 @@ const Property = () => {
       }
     };
     fetchPost();
-  }, [id]);
+  }, [id, titleParam, user]);
 
   useEffect(() => {
     if (!loading && post) {
@@ -70,6 +89,42 @@ const Property = () => {
       }, 200);
     }
   }, [loading, post]);
+
+  const handleJoinBox = async () => {
+    if (!user) {
+      Alert.alert('Authentication Required', 'Please sign in to subscribe to this creator.');
+      return;
+    }
+
+    try {
+      setIsProcessingPayment(true);
+      const paymentData = JSON.parse(post.payment);
+      const amount = selectedPricing === 'monthly' 
+        ? parseFloat(paymentData.monthlyPrice)
+        : parseFloat(paymentData.yearlyPrice);
+      const interval = selectedPricing === 'monthly' ? 'month' : 'year';
+      const creatorName = titleParam || post.title || 'this';
+      
+      const checkoutUrl = await initiateSubscription(amount, interval, creatorName);
+      
+      if (checkoutUrl) {
+        const supported = await Linking.canOpenURL(checkoutUrl);
+        if (supported) {
+          await Linking.openURL(checkoutUrl);
+        } else {
+          Alert.alert('Error', 'Cannot open payment page');
+        }
+      }
+    } catch (error) {
+      console.error('Subscription error:', error);
+      Alert.alert(
+        'Subscription Error',
+        error instanceof Error ? error.message : 'Failed to initiate subscription'
+      );
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -112,14 +167,26 @@ const Property = () => {
               <TouchableOpacity onPress={() => router.back()} style={{ paddingVertical: 6 }}>
                 <Image source={require('../../../assets/icon/back.png')} style={{ width: 28, height: 28, tintColor: 'white', resizeMode: 'contain' }} />
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }} 
-                onPress={() => setShowBioModal(true)}
-              >
-                <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: 'white', marginHorizontal: 2 }} />
-                <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: 'white', marginHorizontal: 2 }} />
-                <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: 'white', marginHorizontal: 2 }} />
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                {isSubscribed && (
+                  <View style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: 10,
+                    backgroundColor: '#FFD700',
+                    borderWidth: 2,
+                    borderColor: 'white'
+                  }} />
+                )}
+                <TouchableOpacity 
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }} 
+                  onPress={() => setShowBioModal(true)}
+                >
+                  <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: 'white', marginHorizontal: 2 }} />
+                  <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: 'white', marginHorizontal: 2 }} />
+                  <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: 'white', marginHorizontal: 2 }} />
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Bio Modal */}
@@ -185,21 +252,31 @@ const Property = () => {
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 15 }}>
                     <View style={{ paddingTop: 10 }}>
                       <Text style={{ color: 'white', fontSize: 24, textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }}>
-                        0
+                        {followerCount}
                       </Text>
                       <Text style={{ color: '#B9B9B9', fontSize: 18, textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial', marginTop: 8 }}>
                         followers
                       </Text>
                     </View>
                     <View>
-                      <View style={{ borderWidth: 2, borderColor: 'white', borderRadius: 16, padding: 8 }}>
+                      <TouchableOpacity 
+                        onPress={() => setSelectedPricing('monthly')}
+                        style={{ 
+                          borderWidth: selectedPricing === 'monthly' ? 3 : 2,
+                          borderColor: selectedPricing === 'monthly' ? 'white' : 'rgba(255,255,255,0.3)',
+                          borderRadius: 16,
+                          padding: 8,
+                          backgroundColor: selectedPricing === 'monthly' ? 'rgba(255,255,255,0.1)' : 'transparent',
+                          transform: [{ scale: selectedPricing === 'monthly' ? 1.05 : 1 }]
+                        }}
+                      >
                         <Text style={{ color: 'white', fontSize: 28, fontWeight: 'bold', textShadowColor: 'rgba(255, 255, 255, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }}>
                           ${JSON.parse(post.payment).monthlyPrice}
                         </Text>
                         <Text style={{ color: 'white', fontSize: 16, textShadowColor: 'rgba(255, 255, 255, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial', marginTop: 4 }}>
                           per month
                         </Text>
-                      </View>
+                      </TouchableOpacity>
                     </View>
                     <View style={{ justifyContent: 'center' }}>
                       <Text style={{ color: '#B9B9B9', fontSize: 18, textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }}>
@@ -207,21 +284,54 @@ const Property = () => {
                       </Text>
                     </View>
                     <View>
-                      <View style={{ borderWidth: 2, borderColor: '#FB2355', borderRadius: 16, padding: 8 }}>
+                      <TouchableOpacity 
+                        onPress={() => setSelectedPricing('yearly')}
+                        style={{ 
+                          borderWidth: selectedPricing === 'yearly' ? 3 : 2,
+                          borderColor: selectedPricing === 'yearly' ? '#FB2355' : 'rgba(251, 35, 85, 0.3)',
+                          borderRadius: 16,
+                          padding: 8,
+                          backgroundColor: selectedPricing === 'yearly' ? 'rgba(251, 35, 85, 0.1)' : 'transparent',
+                          transform: [{ scale: selectedPricing === 'yearly' ? 1.05 : 1 }]
+                        }}
+                      >
                         <Text style={{ color: '#FB2355', fontSize: 28, fontWeight: 'bold', textShadowColor: 'rgba(251, 35, 85, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }}>
                           ${JSON.parse(post.payment).yearlyPrice}
                         </Text>
                         <Text style={{ color: '#FB2355', fontSize: 16, textShadowColor: 'rgba(251, 35, 85, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial', marginTop: 4 }}>
                           per year
                         </Text>
-                      </View>
+                      </TouchableOpacity>
                     </View>
                   </View>
                 </View>
-                <TouchableOpacity style={{ marginTop: 30, backgroundColor: '#FB2355', borderRadius: 20, paddingVertical: 12, paddingHorizontal: 100 }}>
-                  <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', fontFamily: 'questrial' }}>
-                    Join {titleParam || post.title || 'this'}'s box
-                  </Text>
+                <TouchableOpacity 
+                  style={{ 
+                    marginTop: 30, 
+                    backgroundColor: '#FB2355', 
+                    borderRadius: 20, 
+                    paddingVertical: 12, 
+                    paddingHorizontal: 100,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    opacity: isProcessingPayment ? 0.7 : 1
+                  }}
+                  onPress={handleJoinBox}
+                  disabled={isProcessingPayment}
+                >
+                  {isProcessingPayment ? (
+                    <>
+                      <ActivityIndicator size="small" color="white" style={{ marginRight: 10 }} />
+                      <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', fontFamily: 'questrial' }}>
+                        Processing...
+                      </Text>
+                    </>
+                  ) : (
+                    <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', fontFamily: 'questrial' }}>
+                      {isSubscribed ? 'Subscribed' : `Join ${titleParam || post.title || 'this'}'s box`}
+                    </Text>
+                  )}
                 </TouchableOpacity>
               </View>
             </Animated.View>

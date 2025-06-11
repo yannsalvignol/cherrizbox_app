@@ -20,9 +20,11 @@ interface PhotoCardProps {
     photo: MediaItem;
     index?: number;
     scrollY?: any;
+    isSubscribed?: boolean;
+    scrolling?: boolean;
 }
 
-const PhotoCard = ({ photo, index = 0, scrollY }: PhotoCardProps) => {
+const PhotoCard = ({ photo, index = 0, scrollY, isSubscribed = false, scrolling = false }: PhotoCardProps) => {
     const router = useRouter();
     const scaleAnim = useRef(new Animated.Value(1)).current;
     const opacityAnim = useRef(new Animated.Value(1)).current;
@@ -93,66 +95,172 @@ const PhotoCard = ({ photo, index = 0, scrollY }: PhotoCardProps) => {
                 shadowOpacity: 0.18,
                 shadowRadius: 16,
                 elevation: 8,
-                borderRadius: 22,
-                marginBottom: 16,
+                borderRadius: 20,
                 backgroundColor: 'transparent',
+                width: '100%',
             }}
         >
-            <LinearGradient
-                colors={['#232526', '#414345']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{
-                    borderRadius: 22,
+            {isSubscribed ? (
+                <View style={{
                     padding: 2,
-                }}
-            >
-                <TouchableOpacity
-                    activeOpacity={0.92}
-                    style={{ width: cardWidth, borderRadius: 20, overflow: 'hidden', backgroundColor: '#18181b' }}
-                    onPress={() => router.push(`/properties/${photo.$id}`)}
-                    onPressIn={handlePressIn}
-                    onPressOut={handlePressOut}
-                >
-                    <View style={{ borderRadius: 10, overflow: 'hidden', position: 'relative' }}>
-                        {/* Image */}
-                        {photo.thumbnail || photo.imageUrl || photo.fileUrl ? (
-                            <Image
-                                source={{ uri: photo.thumbnail || photo.imageUrl || photo.fileUrl }}
-                                style={{ width: '100%', height: 270 }}
-                                resizeMode="cover"
-                            />
-                        ) : (
-                            <View style={{ width: '100%', height: 270, backgroundColor: '#222', alignItems: 'center', justifyContent: 'center' }}>
-                                <Text style={{ color: '#aaa', fontWeight: '500' }}>No Image</Text>
-                            </View>
-                        )}
-                        {/* Creator name pill badge at bottom left */}
+                    borderRadius: 20,
+                    backgroundColor: 'rgba(255,255,255,0.1)',
+                    width: '100%',
+                }}>
+                    <LinearGradient
+                        colors={['#FB2355', '#FFD700', '#FB2355']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={{
+                            padding: 1,
+                            borderRadius: 19,
+                            width: '100%',
+                        }}
+                    >
                         <View style={{
-                            position: 'absolute',
-                            bottom: 10,
-                            left: 11,
-                            backgroundColor: 'rgba(0,0,0,0.55)',
-                            borderRadius: 16,
-                            paddingVertical: 7,
-                            paddingHorizontal: 18,
-                            maxWidth: '80%',
+                            backgroundColor: '#18181b',
+                            borderRadius: 18,
+                            overflow: 'hidden',
+                            width: '100%',
                         }}>
-                            <Text style={{
-                                color: '#fff',
-                                fontWeight: '700',
-                                fontSize: 16,
-                                letterSpacing: 0.2,
-                                textShadowColor: 'rgba(0,0,0,0.18)',
-                                textShadowOffset: { width: 0, height: 1 },
-                                textShadowRadius: 4,
-                            }} numberOfLines={1}>
-                                {photoTitle}
-                            </Text>
+                            <TouchableOpacity
+                                activeOpacity={0.92}
+                                style={{ 
+                                    width: '100%', 
+                                    borderRadius: 18, 
+                                    overflow: 'hidden', 
+                                    backgroundColor: '#18181b' 
+                                }}
+                                onPress={() => router.push(`/properties/${photo.$id}`)}
+                                onPressIn={handlePressIn}
+                                onPressOut={handlePressOut}
+                            >
+                                <View style={{ borderRadius: 18, overflow: 'hidden', position: 'relative' }}>
+                                    {/* Image */}
+                                    {photo.thumbnail || photo.imageUrl || photo.fileUrl ? (
+                                        <Image
+                                            source={{ uri: photo.thumbnail || photo.imageUrl || photo.fileUrl }}
+                                            style={{ width: '100%', height: 270 }}
+                                            resizeMode="cover"
+                                        />
+                                    ) : (
+                                        <View style={{ width: '100%', height: 270, backgroundColor: '#222', alignItems: 'center', justifyContent: 'center' }}>
+                                            <Text style={{ color: '#aaa', fontWeight: '500' }}>No Image</Text>
+                                        </View>
+                                    )}
+                                    {/* Creator name pill badge at bottom left */}
+                                    <View style={{
+                                        position: 'absolute',
+                                        bottom: 10,
+                                        left: 11,
+                                        borderRadius: 16,
+                                        paddingVertical: 7,
+                                        paddingHorizontal: 18,
+                                        maxWidth: '80%',
+                                        overflow: 'hidden',
+                                    }}>
+                                        <LinearGradient
+                                            colors={['rgba(251, 35, 85, 0.85)', 'rgba(255, 215, 0, 0.85)']}
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 1, y: 0 }}
+                                            style={{
+                                                position: 'absolute',
+                                                top: 0,
+                                                left: 0,
+                                                right: 0,
+                                                bottom: 0,
+                                                borderRadius: 16,
+                                            }}
+                                        />
+                                        <Text style={{
+                                            color: '#fff',
+                                            fontWeight: '700',
+                                            fontSize: 16,
+                                            letterSpacing: 0.2,
+                                            textShadowColor: 'rgba(0,0,0,0.3)',
+                                            textShadowOffset: { width: 0, height: 1 },
+                                            textShadowRadius: 4,
+                                        }} numberOfLines={1}>
+                                            {photoTitle}
+                                        </Text>
+                                    </View>
+                                </View>
+                            </TouchableOpacity>
                         </View>
-                    </View>
-                </TouchableOpacity>
-            </LinearGradient>
+                    </LinearGradient>
+                </View>
+            ) : (
+                <LinearGradient
+                    colors={['#232526', '#414345']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={{
+                        borderRadius: 20,
+                        padding: 2,
+                        width: '100%',
+                    }}
+                >
+                    <TouchableOpacity
+                        activeOpacity={0.92}
+                        style={{ 
+                            width: '100%', 
+                            borderRadius: 18, 
+                            overflow: 'hidden', 
+                            backgroundColor: '#18181b' 
+                        }}
+                        onPress={() => router.push(`/properties/${photo.$id}`)}
+                        onPressIn={handlePressIn}
+                        onPressOut={handlePressOut}
+                    >
+                        <View style={{ borderRadius: 18, overflow: 'hidden', position: 'relative' }}>
+                            {/* Image */}
+                            {photo.thumbnail || photo.imageUrl || photo.fileUrl ? (
+                                <Image
+                                    source={{ uri: photo.thumbnail || photo.imageUrl || photo.fileUrl }}
+                                    style={{ width: '100%', height: 270 }}
+                                    resizeMode="cover"
+                                />
+                            ) : (
+                                <View style={{ width: '100%', height: 270, backgroundColor: '#222', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Text style={{ color: '#aaa', fontWeight: '500' }}>No Image</Text>
+                                </View>
+                            )}
+                            {/* Creator name pill badge at bottom left */}
+                            <View style={{
+                                position: 'absolute',
+                                bottom: 10,
+                                left: 11,
+                                borderRadius: 16,
+                                paddingVertical: 7,
+                                paddingHorizontal: 18,
+                                maxWidth: '80%',
+                                overflow: 'hidden',
+                            }}>
+                                <View style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    backgroundColor: 'rgba(0,0,0,0.55)',
+                                    borderRadius: 16,
+                                }} />
+                                <Text style={{
+                                    color: '#fff',
+                                    fontWeight: '700',
+                                    fontSize: 16,
+                                    letterSpacing: 0.2,
+                                    textShadowColor: 'rgba(0,0,0,0.3)',
+                                    textShadowOffset: { width: 0, height: 1 },
+                                    textShadowRadius: 4,
+                                }} numberOfLines={1}>
+                                    {photoTitle}
+                                </Text>
+                            </View>
+                        </View>
+                    </TouchableOpacity>
+                </LinearGradient>
+            )}
         </Animated.View>
     );
 };
