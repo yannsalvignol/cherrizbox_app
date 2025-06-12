@@ -1,6 +1,5 @@
-import { config, databases, getAllPosts, getUserProfile, isUserSubscribed } from '@/lib/appwrite';
+import { getAllPosts, getSubscriptionStatus, getUserProfile } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
-import { Query } from 'appwrite';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
@@ -57,24 +56,20 @@ export default function Index() {
             if (user?.$id) {
                 const postsWithSubscription = await Promise.all(
                     typedPosts.map(async (post) => {
-                        const isSubscribed = await isUserSubscribed(user.$id, post.title || '');
-                        // Get subscription status from the database
-                        const subscriptions = await databases.listDocuments(
-                            config.databaseId,
-                            config.activeSubscriptionsCollectionId,
-                            [
-                                Query.equal('userId', user.$id),
-                                Query.equal('creatorName', post.title || '')
-                            ]
-                        );
-                        const isCancelled = subscriptions.documents.some(sub => sub.status === 'cancelled');
+                        const { isSubscribed, isCancelled } = await getSubscriptionStatus(user.$id, post.title || '');
                         return { ...post, isSubscribed, isCancelled };
                     })
                 );
-                // Sort posts: active subscriptions first, then by creation date
+                // Sort posts: active subscriptions first, then cancelled ones, then by creation date
                 const sortedPosts = postsWithSubscription.sort((a, b) => {
+                    // Active subscriptions first
                     if (a.isSubscribed && !a.isCancelled && (!b.isSubscribed || b.isCancelled)) return -1;
                     if ((!a.isSubscribed || a.isCancelled) && b.isSubscribed && !b.isCancelled) return 1;
+                    
+                    // Then cancelled subscriptions
+                    if (a.isCancelled && !b.isCancelled) return -1;
+                    if (!a.isCancelled && b.isCancelled) return 1;
+                    
                     // If subscription status is the same, sort by creation date
                     return new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime();
                 });

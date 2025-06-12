@@ -203,7 +203,7 @@ const PhotoCard = ({ photo, index = 0, scrollY, isSubscribed = false, isCancelle
                                     left: 0,
                                     right: 0,
                                     bottom: 0,
-                                    backgroundColor: 'rgba(0,0,0,0.55)',
+                                    backgroundColor: isCancelled ? 'rgba(244, 67, 54, 0.7)' : 'rgba(0,0,0,0.55)',
                                     borderRadius: 16,
                                 }} />
                             )}

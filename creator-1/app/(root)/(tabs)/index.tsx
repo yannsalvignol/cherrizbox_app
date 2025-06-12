@@ -1,5 +1,6 @@
-import { getAllPosts, getUserProfile, isUserSubscribed } from '@/lib/appwrite';
+import { getAllPosts, getSubscriptionStatus, getUserProfile } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Dimensions, Image, Keyboard, RefreshControl, Text, TouchableOpacity, View } from 'react-native';
@@ -25,6 +26,7 @@ interface Post {
     $permissions: string[];
     PhotoTopics?: string;
     isSubscribed?: boolean;
+    isCancelled?: boolean;
 }
 
 export default function Index() {
@@ -54,14 +56,20 @@ export default function Index() {
             if (user?.$id) {
                 const postsWithSubscription = await Promise.all(
                     typedPosts.map(async (post) => {
-                        const isSubscribed = await isUserSubscribed(user.$id, post.title || '');
-                        return { ...post, isSubscribed };
+                        const { isSubscribed, isCancelled } = await getSubscriptionStatus(user.$id, post.title || '');
+                        return { ...post, isSubscribed, isCancelled };
                     })
                 );
-                // Sort posts: subscribed first, then by creation date
+                // Sort posts: active subscriptions first, then cancelled ones, then by creation date
                 const sortedPosts = postsWithSubscription.sort((a, b) => {
-                    if (a.isSubscribed && !b.isSubscribed) return -1;
-                    if (!a.isSubscribed && b.isSubscribed) return 1;
+                    // Active subscriptions first
+                    if (a.isSubscribed && !a.isCancelled && (!b.isSubscribed || b.isCancelled)) return -1;
+                    if ((!a.isSubscribed || a.isCancelled) && b.isSubscribed && !b.isCancelled) return 1;
+                    
+                    // Then cancelled subscriptions
+                    if (a.isCancelled && !b.isCancelled) return -1;
+                    if (!a.isCancelled && b.isCancelled) return 1;
+                    
                     // If subscription status is the same, sort by creation date
                     return new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime();
                 });
@@ -273,13 +281,50 @@ export default function Index() {
                             {filteredPosts.map((post, index) => (
                                 post.type === "photo" ? (
                                     <View key={post.$id} style={{ marginBottom: 16, width: cardWidth }}>
-                                        <PhotoCard 
-                                            photo={post} 
-                                            index={index} 
-                                            scrollY={scrollY} 
-                                            scrolling={scrolling}
-                                            isSubscribed={post.isSubscribed} 
-                                        />
+                                        {post.isSubscribed && !post.isCancelled ? (
+                                            <View style={{
+                                                padding: 2,
+                                                borderRadius: 20,
+                                                backgroundColor: 'rgba(255,255,255,0.1)',
+                                                width: '100%',
+                                            }}>
+                                                <LinearGradient
+                                                    colors={['#FB2355', '#FFD700', '#FB2355']}
+                                                    start={{ x: 0, y: 0 }}
+                                                    end={{ x: 1, y: 1 }}
+                                                    style={{
+                                                        padding: 1,
+                                                        borderRadius: 19,
+                                                        width: '100%',
+                                                    }}
+                                                >
+                                                    <View style={{
+                                                        backgroundColor: 'black',
+                                                        borderRadius: 18,
+                                                        overflow: 'hidden',
+                                                        width: '100%',
+                                                    }}>
+                                                        <PhotoCard 
+                                                            photo={post} 
+                                                            index={index} 
+                                                            scrollY={scrollY} 
+                                                            scrolling={scrolling}
+                                                            isSubscribed={post.isSubscribed} 
+                                                            isCancelled={post.isCancelled}
+                                                        />
+                                                    </View>
+                                                </LinearGradient>
+                                            </View>
+                                        ) : (
+                                            <PhotoCard 
+                                                photo={post} 
+                                                index={index} 
+                                                scrollY={scrollY} 
+                                                scrolling={scrolling}
+                                                isSubscribed={post.isSubscribed} 
+                                                isCancelled={post.isCancelled}
+                                            />
+                                        )}
                                     </View>
                                 ) : (
                                     <TouchableOpacity 

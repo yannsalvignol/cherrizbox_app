@@ -1,10 +1,20 @@
+import { Models } from 'appwrite'
 import { useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
 import { Image, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import Modal from 'react-native-modal'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { getCurrentUser, getUserProfile, getUserSubscriptions } from '../../../lib/appwrite'
+import { deleteExpiredSubscriptions, getCurrentUser, getUserProfile, getUserSubscriptions } from '../../../lib/appwrite'
 import { cancelSubscription } from '../../../lib/subscription'
+
+interface User extends Models.User<Models.Preferences> {
+    name: string;
+}
+
+interface Profile {
+    userId: string;
+    profileImageUri?: string;
+}
 
 interface Subscription {
     $id: string;
@@ -17,6 +27,7 @@ interface Subscription {
     creatorAccountId: string;
     renewalDate: string;
     stripeSubscriptionId: string;
+    endsAt?: string;
 }
 
 export default function Profile() {
@@ -38,25 +49,48 @@ export default function Profile() {
     try {
       const currentUser = await getCurrentUser();
       if (currentUser) {
-        setUser(currentUser);
+        setUser(currentUser as User);
         const userProfile = await getUserProfile(currentUser.$id);
-        setProfile(userProfile);
+        if (userProfile) {
+          setProfile({
+            userId: userProfile.userId,
+            profileImageUri: userProfile.profileImageUri
+          });
+        }
         
+        // Delete expired subscriptions first
+        await deleteExpiredSubscriptions(currentUser.$id);
+        
+        // Then get the updated list of subscriptions
         const userSubscriptions = await getUserSubscriptions(currentUser.$id);
         
         // Filter out active subscriptions that have a cancelled counterpart
-        const filteredSubscriptions = userSubscriptions.filter((sub, index, self) => {
-          if (sub.status === 'cancelled') return true;
-          
-          // If this is an active subscription, check if there's a cancelled one with the same stripeSubscriptionId
-          const hasCancelledCounterpart = self.some(
-            otherSub => 
-              otherSub.status === 'cancelled' && 
-              otherSub.stripeSubscriptionId === sub.stripeSubscriptionId
-          );
-          
-          return !hasCancelledCounterpart;
-        });
+        const filteredSubscriptions = userSubscriptions
+          .map(sub => ({
+            $id: sub.$id,
+            userId: sub.userId,
+            status: sub.status as 'active' | 'cancelled',
+            createdAt: sub.createdAt,
+            planCurrency: sub.planCurrency,
+            planInterval: sub.planInterval,
+            creatorName: sub.creatorName,
+            creatorAccountId: sub.creatorAccountId,
+            renewalDate: sub.renewalDate,
+            stripeSubscriptionId: sub.stripeSubscriptionId,
+            endsAt: sub.endsAt
+          }))
+          .filter((sub, index, self) => {
+            if (sub.status === 'cancelled') return true;
+            
+            // If this is an active subscription, check if there's a cancelled one with the same stripeSubscriptionId
+            const hasCancelledCounterpart = self.some(
+              otherSub => 
+                otherSub.status === 'cancelled' && 
+                otherSub.stripeSubscriptionId === sub.stripeSubscriptionId
+            );
+            
+            return !hasCancelledCounterpart;
+          });
 
         setSubscriptions(filteredSubscriptions);
       }
@@ -92,7 +126,33 @@ export default function Profile() {
       const currentUser = await getCurrentUser();
       if (currentUser) {
         const updatedSubscriptions = await getUserSubscriptions(currentUser.$id);
-        setSubscriptions(updatedSubscriptions);
+        const mappedSubscriptions = updatedSubscriptions
+          .map(sub => ({
+            $id: sub.$id,
+            userId: sub.userId,
+            status: sub.status as 'active' | 'cancelled',
+            createdAt: sub.createdAt,
+            planCurrency: sub.planCurrency,
+            planInterval: sub.planInterval,
+            creatorName: sub.creatorName,
+            creatorAccountId: sub.creatorAccountId,
+            renewalDate: sub.renewalDate,
+            stripeSubscriptionId: sub.stripeSubscriptionId,
+            endsAt: sub.endsAt
+          }))
+          .filter((sub, index, self) => {
+            if (sub.status === 'cancelled') return true;
+            
+            // If this is an active subscription, check if there's a cancelled one with the same stripeSubscriptionId
+            const hasCancelledCounterpart = self.some(
+              otherSub => 
+                otherSub.status === 'cancelled' && 
+                otherSub.stripeSubscriptionId === sub.stripeSubscriptionId
+            );
+            
+            return !hasCancelledCounterpart;
+          });
+        setSubscriptions(mappedSubscriptions);
       }
     } catch (error) {
       setModalMessage({ 
@@ -104,9 +164,43 @@ export default function Profile() {
     }
   };
 
-  const closeModal = () => {
+  const closeModal = async () => {
     setIsUnsubscribeModalVisible(false);
     setSelectedCreator(null);
+    if (modalMessage?.type === 'success') {
+      // Refresh subscriptions list after successful unsubscribe
+      const currentUser = await getCurrentUser();
+      if (currentUser) {
+        const updatedSubscriptions = await getUserSubscriptions(currentUser.$id);
+        const mappedSubscriptions = updatedSubscriptions
+          .map(sub => ({
+            $id: sub.$id,
+            userId: sub.userId,
+            status: sub.status as 'active' | 'cancelled',
+            createdAt: sub.createdAt,
+            planCurrency: sub.planCurrency,
+            planInterval: sub.planInterval,
+            creatorName: sub.creatorName,
+            creatorAccountId: sub.creatorAccountId,
+            renewalDate: sub.renewalDate,
+            stripeSubscriptionId: sub.stripeSubscriptionId,
+            endsAt: sub.endsAt
+          }))
+          .filter((sub, index, self) => {
+            if (sub.status === 'cancelled') return true;
+            
+            // If this is an active subscription, check if there's a cancelled one with the same stripeSubscriptionId
+            const hasCancelledCounterpart = self.some(
+              otherSub => 
+                otherSub.status === 'cancelled' && 
+                otherSub.stripeSubscriptionId === sub.stripeSubscriptionId
+            );
+            
+            return !hasCancelledCounterpart;
+          });
+        setSubscriptions(mappedSubscriptions);
+      }
+    }
     setModalMessage(null);
   };
 
@@ -115,7 +209,7 @@ export default function Profile() {
       {/* Header with cherry icon and title */}
       <View className="flex-row items-center px-4 pt-2 pb-4">
         <TouchableOpacity 
-          onPress={() => router.replace('/(root)/(tabs)/')} 
+          onPress={() => router.push('/')} 
           className="absolute left-4 z-10"
         >
           <Image 
@@ -130,7 +224,7 @@ export default function Profile() {
         </Text>
       </View>
 
-      {/* Profile Picture Section */}
+      {/* Profile Picture Section - Fixed */}
       <View className="items-center mb-6">
         <View className="w-32 h-32 rounded-full bg-[#1A1A1A] items-center justify-center mb-3 overflow-hidden">
           {profile?.profileImageUri ? (
@@ -187,14 +281,14 @@ export default function Profile() {
           </TouchableOpacity>
           
           <TouchableOpacity 
-            className="w-full bg-[#1A1A1A] py-3 rounded-lg items-center flex-row justify-center mb-6"
+            className="w-full bg-[#1A1A1A] py-3 rounded-lg items-center flex-row justify-center mb-2"
             onPress={() => router.push('/payment-methods')}
           >
             <Text style={{ color: 'white', fontFamily: 'questrial' }}>Add Payment Methods</Text>
           </TouchableOpacity>
           
           {/* Custom Content Type Toggle */}
-          <View className="w-full items-center mb-4">
+          <View className="w-full items-center">
             <View className="flex-row bg-[#1A1A1A] rounded-full overflow-hidden relative p-1">
               {/* Sliding pink background */}
               <View 
@@ -222,78 +316,124 @@ export default function Profile() {
               </Pressable>
             </View>
           </View>
+        </View>
+      </View>
 
-          {/* Subscriptions List */}
-          {!isPaidContent && (
-            <ScrollView className="w-full">
-              {subscriptions.length > 0 ? (
-                subscriptions.map((subscription) => (
-                  <View 
-                    key={subscription.$id}
-                    className={`bg-[#1A1A1A] rounded-lg p-4 mb-3 ${subscription.status === 'cancelled' ? 'border border-red-500' : ''}`}
-                  >
-                    <View className="flex-row justify-between items-start mb-2">
-                      <View>
-                        <Text style={[
-                          { fontSize: 18, fontFamily: 'questrial', fontWeight: 'bold' },
-                          { color: subscription.status === 'cancelled' ? '#F44336' : 'white' }
-                        ]}>
-                          {subscription.creatorName}
+      {/* Scrollable Creators List */}
+      {!isPaidContent && (
+        <ScrollView 
+          className="flex-1 px-6 -mt-5" 
+          contentContainerStyle={{ paddingTop: 16, paddingBottom: 40 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {subscriptions.length > 0 ? (
+            subscriptions.map((subscription) => {
+              const isActive = subscription.status === 'active';
+              const isCancelled = subscription.status === 'cancelled';
+              const endDate = subscription.endsAt ? new Date(subscription.endsAt) : null;
+              const isExpired = endDate && endDate < new Date();
+
+              return (
+                <View 
+                  key={subscription.$id}
+                  className={`bg-[#1A1A1A] rounded-lg p-4 mb-3 ${
+                    isCancelled ? 'border border-red-500' : 
+                    isActive ? 'border border-[#FB2355]' : ''
+                  }`}
+                >
+                  <View className="flex-row justify-between items-start mb-2">
+                    <View>
+                      <Text style={[
+                        { fontSize: 18, fontFamily: 'questrial', fontWeight: 'bold' },
+                        { 
+                          color: isCancelled ? '#F44336' : 
+                                 isActive ? '#FB2355' : 'white' 
+                        }
+                      ]}>
+                        {subscription.creatorName}
+                      </Text>
+                      {isCancelled && !isExpired && (
+                        <Text style={{ color: '#F44336', fontFamily: 'questrial', fontSize: 12 }}>
+                          Access until {formatDate(subscription.endsAt)}
                         </Text>
-                        {subscription.status === 'cancelled' && (
-                          <Text style={{ color: '#F44336', fontFamily: 'questrial', fontSize: 12 }}>
-                            Cancelled on {formatDate(subscription.createdAt)}
-                          </Text>
-                        )}
-                      </View>
-                      {subscription.status === 'active' && (
-                        <TouchableOpacity 
-                          className="bg-[#FB2355] px-3 py-1 rounded-full"
-                          onPress={() => handleUnsubscribe(subscription.creatorName, subscription.stripeSubscriptionId)}
-                        >
-                          <Text style={{ color: 'white', fontFamily: 'questrial' }}>Unsubscribe</Text>
-                        </TouchableOpacity>
+                      )}
+                      {isCancelled && isExpired && (
+                        <Text style={{ color: '#F44336', fontFamily: 'questrial', fontSize: 12 }}>
+                          Expired on {formatDate(subscription.endsAt)}
+                        </Text>
                       )}
                     </View>
-                    <View className="flex-row justify-between mb-1">
-                      <Text style={{ color: '#888', fontFamily: 'questrial' }}>Plan:</Text>
-                      <Text style={[
-                        { fontFamily: 'questrial' },
-                        { color: subscription.status === 'cancelled' ? '#F44336' : 'white' }
-                      ]}>
-                        {subscription.planInterval}ly ({subscription.planCurrency})
-                      </Text>
-                    </View>
-                    <View className="flex-row justify-between mb-1">
-                      <Text style={{ color: '#888', fontFamily: 'questrial' }}>Subscribed:</Text>
-                      <Text style={[
-                        { fontFamily: 'questrial' },
-                        { color: subscription.status === 'cancelled' ? '#F44336' : 'white' }
-                      ]}>
-                        {formatDate(subscription.createdAt)}
-                      </Text>
-                    </View>
-                    {subscription.status === 'active' && (
-                      <View className="flex-row justify-between">
-                        <Text style={{ color: '#888', fontFamily: 'questrial' }}>Renews:</Text>
-                        <Text style={{ color: 'white', fontFamily: 'questrial' }}>
-                          {formatDate(subscription.renewalDate)}
-                        </Text>
+                    {isActive && (
+                      <TouchableOpacity 
+                        className="bg-[#FB2355] px-3 py-1 rounded-full"
+                        onPress={() => handleUnsubscribe(subscription.creatorName, subscription.stripeSubscriptionId)}
+                      >
+                        <Text style={{ color: 'white', fontFamily: 'questrial' }}>Unsubscribe</Text>
+                      </TouchableOpacity>
+                    )}
+                    {isCancelled && !isExpired && (
+                      <View className="bg-[#F44336] px-3 py-1 rounded-full">
+                        <Text style={{ color: 'white', fontFamily: 'questrial' }}>Cancelled</Text>
+                      </View>
+                    )}
+                    {isCancelled && isExpired && (
+                      <View className="bg-[#F44336] px-3 py-1 rounded-full">
+                        <Text style={{ color: 'white', fontFamily: 'questrial' }}>Expired</Text>
                       </View>
                     )}
                   </View>
-                ))
-              ) : (
-                <View className="items-center justify-center py-8">
-                  <Text style={{ color: 'white', fontSize: 16, fontFamily: 'questrial', textAlign: 'center' }}>
-                    You haven't subscribed to any creators yet
-                  </Text>
+                  <View className="flex-row justify-between mb-1">
+                    <Text style={{ color: '#888', fontFamily: 'questrial' }}>Plan:</Text>
+                    <Text style={[
+                      { fontFamily: 'questrial' },
+                      { 
+                        color: isCancelled ? '#F44336' : 
+                               isActive ? '#FB2355' : 'white' 
+                      }
+                    ]}>
+                      {subscription.planInterval}ly ({subscription.planCurrency})
+                    </Text>
+                  </View>
+                  <View className="flex-row justify-between mb-1">
+                    <Text style={{ color: '#888', fontFamily: 'questrial' }}>Subscribed:</Text>
+                    <Text style={[
+                      { fontFamily: 'questrial' },
+                      { 
+                        color: isCancelled ? '#F44336' : 
+                               isActive ? '#FB2355' : 'white' 
+                      }
+                    ]}>
+                      {formatDate(subscription.createdAt)}
+                    </Text>
+                  </View>
+                  {isActive && (
+                    <View className="flex-row justify-between">
+                      <Text style={{ color: '#888', fontFamily: 'questrial' }}>Renews:</Text>
+                      <Text style={{ color: '#FB2355', fontFamily: 'questrial' }}>
+                        {formatDate(subscription.renewalDate)}
+                      </Text>
+                    </View>
+                  )}
+                  {isCancelled && !isExpired && (
+                    <View className="flex-row justify-between">
+                      <Text style={{ color: '#888', fontFamily: 'questrial' }}>Access until:</Text>
+                      <Text style={{ color: '#F44336', fontFamily: 'questrial' }}>
+                        {formatDate(subscription.endsAt)}
+                      </Text>
+                    </View>
+                  )}
                 </View>
-              )}
-            </ScrollView>
+              );
+            })
+          ) : (
+            <View className="items-center justify-center py-8">
+              <Text style={{ color: 'white', fontSize: 16, fontFamily: 'questrial', textAlign: 'center' }}>
+                You haven't subscribed to any creators yet
+              </Text>
+            </View>
           )}
-        </View>
-      </View>
+        </ScrollView>
+      )}
 
       <Modal
         isVisible={isUnsubscribeModalVisible}

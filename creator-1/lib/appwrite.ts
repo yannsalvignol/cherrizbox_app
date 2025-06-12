@@ -21,7 +21,8 @@ export const config = {
     videoCollectionId: '67e54c4b0012b5d71cbe',
     photoCollectionId: '67e6e13600234c3bff8b',
     storageId: '67e54f5e001b77aae0cd',
-    activeSubscriptionsCollectionId: '6845323f00001bda7f89'
+    activeSubscriptionsCollectionId: '6845323f00001bda7f89',
+    cancelledSubscriptionsCollectionId: '684ad264000c05a84b78'
 };
 
 export const client = new Client();
@@ -561,5 +562,113 @@ export const getUserSubscriptions = async (userId: string) => {
     } catch (error) {
         console.error("Error getting user subscriptions:", error);
         return [];
+    }
+};
+
+export const deleteExpiredSubscriptions = async (userId: string) => {
+    try {
+        const subscriptions = await databases.listDocuments(
+            config.databaseId,
+            config.activeSubscriptionsCollectionId,
+            [Query.equal('userId', userId)]
+        );
+        
+        // Find expired subscriptions
+        const expiredSubscriptions = subscriptions.documents.filter(sub => 
+            sub.endsAt && new Date(sub.endsAt) < new Date()
+        );
+        
+        // Get all stripeSubscriptionIds from expired subscriptions
+        const expiredStripeIds = expiredSubscriptions.map(sub => sub.stripeSubscriptionId);
+        
+        // Find all subscriptions (active and cancelled) that share these stripeSubscriptionIds
+        const subscriptionsToDelete = subscriptions.documents.filter(sub => 
+            expiredStripeIds.includes(sub.stripeSubscriptionId)
+        );
+
+        // First, copy all subscriptions to Cancelled_subscriptions collection
+        const copyPromises = subscriptionsToDelete.map(sub => {
+            // Only copy relevant fields
+            const subscriptionData = {
+                userId: sub.userId,
+                stripeCustomerId: sub.stripeCustomerId,
+                stripeSubscriptionId: sub.stripeSubscriptionId,
+                status: sub.status,
+                createdAt: sub.createdAt,
+                billingCycleAnchor: sub.billingCycleAnchor,
+                customerEmail: sub.customerEmail,
+                creatorName: sub.creatorName,
+                creatorAccountId: sub.creatorAccountId,
+                endsAt: sub.endsAt,
+                planCurrency: sub.planCurrency,
+                planInterval: sub.planInterval,
+                cancelledAt: new Date().toISOString()
+            };
+
+            return databases.createDocument(
+                config.databaseId,
+                '684ad264000c05a84b78', // Cancelled_subscriptions collection
+                ID.unique(),
+                subscriptionData,
+                [
+                    `read("user:${userId}")`,
+                    `write("user:${userId}")`
+                ]
+            );
+        });
+
+        // Wait for all copies to complete
+        await Promise.all(copyPromises);
+
+        // Then create an array of delete promises
+        const deletePromises = subscriptionsToDelete.map(sub => 
+            databases.deleteDocument(
+                config.databaseId,
+                config.activeSubscriptionsCollectionId,
+                sub.$id
+            )
+        );
+
+        // Execute all deletions simultaneously
+        await Promise.all(deletePromises);
+        
+        return subscriptionsToDelete.length;
+    } catch (error) {
+        console.error("Error deleting expired subscriptions:", error);
+        return 0;
+    }
+};
+
+export const getSubscriptionStatus = async (userId: string, creatorName: string): Promise<{ isSubscribed: boolean; isCancelled: boolean }> => {
+    try {
+        const subscriptions = await databases.listDocuments(
+            config.databaseId,
+            config.activeSubscriptionsCollectionId,
+            [
+                Query.equal('userId', userId),
+                Query.equal('creatorName', creatorName)
+            ]
+        );
+        
+        // Check for active subscription
+        const activeSubscription = subscriptions.documents.find(sub => 
+            sub.status === 'active' && 
+            (!sub.endsAt || new Date(sub.endsAt) > new Date())
+        );
+        
+        // Check for cancelled subscription
+        const cancelledSubscription = subscriptions.documents.find(sub => 
+            sub.status === 'cancelled' && 
+            sub.endsAt && 
+            new Date(sub.endsAt) > new Date()
+        );
+        
+        return {
+            isSubscribed: !!activeSubscription,
+            isCancelled: !!cancelledSubscription
+        };
+    } catch (error) {
+        console.error("Error getting subscription status:", error);
+        return { isSubscribed: false, isCancelled: false };
     }
 };
