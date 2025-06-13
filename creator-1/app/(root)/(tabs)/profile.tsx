@@ -3,10 +3,11 @@ import { Models, Query } from 'appwrite'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
-import { Image, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native'
+import { Dimensions, Image, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native'
+import { LineChart } from 'react-native-chart-kit'
 import Modal from 'react-native-modal'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { config, databases, deleteExpiredSubscriptions, getCurrentUser, getUserProfile, getUserSubscriptions } from '../../../lib/appwrite'
+import { config, databases, deleteExpiredSubscriptions, getCreatorEarnings, getCreatorSubscriptions, getCurrentUser, getUserProfile, getUserSubscriptions } from '../../../lib/appwrite'
 import { cancelSubscription } from '../../../lib/subscription'
 
 interface User extends Models.User<Models.Preferences> {
@@ -34,6 +35,24 @@ interface Subscription {
     cancelledAt?: string;
 }
 
+interface SubscriptionStats {
+  active: number;
+  cancelled: number;
+  timeline: {
+    date: string;
+    active: number;
+    cancelled: number;
+  }[];
+}
+
+interface EarningsStats {
+  totalEarnings: number;
+  timeline: {
+    date: string;
+    earnings: number;
+  }[];
+}
+
 export default function Profile() {
   const router = useRouter();
   const [isPaidContent, setIsPaidContent] = useState(false);
@@ -46,6 +65,15 @@ export default function Profile() {
   const [selectedCreator, setSelectedCreator] = useState<{ name: string; subscriptionId: string } | null>(null);
   const [isProcessingUnsubscribe, setIsProcessingUnsubscribe] = useState(false);
   const [modalMessage, setModalMessage] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const [subscriptionStats, setSubscriptionStats] = useState<SubscriptionStats>({
+    active: 0,
+    cancelled: 0,
+    timeline: []
+  });
+  const [earningsStats, setEarningsStats] = useState<EarningsStats>({
+    totalEarnings: 0,
+    timeline: []
+  });
 
   // For swipe toggle
   const toggleOptions = ['membership', 'earnings', 'creators'] as const;
@@ -115,6 +143,94 @@ export default function Profile() {
           });
 
         setSubscriptions(filteredSubscriptions);
+
+        // Load subscription stats
+        const stats = await getCreatorSubscriptions(user.$id);
+        
+        // Process timeline data
+        const timelineData = new Map<string, { active: number; cancelled: number }>();
+        
+        // Get all unique dates from both active and cancelled subscriptions
+        const allDates = new Set([
+          ...stats.active.map(sub => new Date(sub.createdAt).toISOString().split('T')[0]),
+          ...stats.cancelled.map(sub => new Date(sub.createdAt).toISOString().split('T')[0])
+        ]);
+
+        // Sort dates chronologically
+        const sortedDates = Array.from(allDates).sort();
+
+        // Initialize running counts
+        let activeCount = 0;
+        let cancelledCount = 0;
+
+        // Process each date chronologically
+        sortedDates.forEach(date => {
+          // Count new active subscriptions on this date
+          const newActiveOnDate = stats.active.filter(sub => 
+            new Date(sub.createdAt).toISOString().split('T')[0] === date
+          ).length;
+          
+          // Count new cancelled subscriptions on this date
+          const newCancelledOnDate = stats.cancelled.filter(sub => 
+            new Date(sub.createdAt).toISOString().split('T')[0] === date
+          ).length;
+
+          // Update running counts
+          activeCount += newActiveOnDate;
+          cancelledCount += newCancelledOnDate;
+
+          // Store the cumulative counts for this date
+          timelineData.set(date, {
+            active: activeCount,
+            cancelled: cancelledCount
+          });
+        });
+
+        // Convert to array and sort by date
+        const timeline = Array.from(timelineData.entries())
+          .map(([date, counts]) => ({ date, ...counts }))
+          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        setSubscriptionStats({
+          active: stats.active.length,
+          cancelled: stats.cancelled.length,
+          timeline
+        });
+
+        // Load earnings data
+        const earningsData = await getCreatorEarnings(user.$id);
+        
+        // Process timeline data
+        const earningsTimelineData = new Map<string, number>();
+        let totalEarnings = 0;
+
+        // Process active subscriptions
+        earningsData.active.forEach(sub => {
+          const date = new Date(sub.createdAt).toISOString().split('T')[0];
+          const amount = parseFloat(sub.planAmount) || 0;
+          const currentEarnings = earningsTimelineData.get(date) || 0;
+          earningsTimelineData.set(date, currentEarnings + amount);
+          totalEarnings += amount;
+        });
+
+        // Process cancelled subscriptions
+        earningsData.cancelled.forEach(sub => {
+          const date = new Date(sub.createdAt).toISOString().split('T')[0];
+          const amount = parseFloat(sub.planAmount) || 0;
+          const currentEarnings = earningsTimelineData.get(date) || 0;
+          earningsTimelineData.set(date, currentEarnings + amount);
+          totalEarnings += amount;
+        });
+
+        // Convert to array and sort by date
+        const earningsTimeline = Array.from(earningsTimelineData.entries())
+          .map(([date, earnings]) => ({ date, earnings }))
+          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        setEarningsStats({
+          totalEarnings,
+          timeline: earningsTimeline
+        });
       }
     } catch (error) {
       console.error("Error loading user data:", error);
@@ -208,7 +324,11 @@ export default function Profile() {
     switch (selectedToggle) {
       case 'creators':
         return (
-          <ScrollView className="w-full" contentContainerStyle={{ paddingTop: 20 }}>
+          <ScrollView 
+            className="w-full" 
+            contentContainerStyle={{ paddingTop: 20 }}
+            showsVerticalScrollIndicator={false}
+          >
             {subscriptions.length > 0 ? (
               subscriptions.map((subscription) => {
                 const isActive = subscription.status === 'active';
@@ -340,19 +460,145 @@ export default function Profile() {
         );
       case 'membership':
         return (
-          <View className="items-center justify-center py-8">
-            <Text style={{ color: 'white', fontSize: 16, fontFamily: 'questrial', textAlign: 'center' }}>
-              Membership details coming soon
-            </Text>
-          </View>
+          <ScrollView className="w-full" contentContainerStyle={{ paddingTop: 20 }}>
+            <View className="bg-[#1A1A1A] rounded-lg p-4 mb-4">
+              <Text style={{ color: 'white', fontSize: 18, fontFamily: 'questrial', marginBottom: 16 }}>
+                Subscription Statistics
+              </Text>
+              <View className="flex-row justify-between mb-4">
+                <View className="bg-[#2A2A2A] p-4 rounded-lg flex-1 mr-2">
+                  <Text style={{ color: '#4CAF50', fontSize: 24, fontFamily: 'questrial', textAlign: 'center' }}>
+                    {subscriptionStats.active}
+                  </Text>
+                  <Text style={{ color: 'white', fontSize: 14, fontFamily: 'questrial', textAlign: 'center' }}>
+                    Active Followers
+                  </Text>
+                </View>
+                <View className="bg-[#2A2A2A] p-4 rounded-lg flex-1 ml-2">
+                  <Text style={{ color: '#F44336', fontSize: 24, fontFamily: 'questrial', textAlign: 'center' }}>
+                    {subscriptionStats.cancelled}
+                  </Text>
+                  <Text style={{ color: 'white', fontSize: 14, fontFamily: 'questrial', textAlign: 'center' }}>
+                    Cancelled Followers
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <View className="bg-[#1A1A1A] rounded-lg p-4">
+              <Text style={{ color: 'white', fontSize: 18, fontFamily: 'questrial', marginBottom: 16 }}>
+                Follower Growth Over Time
+              </Text>
+              {subscriptionStats.timeline.length > 0 ? (
+                <LineChart
+                  data={{
+                    labels: subscriptionStats.timeline.map(item => 
+                      new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                    ),
+                    datasets: [
+                      {
+                        data: subscriptionStats.timeline.map(item => item.active),
+                        color: () => '#4CAF50',
+                        strokeWidth: 2
+                      }
+                    ]
+                  }}
+                  width={Dimensions.get('window').width - 48}
+                  height={220}
+                  chartConfig={{
+                    backgroundColor: '#1A1A1A',
+                    backgroundGradientFrom: '#1A1A1A',
+                    backgroundGradientTo: '#1A1A1A',
+                    decimalPlaces: 0,
+                    color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                    labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                    style: {
+                      borderRadius: 16
+                    },
+                    propsForDots: {
+                      r: '6',
+                      strokeWidth: '2'
+                    }
+                  }}
+                  bezier
+                  style={{
+                    marginVertical: 8,
+                    borderRadius: 16
+                  }}
+                />
+              ) : (
+                <Text style={{ color: 'white', fontSize: 16, fontFamily: 'questrial', textAlign: 'center' }}>
+                  No data available yet
+                </Text>
+              )}
+            </View>
+          </ScrollView>
         );
       case 'earnings':
         return (
-          <View className="items-center justify-center py-8">
-            <Text style={{ color: 'white', fontSize: 16, fontFamily: 'questrial', textAlign: 'center' }}>
-              Earnings feature coming soon
-            </Text>
-          </View>
+          <ScrollView className="w-full" contentContainerStyle={{ paddingTop: 20 }}>
+            <View className="bg-[#1A1A1A] rounded-lg p-4 mb-4">
+              <Text style={{ color: 'white', fontSize: 18, fontFamily: 'questrial', marginBottom: 16 }}>
+                Earnings Overview
+              </Text>
+              <View className="bg-[#2A2A2A] p-4 rounded-lg">
+                <Text style={{ color: '#4CAF50', fontSize: 32, fontFamily: 'questrial', textAlign: 'center' }}>
+                  ${earningsStats.totalEarnings.toFixed(2)}
+                </Text>
+                <Text style={{ color: 'white', fontSize: 16, fontFamily: 'questrial', textAlign: 'center' }}>
+                  Total Earnings
+                </Text>
+              </View>
+            </View>
+
+            <View className="bg-[#1A1A1A] rounded-lg p-4">
+              <Text style={{ color: 'white', fontSize: 18, fontFamily: 'questrial', marginBottom: 16 }}>
+                Earnings Over Time
+              </Text>
+              {earningsStats.timeline.length > 0 ? (
+                <LineChart
+                  data={{
+                    labels: earningsStats.timeline.map(item => 
+                      new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                    ),
+                    datasets: [
+                      {
+                        data: earningsStats.timeline.map(item => item.earnings),
+                        color: () => '#4CAF50',
+                        strokeWidth: 2
+                      }
+                    ]
+                  }}
+                  width={Dimensions.get('window').width - 48}
+                  height={220}
+                  chartConfig={{
+                    backgroundColor: '#1A1A1A',
+                    backgroundGradientFrom: '#1A1A1A',
+                    backgroundGradientTo: '#1A1A1A',
+                    decimalPlaces: 2,
+                    color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                    labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                    style: {
+                      borderRadius: 16
+                    },
+                    propsForDots: {
+                      r: '6',
+                      strokeWidth: '2'
+                    }
+                  }}
+                  bezier
+                  style={{
+                    marginVertical: 8,
+                    borderRadius: 16
+                  }}
+                />
+              ) : (
+                <Text style={{ color: 'white', fontSize: 16, fontFamily: 'questrial', textAlign: 'center' }}>
+                  No earnings data available yet
+                </Text>
+              )}
+            </View>
+          </ScrollView>
         );
       default:
         return null;
@@ -526,18 +772,6 @@ export default function Profile() {
       {/* Scrollable Content Area */}
       <View style={{ flex: 1, paddingHorizontal: 24, marginTop: -4 }}>
         {renderContent()}
-      </View>
-
-      {/* Fixed Delete Chat Button at the bottom */}
-      <View className="w-full px-6 mt-auto mb-8">
-        <TouchableOpacity 
-          className="w-full bg-[#1A1A1A] py-4 rounded-lg items-center border border-red-500"
-          onPress={() => router.push('/confirm-delete-chat')}
-        >
-          <Text style={{ color: '#FF4444', fontSize: 18, fontFamily: 'questrial' }}>
-            Delete my group Chat
-          </Text>
-        </TouchableOpacity>
       </View>
 
       <Modal

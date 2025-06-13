@@ -16,13 +16,13 @@ export const config = {
     endpoint: 'https://cloud.appwrite.io/v1',
     projectId: '67e54a0600249c33af4c',
     databaseId: '67e54bcd003da3d16b3b',
-    userCollectionId: '682501f5003c342d6b5a',
-    profileCollectionId: '681214cd0017348ba59b',
+    userCollectionId: '684bdb3b000ba293a743',
+    profileCollectionId: '684bdbf90003b8751645',
     videoCollectionId: '67e54c4b0012b5d71cbe',
-    photoCollectionId: '67e6e13600234c3bff8b',
+    photoCollectionId: '684be29700183dd61fce',
     storageId: '67e54f5e001b77aae0cd',
-    activeSubscriptionsCollectionId: '6845323f00001bda7f89',
-    cancelledSubscriptionsCollectionId: '684ad264000c05a84b78'
+    activeSubscriptionsCollectionId: '684bdce80023a64b8790',
+    cancelledSubscriptionsCollectionId: '684be07000299c84d050'
 };
 
 export const client = new Client();
@@ -87,12 +87,12 @@ export const getAllPosts = async () => {
         
         // Combine and process the results
         const allPosts = [
-            ...videos.documents.map(video => ({...video, type: 'video'})),
-            ...photos.documents.map(photo => ({...photo, type: 'photo'}))
+            ...videos.documents.map(video => ({...video, type: 'video', creatorId: video.IdCreator})),
+            ...photos.documents.map(photo => ({...photo, type: 'photo', creatorId: photo.IdCreator}))
         ];
         
         // Sort by creation date (newest first)
-        allPosts.sort((a, b) => new Date(b.$createdAt) - new Date(a.$createdAt));
+        allPosts.sort((a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime());
         
         return allPosts;
     } catch (error) {
@@ -602,12 +602,18 @@ export const deleteExpiredSubscriptions = async (userId: string) => {
                 endsAt: sub.endsAt,
                 planCurrency: sub.planCurrency,
                 planInterval: sub.planInterval,
-                cancelledAt: new Date().toISOString()
+                cancelledAt: new Date().toISOString(),
+                renewalDate: sub.renewalDate,
+                planAmount: sub.planAmount,
+                customerName: sub.customerName,
+                paymentStatus: sub.paymentStatus,
+                amountTotal: sub.amountTotal,
+                amountSubtotal: sub.amountSubtotal
             };
 
             return databases.createDocument(
                 config.databaseId,
-                '684ad264000c05a84b78', // Cancelled_subscriptions collection
+                '684be07000299c84d050', // Cancelled_subscriptions collection
                 ID.unique(),
                 subscriptionData,
                 [
@@ -671,4 +677,65 @@ export const getSubscriptionStatus = async (userId: string, creatorName: string)
         console.error("Error getting subscription status:", error);
         return { isSubscribed: false, isCancelled: false };
     }
+};
+
+export const getCreatorSubscriptions = async (creatorAccountId: string) => {
+  try {
+    // Get active subscriptions
+    const activeSubscriptions = await databases.listDocuments(
+      config.databaseId,
+      config.activeSubscriptionsCollectionId,
+      [
+        Query.equal('creatorAccountId', creatorAccountId),
+        Query.equal('status', 'active')
+      ]
+    );
+
+    // Get cancelled subscriptions
+    const cancelledSubscriptions = await databases.listDocuments(
+      config.databaseId,
+      config.cancelledSubscriptionsCollectionId,
+      [
+        Query.equal('creatorAccountId', creatorAccountId)
+      ]
+    );
+
+    return {
+      active: activeSubscriptions.documents,
+      cancelled: cancelledSubscriptions.documents
+    };
+  } catch (error) {
+    console.error('Error fetching creator subscriptions:', error);
+    throw error;
+  }
+};
+
+export const getCreatorEarnings = async (creatorAccountId: string) => {
+  try {
+    // Get active subscriptions
+    const activeSubscriptions = await databases.listDocuments(
+      config.databaseId,
+      config.activeSubscriptionsCollectionId,
+      [
+        Query.equal('creatorAccountId', creatorAccountId)
+      ]
+    );
+
+    // Get cancelled subscriptions
+    const cancelledSubscriptions = await databases.listDocuments(
+      config.databaseId,
+      config.cancelledSubscriptionsCollectionId,
+      [
+        Query.equal('creatorAccountId', creatorAccountId)
+      ]
+    );
+
+    return {
+      active: activeSubscriptions.documents,
+      cancelled: cancelledSubscriptions.documents
+    };
+  } catch (error) {
+    console.error('Error fetching creator earnings:', error);
+    throw error;
+  }
 };

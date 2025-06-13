@@ -3,7 +3,7 @@ import { config, getCurrentUser } from './appwrite';
 
 const FUNCTION_ID = '683ecdc6003c80bf5cfd';
 const FUNCTION_ENDPOINT = `${config.endpoint}/functions/${FUNCTION_ID}/executions`;
-const PROFILES_COLLECTION_ID = '681214cd0017348ba59b';
+const PROFILES_COLLECTION_ID = '684bdbf90003b8751645';
 
 async function getCreatorId(creatorName: string): Promise<string> {
   try {

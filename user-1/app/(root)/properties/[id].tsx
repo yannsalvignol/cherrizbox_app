@@ -20,7 +20,6 @@ const Property = () => {
   const imageParam = params.image as string | undefined;
   const titleParam = params.title as string | undefined;
 
-  // Animation values
   const backgroundScale = useRef(new Animated.Value(0.95)).current;
   const backgroundOpacity = useRef(new Animated.Value(0)).current;
   const infoOpacity = useRef(new Animated.Value(0)).current;

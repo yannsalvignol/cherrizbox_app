@@ -17,11 +17,11 @@ export const config = {
     projectId: '67e54a0600249c33af4c',
     databaseId: '67e54bcd003da3d16b3b',
     userCollectionId: '67e54c1d0003145e0149',
-    profileCollectionId: '681214cd0017348ba59b',
+    profileCollectionId: '684bdbf90003b8751645',
     videoCollectionId: '67e54c4b0012b5d71cbe',
-    photoCollectionId: '67e6e13600234c3bff8b',
+    photoCollectionId: '684be29700183dd61fce',
     storageId: '67e54f5e001b77aae0cd',
-    activeSubscriptionsCollectionId: '6845323f00001bda7f89'
+    activeSubscriptionsCollectionId: '684bdce80023a64b8790'
 };
 
 export const client = new Client();
@@ -459,12 +459,18 @@ export const deleteExpiredSubscriptions = async (userId: string) => {
                 endsAt: sub.endsAt,
                 planCurrency: sub.planCurrency,
                 planInterval: sub.planInterval,
-                cancelledAt: new Date().toISOString()
+                cancelledAt: new Date().toISOString(),
+                renewalDate: sub.renewalDate,
+                planAmount: sub.planAmount,
+                customerName: sub.customerName,
+                paymentStatus: sub.paymentStatus,
+                amountTotal: sub.amountTotal,
+                amountSubtotal: sub.amountSubtotal
             };
 
             return databases.createDocument(
                 config.databaseId,
-                '684ad264000c05a84b78', // Cancelled_subscriptions collection
+                '684be07000299c84d050', // Cancelled_subscriptions collection
                 ID.unique(),
                 subscriptionData,
                 [

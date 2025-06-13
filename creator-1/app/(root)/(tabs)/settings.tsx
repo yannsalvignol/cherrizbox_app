@@ -1,7 +1,7 @@
 import { useGlobalContext } from '@/lib/global-provider'
 import { useNavigation, useRouter } from 'expo-router'
 import React, { useState } from 'react'
-import { Image, Switch, Text, TouchableOpacity, View } from 'react-native'
+import { GestureResponderEvent, Image, Switch, Text, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { logout } from '../../../lib/appwrite'
 
@@ -38,7 +38,12 @@ export default function Settings() {
     router.push('/(root)/(tabs)/forgot_password_loged_in');
   };
 
-  const renderSettingItem = (title, onPress, hasSwitch = false, isLogout = false) => (
+  const renderSettingItem = (
+    title: string,
+    onPress: ((event: GestureResponderEvent) => void) | null | undefined,
+    hasSwitch = false,
+    isLogout = false
+  ) => (
     <TouchableOpacity 
       className={`flex-row items-center justify-between py-5 ${!isLogout ? 'border-b border-[#333333]' : ''}`}
       onPress={onPress}
@@ -92,10 +97,11 @@ export default function Settings() {
         <View className="mb-8">
           <Text style={{ color: '#FB2355', fontFamily: 'Nunito-Bold', fontSize: 18, marginBottom: 8 }}>Account Settings</Text>
           <View className="bg-[#1A1A1A] rounded-lg px-4">
-            {renderSettingItem('Edit Profile', () => router.push('/edit-profile'))}
+            {renderSettingItem('Edit Profile', () => router.push('/edit-profile' as any))}
             {renderSettingItem('Change Password', handleChangePassword)}
-            {renderSettingItem('Add a payment method', () => router.push('/payment-methods'))}
+            {renderSettingItem('Add a payment method', () => router.push('/payment-methods' as any))}
             {renderSettingItem('Push Notifications', null, true)}
+            {renderSettingItem('Delete my group Chat', () => router.push('/confirm-delete-chat' as any), false, true)}
             {renderSettingItem('Logout', handleLogout, false, true)}
           </View>
         </View>

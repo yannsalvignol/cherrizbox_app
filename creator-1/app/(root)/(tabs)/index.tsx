@@ -27,6 +27,7 @@ interface Post {
     PhotoTopics?: string;
     isSubscribed?: boolean;
     isCancelled?: boolean;
+    creatorId?: string;
 }
 
 export default function Index() {
@@ -76,8 +77,8 @@ export default function Index() {
                 setPosts(sortedPosts);
                 setFilteredPosts(sortedPosts);
             } else {
-                setPosts(typedPosts);
-                setFilteredPosts(typedPosts);
+            setPosts(typedPosts);
+            setFilteredPosts(typedPosts);
             }
         } catch (error) {
             console.error('Error loading posts:', error);
@@ -290,6 +291,40 @@ export default function Index() {
                                             }}>
                                                 <LinearGradient
                                                     colors={['#FB2355', '#FFD700', '#FB2355']}
+                                                    start={{ x: 0, y: 0 }}
+                                                    end={{ x: 1, y: 1 }}
+                                                    style={{
+                                                        padding: 1,
+                                                        borderRadius: 19,
+                                                        width: '100%',
+                                                    }}
+                                                >
+                                                    <View style={{
+                                                        backgroundColor: 'black',
+                                                        borderRadius: 18,
+                                                        overflow: 'hidden',
+                                                        width: '100%',
+                                                    }}>
+                                                        <PhotoCard 
+                                                            photo={post} 
+                                                            index={index} 
+                                                            scrollY={scrollY} 
+                                                            scrolling={scrolling}
+                                                            isSubscribed={post.isSubscribed} 
+                                                            isCancelled={post.isCancelled}
+                                                        />
+                                                    </View>
+                                                </LinearGradient>
+                                            </View>
+                                        ) : post.creatorId === user?.$id ? (
+                                            <View style={{
+                                                padding: 2,
+                                                borderRadius: 20,
+                                                backgroundColor: 'rgba(255,255,255,0.1)',
+                                                width: '100%',
+                                            }}>
+                                                <LinearGradient
+                                                    colors={['#FB2355', '#FF69B4', '#FB2355']}
                                                     start={{ x: 0, y: 0 }}
                                                     end={{ x: 1, y: 1 }}
                                                     style={{
