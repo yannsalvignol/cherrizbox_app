@@ -192,7 +192,7 @@ export default function Profile() {
           .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
         setSubscriptionStats({
-          active: stats.active.length,
+          active: stats.netActive,
           cancelled: stats.cancelled.length,
           timeline
         });

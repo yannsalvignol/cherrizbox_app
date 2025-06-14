@@ -565,83 +565,49 @@ export const getUserSubscriptions = async (userId: string) => {
     }
 };
 
-export const deleteExpiredSubscriptions = async (userId: string) => {
+export const deleteExpiredSubscriptions = async (creatorAccountId: string) => {
     try {
-        const subscriptions = await databases.listDocuments(
+        // Get all active subscriptions for this creator
+        const activeSubscriptions = await databases.listDocuments(
             config.databaseId,
             config.activeSubscriptionsCollectionId,
-            [Query.equal('userId', userId)]
-        );
-        
-        // Find expired subscriptions
-        const expiredSubscriptions = subscriptions.documents.filter(sub => 
-            sub.endsAt && new Date(sub.endsAt) < new Date()
-        );
-        
-        // Get all stripeSubscriptionIds from expired subscriptions
-        const expiredStripeIds = expiredSubscriptions.map(sub => sub.stripeSubscriptionId);
-        
-        // Find all subscriptions (active and cancelled) that share these stripeSubscriptionIds
-        const subscriptionsToDelete = subscriptions.documents.filter(sub => 
-            expiredStripeIds.includes(sub.stripeSubscriptionId)
+            [
+                Query.equal('creatorAccountId', creatorAccountId)
+            ]
         );
 
-        // First, copy all subscriptions to Cancelled_subscriptions collection
-        const copyPromises = subscriptionsToDelete.map(sub => {
-            // Only copy relevant fields
-            const subscriptionData = {
-                userId: sub.userId,
-                stripeCustomerId: sub.stripeCustomerId,
-                stripeSubscriptionId: sub.stripeSubscriptionId,
-                status: sub.status,
-                createdAt: sub.createdAt,
-                billingCycleAnchor: sub.billingCycleAnchor,
-                customerEmail: sub.customerEmail,
-                creatorName: sub.creatorName,
-                creatorAccountId: sub.creatorAccountId,
-                endsAt: sub.endsAt,
-                planCurrency: sub.planCurrency,
-                planInterval: sub.planInterval,
-                cancelledAt: new Date().toISOString(),
-                renewalDate: sub.renewalDate,
-                planAmount: sub.planAmount,
-                customerName: sub.customerName,
-                paymentStatus: sub.paymentStatus,
-                amountTotal: sub.amountTotal,
-                amountSubtotal: sub.amountSubtotal
-            };
-
-            return databases.createDocument(
-                config.databaseId,
-                '684be07000299c84d050', // Cancelled_subscriptions collection
-                ID.unique(),
-                subscriptionData,
-                [
-                    `read("user:${userId}")`,
-                    `write("user:${userId}")`
-                ]
-            );
+        const currentDate = new Date();
+        const expiredSubscriptions = activeSubscriptions.documents.filter(sub => {
+            const endDate = new Date(sub.endDate);
+            return endDate < currentDate;
         });
 
-        // Wait for all copies to complete
-        await Promise.all(copyPromises);
+        // Process each expired subscription
+        for (const sub of expiredSubscriptions) {
+            // Create a copy in cancelled subscriptions
+            await databases.createDocument(
+                config.databaseId,
+                config.cancelledSubscriptionsCollectionId,
+                ID.unique(),
+                {
+                    ...sub,
+                    cancellationDate: new Date().toISOString(),
+                    reason: 'expired'
+                }
+            );
 
-        // Then create an array of delete promises
-        const deletePromises = subscriptionsToDelete.map(sub => 
-            databases.deleteDocument(
+            // Delete from active subscriptions
+            await databases.deleteDocument(
                 config.databaseId,
                 config.activeSubscriptionsCollectionId,
                 sub.$id
-            )
-        );
+            );
+        }
 
-        // Execute all deletions simultaneously
-        await Promise.all(deletePromises);
-        
-        return subscriptionsToDelete.length;
+        return expiredSubscriptions.length;
     } catch (error) {
-        console.error("Error deleting expired subscriptions:", error);
-        return 0;
+        console.error('Error deleting expired subscriptions:', error);
+        throw error;
     }
 };
 
@@ -681,7 +647,7 @@ export const getSubscriptionStatus = async (userId: string, creatorName: string)
 
 export const getCreatorSubscriptions = async (creatorAccountId: string) => {
   try {
-    // Get active subscriptions
+    // Get active subscriptions with active status
     const activeSubscriptions = await databases.listDocuments(
       config.databaseId,
       config.activeSubscriptionsCollectionId,
@@ -691,18 +657,36 @@ export const getCreatorSubscriptions = async (creatorAccountId: string) => {
       ]
     );
 
-    // Get cancelled subscriptions
-    const cancelledSubscriptions = await databases.listDocuments(
+    // Get cancelled subscriptions from active_subscriptions collection
+    const cancelledFromActive = await databases.listDocuments(
       config.databaseId,
-      config.cancelledSubscriptionsCollectionId,
+      config.activeSubscriptionsCollectionId,
       [
-        Query.equal('creatorAccountId', creatorAccountId)
+        Query.equal('creatorAccountId', creatorAccountId),
+        Query.equal('status', 'cancelled')
       ]
     );
 
+    // Get cancelled subscriptions from cancelled_subscriptions collection
+    const cancelledFromCancelled = await databases.listDocuments(
+      config.databaseId,
+      config.cancelledSubscriptionsCollectionId,
+      [
+        Query.equal('creatorAccountId', creatorAccountId),
+        Query.equal('status', 'cancelled')
+      ]
+    );
+
+    // Calculate total cancelled by combining both collections
+    const totalCancelled = cancelledFromActive.documents.length + cancelledFromCancelled.documents.length;
+
+    // Calculate net active by subtracting cancelled from active_subscriptions
+    const netActive = activeSubscriptions.documents.length - cancelledFromActive.documents.length;
+
     return {
       active: activeSubscriptions.documents,
-      cancelled: cancelledSubscriptions.documents
+      cancelled: [...cancelledFromActive.documents, ...cancelledFromCancelled.documents],
+      netActive: netActive // Add this new field to return the net active count
     };
   } catch (error) {
     console.error('Error fetching creator subscriptions:', error);
@@ -737,5 +721,5 @@ export const getCreatorEarnings = async (creatorAccountId: string) => {
   } catch (error) {
     console.error('Error fetching creator earnings:', error);
     throw error;
-  }
+    }
 };

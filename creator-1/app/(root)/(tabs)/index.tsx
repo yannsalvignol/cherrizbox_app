@@ -1,4 +1,4 @@
-import { getAllPosts, getSubscriptionStatus, getUserProfile } from '@/lib/appwrite';
+import { deleteExpiredSubscriptions, getAllPosts, getSubscriptionStatus, getUserProfile } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -124,6 +124,11 @@ export default function Index() {
     const onRefresh = async () => {
         setRefreshing(true);
         try {
+            // First check and delete expired subscriptions if user is logged in
+            if (user?.$id) {
+                await deleteExpiredSubscriptions(user.$id);
+            }
+            // Then load posts
             await loadPosts();
         } catch (error) {  
             console.error('Error refreshing data:', error);
