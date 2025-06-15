@@ -501,3 +501,21 @@ export const deleteExpiredSubscriptions = async (userId: string) => {
         return 0;
     }
 };
+
+export const getCreatorIdByName = async (creatorName: string): Promise<string | null> => {
+    try {
+        const profiles = await databases.listDocuments(
+            config.databaseId,
+            config.profileCollectionId,
+            [Query.equal('creatorsname', creatorName)]
+        );
+        
+        if (profiles.documents.length > 0) {
+            return profiles.documents[0].userId;
+        }
+        return null;
+    } catch (error) {
+        console.error("Error getting creator ID:", error);
+        return null;
+    }
+};

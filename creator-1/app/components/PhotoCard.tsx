@@ -14,6 +14,7 @@ interface MediaItem {
     fileUrl?: string;
     type: 'photo' | 'video';
     PhotoTopics?: string;
+    creatorId?: string;
 }
 
 interface PhotoCardProps {
@@ -23,9 +24,10 @@ interface PhotoCardProps {
     isSubscribed?: boolean;
     isCancelled?: boolean;
     scrolling?: boolean;
+    user?: any;
 }
 
-const PhotoCard = ({ photo, index = 0, scrollY, isSubscribed = false, isCancelled = false, scrolling = false }: PhotoCardProps) => {
+const PhotoCard = ({ photo, index = 0, scrollY, isSubscribed = false, isCancelled = false, scrolling = false, user }: PhotoCardProps) => {
     const router = useRouter();
     const scaleAnim = useRef(new Animated.Value(1)).current;
     const opacityAnim = useRef(new Animated.Value(1)).current;
@@ -91,6 +93,23 @@ const PhotoCard = ({ photo, index = 0, scrollY, isSubscribed = false, isCancelle
         }).start();
     };
 
+    const handlePress = () => {
+        // If it's the creator's own content or user is subscribed and not cancelled
+        if (photo.creatorId === user?.$id || (isSubscribed && !isCancelled)) {
+            // Navigate to chat
+            router.push({
+                pathname: '/(root)/chat',
+                params: {
+                    channelId: `creator-${photo.creatorId}`,
+                    creatorName: photoTitle
+                }
+            });
+        } else {
+            // Navigate to properties if not subscribed
+            router.push(`/properties/${photo.$id}`);
+        }
+    };
+
     // Scale parallax effect: cards in the same row scale identically
     const rowIndex = Math.floor(index / 2);
     const scaleParallax = scrollY
@@ -136,7 +155,7 @@ const PhotoCard = ({ photo, index = 0, scrollY, isSubscribed = false, isCancelle
                         overflow: 'hidden', 
                         backgroundColor: '#18181b' 
                     }}
-                    onPress={() => router.push(`/properties/${photo.$id}`)}
+                    onPress={handlePress}
                     onPressIn={handlePressIn}
                     onPressOut={handlePressOut}
                 >

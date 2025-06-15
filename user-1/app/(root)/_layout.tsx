@@ -1,25 +1,46 @@
-import { useGlobalContext } from "@/lib/global-provider";
-import { Redirect, Slot } from "expo-router";
-import React from "react";
-import { ActivityIndicator } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Stack } from 'expo-router';
+import React from 'react';
 
-export default function AppLayout() {
-    const { loading, isLogged } = useGlobalContext();
-
-    if (loading) {
-        return (
-            <SafeAreaView className="flex-1 justify-center items-center">
-                <ActivityIndicator size="large" color="#FB2355" />
-            </SafeAreaView>
-        );
-    }
-
-    if (!isLogged) {
-        return <Redirect href="/sign-up" />;
-    }
-
-    return <Slot />;
+export default function Layout() {
+    return (
+        <Stack
+            screenOptions={{
+                headerShown: false,
+                gestureEnabled: true,
+                gestureDirection: 'horizontal',
+                animation: 'slide_from_right',
+                cardStyleInterpolator: ({ current, next, layouts }) => ({
+                    cardStyle: {
+                        transform: [
+                            {
+                                translateX: current.progress.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [layouts.screen.width, 0],
+                                }),
+                            },
+                        ],
+                    },
+                    overlayStyle: {
+                        opacity: current.progress.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [0, 0.5],
+                        }),
+                    },
+                }),
+            }}
+        >
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen 
+                name="chat"
+                options={{
+                    gestureEnabled: true,
+                    gestureDirection: 'horizontal',
+                    animation: 'slide_from_right',
+                }}
+            />
+            <Stack.Screen name="properties/[id]" />
+        </Stack>
+    );
 }
 
 

@@ -1,3 +1,4 @@
+import { getCreatorIdByName } from '@/lib/appwrite';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
@@ -101,6 +102,26 @@ const PhotoCard = ({ photo, index = 0, scrollY, isSubscribed = false, isCancelle
         })
         : 1;
 
+    const handlePress = async () => {
+        if (isSubscribed && !isCancelled) {
+            // Get creator ID from name
+            const creatorId = await getCreatorIdByName(photo.title || '');
+            if (creatorId) {
+                // Redirect to chat channel
+                router.push({
+                    pathname: '/chat',
+                    params: {
+                        channelId: `creator-${creatorId}`,
+                        creatorName: photo.title
+                    }
+                });
+            }
+        } else {
+            // Redirect to property page for non-subscribers
+            router.push(`/properties/${photo.$id}`);
+        }
+    };
+
     return (
         <Animated.View
             style={{
@@ -136,7 +157,7 @@ const PhotoCard = ({ photo, index = 0, scrollY, isSubscribed = false, isCancelle
                         overflow: 'hidden', 
                         backgroundColor: '#18181b' 
                     }}
-                    onPress={() => router.push(`/properties/${photo.$id}`)}
+                    onPress={handlePress}
                     onPressIn={handlePressIn}
                     onPressOut={handlePressOut}
                 >

@@ -3,6 +3,8 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from "react";
+import { StyleSheet } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useDeepLinking } from './deep-linking';
 import "./global.css";
 
@@ -35,17 +37,41 @@ export default function RootLayout() {
   }
 
   return (
-    <GlobalProvider>
-      <Stack 
-        screenOptions={{ 
-          headerShown: false,
-          cardStyleInterpolator: ({ current }) => ({
-            cardStyle: {
-              opacity: current.progress,
-            },
-          }),
-        }} 
-      />
-    </GlobalProvider>
+    <GestureHandlerRootView style={styles.container}>
+      <GlobalProvider>
+        <Stack 
+          screenOptions={{ 
+            headerShown: false,
+            gestureEnabled: true,
+            gestureDirection: 'horizontal',
+            animation: 'slide_from_right',
+            cardStyleInterpolator: ({ current, next, layouts }) => ({
+              cardStyle: {
+                transform: [
+                  {
+                    translateX: current.progress.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [layouts.screen.width, 0],
+                    }),
+                  },
+                ],
+              },
+              overlayStyle: {
+                opacity: current.progress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, 0.5],
+                }),
+              },
+            }),
+          }} 
+        />
+      </GlobalProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});

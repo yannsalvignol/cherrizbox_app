@@ -317,6 +317,7 @@ export default function Index() {
                                                             scrolling={scrolling}
                                                             isSubscribed={post.isSubscribed} 
                                                             isCancelled={post.isCancelled}
+                                                            user={user}
                                                         />
                                                     </View>
                                                 </LinearGradient>
@@ -351,6 +352,7 @@ export default function Index() {
                                                             scrolling={scrolling}
                                                             isSubscribed={post.isSubscribed} 
                                                             isCancelled={post.isCancelled}
+                                                            user={user}
                                                         />
                                                     </View>
                                                 </LinearGradient>
@@ -363,6 +365,7 @@ export default function Index() {
                                                 scrolling={scrolling}
                                                 isSubscribed={post.isSubscribed} 
                                                 isCancelled={post.isCancelled}
+                                                user={user}
                                             />
                                         )}
                                     </View>
@@ -396,7 +399,7 @@ export default function Index() {
                             />
                             <Text style={{ 
                                 color: 'white', 
-                                fontSize: 24, 
+                                Size: 24, 
                                 fontFamily: 'Urbanist-Bold',
                                 marginBottom: 16,
                                 textAlign: 'center'

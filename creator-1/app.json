@@ -8,13 +8,18 @@
     "scheme": "cherrizbox",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/cherry.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#FB2355"
+        "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true
     },
@@ -29,8 +34,8 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/cherry.png",
-          "resizeMode": "cover",
-          "backgroundColor": "#FB2355",
+          "resizeMode": "contain",
+          "backgroundColor": "#000000",
           "enableFullScreenImage_legacy": true
         }
       ],
@@ -50,7 +55,35 @@
             "./assets/fonts/Urbanist-Thin.ttf"
           ]
         }
-      ]
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "$(PRODUCT_NAME) would like to use your microphone for voice recording."
+        }
+      ],
+      [
+        "expo-video",
+        {
+          "supportsBackgroundPlayback": true,
+          "supportsPictureInPicture": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "$(PRODUCT_NAME) would like to use your camera to share image in a message.",
+          "photosPermission": "$(PRODUCT_NAME) would like to use your device gallery to attach image in a message."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "$(PRODUCT_NAME) would like access to your photo gallery to share image in a message.",
+          "savePhotosPermission": "$(PRODUCT_NAME) would like to save photos to your photo gallery after downloading from a message."
+        }
+      ],
+      "react-native-video"
     ],
     "experiments": {
       "typedRoutes": true

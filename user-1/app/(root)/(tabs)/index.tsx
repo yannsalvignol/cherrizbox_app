@@ -76,8 +76,8 @@ export default function Index() {
                 setPosts(sortedPosts);
                 setFilteredPosts(sortedPosts);
             } else {
-                setPosts(typedPosts);
-                setFilteredPosts(typedPosts);
+            setPosts(typedPosts);
+            setFilteredPosts(typedPosts);
             }
         } catch (error) {
             console.error('Error loading posts:', error);

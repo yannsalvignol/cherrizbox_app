@@ -1,5 +1,6 @@
-import React, { createContext, ReactNode, useContext } from "react";
+import React, { createContext, ReactNode, useContext, useEffect } from "react";
 
+import { createCreatorChannel, disconnectStreamChat, initializeStreamChat } from '@/lib/stream-chat';
 import { getCurrentUser } from "./appwrite";
 import { useAppwrite } from "./useAppwrite";
 
@@ -23,7 +24,7 @@ interface GlobalProviderProps {
   children: ReactNode;
 }
 
-export const GlobalProvider = ({ children }: GlobalProviderProps) => {
+export function GlobalProvider({ children }: GlobalProviderProps) {
   const {
     data: user,
     loading,
@@ -33,6 +34,39 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
   });
 
   const isLogged = !!user;
+
+  // Initialize Stream Chat when user is loaded
+  useEffect(() => {
+    const initializeChat = async () => {
+      if (user) {
+        try {
+          // Connect the user first
+          const client = await initializeStreamChat(
+            user.$id,
+            user.name,
+            user.avatar
+          );
+          
+          // Create their channel
+          const channel = await createCreatorChannel(user.$id, user.name);
+          
+          console.log('Stream Chat initialized:', client);
+          console.log('Creator channel created:', channel);
+        } catch (error) {
+          console.error('Error initializing Stream Chat:', error);
+        }
+      }
+    };
+
+    initializeChat();
+
+    // Cleanup function to disconnect when component unmounts
+    return () => {
+      if (user) {
+        disconnectStreamChat().catch(console.error);
+      }
+    };
+  }, [user]);
 
   return (
     <GlobalContext.Provider
@@ -46,7 +80,7 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
       {children}
     </GlobalContext.Provider>
   );
-};
+}
 
 export const useGlobalContext = (): GlobalContextType => {
   const context = useContext(GlobalContext);

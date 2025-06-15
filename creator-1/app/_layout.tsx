@@ -3,6 +3,7 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "./global.css";
 
 // Keep the splash screen visible while we fetch resources
@@ -31,17 +32,19 @@ export default function RootLayout() {
   }
 
   return (
-    <GlobalProvider>
-      <Stack 
-        screenOptions={{ 
-          headerShown: false,
-          cardStyleInterpolator: ({ current }) => ({
-            cardStyle: {
-              opacity: current.progress,
-            },
-          }),
-        }} 
-      />
-    </GlobalProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <GlobalProvider>
+        <Stack 
+          screenOptions={{ 
+            headerShown: false,
+            cardStyleInterpolator: ({ current }) => ({
+              cardStyle: {
+                opacity: current.progress,
+              },
+            }),
+          }} 
+        />
+      </GlobalProvider>
+    </GestureHandlerRootView>
   );
 }

@@ -12,6 +12,7 @@ export default function Layout() {
             <Stack.Screen name="profile" />
             <Stack.Screen name="explore" />
             <Stack.Screen name="create" />
+            <Stack.Screen name="test-chat" />
         </Stack>
     );
 } 
