@@ -15,6 +15,7 @@ export default function MyPage3() {
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const [profileComplete, setProfileComplete] = useState<boolean | null>(null);
   const [checkingProfile, setCheckingProfile] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const checkProfile = useCallback(async () => {
     setCheckingProfile(true);
@@ -61,7 +62,11 @@ export default function MyPage3() {
   }, [showCongrats]);
 
   const handleGoPublic = async () => {
+    if (isSubmitting) return; // Prevent multiple submissions
+    
     try {
+      setIsSubmitting(true);
+      
       // Get current user info
       const user = await getCurrentUser();
       if (!user || !user.$id) throw new Error('User not found');
@@ -121,7 +126,7 @@ export default function MyPage3() {
           thumbnail: Array.isArray(imageUrl) ? imageUrl[0] : imageUrl,
           title: creatorsname,
           prompte: creatorsname,
-          IdCreator: creatoraccountid,
+          IdCreator: user.$id,
           payment: creatorpayment,
           PhotosLocation: location,
           PhotoTopics: topics,
@@ -133,6 +138,7 @@ export default function MyPage3() {
         router.replace('/');
       }, 3000);
     } catch (error) {
+      setIsSubmitting(false); // Reset on error
       alert('Failed to go public: ' + (error && (error as any).message ? (error as any).message : error));
     }
   };
@@ -213,23 +219,23 @@ export default function MyPage3() {
         {/* Go public button */}
         <TouchableOpacity
           style={{
-            backgroundColor: profileComplete ? '#FB2355' : '#444',
+            backgroundColor: profileComplete && !isSubmitting ? '#FB2355' : '#444',
             borderRadius: 30,
             paddingVertical: 22,
             alignItems: 'center',
             justifyContent: 'center',
             marginHorizontal: 10,
             elevation: 4,
-            opacity: checkingProfile ? 0.5 : 1,
+            opacity: checkingProfile || isSubmitting ? 0.5 : 1,
             width: 320,
             marginBottom: 0,
           }}
-          activeOpacity={profileComplete ? 0.85 : 1}
-          onPress={profileComplete ? handleGoPublic : undefined}
-          disabled={!profileComplete || checkingProfile}
+          activeOpacity={profileComplete && !isSubmitting ? 0.85 : 1}
+          onPress={profileComplete && !isSubmitting ? handleGoPublic : undefined}
+          disabled={!profileComplete || checkingProfile || isSubmitting}
         >
           <Text style={{ color: 'white', fontSize: 24, fontFamily: 'questrial', fontWeight: 'bold', letterSpacing: 1 }}>
-            Go public !
+            {isSubmitting ? 'Going Public...' : 'Go public !'}
           </Text>
         </TouchableOpacity>
         {/* Warning/message below button */}

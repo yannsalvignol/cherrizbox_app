@@ -2,15 +2,16 @@ import { useGlobalContext } from '@/lib/global-provider';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, Image, ImageBackground, Linking, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
-import { getAllPosts, getSubscriptionCount, isUserSubscribed } from '../../../lib/appwrite';
+import { getSubscriptionCount, isUserSubscribed } from '../../../lib/appwrite';
 import { initiateSubscription } from '../../../lib/subscription';
 
 const Property = () => {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { user } = useGlobalContext();
+  const { user, posts } = useGlobalContext();
   const [post, setPost] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [showBioModal, setShowBioModal] = useState(false);
   const [selectedPricing, setSelectedPricing] = useState<'monthly' | 'yearly'>('monthly');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
@@ -29,8 +30,13 @@ const Property = () => {
     const fetchPost = async () => {
       setLoading(true);
       try {
-        const allPosts = await getAllPosts();
-        const found = allPosts.find((p: any) => p.$id === id);
+        console.log('Property screen - Posts available:', posts.length);
+        console.log('Property screen - Looking for post ID:', id);
+        
+        // Use preloaded posts from global state instead of fetching again
+        const found = posts.find((p: any) => p.$id === id);
+        console.log('Property screen - Found post:', found ? 'Yes' : 'No');
+        
         setPost(found);
         
         if (found) {
@@ -45,13 +51,41 @@ const Property = () => {
           }
         }
       } catch (e) {
+        console.error('Property screen - Error:', e);
         setPost(null);
       } finally {
         setLoading(false);
       }
     };
-    fetchPost();
-  }, [id, titleParam, user]);
+    
+    // Only fetch if posts are available (they should be preloaded)
+    if (posts.length > 0) {
+      fetchPost();
+    } else {
+      console.log('Property screen - No posts available yet');
+    }
+  }, [id, titleParam, user, posts]);
+
+  // Preload the specific image for this property
+  useEffect(() => {
+    if (post) {
+      const imageUrl = imageParam || post.thumbnail || post.imageUrl || post.fileUrl;
+      if (imageUrl) {
+        console.log('Preloading specific image:', imageUrl);
+        Image.prefetch(imageUrl)
+          .then(() => {
+            console.log('Specific image preloaded successfully');
+            setImageLoaded(true);
+          })
+          .catch((error) => {
+            console.log('Failed to preload specific image:', error);
+            setImageLoaded(true); // Still show the image even if preload fails
+          });
+      } else {
+        setImageLoaded(true);
+      }
+    }
+  }, [post, imageParam]);
 
   useEffect(() => {
     if (!loading && post) {
@@ -123,7 +157,11 @@ const Property = () => {
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: 'black', justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#FB2355" />
+        <Image 
+          source={require('../../../assets/images/cherry-icon.png')} 
+          style={{ width: 80, height: 80, marginBottom: 20 }} 
+        />
+        <Text style={{ color: '#FB2355', fontSize: 18, fontFamily: 'questrial' }}>Loading...</Text>
       </View>
     );
   }
@@ -150,16 +188,29 @@ const Property = () => {
           transform: [{ scale: backgroundScale }]
         }
       ]}>
+        {/* Fallback background for instant display */}
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: '#1A1A1A' }]} />
+        
         <ImageBackground
           source={{ uri: imageUrl }}
           style={StyleSheet.absoluteFill}
           resizeMode="cover"
           blurRadius={0}
+          imageStyle={{ opacity: imageLoaded ? 1 : 0 }}
+          onLoad={() => {
+            console.log('ImageBackground loaded');
+            setImageLoaded(true);
+          }}
+          onLoadStart={() => console.log('ImageBackground loading started')}
+          onError={(error) => console.log('ImageBackground error:', error)}
         >
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 50, marginHorizontal: 20 }}>
               <TouchableOpacity onPress={() => router.back()} style={{ paddingVertical: 6 }}>
-                <Image source={require('../../../assets/icon/back.png')} style={{ width: 28, height: 28, tintColor: 'white', resizeMode: 'contain' }} />
+                <Image 
+                  source={require('../../../assets/icon/back.png')} 
+                  style={{ width: 28, height: 28, tintColor: 'white', resizeMode: 'contain' }} 
+                />
               </TouchableOpacity>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 {isSubscribed && (

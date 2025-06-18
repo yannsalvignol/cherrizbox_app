@@ -610,7 +610,7 @@ export default function Profile() {
       {/* Fixed Header with cherry icon and title */}
       <View className="flex-row items-center px-4 pt-1 pb-2">
         <TouchableOpacity 
-          onPress={() => router.push('/')} 
+          onPress={() => router.back()}  
           className="absolute left-4 z-10"
         >
           <Image 

@@ -52,9 +52,10 @@ const Trending = ({ onTrendsChange }: TrendingProps) => {
                     }`}
                   >
                     <Text 
-                      className={`font-['Urbanist-Regular'] ${
-                        isSelected ? 'text-white' : 'text-white'
-                      }`}
+                      style={{
+                        color: 'white',
+                        fontFamily: 'Urbanist-Regular'
+                      }}
                     >
                       {topic}
                     </Text>

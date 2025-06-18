@@ -6,6 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Image, Keyboard, Modal, ScrollView, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { config, databases, getUserProfile, updateCreatorPayment, updateUserProfile, uploadProfilePicture } from '../../../lib/appwrite';
 import { useGlobalContext } from '../../../lib/global-provider';
@@ -44,7 +45,6 @@ const genders = [
   { value: 'male', label: 'Male', icon: '👨' },
   { value: 'female', label: 'Female', icon: '👩' },
   { value: 'other', label: 'Other', icon: '👤' },
-  { value: 'unicorn', label: 'Unicorn', icon: '🦄' },
 ];
 
 // Trending topics (flattened)
@@ -89,6 +89,8 @@ export default function EditProfile() {
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [tempLocation, setTempLocation] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [showCreatorNameModal, setShowCreatorNameModal] = useState(false);
+  const [tempCreatorName, setTempCreatorName] = useState('');
 
   const months = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
   const currentYear = new Date().getFullYear();
@@ -444,7 +446,7 @@ export default function EditProfile() {
           </View>
 
           {/* Phone Number */}
-          <View className="flex-row items-center mb-2">
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
             <TouchableOpacity 
               onPress={() => setShowCountryPicker(true)}
               className={`flex-row items-center bg-[#1A1A1A] rounded-lg px-5 py-5 w-24 mr-2 ${
@@ -471,80 +473,84 @@ export default function EditProfile() {
                 keyboardType="phone-pad"
                 onFocus={() => setFocusedInput('phoneNumber')}
                 onBlur={() => setFocusedInput(null)}
-                style={{ textAlignVertical: 'center', color: 'white', paddingBottom: 7 }}
+                style={{ textAlignVertical: 'center', color: 'white', paddingTop: 0, paddingBottom: 0, fontSize: 18 }}
                 value={phoneNumber}
                 onChangeText={setPhoneNumber}
+                returnKeyType="done"
+                blurOnSubmit={true}
+                onSubmitEditing={() => {
+                  Keyboard.dismiss();
+                  setFocusedInput(null);
+                }}
               />
             </View>
           </View>
 
-          {/* Gender */}
-          <TouchableOpacity 
-            onPress={() => setShowGenderPicker(true)}
-            className={`flex-row items-center bg-[#1A1A1A] rounded-lg px-5 py-4 w-full ${
-              focusedInput === 'gender' ? 'border border-[#FB2355]' : ''
-            }`}
-            activeOpacity={0.7}
-          >
-            <Ionicons 
-              name="person-outline" 
-              size={24} 
-              color={focusedInput === 'gender' ? '#FB2355' : '#666'} 
-              style={{ marginRight: 12 }}
-            />
-            <TextInput
-              className="flex-1 text-white font-questrial text-lg h-9"
-              value={selectedGender?.label || ''}
-              placeholder="Select your gender"
-              placeholderTextColor="#666"
-              editable={false}
-              style={{ textAlignVertical: 'center', color: 'white', paddingBottom: 12 }}
-            />
-          </TouchableOpacity>
-
-          {/* Add extra space after gender field */}
-          <View style={{ height: 7 }} />
-
-          {/* Creator's Name */}
-          <View className={`flex-row items-center bg-[#1A1A1A] rounded-lg px-5 py-4 mb-2 ${
-            focusedInput === 'creatorName' ? 'border border-[#FB2355]' : ''
-          }`}>
-            <Ionicons 
-              name="person-circle-outline" 
-              size={24} 
-              color={focusedInput === 'creatorName' ? '#FB2355' : '#666'} 
-              style={{ marginRight: 12 }}
-            />
-            <TextInput
-              className="flex-1 text-white font-questrial text-lg h-9"
-              value={creatorName}
-              onChangeText={setCreatorName}
-              placeholder="Creator's Name (public)"
-              placeholderTextColor="#666"
-              onFocus={() => setFocusedInput('creatorName')}
-              onBlur={() => setFocusedInput(null)}
-              style={{ textAlignVertical: 'center', color: 'white', paddingBottom: 12 }}
-            />
+          {/* Gender - Simplified Picker */}
+          <View style={{ marginBottom: 8 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+              {genders.map((gender) => (
+                <TouchableOpacity
+                  key={gender.value}
+                  onPress={() => setSelectedGender(gender)}
+                  style={{
+                    backgroundColor: selectedGender?.value === gender.value ? '#FB2355' : '#222',
+                    borderRadius: 18,
+                    paddingVertical: 12,
+                    paddingHorizontal: 0,
+                    marginHorizontal: 0,
+                    flex: 1,
+                    marginRight: gender.value !== 'other' ? 12 : 0,
+                    borderWidth: selectedGender?.value === gender.value ? 0 : 1,
+                    borderColor: '#444',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ 
+                    color: selectedGender?.value === gender.value ? 'white' : '#aaa', 
+                    fontFamily: 'questrial', 
+                    fontSize: 17,
+                    textAlign: 'center',
+                  }}>
+                    {gender.icon} {gender.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
 
-          {/* Bio */}
-          <TouchableOpacity 
-            className={`bg-[#1A1A1A] rounded-lg px-5 py-4 mb-2 ${focusedInput === 'bio' ? 'border border-[#FB2355]' : ''}`}
-            onPress={() => {
-              setTempBio(bio);
-              setShowBioModal(true);
-            }}
-          >
-            <View className="flex-row items-center">
-              <Ionicons
-                name="document-text-outline"
-                size={24}
-                color={focusedInput === 'bio' ? '#FB2355' : '#666'}
-                style={{ marginRight: 12 }}
-              />
+          {/* Creator's Name - Modal Style */}
+          <View style={{ marginBottom: 8 }}>
+            <TouchableOpacity
+              className="bg-[#1A1A1A] rounded-lg px-5 py-4 flex-row items-center"
+              activeOpacity={0.8}
+              onPress={() => {
+                setTempCreatorName(creatorName);
+                setShowCreatorNameModal(true);
+              }}
+            >
+              <Ionicons name="person-circle-outline" size={22} color="#666" style={{ marginRight: 10 }} />
+              <Text className="text-white font-questrial text-lg flex-1">
+                {creatorName ? creatorName : 'Enter your creator name'}
+              </Text>
+              <Ionicons name="chevron-forward" size={20} color="#666" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Bio - Modal Style */}
+          <View style={{ marginBottom: 8 }}>
+            <TouchableOpacity
+              className="bg-[#1A1A1A] rounded-lg px-5 py-4 flex-row items-center"
+              activeOpacity={0.8}
+              onPress={() => {
+                setTempBio(bio);
+                setShowBioModal(true);
+              }}
+            >
+              <Ionicons name="document-text-outline" size={22} color="#666" style={{ marginRight: 10 }} />
               <View className="flex-1">
                 <Text className="text-white font-questrial text-lg">
-                  {bio ? bio : 'Bio (tell us about yourself)'}
+                  {bio ? bio : 'Tell us about yourself'}
                 </Text>
                 {bio && (
                   <Text className="text-gray-400 text-sm mt-1">
@@ -552,177 +558,30 @@ export default function EditProfile() {
                   </Text>
                 )}
               </View>
-            </View>
-          </TouchableOpacity>
+              <Ionicons name="chevron-forward" size={20} color="#666" />
+            </TouchableOpacity>
+          </View>
 
-          {/* Bio Modal */}
-          <Modal
-            visible={showBioModal}
-            transparent={true}
-            animationType="slide"
-            onRequestClose={() => {
-              Keyboard.dismiss();
-              setShowBioModal(false);
-            }}
-          >
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-              <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' }}>
-                <TouchableWithoutFeedback>
-                  <View style={{ backgroundColor: '#181818', borderRadius: 24, padding: 24, width: '90%', maxHeight: '80%' }}>
-                    <View className="flex-row justify-between items-center mb-4">
-                      <Text className="text-white text-xl font-bold">Edit Bio</Text>
-                      <TouchableOpacity 
-                        onPress={() => {
-                          Keyboard.dismiss();
-                          setShowBioModal(false);
-                        }}
-                      >
-                        <Ionicons name="close" size={24} color="#FB2355" />
-                      </TouchableOpacity>
-                    </View>
-
-                    <TextInput
-                      className="bg-[#222] text-white rounded-lg px-4 py-3 min-h-[150]"
-                      value={tempBio}
-                      onChangeText={setTempBio}
-                      placeholder="Tell us about yourself..."
-                      placeholderTextColor="#666"
-                      multiline
-                      maxLength={300}
-                      style={{ textAlignVertical: 'top' }}
-                      returnKeyType="done"
-                      blurOnSubmit={true}
-                      onSubmitEditing={() => {
-                        Keyboard.dismiss();
-                        setBio(tempBio);
-                        setShowBioModal(false);
-                      }}
-                    />
-
-                    <Text className="text-gray-400 text-sm mt-2 text-right">
-                      {tempBio.length}/300 characters
-                    </Text>
-
-                    <View className="flex-row justify-end mt-4 space-x-6">
-                      <TouchableOpacity 
-                        className="bg-[#333] rounded-lg px-6 py-3"
-                        onPress={() => {
-                          Keyboard.dismiss();
-                          setShowBioModal(false);
-                        }}
-                      >
-                        <Text className="text-white font-questrial">Cancel</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity 
-                        className="bg-[#FB2355] rounded-lg px-6 py-3"
-                        onPress={() => {
-                          Keyboard.dismiss();
-                          setBio(tempBio);
-                          setShowBioModal(false);
-                        }}
-                      >
-                        <Text className="text-white font-questrial">Save</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </TouchableWithoutFeedback>
-              </View>
-            </TouchableWithoutFeedback>
-          </Modal>
-
-          {/* Location */}
-          <TouchableOpacity 
-            className={`flex-row items-center bg-[#1A1A1A] rounded-lg px-5 py-4 mb-2 ${
-              focusedInput === 'location' ? 'border border-[#FB2355]' : ''
-            }`}
-            onPress={() => {
-              setTempLocation(location);
-              setShowLocationModal(true);
-            }}
-          >
-            <Ionicons 
-              name="location-outline" 
-              size={24} 
-              color={focusedInput === 'location' ? '#FB2355' : '#666'} 
-              style={{ marginRight: 12 }}
-            />
-            <View className="flex-1">
-              <Text className="text-white font-questrial text-lg">
-                {location ? location : 'Location'}
+          {/* Location - Modal Style */}
+          <View style={{ marginBottom: 8 }}>
+            <TouchableOpacity
+              className="bg-[#1A1A1A] rounded-lg px-5 py-4 flex-row items-center"
+              activeOpacity={0.8}
+              onPress={() => {
+                setTempLocation(location);
+                setShowLocationModal(true);
+              }}
+            >
+              <Ionicons name="location-outline" size={22} color="#666" style={{ marginRight: 10 }} />
+              <Text className="text-white font-questrial text-lg flex-1">
+                {location ? location : 'Enter your location'}
               </Text>
-            </View>
-          </TouchableOpacity>
-
-          {/* Location Modal */}
-          <Modal
-            visible={showLocationModal}
-            transparent={true}
-            animationType="slide"
-            onRequestClose={() => {
-              Keyboard.dismiss();
-              setShowLocationModal(false);
-            }}
-          >
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-              <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' }}>
-                <TouchableWithoutFeedback>
-                  <View style={{ backgroundColor: '#181818', borderRadius: 24, padding: 24, width: '90%', maxHeight: '80%' }}>
-                    <View className="flex-row justify-between items-center mb-4">
-                      <Text className="text-white text-xl font-bold">Edit Location</Text>
-                      <TouchableOpacity 
-                        onPress={() => {
-                          Keyboard.dismiss();
-                          setShowLocationModal(false);
-                        }}
-                      >
-                        <Ionicons name="close" size={24} color="#FB2355" />
-                      </TouchableOpacity>
-                    </View>
-
-                    <TextInput
-                      className="bg-[#222] text-white rounded-lg px-4 py-3"
-                      value={tempLocation}
-                      onChangeText={setTempLocation}
-                      placeholder="Enter your location..."
-                      placeholderTextColor="#666"
-                      returnKeyType="done"
-                      blurOnSubmit={true}
-                      onSubmitEditing={() => {
-                        Keyboard.dismiss();
-                        setLocation(tempLocation);
-                        setShowLocationModal(false);
-                      }}
-                    />
-
-                    <View className="flex-row justify-end mt-4 space-x-6">
-                      <TouchableOpacity 
-                        className="bg-[#333] rounded-lg px-6 py-3"
-                        onPress={() => {
-                          Keyboard.dismiss();
-                          setShowLocationModal(false);
-                        }}
-                      >
-                        <Text className="text-white font-questrial">Cancel</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity 
-                        className="bg-[#FB2355] rounded-lg px-6 py-3"
-                        onPress={() => {
-                          Keyboard.dismiss();
-                          setLocation(tempLocation);
-                          setShowLocationModal(false);
-                        }}
-                      >
-                        <Text className="text-white font-questrial">Save</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </TouchableWithoutFeedback>
-              </View>
-            </TouchableWithoutFeedback>
-          </Modal>
+              <Ionicons name="chevron-forward" size={20} color="#666" />
+            </TouchableOpacity>
+          </View>
 
           {/* Topics (Button + Modal) */}
-          <View className="mb-4">
+          <View style={{ marginBottom: 16 }}>
            
             <TouchableOpacity
               className="bg-[#1A1A1A] rounded-lg px-5 py-4 mb-2 flex-row items-center"
@@ -911,36 +770,151 @@ export default function EditProfile() {
         <Modal
           visible={showCountryPicker}
           transparent={true}
-          animationType="slide"
+          animationType="fade"
           onRequestClose={() => setShowCountryPicker(false)}
         >
-          <View className="flex-1 bg-black/50 justify-end">
-            <View className="bg-[#1A1A1A] rounded-t-3xl p-4">
-              <View className="flex-row justify-between items-center mb-4">
-                <Text className="text-white text-xl font-bold">Select Country</Text>
-                <TouchableOpacity onPress={() => setShowCountryPicker(false)}>
-                  <Ionicons name="close" size={24} color="#FB2355" />
+          <TouchableWithoutFeedback onPress={() => setShowCountryPicker(false)}>
+            <View style={{ 
+              flex: 1, 
+              backgroundColor: 'rgba(0,0,0,0.75)', 
+              justifyContent: 'center', 
+              alignItems: 'center',
+              backdropFilter: 'blur(10px)'
+            }}>
+              <Animated.View style={{
+                backgroundColor: '#1a1a1a',
+                borderRadius: 24,
+                padding: 32,
+                width: '90%',
+                maxWidth: 400,
+                maxHeight: '80%',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 20 },
+                shadowOpacity: 0.3,
+                shadowRadius: 40,
+                elevation: 20,
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.1)',
+                alignItems: 'center',
+              }}>
+                <View style={{ 
+                  flexDirection: 'row', 
+                  alignItems: 'center', 
+                  marginBottom: 24,
+                  paddingBottom: 16,
+                  borderBottomWidth: 1,
+                  borderBottomColor: 'rgba(255,255,255,0.1)',
+                  width: '100%'
+                }}>
+                  <View style={{
+                    backgroundColor: 'rgba(251, 35, 85, 0.1)',
+                    borderRadius: 12,
+                    padding: 8,
+                    marginRight: 12
+                  }}>
+                    <Ionicons name="globe-outline" size={24} color="#FB2355" />
+                  </View>
+                  <Text style={{ 
+                    color: 'white', 
+                    fontSize: 20, 
+                    fontWeight: '600', 
+                    fontFamily: 'questrial',
+                    letterSpacing: 0.5
+                  }}>Select Country</Text>
+                </View>
+                
+                <FlatList
+                  data={countries}
+                  keyExtractor={(item) => item.code + item.name}
+                  style={{ width: '100%' }}
+                  showsVerticalScrollIndicator={false}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        paddingVertical: 16,
+                        paddingHorizontal: 20,
+                        marginVertical: 2,
+                        borderRadius: 16,
+                        backgroundColor: selectedCountry.code === item.code && selectedCountry.name === item.name 
+                          ? 'rgba(251, 35, 85, 0.1)' 
+                          : 'transparent',
+                        borderWidth: selectedCountry.code === item.code && selectedCountry.name === item.name ? 1 : 0,
+                        borderColor: 'rgba(251, 35, 85, 0.3)',
+                      }}
+                      onPress={() => {
+                        setSelectedCountry(item);
+                        setShowCountryPicker(false);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <View style={{
+                        backgroundColor: 'rgba(255,255,255,0.1)',
+                        borderRadius: 12,
+                        padding: 8,
+                        marginRight: 16,
+                        minWidth: 40,
+                        alignItems: 'center'
+                      }}>
+                        <Text style={{ fontSize: 20 }}>{item.flag}</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ 
+                          color: 'white', 
+                          fontSize: 16, 
+                          fontFamily: 'questrial',
+                          fontWeight: '500'
+                        }}>
+                          {item.name}
+                        </Text>
+                      </View>
+                      <View style={{
+                        backgroundColor: selectedCountry.code === item.code && selectedCountry.name === item.name 
+                          ? '#FB2355' 
+                          : 'rgba(255,255,255,0.1)',
+                        borderRadius: 8,
+                        paddingHorizontal: 12,
+                        paddingVertical: 6
+                      }}>
+                        <Text style={{ 
+                          color: selectedCountry.code === item.code && selectedCountry.name === item.name 
+                            ? 'white' 
+                            : 'rgba(255,255,255,0.8)', 
+                          fontSize: 14, 
+                          fontFamily: 'questrial',
+                          fontWeight: '600'
+                        }}>
+                          {item.code}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  )}
+                />
+                
+                <TouchableOpacity 
+                  style={{ 
+                    backgroundColor: 'rgba(255,255,255,0.1)', 
+                    borderRadius: 16, 
+                    paddingVertical: 16, 
+                    paddingHorizontal: 32,
+                    marginTop: 24,
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.1)',
+                    alignSelf: 'center'
+                  }}
+                  onPress={() => setShowCountryPicker(false)}
+                >
+                  <Text style={{ 
+                    color: 'rgba(255,255,255,0.8)', 
+                    fontSize: 16, 
+                    fontFamily: 'questrial',
+                    fontWeight: '500'
+                  }}>Cancel</Text>
                 </TouchableOpacity>
-              </View>
-              <FlatList
-                data={countries}
-                keyExtractor={(item) => item.code + item.name}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    className="flex-row items-center py-3 border-b border-gray-800"
-                    onPress={() => {
-                      setSelectedCountry(item);
-                      setShowCountryPicker(false);
-                    }}
-                  >
-                    <Text className="text-white text-xl mr-3">{item.flag}</Text>
-                    <Text className="text-white text-lg flex-1">{item.name}</Text>
-                    <Text className="text-white text-lg">{item.code}</Text>
-                  </TouchableOpacity>
-                )}
-              />
+              </Animated.View>
             </View>
-          </View>
+          </TouchableWithoutFeedback>
         </Modal>
 
         {/* Gender Picker Modal */}
@@ -1112,6 +1086,458 @@ export default function EditProfile() {
           </View>
         </Modal>
       </ScrollView>
+
+      {/* Creator Name Modal */}
+      <Modal
+        visible={showCreatorNameModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          Keyboard.dismiss();
+          setShowCreatorNameModal(false);
+        }}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={{ 
+            flex: 1, 
+            backgroundColor: 'rgba(0,0,0,0.75)', 
+            justifyContent: 'center', 
+            alignItems: 'center',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <Animated.View style={{
+              backgroundColor: '#1a1a1a',
+              borderRadius: 24,
+              padding: 32,
+              width: '90%',
+              maxWidth: 400,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 20 },
+              shadowOpacity: 0.3,
+              shadowRadius: 40,
+              elevation: 20,
+              borderWidth: 1,
+              borderColor: 'rgba(255,255,255,0.1)',
+              alignItems: 'center',
+            }}>
+              <View style={{ 
+                flexDirection: 'row', 
+                alignItems: 'center', 
+                marginBottom: 24,
+                paddingBottom: 16,
+                borderBottomWidth: 1,
+                borderBottomColor: 'rgba(255,255,255,0.1)',
+                width: '100%'
+              }}>
+                <View style={{
+                  backgroundColor: 'rgba(251, 35, 85, 0.1)',
+                  borderRadius: 12,
+                  padding: 8,
+                  marginRight: 12
+                }}>
+                  <Ionicons name="person-circle-outline" size={24} color="#FB2355" />
+                </View>
+                <Text style={{ 
+                  color: 'white', 
+                  fontSize: 20, 
+                  fontWeight: '600', 
+                  fontFamily: 'questrial',
+                  letterSpacing: 0.5
+                }}>Creator Name</Text>
+              </View>
+              
+              <TextInput
+                style={{
+                  backgroundColor: '#2a2a2a',
+                  color: 'white',
+                  borderRadius: 16,
+                  paddingHorizontal: 20,
+                  paddingVertical: 16,
+                  fontSize: 16,
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,255,255,0.1)',
+                  marginBottom: 24,
+                  width: '100%',
+                  textAlign: 'center',
+                  fontFamily: 'questrial'
+                }}
+                value={tempCreatorName}
+                onChangeText={setTempCreatorName}
+                placeholder="Enter your creator name..."
+                placeholderTextColor="rgba(255,255,255,0.5)"
+                returnKeyType="done"
+                blurOnSubmit={true}
+                onSubmitEditing={() => {
+                  Keyboard.dismiss();
+                  setCreatorName(tempCreatorName);
+                  setShowCreatorNameModal(false);
+                }}
+              />
+              
+              <View style={{ 
+                flexDirection: 'row', 
+                justifyContent: 'space-between', 
+                width: '100%',
+                gap: 12
+              }}>
+                <TouchableOpacity 
+                  style={{ 
+                    flex: 1, 
+                    backgroundColor: 'rgba(255,255,255,0.1)', 
+                    borderRadius: 16, 
+                    paddingVertical: 16, 
+                    alignItems: 'center',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.1)'
+                  }}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setShowCreatorNameModal(false);
+                  }}
+                >
+                  <Text style={{ 
+                    color: 'rgba(255,255,255,0.8)', 
+                    fontSize: 16, 
+                    fontFamily: 'questrial',
+                    fontWeight: '500'
+                  }}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={{ 
+                    flex: 1, 
+                    backgroundColor: '#FB2355', 
+                    borderRadius: 16, 
+                    paddingVertical: 16, 
+                    alignItems: 'center',
+                    shadowColor: '#FB2355',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 8,
+                    elevation: 8
+                  }}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setCreatorName(tempCreatorName);
+                    setShowCreatorNameModal(false);
+                  }}
+                >
+                  <Text style={{ 
+                    color: 'white', 
+                    fontSize: 16, 
+                    fontFamily: 'questrial', 
+                    fontWeight: '600'
+                  }}>Save</Text>
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* Bio Modal */}
+      <Modal
+        visible={showBioModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          Keyboard.dismiss();
+          setShowBioModal(false);
+        }}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={{ 
+            flex: 1, 
+            backgroundColor: 'rgba(0,0,0,0.75)', 
+            justifyContent: 'center', 
+            alignItems: 'center',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <Animated.View style={{
+              backgroundColor: '#1a1a1a',
+              borderRadius: 24,
+              padding: 32,
+              width: '90%',
+              maxWidth: 400,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 20 },
+              shadowOpacity: 0.3,
+              shadowRadius: 40,
+              elevation: 20,
+              borderWidth: 1,
+              borderColor: 'rgba(255,255,255,0.1)',
+              alignItems: 'center',
+            }}>
+              <View style={{ 
+                flexDirection: 'row', 
+                alignItems: 'center', 
+                marginBottom: 24,
+                paddingBottom: 16,
+                borderBottomWidth: 1,
+                borderBottomColor: 'rgba(255,255,255,0.1)',
+                width: '100%'
+              }}>
+                <View style={{
+                  backgroundColor: 'rgba(251, 35, 85, 0.1)',
+                  borderRadius: 12,
+                  padding: 8,
+                  marginRight: 12
+                }}>
+                  <Ionicons name="document-text-outline" size={24} color="#FB2355" />
+                </View>
+                <Text style={{ 
+                  color: 'white', 
+                  fontSize: 20, 
+                  fontWeight: '600', 
+                  fontFamily: 'questrial',
+                  letterSpacing: 0.5
+                }}>Edit Bio</Text>
+              </View>
+              
+              <TextInput
+                style={{
+                  backgroundColor: '#2a2a2a',
+                  color: 'white',
+                  borderRadius: 16,
+                  paddingHorizontal: 20,
+                  paddingVertical: 16,
+                  fontSize: 16,
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,255,255,0.1)',
+                  marginBottom: 8,
+                  width: '100%',
+                  minHeight: 120,
+                  textAlignVertical: 'top',
+                  fontFamily: 'questrial'
+                }}
+                value={tempBio}
+                onChangeText={setTempBio}
+                placeholder="Tell us about yourself..."
+                placeholderTextColor="rgba(255,255,255,0.5)"
+                multiline
+                maxLength={300}
+                returnKeyType="done"
+                blurOnSubmit={true}
+                onSubmitEditing={() => {
+                  Keyboard.dismiss();
+                  setBio(tempBio);
+                  setShowBioModal(false);
+                }}
+              />
+              
+              <Text style={{ 
+                color: 'rgba(255,255,255,0.6)', 
+                fontSize: 14, 
+                alignSelf: 'flex-end', 
+                marginBottom: 24,
+                fontFamily: 'questrial'
+              }}>{tempBio.length}/300 characters</Text>
+              
+              <View style={{ 
+                flexDirection: 'row', 
+                justifyContent: 'space-between', 
+                width: '100%',
+                gap: 12
+              }}>
+                <TouchableOpacity 
+                  style={{ 
+                    flex: 1, 
+                    backgroundColor: 'rgba(255,255,255,0.1)', 
+                    borderRadius: 16, 
+                    paddingVertical: 16, 
+                    alignItems: 'center',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.1)'
+                  }}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setShowBioModal(false);
+                  }}
+                >
+                  <Text style={{ 
+                    color: 'rgba(255,255,255,0.8)', 
+                    fontSize: 16, 
+                    fontFamily: 'questrial',
+                    fontWeight: '500'
+                  }}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={{ 
+                    flex: 1, 
+                    backgroundColor: '#FB2355', 
+                    borderRadius: 16, 
+                    paddingVertical: 16, 
+                    alignItems: 'center',
+                    shadowColor: '#FB2355',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 8,
+                    elevation: 8
+                  }}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setBio(tempBio);
+                    setShowBioModal(false);
+                  }}
+                >
+                  <Text style={{ 
+                    color: 'white', 
+                    fontSize: 16, 
+                    fontFamily: 'questrial', 
+                    fontWeight: '600'
+                  }}>Save</Text>
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* Location Modal */}
+      <Modal
+        visible={showLocationModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          Keyboard.dismiss();
+          setShowLocationModal(false);
+        }}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={{ 
+            flex: 1, 
+            backgroundColor: 'rgba(0,0,0,0.75)', 
+            justifyContent: 'center', 
+            alignItems: 'center',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <Animated.View style={{
+              backgroundColor: '#1a1a1a',
+              borderRadius: 24,
+              padding: 32,
+              width: '90%',
+              maxWidth: 400,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 20 },
+              shadowOpacity: 0.3,
+              shadowRadius: 40,
+              elevation: 20,
+              borderWidth: 1,
+              borderColor: 'rgba(255,255,255,0.1)',
+              alignItems: 'center',
+            }}>
+              <View style={{ 
+                flexDirection: 'row', 
+                alignItems: 'center', 
+                marginBottom: 24,
+                paddingBottom: 16,
+                borderBottomWidth: 1,
+                borderBottomColor: 'rgba(255,255,255,0.1)',
+                width: '100%'
+              }}>
+                <View style={{
+                  backgroundColor: 'rgba(251, 35, 85, 0.1)',
+                  borderRadius: 12,
+                  padding: 8,
+                  marginRight: 12
+                }}>
+                  <Ionicons name="location-outline" size={24} color="#FB2355" />
+                </View>
+                <Text style={{ 
+                  color: 'white', 
+                  fontSize: 20, 
+                  fontWeight: '600', 
+                  fontFamily: 'questrial',
+                  letterSpacing: 0.5
+                }}>Edit Location</Text>
+              </View>
+              
+              <TextInput
+                style={{
+                  backgroundColor: '#2a2a2a',
+                  color: 'white',
+                  borderRadius: 16,
+                  paddingHorizontal: 20,
+                  paddingVertical: 16,
+                  fontSize: 16,
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,255,255,0.1)',
+                  marginBottom: 24,
+                  width: '100%',
+                  textAlign: 'center',
+                  fontFamily: 'questrial'
+                }}
+                value={tempLocation}
+                onChangeText={setTempLocation}
+                placeholder="Enter your location..."
+                placeholderTextColor="rgba(255,255,255,0.5)"
+                returnKeyType="done"
+                blurOnSubmit={true}
+                onSubmitEditing={() => {
+                  Keyboard.dismiss();
+                  setLocation(tempLocation);
+                  setShowLocationModal(false);
+                }}
+              />
+              
+              <View style={{ 
+                flexDirection: 'row', 
+                justifyContent: 'space-between', 
+                width: '100%',
+                gap: 12
+              }}>
+                <TouchableOpacity 
+                  style={{ 
+                    flex: 1, 
+                    backgroundColor: 'rgba(255,255,255,0.1)', 
+                    borderRadius: 16, 
+                    paddingVertical: 16, 
+                    alignItems: 'center',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.1)'
+                  }}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setShowLocationModal(false);
+                  }}
+                >
+                  <Text style={{ 
+                    color: 'rgba(255,255,255,0.8)', 
+                    fontSize: 16, 
+                    fontFamily: 'questrial',
+                    fontWeight: '500'
+                  }}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={{ 
+                    flex: 1, 
+                    backgroundColor: '#FB2355', 
+                    borderRadius: 16, 
+                    paddingVertical: 16, 
+                    alignItems: 'center',
+                    shadowColor: '#FB2355',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 8,
+                    elevation: 8
+                  }}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setLocation(tempLocation);
+                    setShowLocationModal(false);
+                  }}
+                >
+                  <Text style={{ 
+                    color: 'white', 
+                    fontSize: 16, 
+                    fontFamily: 'questrial', 
+                    fontWeight: '600'
+                  }}>Save</Text>
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </SafeAreaView>
   );
 }

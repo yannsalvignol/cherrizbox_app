@@ -5,7 +5,7 @@ import { ImageBackground, StyleSheet, Text, View } from 'react-native';
 
 const LoadingScreen = () => {
   const router = useRouter();
-  const { user, isStreamConnected } = useGlobalContext();
+  const { user, isStreamConnected, posts, imagesPreloaded } = useGlobalContext();
   const [loadingText, setLoadingText] = useState('Initializing...');
 
   useEffect(() => {
@@ -21,16 +21,20 @@ const LoadingScreen = () => {
     return () => clearTimeout(timer);
   }, [router, user]);
 
-  // Update loading text based on connection status
+  // Update loading text based on connection status and preloading
   useEffect(() => {
-    if (user && isStreamConnected) {
+    if (user && isStreamConnected && imagesPreloaded) {
       setLoadingText('Ready!');
+    } else if (user && isStreamConnected && posts.length > 0) {
+      setLoadingText('Preloading images...');
+    } else if (user && isStreamConnected) {
+      setLoadingText('Loading content...');
     } else if (user) {
       setLoadingText('Connecting to chat...');
     } else {
       setLoadingText('Loading...');
     }
-  }, [user, isStreamConnected]);
+  }, [user, isStreamConnected, posts.length, imagesPreloaded]);
 
   return (
     <ImageBackground

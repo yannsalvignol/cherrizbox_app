@@ -1,10 +1,11 @@
 import { Models } from 'appwrite'
 import { useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
-import { Image, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native'
+import { Image, Pressable, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import Modal from 'react-native-modal'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { deleteExpiredSubscriptions, getCurrentUser, getUserProfile, getUserSubscriptions } from '../../../lib/appwrite'
+import { getCurrentUser, getUserProfile } from '../../../lib/appwrite'
+import { useGlobalContext } from '../../../lib/global-provider'
 import { cancelSubscription } from '../../../lib/subscription'
 
 interface User extends Models.User<Models.Preferences> {
@@ -32,18 +33,25 @@ interface Subscription {
 
 export default function Profile() {
   const router = useRouter();
+  const { creators, refreshCreators } = useGlobalContext();
   const [isPaidContent, setIsPaidContent] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [isUnsubscribeModalVisible, setIsUnsubscribeModalVisible] = useState(false);
   const [selectedCreator, setSelectedCreator] = useState<{ name: string; subscriptionId: string } | null>(null);
   const [isProcessingUnsubscribe, setIsProcessingUnsubscribe] = useState(false);
   const [modalMessage, setModalMessage] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadUserData();
   }, []);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refreshCreators();
+    setRefreshing(false);
+  };
 
   const loadUserData = async () => {
     try {
@@ -57,42 +65,6 @@ export default function Profile() {
             profileImageUri: userProfile.profileImageUri
           });
         }
-        
-        // Delete expired subscriptions first
-        await deleteExpiredSubscriptions(currentUser.$id);
-        
-        // Then get the updated list of subscriptions
-        const userSubscriptions = await getUserSubscriptions(currentUser.$id);
-        
-        // Filter out active subscriptions that have a cancelled counterpart
-        const filteredSubscriptions = userSubscriptions
-          .map(sub => ({
-            $id: sub.$id,
-            userId: sub.userId,
-            status: sub.status as 'active' | 'cancelled',
-            createdAt: sub.createdAt,
-            planCurrency: sub.planCurrency,
-            planInterval: sub.planInterval,
-            creatorName: sub.creatorName,
-            creatorAccountId: sub.creatorAccountId,
-            renewalDate: sub.renewalDate,
-            stripeSubscriptionId: sub.stripeSubscriptionId,
-            endsAt: sub.endsAt
-          }))
-          .filter((sub, index, self) => {
-            if (sub.status === 'cancelled') return true;
-            
-            // If this is an active subscription, check if there's a cancelled one with the same stripeSubscriptionId
-            const hasCancelledCounterpart = self.some(
-              otherSub => 
-                otherSub.status === 'cancelled' && 
-                otherSub.stripeSubscriptionId === sub.stripeSubscriptionId
-            );
-            
-            return !hasCancelledCounterpart;
-          });
-
-        setSubscriptions(filteredSubscriptions);
       }
     } catch (error) {
       setModalMessage({ type: 'error', message: 'Failed to load user data' });
@@ -122,38 +94,8 @@ export default function Profile() {
       await cancelSubscription(selectedCreator.subscriptionId);
       setModalMessage({ type: 'success', message: `Successfully unsubscribed from ${selectedCreator.name}` });
       
-      // Refresh subscriptions list
-      const currentUser = await getCurrentUser();
-      if (currentUser) {
-        const updatedSubscriptions = await getUserSubscriptions(currentUser.$id);
-        const mappedSubscriptions = updatedSubscriptions
-          .map(sub => ({
-            $id: sub.$id,
-            userId: sub.userId,
-            status: sub.status as 'active' | 'cancelled',
-            createdAt: sub.createdAt,
-            planCurrency: sub.planCurrency,
-            planInterval: sub.planInterval,
-            creatorName: sub.creatorName,
-            creatorAccountId: sub.creatorAccountId,
-            renewalDate: sub.renewalDate,
-            stripeSubscriptionId: sub.stripeSubscriptionId,
-            endsAt: sub.endsAt
-          }))
-          .filter((sub, index, self) => {
-            if (sub.status === 'cancelled') return true;
-            
-            // If this is an active subscription, check if there's a cancelled one with the same stripeSubscriptionId
-            const hasCancelledCounterpart = self.some(
-              otherSub => 
-                otherSub.status === 'cancelled' && 
-                otherSub.stripeSubscriptionId === sub.stripeSubscriptionId
-            );
-            
-            return !hasCancelledCounterpart;
-          });
-        setSubscriptions(mappedSubscriptions);
-      }
+      // Refresh creators list using global function
+      await refreshCreators();
     } catch (error) {
       setModalMessage({ 
         type: 'error', 
@@ -168,38 +110,8 @@ export default function Profile() {
     setIsUnsubscribeModalVisible(false);
     setSelectedCreator(null);
     if (modalMessage?.type === 'success') {
-      // Refresh subscriptions list after successful unsubscribe
-      const currentUser = await getCurrentUser();
-      if (currentUser) {
-        const updatedSubscriptions = await getUserSubscriptions(currentUser.$id);
-        const mappedSubscriptions = updatedSubscriptions
-          .map(sub => ({
-            $id: sub.$id,
-            userId: sub.userId,
-            status: sub.status as 'active' | 'cancelled',
-            createdAt: sub.createdAt,
-            planCurrency: sub.planCurrency,
-            planInterval: sub.planInterval,
-            creatorName: sub.creatorName,
-            creatorAccountId: sub.creatorAccountId,
-            renewalDate: sub.renewalDate,
-            stripeSubscriptionId: sub.stripeSubscriptionId,
-            endsAt: sub.endsAt
-          }))
-          .filter((sub, index, self) => {
-            if (sub.status === 'cancelled') return true;
-            
-            // If this is an active subscription, check if there's a cancelled one with the same stripeSubscriptionId
-            const hasCancelledCounterpart = self.some(
-              otherSub => 
-                otherSub.status === 'cancelled' && 
-                otherSub.stripeSubscriptionId === sub.stripeSubscriptionId
-            );
-            
-            return !hasCancelledCounterpart;
-          });
-        setSubscriptions(mappedSubscriptions);
-      }
+      // Refresh creators list after successful unsubscribe
+      await refreshCreators();
     }
     setModalMessage(null);
   };
@@ -209,7 +121,7 @@ export default function Profile() {
       {/* Header with cherry icon and title */}
       <View className="flex-row items-center px-4 pt-2 pb-4">
         <TouchableOpacity 
-          onPress={() => router.push('/')} 
+          onPress={() => router.back()} 
           className="absolute left-4 z-10"
         >
           <Image 
@@ -325,9 +237,15 @@ export default function Profile() {
           className="flex-1 px-6 -mt-5" 
           contentContainerStyle={{ paddingTop: 16, paddingBottom: 40 }}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+            />
+          }
         >
-          {subscriptions.length > 0 ? (
-            subscriptions.map((subscription) => {
+          {creators.length > 0 ? (
+            creators.map((subscription) => {
               const isActive = subscription.status === 'active';
               const isCancelled = subscription.status === 'cancelled';
               const endDate = subscription.endsAt ? new Date(subscription.endsAt) : null;

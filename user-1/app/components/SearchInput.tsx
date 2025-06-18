@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Image, Keyboard, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -45,9 +46,10 @@ const SearchInput = ({ onSearch, onFocus }: SearchInputProps) => {
                     className="mr-3 justify-center items-center"
                     style={{ height: 40, width: 40 }}
                 >
-                    <Image 
-                        source={require('../../assets/icon/back.png')}
-                        style={{ width: 24, height: 24, tintColor: 'white', resizeMode: 'contain' }}
+                    <Ionicons 
+                        name="chevron-back-outline" 
+                        size={34} 
+                        color="white" 
                     />
                 </TouchableOpacity>
             )}

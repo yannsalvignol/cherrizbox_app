@@ -1,8 +1,40 @@
 import React, { createContext, ReactNode, useContext, useEffect, useRef } from "react";
+import { Image } from 'react-native';
 
-import { getCurrentUser } from "./appwrite";
+import { deleteExpiredSubscriptions, getAllPosts, getCurrentUser, getUserSubscriptions } from "./appwrite";
 import { connectUser, disconnectUser } from "./stream-chat";
 import { useAppwrite } from "./useAppwrite";
+
+interface Subscription {
+    $id: string;
+    userId: string;
+    status: 'active' | 'cancelled';
+    createdAt: string;
+    planCurrency: string;
+    planInterval: string;
+    creatorName: string;
+    creatorAccountId: string;
+    renewalDate: string;
+    stripeSubscriptionId: string;
+    endsAt?: string;
+}
+
+interface Post {
+    $id: string;
+    type: 'photo' | 'video';
+    title?: string;
+    thumbnail?: string;
+    imageUrl?: string;
+    fileUrl?: string;
+    $createdAt: string;
+    $updatedAt: string;
+    $collectionId: string;
+    $databaseId: string;
+    $permissions: string[];
+    PhotoTopics?: string;
+    isSubscribed?: boolean;
+    isCancelled?: boolean;
+}
 
 interface GlobalContextType {
   isLogged: boolean;
@@ -10,6 +42,13 @@ interface GlobalContextType {
   loading: boolean;
   refetch: () => void;
   isStreamConnected: boolean;
+  creators: Subscription[];
+  loadCreators: () => Promise<void>;
+  refreshCreators: () => Promise<void>;
+  posts: Post[];
+  loadPosts: () => Promise<void>;
+  preloadImages: () => Promise<void>;
+  imagesPreloaded: boolean;
 }
 
 interface User {
@@ -35,9 +74,205 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
   });
 
   const [isStreamConnected, setIsStreamConnected] = React.useState(false);
+  const [creators, setCreators] = React.useState<Subscription[]>([]);
+  const [posts, setPosts] = React.useState<Post[]>([]);
+  const [imagesPreloaded, setImagesPreloaded] = React.useState(false);
   const previousUserId = useRef<string | null>(null);
 
   const isLogged = !!user;
+
+  const loadCreators = async () => {
+    if (!user?.$id || creators.length > 0) return;
+    
+    try {
+      // Delete expired subscriptions first
+      await deleteExpiredSubscriptions(user.$id);
+      
+      // Then get the updated list of subscriptions
+      const userSubscriptions = await getUserSubscriptions(user.$id);
+      
+      // Filter out active subscriptions that have a cancelled counterpart
+      const filteredSubscriptions = userSubscriptions
+        .map(sub => ({
+          $id: sub.$id,
+          userId: sub.userId,
+          status: sub.status as 'active' | 'cancelled',
+          createdAt: sub.createdAt,
+          planCurrency: sub.planCurrency,
+          planInterval: sub.planInterval,
+          creatorName: sub.creatorName,
+          creatorAccountId: sub.creatorAccountId,
+          renewalDate: sub.renewalDate,
+          stripeSubscriptionId: sub.stripeSubscriptionId,
+          endsAt: sub.endsAt
+        }))
+        .filter((sub, index, self) => {
+          if (sub.status === 'cancelled') return true;
+          
+          // If this is an active subscription, check if there's a cancelled one with the same stripeSubscriptionId
+          const hasCancelledCounterpart = self.some(
+            otherSub => 
+              otherSub.status === 'cancelled' && 
+              otherSub.stripeSubscriptionId === sub.stripeSubscriptionId
+          );
+          
+          return !hasCancelledCounterpart;
+        });
+
+      setCreators(filteredSubscriptions);
+    } catch (error) {
+      console.error('Error loading creators:', error);
+    }
+  };
+
+  const refreshCreators = async () => {
+    if (!user?.$id) return;
+    
+    try {
+      // Delete expired subscriptions first
+      await deleteExpiredSubscriptions(user.$id);
+      
+      // Then get the updated list of subscriptions
+      const userSubscriptions = await getUserSubscriptions(user.$id);
+      
+      // Filter out active subscriptions that have a cancelled counterpart
+      const filteredSubscriptions = userSubscriptions
+        .map(sub => ({
+          $id: sub.$id,
+          userId: sub.userId,
+          status: sub.status as 'active' | 'cancelled',
+          createdAt: sub.createdAt,
+          planCurrency: sub.planCurrency,
+          planInterval: sub.planInterval,
+          creatorName: sub.creatorName,
+          creatorAccountId: sub.creatorAccountId,
+          renewalDate: sub.renewalDate,
+          stripeSubscriptionId: sub.stripeSubscriptionId,
+          endsAt: sub.endsAt
+        }))
+        .filter((sub, index, self) => {
+          if (sub.status === 'cancelled') return true;
+          
+          // If this is an active subscription, check if there's a cancelled one with the same stripeSubscriptionId
+          const hasCancelledCounterpart = self.some(
+            otherSub => 
+              otherSub.status === 'cancelled' && 
+              otherSub.stripeSubscriptionId === sub.stripeSubscriptionId
+          );
+          
+          return !hasCancelledCounterpart;
+        });
+
+      setCreators(filteredSubscriptions);
+    } catch (error) {
+      console.error('Error refreshing creators:', error);
+    }
+  };
+
+  const loadPosts = async () => {
+    if (posts.length > 0) return;
+    
+    try {
+      const allPosts = await getAllPosts();
+      // Ensure type is either 'photo' or 'video'
+      const typedPosts = allPosts.map(post => ({
+        ...post,
+        type: post.type === 'photo' ? 'photo' : 'video'
+      })) as Post[];
+      
+      setPosts(typedPosts);
+    } catch (error) {
+      console.error('Error loading posts:', error);
+    }
+  };
+
+  const preloadImages = async () => {
+    if (imagesPreloaded) return;
+    
+    try {
+      console.log('Starting image preloading...');
+      console.log('Posts available:', posts.length);
+      
+      // Get all unique image URLs from posts
+      const imageUrls = posts
+        .map(post => post.thumbnail || post.imageUrl || post.fileUrl)
+        .filter(url => url && url.trim() !== '')
+        .filter((url, index, self) => self.indexOf(url) === index); // Remove duplicates
+      
+      console.log(`Preloading ${imageUrls.length} images...`);
+      console.log('Image URLs:', imageUrls);
+      
+      if (imageUrls.length === 0) {
+        console.log('No images to preload');
+        setImagesPreloaded(true);
+        return;
+      }
+      
+      // Preload images in parallel with a limit to avoid overwhelming the network
+      const batchSize = 3; // Reduced batch size
+      for (let i = 0; i < imageUrls.length; i += batchSize) {
+        const batch = imageUrls.slice(i, i + batchSize);
+        
+        await Promise.allSettled(
+          batch.map(url => 
+            new Promise((resolve, reject) => {
+              if (!url) {
+                resolve(null);
+                return;
+              }
+              
+              Image.prefetch(url)
+                .then(() => {
+                  console.log(`Preloaded: ${url}`);
+                  resolve(null);
+                })
+                .catch((error) => {
+                  console.log(`Failed to preload: ${url}`, error);
+                  resolve(null); // Don't fail the entire batch
+                });
+            })
+          )
+        );
+        
+        // Small delay between batches to be nice to the network
+        if (i + batchSize < imageUrls.length) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+      }
+      
+      console.log('Image preloading completed');
+      setImagesPreloaded(true);
+    } catch (error) {
+      console.error('Error preloading images:', error);
+      setImagesPreloaded(true); // Mark as done even if there was an error
+    }
+  };
+
+  // Load creators when user is available
+  useEffect(() => {
+    if (user?.$id) {
+      loadCreators();
+    } else {
+      setCreators([]);
+    }
+  }, [user?.$id]);
+
+  // Load posts when user is available
+  useEffect(() => {
+    if (user?.$id) {
+      loadPosts();
+    } else {
+      setPosts([]);
+    }
+  }, [user?.$id]);
+
+  // Auto-trigger image preloading when posts are loaded
+  useEffect(() => {
+    if (posts.length > 0 && !imagesPreloaded) {
+      console.log('Posts loaded, triggering image preloading...');
+      preloadImages();
+    }
+  }, [posts, imagesPreloaded]);
 
   // Connect to Stream Chat when user is loaded
   useEffect(() => {
@@ -99,6 +334,13 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
         loading,
         refetch,
         isStreamConnected,
+        creators,
+        loadCreators,
+        refreshCreators,
+        posts,
+        loadPosts,
+        preloadImages,
+        imagesPreloaded,
       }}
     >
       {children}

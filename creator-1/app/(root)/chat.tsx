@@ -5,9 +5,8 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Channel, Chat, DeepPartial, MessageInput, MessageList, OverlayProvider, Theme } from 'stream-chat-react-native';
+import { Channel, Chat, DeepPartial, MessageInput, MessageList, OverlayProvider, Theme } from 'stream-chat-expo'; // ✅ USE EXPO VERSION
 
-// Custom theme for the chat
 const getTheme = (): DeepPartial<Theme> => ({
   colors: {
     black: '#1A1A1A',
@@ -35,8 +34,6 @@ const getTheme = (): DeepPartial<Theme> => ({
     container: {
       backgroundColor: '#2A2A2A',
     },
-  },
-  channel: {
   },
   messageSimple: {
     content: {
@@ -66,16 +63,8 @@ export default function ChatScreen() {
       try {
         if (!channelId || !user) return;
 
-        // Wait for Stream Chat connection if not connected yet
-        if (!true) {
-          console.log('Waiting for Stream Chat connection...');
-          setLoading(true);
-          return;
-        }
-
-        // User is already created and connected, proceed with channel setup
         const channel = client.channel('messaging', channelId as string);
-        
+
         try {
           await channel.watch();
           if (!channel.state.members[user.$id]) {
@@ -147,7 +136,7 @@ export default function ChatScreen() {
               borderBottomWidth: 1,
               borderBottomColor: '#2A2A2A'
             }}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => router.back()}
                 style={{
                   width: 32,
@@ -158,10 +147,10 @@ export default function ChatScreen() {
                   marginTop: 2
                 }}
               >
-                <Ionicons 
-                  name="chevron-back-outline" 
-                  size={28} 
-                  color="white" 
+                <Ionicons
+                  name="chevron-back-outline"
+                  size={28}
+                  color="white"
                 />
               </TouchableOpacity>
               <View style={{
@@ -173,16 +162,16 @@ export default function ChatScreen() {
                 justifyContent: 'center',
                 alignItems: 'center'
               }}>
-                <Text style={{ 
-                  color: 'white', 
+                <Text style={{
+                  color: 'white',
                   fontSize: 20,
                   fontFamily: 'questrial'
                 }}>
                   {(creatorName as string)?.charAt(0).toUpperCase()}
                 </Text>
               </View>
-              <Text style={{ 
-                color: 'white', 
+              <Text style={{
+                color: 'white',
                 fontSize: 18,
                 fontFamily: 'questrial'
               }}>
@@ -196,4 +185,4 @@ export default function ChatScreen() {
       </OverlayProvider>
     </SafeAreaView>
   );
-} 
+}

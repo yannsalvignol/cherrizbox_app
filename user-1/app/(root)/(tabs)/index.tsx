@@ -10,7 +10,7 @@ import SearchInput from '../../components/SearchInput';
 import Trending from '../../components/Trending';
 
 const { width } = Dimensions.get('window');
-const cardWidth = (width - 48) / 2; // 2 cards per row with padding
+const cardWidth = (width - 24) / 2; // Reduced padding from 32 to 24 for wider cards
 
 interface Post {
     $id: string;
@@ -236,6 +236,7 @@ export default function Index() {
             <Animated.ScrollView 
                 className="flex-1"
                 contentContainerStyle={{ paddingBottom: 100 }}
+                showsVerticalScrollIndicator={false}
                 refreshControl={
                     <RefreshControl
                         refreshing={refreshing}
@@ -254,7 +255,7 @@ export default function Index() {
                 onMomentumScrollEnd={() => setScrolling(false)}
             >
                 {/* Posts section */}
-                <View className="px-4 -mt-5">
+                <View className="px-2 -mt-5">
                     <Text className="text-white font-['Urbanist-Bold'] text-lg mb-1">
                         {isSearchFocused ? 'Search Results' : 'For You'}
                     </Text>
@@ -269,7 +270,7 @@ export default function Index() {
                         <View className="flex-row flex-wrap justify-between">
                             {filteredPosts.map((post, index) => (
                                 post.type === "photo" ? (
-                                    <View key={post.$id} style={{ marginBottom: 16, width: cardWidth }}>
+                                    <View key={post.$id} style={{ marginBottom: 12, width: cardWidth }}>
                                         {post.isSubscribed && !post.isCancelled ? (
                                             <View style={{
                                                 padding: 2,

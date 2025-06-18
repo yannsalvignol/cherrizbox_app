@@ -4,7 +4,7 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, Dimensions, Image, Text, TouchableOpacity, View } from 'react-native';
 
 const { width } = Dimensions.get('window');
-const cardWidth = (width - 48) / 2; // 2 cards per row with padding
+const cardWidth = (width - 24) / 2; // Match the width from index.tsx
 
 interface MediaItem {
     $id: string;
@@ -164,11 +164,11 @@ const PhotoCard = ({ photo, index = 0, scrollY, isSubscribed = false, isCancelle
                         {photo.thumbnail || photo.imageUrl || photo.fileUrl ? (
                             <Image
                                 source={{ uri: photo.thumbnail || photo.imageUrl || photo.fileUrl }}
-                                style={{ width: '100%', height: 270 }}
+                                style={{ width: '100%', height: 290 }}
                                 resizeMode="cover"
                             />
                         ) : (
-                            <View style={{ width: '100%', height: 270, backgroundColor: '#222', alignItems: 'center', justifyContent: 'center' }}>
+                            <View style={{ width: '100%', height: 290, backgroundColor: '#222', alignItems: 'center', justifyContent: 'center' }}>
                                 <Text style={{ color: '#aaa', fontWeight: '500' }}>No Image</Text>
                             </View>
                         )}
