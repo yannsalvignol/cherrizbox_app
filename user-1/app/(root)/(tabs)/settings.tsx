@@ -38,7 +38,17 @@ export default function Settings() {
     router.push('/(root)/(tabs)/forgot_password_loged_in');
   };
 
-  const renderSettingItem = (title, onPress, hasSwitch = false, isLogout = false) => (
+  const handlePushNotifications = () => {
+    // This is a no-op function since we're using the Switch component
+    // The actual toggle is handled by the Switch's onValueChange
+  };
+
+  const renderSettingItem = (
+    title: string,
+    onPress: () => void,
+    hasSwitch: boolean = false,
+    isLogout: boolean = false
+  ) => (
     <TouchableOpacity 
       className={`flex-row items-center justify-between py-5 ${!isLogout ? 'border-b border-[#333333]' : ''}`}
       onPress={onPress}
@@ -95,7 +105,7 @@ export default function Settings() {
             {renderSettingItem('Edit Profile', () => router.push('/edit-profile'))}
             {renderSettingItem('Change Password', handleChangePassword)}
             {renderSettingItem('Add a payment method', () => router.push('/payment-methods'))}
-            {renderSettingItem('Push Notifications', null, true)}
+            {renderSettingItem('Push Notifications', handlePushNotifications, true)}
             {renderSettingItem('Logout', handleLogout, false, true)}
           </View>
         </View>

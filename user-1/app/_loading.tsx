@@ -1,16 +1,36 @@
+import { useGlobalContext } from '@/lib/global-provider';
 import { useRouter } from 'expo-router';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ImageBackground, StyleSheet, Text, View } from 'react-native';
 
 const LoadingScreen = () => {
   const router = useRouter();
+  const { user, isStreamConnected } = useGlobalContext();
+  const [loadingText, setLoadingText] = useState('Initializing...');
 
   useEffect(() => {
+    // Only navigate after checking user state
+    if (user === undefined) return; // still loading
     const timer = setTimeout(() => {
-      router.replace('/(root)/(tabs)');
-    }, 3000);
+      if (user) {
+        router.replace('/(root)/(tabs)');
+      } else {
+        router.replace('/sign-up');
+      }
+    }, 1000); // shorter splash for better UX
     return () => clearTimeout(timer);
-  }, [router]);
+  }, [router, user]);
+
+  // Update loading text based on connection status
+  useEffect(() => {
+    if (user && isStreamConnected) {
+      setLoadingText('Ready!');
+    } else if (user) {
+      setLoadingText('Connecting to chat...');
+    } else {
+      setLoadingText('Loading...');
+    }
+  }, [user, isStreamConnected]);
 
   return (
     <ImageBackground
@@ -23,6 +43,7 @@ const LoadingScreen = () => {
           <Text style={styles.cherrizbox}>Cherrizbox</Text>
           <Text style={styles.dot}>.</Text>
         </View>
+        <Text style={styles.loadingText}>{loadingText}</Text>
       </View>
     </ImageBackground>
   );
@@ -59,6 +80,13 @@ const styles = StyleSheet.create({
     fontFamily: 'questrial',
     marginLeft: 2,
     marginBottom: 2,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: 'white',
+    fontFamily: 'questrial',
+    marginTop: 10,
+    opacity: 0.8,
   },
 });
 

@@ -1,7 +1,7 @@
-import React, { createContext, ReactNode, useContext, useEffect } from "react";
+import React, { createContext, ReactNode, useContext, useEffect, useRef } from "react";
 
-import { createCreatorChannel, disconnectStreamChat, initializeStreamChat } from '@/lib/stream-chat';
 import { getCurrentUser } from "./appwrite";
+import { connectUser, disconnectUser } from "./stream-chat";
 import { useAppwrite } from "./useAppwrite";
 
 interface GlobalContextType {
@@ -9,6 +9,7 @@ interface GlobalContextType {
   user: User | null;
   loading: boolean;
   refetch: () => void;
+  isStreamConnected: boolean;
 }
 
 interface User {
@@ -24,7 +25,7 @@ interface GlobalProviderProps {
   children: ReactNode;
 }
 
-export function GlobalProvider({ children }: GlobalProviderProps) {
+export const GlobalProvider = ({ children }: GlobalProviderProps) => {
   const {
     data: user,
     loading,
@@ -33,40 +34,49 @@ export function GlobalProvider({ children }: GlobalProviderProps) {
     fn: getCurrentUser,
   });
 
+  const [isStreamConnected, setIsStreamConnected] = React.useState(false);
+  const previousUserId = useRef<string | null>(null);
+
   const isLogged = !!user;
 
-  // Initialize Stream Chat when user is loaded
   useEffect(() => {
-    const initializeChat = async () => {
+    const connectToStream = async () => {
       if (user) {
         try {
-          // Connect the user first
-          const client = await initializeStreamChat(
-            user.$id,
-            user.name,
-            user.avatar
-          );
-          
-          // Create their channel
-          const channel = await createCreatorChannel(user.$id, user.name);
-          
-          console.log('Stream Chat initialized:', client);
-          console.log('Creator channel created:', channel);
+          if (previousUserId.current && previousUserId.current !== user.$id) {
+            try {
+              await disconnectUser();
+              setIsStreamConnected(false);
+            } catch (error) {
+              console.log('Error disconnecting previous user:', error);
+            }
+          }
+          if (!isStreamConnected || previousUserId.current !== user.$id) {
+            const connected = await connectUser(user.$id);
+            if (connected) {
+              setIsStreamConnected(true);
+              previousUserId.current = user.$id;
+            } else {
+              setIsStreamConnected(false);
+            }
+          }
         } catch (error) {
-          console.error('Error initializing Stream Chat:', error);
+          setIsStreamConnected(false);
+        }
+      } else {
+        if (isStreamConnected) {
+          try {
+            await disconnectUser();
+            setIsStreamConnected(false);
+            previousUserId.current = null;
+          } catch (error) {
+            // ignore
+          }
         }
       }
     };
-
-    initializeChat();
-
-    // Cleanup function to disconnect when component unmounts
-    return () => {
-      if (user) {
-        disconnectStreamChat().catch(console.error);
-      }
-    };
-  }, [user]);
+    connectToStream();
+  }, [user, isStreamConnected]);
 
   return (
     <GlobalContext.Provider
@@ -74,19 +84,19 @@ export function GlobalProvider({ children }: GlobalProviderProps) {
         isLogged,
         user,
         loading,
-        refetch,
+        refetch: () => refetch({}),
+        isStreamConnected,
       }}
     >
       {children}
     </GlobalContext.Provider>
   );
-}
+};
 
 export const useGlobalContext = (): GlobalContextType => {
   const context = useContext(GlobalContext);
   if (!context)
     throw new Error("useGlobalContext must be used within a GlobalProvider");
-
   return context;
 };
 

@@ -1,31 +1,51 @@
+import { useGlobalContext } from '@/lib/global-provider';
 import { useRouter } from 'expo-router';
-import React, { useEffect } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ImageBackground, StyleSheet, Text, View } from 'react-native';
 
 const LoadingScreen = () => {
   const router = useRouter();
+  const { user, isStreamConnected } = useGlobalContext();
+  const [loadingText, setLoadingText] = useState('Initializing...');
 
   useEffect(() => {
+    // Only navigate after checking user state
+    if (user === undefined) return; // still loading
     const timer = setTimeout(() => {
-      router.replace('/(root)/(tabs)');
-    }, 3000);
+      if (user) {
+        router.replace('/(root)/(tabs)');
+      } else {
+        router.replace('/sign-up');
+      }
+    }, 1000); // shorter splash for better UX
     return () => clearTimeout(timer);
-  }, [router]);
+  }, [router, user]);
+
+  // Update loading text based on connection status
+  useEffect(() => {
+    if (user && isStreamConnected) {
+      setLoadingText('Ready!');
+    } else if (user) {
+      setLoadingText('Connecting to chat...');
+    } else {
+      setLoadingText('Loading...');
+    }
+  }, [user, isStreamConnected]);
 
   return (
-    <View style={styles.background}>
-      <Image
-        source={require('../assets/images/cherry-creator.png')}
-        style={styles.logo}
-        resizeMode="contain"
-      />
-      <View style={styles.textRow}>
-        <Text style={styles.cherrizbox}>
-          Cherrizbox<Text style={styles.dot}>.</Text>
-        </Text>
+    <ImageBackground
+      source={require('../assets/images/cherry.png')}
+      style={styles.background}
+      resizeMode="cover"
+    >
+      <View style={styles.overlay}>
+        <View style={styles.textRow}>
+          <Text style={styles.cherrizbox}>Cherrizbox</Text>
+          <Text style={styles.dot}>.</Text>
+        </View>
+        <Text style={styles.loadingText}>{loadingText}</Text>
       </View>
-      <Text style={styles.creatot}>Creator</Text>
-    </View>
+    </ImageBackground>
   );
 };
 
@@ -36,15 +56,16 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'black',
   },
-  logo: {
-    width: 250,
-    height: 250,
+  overlay: {
+    position: 'absolute',
+    top: '66%',
+    width: '100%',
+    alignItems: 'center',
   },
   textRow: {
-    marginTop: 24,
-    alignItems: 'center',
+    flexDirection: 'row',
+    alignItems: 'flex-end',
   },
   cherrizbox: {
     fontSize: 50,
@@ -55,18 +76,17 @@ const styles = StyleSheet.create({
   dot: {
     fontSize: 50,
     fontWeight: 'bold',
-    color: '#FB2355',
+    color: 'white',
     fontFamily: 'questrial',
     marginLeft: 2,
     marginBottom: 2,
   },
-  creatot: {
-    fontSize: 32,
-    color: '#FB2355',
+  loadingText: {
+    fontSize: 16,
+    color: 'white',
     fontFamily: 'questrial',
-    fontWeight: 'bold',
-    marginTop: 8,
-    textAlign: 'center',
+    marginTop: 10,
+    opacity: 0.8,
   },
 });
 
