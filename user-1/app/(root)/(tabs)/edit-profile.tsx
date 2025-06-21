@@ -19,28 +19,27 @@ interface ProfileData {
 }
 
 const countries = [
-  { name: 'United States', code: '+1', flag: '🇺🇸' },
-  { name: 'Canada', code: '+1', flag: '🇨🇦' },
-  { name: 'United Kingdom', code: '+44', flag: '🇬🇧' },
-  { name: 'France', code: '+33', flag: '🇫🇷' },
-  { name: 'Germany', code: '+49', flag: '🇩🇪' },
-  { name: 'Italy', code: '+39', flag: '🇮🇹' },
-  { name: 'Spain', code: '+34', flag: '🇪🇸' },
-  { name: 'China', code: '+86', flag: '🇨🇳' },
-  { name: 'Japan', code: '+81', flag: '🇯🇵' },
-  { name: 'South Korea', code: '+82', flag: '🇰🇷' },
-  { name: 'India', code: '+91', flag: '🇮🇳' },
-  { name: 'Australia', code: '+61', flag: '🇦🇺' },
-  { name: 'Brazil', code: '+55', flag: '🇧🇷' },
-  { name: 'Mexico', code: '+52', flag: '🇲🇽' },
-  { name: 'Russia', code: '+7', flag: '🇷🇺' },
+  { name: 'United States', code: '+1', flag: '🇺🇸', format: '(XXX) XXX-XXXX' },
+  { name: 'Canada', code: '+1', flag: '🇨🇦', format: '(XXX) XXX-XXXX' },
+  { name: 'United Kingdom', code: '+44', flag: '🇬🇧', format: 'XXXX XXXXXX' },
+  { name: 'France', code: '+33', flag: '🇫🇷', format: 'X XX XX XX XX' },
+  { name: 'Germany', code: '+49', flag: '🇩🇪', format: 'XXX XXXXXXX' },
+  { name: 'Italy', code: '+39', flag: '🇮🇹', format: 'XXX XXX XXXX' },
+  { name: 'Spain', code: '+34', flag: '🇪🇸', format: 'XXX XXX XXX' },
+  { name: 'China', code: '+86', flag: '🇨🇳', format: 'XXX XXXX XXXX' },
+  { name: 'Japan', code: '+81', flag: '🇯🇵', format: 'XX XXXX XXXX' },
+  { name: 'South Korea', code: '+82', flag: '🇰🇷', format: 'XX XXXX XXXX' },
+  { name: 'India', code: '+91', flag: '🇮🇳', format: 'XXXXX XXXXX' },
+  { name: 'Australia', code: '+61', flag: '🇦🇺', format: 'X XXXX XXXX' },
+  { name: 'Brazil', code: '+55', flag: '🇧🇷', format: '(XX) XXXXX-XXXX' },
+  { name: 'Mexico', code: '+52', flag: '🇲🇽', format: 'XXX XXX XXXX' },
+  { name: 'Russia', code: '+7', flag: '🇷🇺', format: 'XXX XXX-XX-XX' },
 ];
 
 const genders = [
   { value: 'male', label: 'Male', icon: '👨' },
   { value: 'female', label: 'Female', icon: '👩' },
   { value: 'other', label: 'Other', icon: '👤' },
-  { value: 'unicorn', label: 'Unicorn', icon: '🦄' },
 ];
 
 export default function EditProfile() {
@@ -57,10 +56,11 @@ export default function EditProfile() {
   const [selectedMonth, setSelectedMonth] = useState('1');
   const [selectedDay, setSelectedDay] = useState('1');
   const [selectedYear, setSelectedYear] = useState('2000');
-  const [showGenderPicker, setShowGenderPicker] = useState(false);
   const [selectedGender, setSelectedGender] = useState<typeof genders[0] | null>(null);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
 
   const months = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
   const currentYear = new Date().getFullYear();
@@ -68,6 +68,28 @@ export default function EditProfile() {
 
   const getDaysInMonth = (month: number, year: number) => {
     return new Date(year, month, 0).getDate();
+  };
+
+  // Function to format phone number according to country format
+  const formatPhoneNumber = (input: string, format: string) => {
+    // Remove all non-digit characters
+    const digits = input.replace(/\D/g, '');
+    
+    if (!digits) return '';
+    
+    let formatted = '';
+    let digitIndex = 0;
+    
+    for (let i = 0; i < format.length && digitIndex < digits.length; i++) {
+      if (format[i] === 'X') {
+        formatted += digits[digitIndex];
+        digitIndex++;
+      } else {
+        formatted += format[i];
+      }
+    }
+    
+    return formatted;
   };
 
   const days = Array.from(
@@ -100,10 +122,22 @@ export default function EditProfile() {
 
             // Set phone number if exists
             if (profile.phoneNumber) {
-              const countryCode = profile.phoneNumber.substring(0, 2); // Assuming format like "+1"
-              const country = countries.find(c => c.code === countryCode);
-              if (country) {
-                setSelectedCountry(country);
+              // Extract country code and phone number
+              const phoneData = profile.phoneNumber;
+              if (phoneData.startsWith('+')) {
+                // Find country by code
+                const countryCode = phoneData.substring(0, 3); // Get first 3 chars for country code
+                const country = countries.find(c => phoneData.startsWith(c.code));
+                if (country) {
+                  setSelectedCountry(country);
+                  // Set the phone number part (remove country code) and format it
+                  const phonePart = phoneData.substring(country.code.length);
+                  const formattedPhone = formatPhoneNumber(phonePart, country.format);
+                  setPhoneNumber(formattedPhone);
+                }
+              } else {
+                // If no country code, just set the phone number
+                setPhoneNumber(phoneData);
               }
             }
 
@@ -188,7 +222,7 @@ export default function EditProfile() {
         userId: globalUser.$id,
         dateOfBirth: `${selectedYear}-${selectedMonth}-${selectedDay}`,
         gender: selectedGender?.value || '',
-        phoneNumber: selectedCountry.code,
+        phoneNumber: phoneNumber ? `${selectedCountry.code}${phoneNumber}` : '',
         ...(profileImage && { profileImageUri: profileImage }) // Only include if profileImage exists
       };
 
@@ -331,58 +365,66 @@ export default function EditProfile() {
           <View className="flex-row items-center mb-2">
             <TouchableOpacity 
               onPress={() => setShowCountryPicker(true)}
-              className={`flex-row items-center bg-[#1A1A1A] rounded-lg px-5 py-5 w-24 mr-2 ${
+              className={`flex-row items-center bg-[#1A1A1A] rounded-lg px-5 py-4 w-24 mr-2 ${
                 focusedInput === 'countryCode' ? 'border border-[#FB2355]' : ''
               }`}
               activeOpacity={0.7}
             >
-              <Text className="text-white font-questrial text-lg mr-2">{selectedCountry.flag}</Text>
-              <Text className="text-white font-questrial text-lg">{selectedCountry.code}</Text>
+              <Text className="text-white font-questrial text-lg mr-2" style={{ color: 'white' }}>{selectedCountry.flag}</Text>
+              <Text className="text-white font-questrial text-lg" style={{ color: 'white' }}>{selectedCountry.code}</Text>
             </TouchableOpacity>
-            <View className={`flex-row items-center bg-[#1A1A1A] rounded-lg px-5 py-4 flex-1 ${
-              focusedInput === 'phoneNumber' ? 'border border-[#FB2355]' : ''
-            }`}>
+            <TouchableOpacity 
+              onPress={() => setShowPhoneModal(true)}
+              className={`flex-row items-center bg-[#1A1A1A] rounded-lg px-5 py-4 flex-1 ${
+                focusedInput === 'phoneNumber' ? 'border border-[#FB2355]' : ''
+              }`}
+              activeOpacity={0.7}
+            >
               <Ionicons 
                 name="call-outline" 
                 size={24} 
                 color={focusedInput === 'phoneNumber' ? '#FB2355' : '#666'} 
                 style={{ marginRight: 12 }}
               />
-              <TextInput
-                className="flex-1 text-white font-questrial text-lg h-9"
-                placeholderTextColor="#666"
-                placeholder="Enter your phone number"
-                keyboardType="phone-pad"
-                onFocus={() => setFocusedInput('phoneNumber')}
-                onBlur={() => setFocusedInput(null)}
-                style={{ textAlignVertical: 'center', color: 'white', paddingBottom: 7 }}
-              />
-            </View>
+              <Text className="flex-1 text-white font-questrial text-lg" style={{ color: 'white' }}>
+                {phoneNumber || 'Enter your phone number'}
+              </Text>
+              <Ionicons name="chevron-forward" size={20} color="#666" />
+            </TouchableOpacity>
           </View>
 
           {/* Gender */}
-          <TouchableOpacity 
-            onPress={() => setShowGenderPicker(true)}
-            className={`flex-row items-center bg-[#1A1A1A] rounded-lg px-5 py-4 w-full ${
-              focusedInput === 'gender' ? 'border border-[#FB2355]' : ''
-            }`}
-            activeOpacity={0.7}
-          >
-            <Ionicons 
-              name="person-outline" 
-              size={24} 
-              color={focusedInput === 'gender' ? '#FB2355' : '#666'} 
-              style={{ marginRight: 12 }}
-            />
-            <TextInput
-              className="flex-1 text-white font-questrial text-lg h-9"
-              value={selectedGender?.label || ''}
-              placeholder="Select your gender"
-              placeholderTextColor="#666"
-              editable={false}
-              style={{ textAlignVertical: 'center', color: 'white', paddingBottom: 13 }}
-            />
-          </TouchableOpacity>
+          <View style={{ marginBottom: 8 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+              {genders.map((gender) => (
+                <TouchableOpacity
+                  key={gender.value}
+                  onPress={() => setSelectedGender(gender)}
+                  style={{
+                    backgroundColor: selectedGender?.value === gender.value ? '#FB2355' : '#222',
+                    borderRadius: 18,
+                    paddingVertical: 12,
+                    paddingHorizontal: 0,
+                    marginHorizontal: 0,
+                    flex: 1,
+                    marginRight: gender.value !== 'other' ? 12 : 0,
+                    borderWidth: selectedGender?.value === gender.value ? 0 : 1,
+                    borderColor: '#444',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ 
+                    color: selectedGender?.value === gender.value ? 'white' : '#aaa', 
+                    fontFamily: 'questrial', 
+                    fontSize: 17,
+                    textAlign: 'center',
+                  }}>
+                    {gender.icon} {gender.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
 
           {/* Update Button */}
           <TouchableOpacity 
@@ -497,28 +539,57 @@ export default function EditProfile() {
           animationType="slide"
           onRequestClose={() => setShowCountryPicker(false)}
         >
-          <View className="flex-1 bg-black/50 justify-end">
-            <View className="bg-[#1A1A1A] rounded-t-3xl p-4">
-              <View className="flex-row justify-between items-center mb-4">
-                <Text className="text-white text-xl font-bold">Select Country</Text>
-                <TouchableOpacity onPress={() => setShowCountryPicker(false)}>
-                  <Ionicons name="close" size={24} color="#FB2355" />
+          <View className="flex-1 bg-black/70 justify-end">
+            <View className="bg-[#1A1A1A] rounded-t-3xl max-h-[80%]">
+              {/* Header */}
+              <View className="flex-row justify-between items-center p-6 border-b border-gray-800">
+                <Text className="text-white text-2xl font-bold font-questrial">Select Country</Text>
+                <TouchableOpacity 
+                  onPress={() => setShowCountryPicker(false)}
+                  className="w-10 h-10 bg-[#FB2355] rounded-full items-center justify-center"
+                >
+                  <Ionicons name="close" size={20} color="white" />
                 </TouchableOpacity>
               </View>
+
+              {/* Search Bar */}
+              <View className="p-4">
+                <View className="flex-row items-center bg-[#2A2A2A] rounded-xl px-4 py-3">
+                  <Ionicons name="search" size={20} color="#666" style={{ marginRight: 12 }} />
+                  <TextInput
+                    placeholder="Search countries..."
+                    placeholderTextColor="#666"
+                    className="flex-1 text-white font-questrial text-base"
+                    style={{ color: 'white' }}
+                  />
+                </View>
+              </View>
+
+              {/* Countries List */}
               <FlatList
                 data={countries}
                 keyExtractor={(item) => item.code + item.name}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 20 }}
                 renderItem={({ item }) => (
                   <TouchableOpacity
-                    className="flex-row items-center py-3 border-b border-gray-800"
+                    className="flex-row items-center py-4 px-6 mx-4 mb-2 rounded-xl bg-[#2A2A2A] active:bg-[#FB2355]/20"
                     onPress={() => {
                       setSelectedCountry(item);
                       setShowCountryPicker(false);
                     }}
+                    activeOpacity={0.7}
                   >
-                    <Text className="text-white text-xl mr-3">{item.flag}</Text>
-                    <Text className="text-white text-lg flex-1">{item.name}</Text>
-                    <Text className="text-white text-lg">{item.code}</Text>
+                    <View className="w-12 h-8 bg-black rounded-lg items-center justify-center mr-4">
+                      <Text className="text-white text-lg">{item.flag}</Text>
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-white text-lg font-questrial font-semibold">{item.name}</Text>
+                      <Text className="text-gray-400 text-sm font-questrial">Country Code: {item.code} • {item.format}</Text>
+                    </View>
+                    <View className="w-8 h-8 bg-[#FB2355] rounded-full items-center justify-center">
+                      <Ionicons name="chevron-forward" size={16} color="white" />
+                    </View>
                   </TouchableOpacity>
                 )}
               />
@@ -526,37 +597,96 @@ export default function EditProfile() {
           </View>
         </Modal>
 
-        {/* Gender Picker Modal */}
+        {/* Phone Number Modal */}
         <Modal
-          visible={showGenderPicker}
+          visible={showPhoneModal}
           transparent={true}
-          animationType="slide"
-          onRequestClose={() => setShowGenderPicker(false)}
+          animationType="fade"
+          onRequestClose={() => setShowPhoneModal(false)}
         >
-          <View className="flex-1 bg-black/50 justify-end">
-            <View className="bg-[#1A1A1A] rounded-t-3xl p-4">
-              <View className="flex-row justify-between items-center mb-4">
-                <Text className="text-white text-xl font-bold">Select Gender</Text>
-                <TouchableOpacity onPress={() => setShowGenderPicker(false)}>
-                  <Ionicons name="close" size={32} color="#FB2355" />
-                </TouchableOpacity>
-              </View>
-              <FlatList
-                data={genders}
-                keyExtractor={(item) => item.value}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    className="flex-row items-center py-3 border-b border-gray-800"
-                    onPress={() => {
-                      setSelectedGender(item);
-                      setShowGenderPicker(false);
-                    }}
+          <View className="flex-1 bg-black/80 justify-center items-center">
+            <View className="bg-[#1A1A1A] rounded-3xl w-[90%] max-w-md overflow-hidden">
+              {/* Header */}
+              <View className="bg-gradient-to-r from-[#FB2355] to-[#FF6B9D] p-6">
+                <View className="flex-row justify-between items-center">
+                  <View>
+                    <Text className="text-white text-2xl font-bold font-questrial">Phone Number</Text>
+                    <Text className="text-white/80 text-sm font-questrial mt-1">Enter your contact number</Text>
+                  </View>
+                  <TouchableOpacity 
+                    onPress={() => setShowPhoneModal(false)}
+                    className="w-10 h-10 bg-white/20 rounded-full items-center justify-center"
                   >
-                    <Text className="text-white text-xl mr-3">{item.icon}</Text>
-                    <Text className="text-white text-lg">{item.label}</Text>
+                    <Ionicons name="close" size={20} color="white" />
                   </TouchableOpacity>
-                )}
-              />
+                </View>
+              </View>
+
+              {/* Content */}
+              <View className="p-6">
+                {/* Country Code Display */}
+                <View className="flex-row items-center justify-center mb-6">
+                  <View className="bg-[#2A2A2A] rounded-xl px-4 py-3 mr-3">
+                    <Text className="text-white text-2xl">{selectedCountry.flag}</Text>
+                  </View>
+                  <View className="bg-[#2A2A2A] rounded-xl px-4 py-3">
+                    <Text className="text-white text-lg font-questrial font-semibold">{selectedCountry.code}</Text>
+                  </View>
+                </View>
+
+                {/* Phone Number Input */}
+                <View className="mb-6">
+                  <Text className="text-white text-sm font-questrial mb-3 text-center">Enter your phone number</Text>
+                  <View className="bg-[#2A2A2A] rounded-xl px-4 py-4 border-2 border-[#FB2355]/30">
+                    <TextInput
+                      className="text-white text-3xl font-questrial text-center"
+                      placeholder={selectedCountry.format}
+                      placeholderTextColor="#666"
+                      value={phoneNumber}
+                      onChangeText={(text) => {
+                        // Remove formatting to get raw digits
+                        const rawDigits = text.replace(/\D/g, '');
+                        // Format according to country format
+                        const formatted = formatPhoneNumber(rawDigits, selectedCountry.format);
+                        setPhoneNumber(formatted);
+                      }}
+                      keyboardType="phone-pad"
+                      returnKeyType="done"
+                      onSubmitEditing={() => setShowPhoneModal(false)}
+                      style={{ 
+                        color: 'white',
+                        letterSpacing: 2,
+                        textAlign: 'center',
+                        fontSize: 28,
+                        paddingHorizontal: 20
+                      }}
+                    />
+                  </View>
+                </View>
+
+                {/* Action Buttons */}
+                <View className="flex-row">
+                  <TouchableOpacity 
+                    onPress={() => setShowPhoneModal(false)}
+                    className="flex-1 bg-[#2A2A2A] rounded-xl py-4 items-center mr-2"
+                    activeOpacity={0.7}
+                  >
+                    <Text className="text-white font-questrial font-semibold">Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    onPress={() => setShowPhoneModal(false)}
+                    className="flex-1 bg-[#22C55E] rounded-xl py-4 items-center ml-2"
+                    activeOpacity={0.8}
+                  >
+                    <Text className="text-white font-questrial font-semibold">Save</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Info Text */}
+                <Text className="text-gray-400 text-xs text-center mt-4 font-questrial">
+                  Your phone number will be used for account verification
+                </Text>
+              </View>
             </View>
           </View>
         </Modal>

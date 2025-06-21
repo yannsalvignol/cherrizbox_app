@@ -373,7 +373,7 @@ const Property = () => {
                       </Text>
                     </>
                   ) : (
-                    <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', fontFamily: 'questrial' }}>
+                    <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', fontFamily: 'questrial' }} numberOfLines={1} ellipsizeMode="clip">
                       Join {titleParam || post.title || 'this'}'s box
                     </Text>
                   )}

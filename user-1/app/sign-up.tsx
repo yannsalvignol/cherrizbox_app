@@ -145,8 +145,7 @@ const App = () => {
                         <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }} />
                     </View>
 
-                    <View className="flex-row items-center mt-4 px-4">
-                        <View className="w-24 mr-10">
+                    <View className="flex-row items-center justify-between mt-4 px-4">
                         <TouchableOpacity>
                             <Image 
                                 source={require('../assets/images/facebook.png')}
@@ -154,8 +153,6 @@ const App = () => {
                                 resizeMode="contain"
                             />
                         </TouchableOpacity>
-                        </View>
-                        <View className="w-24 mr-10">
                         <TouchableOpacity onPress={handleLogin}>
                             <Image 
                                 source={require('../assets/images/google.png')}
@@ -163,8 +160,6 @@ const App = () => {
                                 resizeMode="contain"
                             />
                         </TouchableOpacity>
-                        </View>
-                        <View className="w-24">
                         <TouchableOpacity>
                             <Image 
                                 source={require('../assets/images/apple.png')}
@@ -172,7 +167,6 @@ const App = () => {
                                 resizeMode="contain"
                             />
                         </TouchableOpacity>
-                        </View>
                     </View>
 
                     <View className="flex-row justify-center items-center mt-1">

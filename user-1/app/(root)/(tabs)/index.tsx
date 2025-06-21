@@ -31,7 +31,7 @@ interface Post {
 
 export default function Index() {
     const router = useRouter();
-    const { user } = useGlobalContext();
+    const { user, refreshPosts } = useGlobalContext();
     const [refreshing, setRefreshing] = useState(false);
     const [posts, setPosts] = useState<Post[]>([]);
     const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
@@ -123,7 +123,7 @@ export default function Index() {
     const onRefresh = async () => {
         setRefreshing(true);
         try {
-            await loadPosts();
+            await refreshPosts();
         } catch (error) {  
             console.error('Error refreshing data:', error);
         } finally {

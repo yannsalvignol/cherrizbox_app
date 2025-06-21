@@ -46,7 +46,7 @@ export default function Settings() {
   ) => (
     <TouchableOpacity 
       className={`flex-row items-center justify-between py-5 ${!isLogout ? 'border-b border-[#333333]' : ''}`}
-      onPress={onPress}
+      onPress={onPress || undefined}
       disabled={hasSwitch}
     >
       <Text className={`font-questrial text-lg ${isLogout ? 'text-[#FB2355]' : 'text-white'}`} style={{ color: 'white' }}>{title}</Text>
@@ -101,7 +101,6 @@ export default function Settings() {
             {renderSettingItem('Change Password', handleChangePassword)}
             {renderSettingItem('Add a payment method', () => router.push('/payment-methods' as any))}
             {renderSettingItem('Push Notifications', null, true)}
-            {renderSettingItem('Test Chat', () => router.push('/test-chat'))}
             {renderSettingItem('Delete my group Chat', () => router.push('/confirm-delete-chat' as any), false, true)}
             {renderSettingItem('Logout', handleLogout, false, true)}
           </View>

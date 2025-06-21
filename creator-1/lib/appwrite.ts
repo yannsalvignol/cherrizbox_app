@@ -12,17 +12,17 @@ import {
 } from "react-native-appwrite";
   
 export const config = {
-    platform: "com.jsm.cherrizbox",
-    endpoint: 'https://cloud.appwrite.io/v1',
-    projectId: '67e54a0600249c33af4c',
-    databaseId: '67e54bcd003da3d16b3b',
-    userCollectionId: '684bdb3b000ba293a743',
-    profileCollectionId: '684bdbf90003b8751645',
-    videoCollectionId: '67e54c4b0012b5d71cbe',
-    photoCollectionId: '684be29700183dd61fce',
-    storageId: '67e54f5e001b77aae0cd',
-    activeSubscriptionsCollectionId: '684bdce80023a64b8790',
-    cancelledSubscriptionsCollectionId: '684be07000299c84d050'
+    platform: process.env.EXPO_PUBLIC_APPWRITE_PLATFORM!,
+    endpoint: process.env.EXPO_PUBLIC_APPWRITE_ENDPOINT!,
+    projectId: process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID!,
+    databaseId: process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!,
+    userCollectionId: process.env.EXPO_PUBLIC_APPWRITE_USER_COLLECTION_ID!,
+    profileCollectionId: process.env.EXPO_PUBLIC_APPWRITE_PROFILE_COLLECTION_ID!,
+    videoCollectionId: process.env.EXPO_PUBLIC_APPWRITE_VIDEO_COLLECTION_ID!,
+    photoCollectionId: process.env.EXPO_PUBLIC_APPWRITE_PHOTO_COLLECTION_ID!,
+    storageId: process.env.EXPO_PUBLIC_APPWRITE_STORAGE_ID!,
+    activeSubscriptionsCollectionId: process.env.EXPO_PUBLIC_APPWRITE_ACTIVE_SUBSCRIPTIONS_COLLECTION_ID!,
+    cancelledSubscriptionsCollectionId: process.env.EXPO_PUBLIC_APPWRITE_CANCELLED_SUBSCRIPTIONS_COLLECTION_ID!
 };
 
 export const client = new Client();

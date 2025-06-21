@@ -47,6 +47,7 @@ interface GlobalContextType {
   refreshCreators: () => Promise<void>;
   posts: Post[];
   loadPosts: () => Promise<void>;
+  refreshPosts: () => Promise<void>;
   preloadImages: () => Promise<void>;
   imagesPreloaded: boolean;
 }
@@ -248,6 +249,79 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
     }
   };
 
+  // Function to preload missing images for new posts
+  const preloadMissingImages = async (newPosts: Post[]) => {
+    try {
+      console.log('Checking for missing images in new posts...');
+      
+      // Get all unique image URLs from new posts
+      const imageUrls = newPosts
+        .map(post => post.thumbnail || post.imageUrl || post.fileUrl)
+        .filter(url => url && url.trim() !== '')
+        .filter((url, index, self) => self.indexOf(url) === index); // Remove duplicates
+      
+      if (imageUrls.length === 0) {
+        console.log('No new images to preload');
+        return;
+      }
+      
+      console.log(`Preloading ${imageUrls.length} new images...`);
+      
+      // Preload new images in parallel
+      await Promise.allSettled(
+        imageUrls.map(url => 
+          new Promise((resolve) => {
+            if (!url) {
+              resolve(null);
+              return;
+            }
+            
+            Image.prefetch(url)
+              .then(() => {
+                console.log(`Preloaded new image: ${url}`);
+                resolve(null);
+              })
+              .catch((error) => {
+                console.log(`Failed to preload new image: ${url}`, error);
+                resolve(null); // Don't fail the entire operation
+              });
+          })
+        )
+      );
+      
+      console.log('New image preloading completed');
+    } catch (error) {
+      console.error('Error preloading new images:', error);
+    }
+  };
+
+  // Function to refresh posts and preload missing images
+  const refreshPosts = async () => {
+    try {
+      console.log('Refreshing posts...');
+      const allPosts = await getAllPosts();
+      
+      // Ensure type is either 'photo' or 'video'
+      const typedPosts = allPosts.map(post => ({
+        ...post,
+        type: post.type === 'photo' ? 'photo' : 'video'
+      })) as Post[];
+      
+      // Find new posts (posts that weren't in the previous list)
+      const existingPostIds = new Set(posts.map(post => post.$id));
+      const newPosts = typedPosts.filter(post => !existingPostIds.has(post.$id));
+      
+      if (newPosts.length > 0) {
+        console.log(`Found ${newPosts.length} new posts, preloading their images...`);
+        await preloadMissingImages(newPosts);
+      }
+      
+      setPosts(typedPosts);
+    } catch (error) {
+      console.error('Error refreshing posts:', error);
+    }
+  };
+
   // Load creators when user is available
   useEffect(() => {
     if (user?.$id) {
@@ -339,6 +413,7 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
         refreshCreators,
         posts,
         loadPosts,
+        refreshPosts,
         preloadImages,
         imagesPreloaded,
       }}

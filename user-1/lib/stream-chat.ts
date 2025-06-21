@@ -43,9 +43,9 @@ export const connectUser = async (userId: string) => {
         
         // Create user object for Stream Chat
         const userObject = {
-            id: userId,
-            name: currentUser.name || userId,
-            image: currentUser.avatar || undefined,
+                id: userId,
+                name: currentUser.name || userId,
+                image: currentUser.avatar || undefined,
         };
 
         // Connect user to Stream Chat (this will create the user if it doesn't exist)

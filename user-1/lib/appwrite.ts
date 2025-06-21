@@ -12,17 +12,37 @@ import {
 } from "react-native-appwrite";
   
 export const config = {
-    platform: "com.jsm.cherrizbox",
-    endpoint: 'https://cloud.appwrite.io/v1',
-    projectId: '67e54a0600249c33af4c',
-    databaseId: '67e54bcd003da3d16b3b',
-    userCollectionId: '67e54c1d0003145e0149',
-    profileCollectionId: '684bdbf90003b8751645',
-    videoCollectionId: '67e54c4b0012b5d71cbe',
-    photoCollectionId: '684be29700183dd61fce',
-    storageId: '67e54f5e001b77aae0cd',
-    activeSubscriptionsCollectionId: '684bdce80023a64b8790'
+    platform: process.env.EXPO_PUBLIC_PLATFORM,
+    endpoint: process.env.EXPO_PUBLIC_ENDPOINT,
+    projectId: process.env.EXPO_PUBLIC_PROJECT_ID,
+    databaseId: process.env.EXPO_PUBLIC_DATABASE_ID,
+    userCollectionId: process.env.EXPO_PUBLIC_USER_COLLECTION_ID,
+    profileCollectionId: process.env.EXPO_PUBLIC_PROFILE_COLLECTION_ID,
+    videoCollectionId: process.env.EXPO_PUBLIC_VIDEO_COLLECTION_ID,
+    photoCollectionId: process.env.EXPO_PUBLIC_PHOTO_COLLECTION_ID,
+    storageId: process.env.EXPO_PUBLIC_STORAGE_ID,
+    activeSubscriptionsCollectionId: process.env.EXPO_PUBLIC_ACTIVE_SUBSCRIPTIONS_COLLECTION_ID,
+    cancelledSubscriptionsCollectionId: process.env.EXPO_PUBLIC_CANCELLED_SUBSCRIPTIONS_COLLECTION_ID
 };
+
+// Validate that all required environment variables are set
+const validateConfig = () => {
+    const requiredVars = [
+        'platform', 'endpoint', 'projectId', 'databaseId', 
+        'userCollectionId', 'profileCollectionId', 'videoCollectionId',
+        'photoCollectionId', 'storageId', 'activeSubscriptionsCollectionId',
+        'cancelledSubscriptionsCollectionId'
+    ];
+    
+    const missingVars = requiredVars.filter(varName => !config[varName as keyof typeof config]);
+    
+    if (missingVars.length > 0) {
+        throw new Error(`Missing required environment variables: ${missingVars.join(', ')}. Please check your .env file.`);
+    }
+};
+
+// Validate config on import
+validateConfig();
 
 export const client = new Client();
 client
@@ -91,7 +111,7 @@ export const getAllPosts = async () => {
         ];
         
         // Sort by creation date (newest first)
-        allPosts.sort((a, b) => new Date(b.$createdAt) - new Date(a.$createdAt));
+        allPosts.sort((a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime());
         
         return allPosts;
     } catch (error) {
@@ -470,7 +490,7 @@ export const deleteExpiredSubscriptions = async (userId: string) => {
 
             return databases.createDocument(
                 config.databaseId,
-                '684be07000299c84d050', // Cancelled_subscriptions collection
+                config.cancelledSubscriptionsCollectionId,
                 ID.unique(),
                 subscriptionData,
                 [

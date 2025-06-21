@@ -39,6 +39,10 @@ const getTheme = (): DeepPartial<Theme> => ({
     content: {
       containerInner: {
         backgroundColor: '#FB2355',
+        borderRadius: 18,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        margin: 0,
       },
     },
   },

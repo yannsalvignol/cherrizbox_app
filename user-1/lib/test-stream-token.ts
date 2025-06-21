@@ -21,7 +21,7 @@ export async function testStreamTokenGeneration() {
         console.log('Calling Appwrite function...');
         try {
             const response = await functions.createExecution(
-                '685144410010169bde69',
+                process.env.EXPO_PUBLIC_STREAM_TOKEN_FUNCTION_ID,
                 '', // No need to send session token in body
                 false,
                 '/generate-token',

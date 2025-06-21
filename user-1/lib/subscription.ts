@@ -1,9 +1,9 @@
 import { Client, Databases, Query } from 'react-native-appwrite';
 import { config, getCurrentUser } from './appwrite';
 
-const FUNCTION_ID = '683ecdc6003c80bf5cfd';
+const FUNCTION_ID = process.env.EXPO_PUBLIC_FUNCTION_ID;
 const FUNCTION_ENDPOINT = `${config.endpoint}/functions/${FUNCTION_ID}/executions`;
-const PROFILES_COLLECTION_ID = '684bdbf90003b8751645';
+const PROFILES_COLLECTION_ID = process.env.EXPO_PUBLIC_PROFILE_COLLECTION_ID;
 
 async function getCreatorId(creatorName: string): Promise<string> {
   try {

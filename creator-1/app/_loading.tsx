@@ -13,7 +13,7 @@ const LoadingScreen = () => {
     if (user === undefined) return; // still loading
     const timer = setTimeout(() => {
       if (user) {
-        router.replace('/(root)/(tabs)');
+      router.replace('/(root)/(tabs)');
       } else {
         router.replace('/sign-up');
       }
@@ -39,7 +39,7 @@ const LoadingScreen = () => {
       resizeMode="cover"
     >
       <View style={styles.overlay}>
-        <View style={styles.textRow}>
+      <View style={styles.textRow}>
           <Text style={styles.cherrizbox}>Cherrizbox</Text>
           <Text style={styles.dot}>.</Text>
         </View>
