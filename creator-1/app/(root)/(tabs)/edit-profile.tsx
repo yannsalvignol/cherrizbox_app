@@ -1,15 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
-import { Query } from 'appwrite';
+import { ID, Query } from 'appwrite';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Image, Keyboard, Modal, ScrollView, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Dimensions, FlatList, Image, Keyboard, Modal, ScrollView, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, Vibration, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { config, databases, getUserProfile, updateCreatorPayment, updateUserProfile, uploadProfilePicture } from '../../../lib/appwrite';
+import { config, databases, getUserPhoto, getUserProfile, updateCreatorPayment, updateUserProfile, uploadProfilePicture } from '../../../lib/appwrite';
 import { useGlobalContext } from '../../../lib/global-provider';
+import { createCreatorChannel } from '../../../lib/stream-chat';
+import ProfilePreview from '../../components/ProfilePreview';
 
 interface ProfileData {
   userId: string;
@@ -57,6 +59,8 @@ const trendingTopics = [
 export default function EditProfile() {
   const router = useRouter();
   const { user: globalUser } = useGlobalContext();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -91,6 +95,9 @@ export default function EditProfile() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [showCreatorNameModal, setShowCreatorNameModal] = useState(false);
   const [tempCreatorName, setTempCreatorName] = useState('');
+  const [userPhotoThumbnail, setUserPhotoThumbnail] = useState<string | null>(null);
+  const [photoTitle, setPhotoTitle] = useState<string>('');
+  const [photoState, setPhotoState] = useState<string>('');
 
   const months = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
   const currentYear = new Date().getFullYear();
@@ -173,6 +180,30 @@ export default function EditProfile() {
             if (profile.ProfilesBio) {
               setBio(profile.ProfilesBio);
             }
+
+            // Load user's photo from photos collection
+            if (globalUser?.$id) {
+              const userPhoto = await getUserPhoto(globalUser.$id);
+              if (userPhoto && userPhoto.thumbnail) {
+                setUserPhotoThumbnail(userPhoto.thumbnail);
+                setPhotoTitle(userPhoto.title);
+                setPhotoState(userPhoto.state || '');
+              }
+              // Extract pricing from payment attribute
+              if (userPhoto && userPhoto.payment) {
+                try {
+                  const paymentData = JSON.parse(userPhoto.payment);
+                  if (paymentData.monthlyPrice) {
+                    setMonthlyPrice(paymentData.monthlyPrice.toString());
+                  }
+                  if (paymentData.yearlyPrice) {
+                    setYearlyPrice(paymentData.yearlyPrice.toString());
+                  }
+                } catch (error) {
+                  console.error('Error parsing payment data:', error);
+                }
+              }
+            }
           }
         }
       } catch (error) {
@@ -233,6 +264,72 @@ export default function EditProfile() {
     }
   };
 
+  const handleImageUpdate = async (newImageUrl: string) => {
+    try {
+      if (!globalUser?.$id) return;
+      
+      // Update the local state immediately for UI feedback
+      setProfileImage(newImageUrl);
+      
+      // Update the profile image in the profiles collection
+      await updateUserProfile(globalUser.$id, {
+        userId: globalUser.$id,
+        profileImageUri: newImageUrl
+      });
+      
+      // Also update the photos collection with the same image
+      const userPhoto = await getUserPhoto(globalUser.$id);
+      if (userPhoto) {
+        // Update existing photo document
+        await databases.updateDocument(
+          config.databaseId,
+          config.photoCollectionId,
+          userPhoto.$id,
+          {
+            thumbnail: newImageUrl,
+            title: creatorName || name || '',
+            prompte: creatorName || name || '',
+            IdCreator: globalUser.$id,
+            payment: JSON.stringify({
+              monthlyPrice: monthlyPrice || '0',
+              yearlyPrice: yearlyPrice || '0'
+            }),
+            PhotosLocation: location,
+            PhotoTopics: topics.join(', '),
+            Bio: bio
+          }
+        );
+        // Update local photoTitle state
+        setPhotoTitle(creatorName || name || '');
+      } else {
+        // Create new photo document
+        await databases.createDocument(
+          config.databaseId,
+          config.photoCollectionId,
+          ID.unique(),
+          {
+            thumbnail: newImageUrl,
+            title: creatorName || name || '',
+            prompte: creatorName || name || '',
+            IdCreator: globalUser.$id,
+            payment: JSON.stringify({
+              monthlyPrice: monthlyPrice || '0',
+              yearlyPrice: yearlyPrice || '0'
+            }),
+            PhotosLocation: location,
+            PhotoTopics: topics.join(', '),
+            Bio: bio
+          }
+        );
+        // Update local photoTitle state
+        setPhotoTitle(creatorName || name || '');
+      }
+    } catch (error) {
+      console.error('Error updating photo:', error);
+      Alert.alert('Error', 'Failed to update photo in database.');
+    }
+  };
+
   const handleUpdateProfile = async () => {
     if (!globalUser?.$id) {
       Alert.alert('Error', 'User not found');
@@ -263,9 +360,74 @@ export default function EditProfile() {
       // Update profile in Appwrite
       await updateUserProfile(globalUser.$id, profileData);
       
+      // Also update the photos collection with the same information
+      try {
+        // Get the user's existing photo document
+        const userPhoto = await getUserPhoto(globalUser.$id);
+        
+        // Debug: Check all photos in collection
+        try {
+          const allPhotos = await databases.listDocuments(
+            config.databaseId,
+            config.photoCollectionId,
+            []
+          );
+        } catch (debugError) {
+          // Debug query failed silently
+        }
+        
+        // Prepare payment data
+        const paymentData = {
+          monthlyPrice: parseFloat(monthlyPrice) || 0,
+          yearlyPrice: parseFloat(yearlyPrice) || 0
+        };
+        
+        // Prepare photo data with all required attributes
+        const photoData = {
+          thumbnail: profileImage || '',
+          title: creatorName || name || '',
+          prompte: creatorName || name || '',
+          IdCreator: globalUser.$id,
+          PhotosLocation: location || '',
+          payment: JSON.stringify(paymentData),
+          PhotoTopics: topics.join(', '),
+          Bio: bio || ''
+        };
+        
+        if (userPhoto) {
+          // Update existing photo document
+          const updatedPhoto = await databases.updateDocument(
+            config.databaseId,
+            config.photoCollectionId,
+            userPhoto.$id,
+            photoData
+          );
+        } else {
+          // Create new photo document if it doesn't exist
+          const newPhoto = await databases.createDocument(
+            config.databaseId,
+            config.photoCollectionId,
+            ID.unique(),
+            photoData
+          );
+        }
+        
+        // Update local photoTitle state
+        setPhotoTitle(creatorName || name || '');
+      } catch (photoError) {
+        console.error('Error updating photo collection:', photoError);
+        console.error('Photo error details:', JSON.stringify(photoError, null, 2));
+        // Don't fail the entire update if photo update fails
+      }
+      
       // Show success message and trigger haptic feedback
       setSuccessMessage('Profile updated successfully!');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Vibration.vibrate(100); // Short vibration for success
+      
+      // Scroll back to preview
+      setIsEditMode(false);
+      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
       
       // Hide success message after 2 seconds
       setTimeout(() => {
@@ -315,9 +477,64 @@ export default function EditProfile() {
     }
   };
 
+  const handleGoLive = async () => {
+    try {
+      if (!globalUser?.$id) return;
+      
+      // Update the photo state to 'required' in the database
+      const userPhoto = await getUserPhoto(globalUser.$id);
+      if (userPhoto) {
+        await databases.updateDocument(
+          config.databaseId,
+          config.photoCollectionId,
+          userPhoto.$id,
+          {
+            state: 'required'
+          }
+        );
+      } else {
+        // Create new photo document with 'required' state
+        await databases.createDocument(
+          config.databaseId,
+          config.photoCollectionId,
+          ID.unique(),
+          {
+            thumbnail: profileImage || '',
+            title: creatorName || name || '',
+            prompte: creatorName || name || '',
+            IdCreator: globalUser.$id,
+            PhotosLocation: location || '',
+            payment: JSON.stringify({
+              monthlyPrice: monthlyPrice || '0',
+              yearlyPrice: yearlyPrice || '0'
+            }),
+            PhotoTopics: topics.join(', '),
+            Bio: bio || '',
+            state: 'required'
+          }
+        );
+      }
+      
+      // Create the creator's group chat
+      try {
+        const creatorDisplayName = creatorName || name || globalUser.name || 'Creator';
+        await createCreatorChannel(globalUser.$id, creatorDisplayName);
+        console.log('✅ Creator group chat created successfully');
+      } catch (error) {
+        console.error('❌ Error creating creator group chat:', error);
+        // Don't throw error here - group chat creation failure shouldn't prevent going live
+      }
+      
+      // Update local state
+      setPhotoState('required');
+    } catch (error) {
+      console.error('Error updating photo state:', error);
+    }
+  };
+
   if (loading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }} edges={[]}>
         <View className="flex-1 items-center justify-center">
           <Text className="text-white">Loading...</Text>
         </View>
@@ -326,38 +543,117 @@ export default function EditProfile() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }} edges={['top']}>
-      {/* Header with back and settings */}
-      <View className="flex-row items-center px-4 pt-2 pb-4">
-        <TouchableOpacity onPress={() => router.back()} className="flex-row items-center">
-          <Image 
-            source={require('../../../assets/icon/back.png')}
-            className="w-8 h-8"
-            resizeMode="contain"
-          />
-          <Text style={{ color: 'white', fontSize: 21, marginLeft: 12, fontFamily: 'Nunito-Bold' }}>
-            Edit Profile
-          </Text>
-        </TouchableOpacity>
-        <View className="flex-1" />
-        <TouchableOpacity onPress={() => router.push('/settings')}>
-          <Image 
-            source={require('../../../assets/icon/settings.png')}
-            className="w-8 h-8"
-            resizeMode="contain"
-          />
-        </TouchableOpacity>
+    <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }} edges={[]}>
+      {/* Header with back and settings - positioned absolutely to overlap preview */}
+      <View style={{ 
+        position: 'absolute', 
+        top: 0, 
+        left: 0, 
+        right: 0, 
+        zIndex: 10,
+        paddingTop: 60,
+        paddingHorizontal: 16,
+        paddingBottom: 16
+      }}>
+        <View className="flex-row items-center">
+          <TouchableOpacity onPress={() => router.back()} className="flex-row items-center">
+            <Image 
+              source={require('../../../assets/icon/back.png')}
+              className="w-8 h-8"
+              resizeMode="contain"
+            />
+            <Text style={{ color: 'white', fontSize: 21, marginLeft: 12, fontFamily: 'Nunito-Bold' }}>
+              {isEditMode ? 'Edit Profile' : 'Preview'}
+            </Text>
+          </TouchableOpacity>
+          <View className="flex-1" />
+          <TouchableOpacity onPress={() => router.push('/settings')}>
+            <Image 
+              source={require('../../../assets/icon/settings.png')}
+              className="w-8 h-8"
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView 
-        className="flex-1 px-4"
+        className="flex-1"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 40 }}
         bounces={true}
         keyboardShouldPersistTaps="handled"
+        ref={scrollViewRef}
+        scrollEnabled={true}
+        onScroll={(event) => {
+          const offsetY = event.nativeEvent.contentOffset.y;
+          const screenHeight = Dimensions.get('window').height;
+          
+          // Immediate snap when scrolling up (stronger effect)
+          if (offsetY < screenHeight * 0.3 && isEditMode) {
+            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+            setIsEditMode(false);
+          }
+        }}
+        scrollEventThrottle={16}
+        onScrollEndDrag={(event) => {
+          const offsetY = event.nativeEvent.contentOffset.y;
+          const screenHeight = Dimensions.get('window').height;
+          
+          // Always snap when scrolling up (binary effect)
+          if (offsetY < screenHeight * 0.5) {
+            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+            setIsEditMode(false);
+          } else if (offsetY > screenHeight * 0.5) {
+            if (!isEditMode) {
+              // Snap to edit form when transitioning from preview
+              scrollViewRef.current?.scrollTo({ y: screenHeight, animated: true });
+              setIsEditMode(true);
+            }
+          }
+        }}
       >
-        {/* Avatar (moved inside ScrollView) */}
-        <View className="items-center mt-8 mb-4">
+        <TouchableOpacity 
+          activeOpacity={1}
+          onPress={() => {
+            const screenHeight = Dimensions.get('window').height;
+            if (isEditMode) {
+              // Go back to preview
+              scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+              setIsEditMode(false);
+            } else {
+              // Go to edit form
+              scrollViewRef.current?.scrollTo({ y: screenHeight, animated: true });
+              setIsEditMode(true);
+            }
+          }}
+        >
+          {/* Profile Preview at the top */}
+          <ProfilePreview
+            profileImageUri={profileImage || undefined}
+            name={photoTitle || ''}
+            location={location}
+            bio={bio}
+            followerCount={0} // Optionally fetch real follower count if needed
+            monthlyPrice={monthlyPrice}
+            yearlyPrice={yearlyPrice}
+            state={photoState}
+            creatorsname={creatorName}
+            topics={topics.join(', ')}
+            ProfilesBio={bio}
+            creatorpayment={JSON.stringify({
+              monthlyPrice: monthlyPrice || '0',
+              yearlyPrice: yearlyPrice || '0'
+            })}
+            phoneNumber={selectedCountry.code + phoneNumber}
+            gender={selectedGender?.value || ''}
+            dateOfBirth={`${selectedYear}-${selectedMonth.padStart(2, '0')}-${selectedDay.padStart(2, '0')}`}
+            onGoLive={handleGoLive}
+          />
+        </TouchableOpacity>
+        {/* Edit form section with padding */}
+        <View className="px-4 items-center mt-24 mb-4">
+          {/* Avatar (moved inside ScrollView) */}
           <View className="w-36 h-36 rounded-full bg-[#1A1A1A] items-center justify-center relative">
             {isUploadingImage ? (
               <View className="w-full h-full items-center justify-center">
@@ -384,707 +680,707 @@ export default function EditProfile() {
               />
             </TouchableOpacity>
           </View>
-        </View>
 
-        {/* Form Fields */}
-        <View className="mt-8">
-          {/* Name */}
-          <View className={`flex-row items-center bg-[#1A1A1A] rounded-lg px-5 py-4 mb-2 ${
-            focusedInput === 'name' ? 'border border-[#FB2355]' : ''
-          }`}>
-            <Ionicons 
-              name="person-outline" 
-              size={24} 
-              color={focusedInput === 'name' ? '#FB2355' : '#666'} 
-              style={{ marginRight: 12 }}
-            />
-            <TextInput
-              className="flex-1 text-white font-questrial text-lg h-9"
-              value={name}
-              editable={false}
-              style={{ textAlignVertical: 'center', color: 'white', paddingBottom: 12 }}
-            />
-          </View>
-
-          {/* Birth Date */}
-          <TouchableOpacity 
-            onPress={() => setShowDatePicker(true)}
-            className={`flex-row items-center bg-[#1A1A1A] rounded-lg px-5 py-4 mb-2 ${
-              focusedInput === 'birthDate' ? 'border border-[#FB2355]' : ''
-            }`}
-          >
-            <Ionicons 
-              name="calendar-outline" 
-              size={24} 
-              color={focusedInput === 'birthDate' ? '#FB2355' : '#666'} 
-              style={{ marginRight: 12 }}
-            />
-            <TextInput
-              className="flex-1 text-white font-questrial text-lg h-9"
-              value={`${selectedMonth}/${selectedDay}/${selectedYear}`}
-              editable={false}
-              style={{ textAlignVertical: 'center', color: 'white', paddingBottom: 12 }}
-            />
-          </TouchableOpacity>
-
-          {/* Email */}
-          <View className={`flex-row items-center bg-[#1A1A1A] rounded-lg px-5 py-4 mb-2 ${
-            focusedInput === 'email' ? 'border border-[#FB2355]' : ''
-          }`}>
-            <Ionicons 
-              name="mail-outline" 
-              size={24} 
-              color={focusedInput === 'email' ? '#FB2355' : '#666'} 
-              style={{ marginRight: 12 }}
-            />
-            <TextInput
-              className="flex-1 text-white font-questrial text-lg h-9"
-              value={email}
-              editable={false}
-              style={{ textAlignVertical: 'center', color: 'white', paddingBottom: 17 }}
-            />
-          </View>
-
-          {/* Phone Number */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-            <TouchableOpacity 
-              onPress={() => setShowCountryPicker(true)}
-              className={`flex-row items-center bg-[#1A1A1A] rounded-lg px-5 py-5 w-24 mr-2 ${
-                focusedInput === 'countryCode' ? 'border border-[#FB2355]' : ''
-              }`}
-              activeOpacity={0.7}
-            >
-              <Text className="text-white font-questrial text-lg mr-2">{selectedCountry.flag}</Text>
-              <Text className="text-white font-questrial text-lg">{selectedCountry.code}</Text>
-            </TouchableOpacity>
-            <View className={`flex-row items-center bg-[#1A1A1A] rounded-lg px-5 py-4 flex-1 ${
-              focusedInput === 'phoneNumber' ? 'border border-[#FB2355]' : ''
+          {/* Form Fields */}
+          <View className="mt-8">
+            {/* Name */}
+            <View className={`flex-row items-center bg-[#1A1A1A] rounded-lg px-5 py-4 mb-2 ${
+              focusedInput === 'name' ? 'border border-[#FB2355]' : ''
             }`}>
               <Ionicons 
-                name="call-outline" 
+                name="person-outline" 
                 size={24} 
-                color={focusedInput === 'phoneNumber' ? '#FB2355' : '#666'} 
+                color={focusedInput === 'name' ? '#FB2355' : '#666'} 
                 style={{ marginRight: 12 }}
               />
               <TextInput
                 className="flex-1 text-white font-questrial text-lg h-9"
-                placeholderTextColor="#666"
-                placeholder="Enter your phone number"
-                keyboardType="phone-pad"
-                onFocus={() => setFocusedInput('phoneNumber')}
-                onBlur={() => setFocusedInput(null)}
-                style={{ textAlignVertical: 'center', color: 'white', paddingTop: 0, paddingBottom: 0, fontSize: 18 }}
-                value={phoneNumber}
-                onChangeText={setPhoneNumber}
-                returnKeyType="done"
-                blurOnSubmit={true}
-                onSubmitEditing={() => {
-                  Keyboard.dismiss();
-                  setFocusedInput(null);
-                }}
+                value={name}
+                editable={false}
+                style={{ textAlignVertical: 'center', color: 'white', paddingBottom: 12 }}
               />
             </View>
-          </View>
 
-          {/* Gender - Simplified Picker */}
-          <View style={{ marginBottom: 8 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-              {genders.map((gender) => (
-                <TouchableOpacity
-                  key={gender.value}
-                  onPress={() => setSelectedGender(gender)}
-                  style={{
-                    backgroundColor: selectedGender?.value === gender.value ? '#FB2355' : '#222',
-                    borderRadius: 18,
-                    paddingVertical: 12,
-                    paddingHorizontal: 0,
-                    marginHorizontal: 0,
-                    flex: 1,
-                    marginRight: gender.value !== 'other' ? 12 : 0,
-                    borderWidth: selectedGender?.value === gender.value ? 0 : 1,
-                    borderColor: '#444',
-                    alignItems: 'center',
-                  }}
-                >
-                  <Text style={{ 
-                    color: selectedGender?.value === gender.value ? 'white' : '#aaa', 
-                    fontFamily: 'questrial', 
-                    fontSize: 17,
-                    textAlign: 'center',
-                  }}>
-                    {gender.icon} {gender.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+            {/* Birth Date */}
+            <TouchableOpacity 
+              onPress={() => setShowDatePicker(true)}
+              className={`flex-row items-center bg-[#1A1A1A] rounded-lg px-5 py-4 mb-2 ${
+                focusedInput === 'birthDate' ? 'border border-[#FB2355]' : ''
+              }`}
+            >
+              <Ionicons 
+                name="calendar-outline" 
+                size={24} 
+                color={focusedInput === 'birthDate' ? '#FB2355' : '#666'} 
+                style={{ marginRight: 12 }}
+              />
+              <TextInput
+                className="flex-1 text-white font-questrial text-lg h-9"
+                value={`${selectedMonth}/${selectedDay}/${selectedYear}`}
+                editable={false}
+                style={{ textAlignVertical: 'center', color: 'white', paddingBottom: 12 }}
+              />
+            </TouchableOpacity>
+
+            {/* Email */}
+            <View className={`flex-row items-center bg-[#1A1A1A] rounded-lg px-5 py-4 mb-2 ${
+              focusedInput === 'email' ? 'border border-[#FB2355]' : ''
+            }`}>
+              <Ionicons 
+                name="mail-outline" 
+                size={24} 
+                color={focusedInput === 'email' ? '#FB2355' : '#666'} 
+                style={{ marginRight: 12 }}
+              />
+              <TextInput
+                className="flex-1 text-white font-questrial text-lg h-9"
+                value={email}
+                editable={false}
+                style={{ textAlignVertical: 'center', color: 'white', paddingBottom: 17 }}
+              />
             </View>
-          </View>
 
-          {/* Creator's Name - Modal Style */}
-          <View style={{ marginBottom: 8 }}>
-            <TouchableOpacity
-              className="bg-[#1A1A1A] rounded-lg px-5 py-4 flex-row items-center"
-              activeOpacity={0.8}
-              onPress={() => {
-                setTempCreatorName(creatorName);
-                setShowCreatorNameModal(true);
-              }}
-            >
-              <Ionicons name="person-circle-outline" size={22} color="#666" style={{ marginRight: 10 }} />
-              <Text className="text-white font-questrial text-lg flex-1">
-                {creatorName ? creatorName : 'Enter your creator name'}
-              </Text>
-              <Ionicons name="chevron-forward" size={20} color="#666" />
-            </TouchableOpacity>
-          </View>
-
-          {/* Bio - Modal Style */}
-          <View style={{ marginBottom: 8 }}>
-            <TouchableOpacity
-              className="bg-[#1A1A1A] rounded-lg px-5 py-4 flex-row items-center"
-              activeOpacity={0.8}
-              onPress={() => {
-                setTempBio(bio);
-                setShowBioModal(true);
-              }}
-            >
-              <Ionicons name="document-text-outline" size={22} color="#666" style={{ marginRight: 10 }} />
-              <View className="flex-1">
-                <Text className="text-white font-questrial text-lg">
-                  {bio ? bio : 'Tell us about yourself'}
-                </Text>
-                {bio && (
-                  <Text className="text-gray-400 text-sm mt-1">
-                    {bio.length}/300 characters
-                  </Text>
-                )}
+            {/* Phone Number */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+              <TouchableOpacity 
+                onPress={() => setShowCountryPicker(true)}
+                className={`flex-row items-center bg-[#1A1A1A] rounded-lg px-5 py-5 w-24 mr-2 ${
+                  focusedInput === 'countryCode' ? 'border border-[#FB2355]' : ''
+                }`}
+                activeOpacity={0.7}
+              >
+                <Text className="text-white font-questrial text-lg mr-2">{selectedCountry.flag}</Text>
+                <Text className="text-white font-questrial text-lg">{selectedCountry.code}</Text>
+              </TouchableOpacity>
+              <View className={`flex-row items-center bg-[#1A1A1A] rounded-lg px-5 py-4 flex-1 ${
+                focusedInput === 'phoneNumber' ? 'border border-[#FB2355]' : ''
+              }`}>
+                <Ionicons 
+                  name="call-outline" 
+                  size={24} 
+                  color={focusedInput === 'phoneNumber' ? '#FB2355' : '#666'} 
+                  style={{ marginRight: 12 }}
+                />
+                <TextInput
+                  className="flex-1 text-white font-questrial text-lg h-9"
+                  placeholderTextColor="#666"
+                  placeholder="Enter your phone number"
+                  keyboardType="phone-pad"
+                  onFocus={() => setFocusedInput('phoneNumber')}
+                  onBlur={() => setFocusedInput(null)}
+                  style={{ textAlignVertical: 'center', color: 'white', paddingTop: 0, paddingBottom: 0, fontSize: 18 }}
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                  returnKeyType="done"
+                  blurOnSubmit={true}
+                  onSubmitEditing={() => {
+                    Keyboard.dismiss();
+                    setFocusedInput(null);
+                  }}
+                />
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#666" />
-            </TouchableOpacity>
-          </View>
+            </View>
 
-          {/* Location - Modal Style */}
-          <View style={{ marginBottom: 8 }}>
-            <TouchableOpacity
-              className="bg-[#1A1A1A] rounded-lg px-5 py-4 flex-row items-center"
-              activeOpacity={0.8}
-              onPress={() => {
-                setTempLocation(location);
-                setShowLocationModal(true);
-              }}
-            >
-              <Ionicons name="location-outline" size={22} color="#666" style={{ marginRight: 10 }} />
-              <Text className="text-white font-questrial text-lg flex-1">
-                {location ? location : 'Enter your location'}
-              </Text>
-              <Ionicons name="chevron-forward" size={20} color="#666" />
-            </TouchableOpacity>
-          </View>
-
-          {/* Topics (Button + Modal) */}
-          <View style={{ marginBottom: 16 }}>
-           
-            <TouchableOpacity
-              className="bg-[#1A1A1A] rounded-lg px-5 py-4 mb-2 flex-row items-center"
-              activeOpacity={0.8}
-              onPress={() => setShowTopicsModal(true)}
-            >
-              <Ionicons name="chatbubble-ellipses-outline" size={22} color="#FB2355" style={{ marginRight: 10 }} />
-              <Text className="text-white font-questrial text-lg">
-                {topics.length > 0 ? topics.join(', ') : 'Choose topics'}
-              </Text>
-            </TouchableOpacity>
-            <Modal
-              visible={showTopicsModal}
-              transparent={true}
-              animationType="slide"
-              onRequestClose={() => setShowTopicsModal(false)}
-            >
-              <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' }}>
-                <View style={{ backgroundColor: '#181818', borderRadius: 24, padding: 24, width: '90%' }}>
-                  <Text style={{ color: '#fff', fontSize: 18, fontFamily: 'questrial', marginBottom: 16, textAlign: 'center' }}>
-                    Choose your topics
-                  </Text>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }}>
-                    {trendingTopics.map((topic) => {
-                      const selected = topics.includes(topic);
-                      return (
-                        <TouchableOpacity
-                          key={topic}
-                          onPress={() => {
-                            setTopics((prev) =>
-                              prev.includes(topic)
-                                ? prev.filter((t) => t !== topic)
-                                : [...prev, topic]
-                            );
-                          }}
-                          style={{
-                            backgroundColor: selected ? '#FB2355' : '#222',
-                            borderRadius: 18,
-                            paddingVertical: 7,
-                            paddingHorizontal: 16,
-                            margin: 4,
-                            borderWidth: selected ? 0 : 1,
-                            borderColor: '#444',
-                          }}
-                        >
-                          <Text style={{ color: selected ? 'white' : '#aaa', fontFamily: 'questrial', fontSize: 15 }}>
-                            {topic}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
+            {/* Gender - Simplified Picker */}
+            <View style={{ marginBottom: 8 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                {genders.map((gender) => (
                   <TouchableOpacity
-                    style={{ marginTop: 24, backgroundColor: '#FB2355', borderRadius: 16, paddingVertical: 12 }}
-                    onPress={() => setShowTopicsModal(false)}
+                    key={gender.value}
+                    onPress={() => setSelectedGender(gender)}
+                    style={{
+                      backgroundColor: selectedGender?.value === gender.value ? '#FB2355' : '#222',
+                      borderRadius: 18,
+                      paddingVertical: 12,
+                      paddingHorizontal: 0,
+                      marginHorizontal: 0,
+                      flex: 1,
+                      marginRight: gender.value !== 'other' ? 12 : 0,
+                      borderWidth: selectedGender?.value === gender.value ? 0 : 1,
+                      borderColor: '#444',
+                      alignItems: 'center',
+                    }}
                   >
-                    <Text style={{ color: 'white', fontSize: 16, fontFamily: 'questrial', textAlign: 'center', fontWeight: 'bold' }}>
-                      Done
+                    <Text style={{ 
+                      color: selectedGender?.value === gender.value ? 'white' : '#aaa', 
+                      fontFamily: 'questrial', 
+                      fontSize: 17,
+                      textAlign: 'center',
+                    }}>
+                      {gender.icon} {gender.label}
                     </Text>
                   </TouchableOpacity>
-                </View>
+                ))}
               </View>
-            </Modal>
-            {/* Subscriptions Button */}
+            </View>
+
+            {/* Creator's Name - Modal Style */}
+            <View style={{ marginBottom: 8 }}>
+              <TouchableOpacity
+                className="bg-[#1A1A1A] rounded-lg px-5 py-4 flex-row items-center"
+                activeOpacity={0.8}
+                onPress={() => {
+                  setTempCreatorName(creatorName);
+                  setShowCreatorNameModal(true);
+                }}
+              >
+                <Ionicons name="person-circle-outline" size={22} color="#666" style={{ marginRight: 10 }} />
+                <Text className="text-white font-questrial text-lg flex-1">
+                  {creatorName ? creatorName : 'Enter your creator name'}
+                </Text>
+                <Ionicons name="chevron-forward" size={20} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Bio - Modal Style */}
+            <View style={{ marginBottom: 8 }}>
+              <TouchableOpacity
+                className="bg-[#1A1A1A] rounded-lg px-5 py-4 flex-row items-center"
+                activeOpacity={0.8}
+                onPress={() => {
+                  setTempBio(bio);
+                  setShowBioModal(true);
+                }}
+              >
+                <Ionicons name="document-text-outline" size={22} color="#666" style={{ marginRight: 10 }} />
+                <View className="flex-1">
+                  <Text className="text-white font-questrial text-lg">
+                    {bio ? bio : 'Tell us about yourself'}
+                  </Text>
+                  {bio && (
+                    <Text className="text-gray-400 text-sm mt-1">
+                      {bio.length}/300 characters
+                    </Text>
+                  )}
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Location - Modal Style */}
+            <View style={{ marginBottom: 8 }}>
+              <TouchableOpacity
+                className="bg-[#1A1A1A] rounded-lg px-5 py-4 flex-row items-center"
+                activeOpacity={0.8}
+                onPress={() => {
+                  setTempLocation(location);
+                  setShowLocationModal(true);
+                }}
+              >
+                <Ionicons name="location-outline" size={22} color="#666" style={{ marginRight: 10 }} />
+                <Text className="text-white font-questrial text-lg flex-1">
+                  {location ? location : 'Enter your location'}
+                </Text>
+                <Ionicons name="chevron-forward" size={20} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Topics (Button + Modal) */}
+            <View style={{ marginBottom: 16 }}>
+             
+              <TouchableOpacity
+                className="bg-[#1A1A1A] rounded-lg px-5 py-4 mb-2 flex-row items-center"
+                activeOpacity={0.8}
+                onPress={() => setShowTopicsModal(true)}
+              >
+                <Ionicons name="chatbubble-ellipses-outline" size={22} color="#FB2355" style={{ marginRight: 10 }} />
+                <Text className="text-white font-questrial text-lg">
+                  {topics.length > 0 ? topics.join(', ') : 'Choose topics'}
+                </Text>
+              </TouchableOpacity>
+              <Modal
+                visible={showTopicsModal}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={() => setShowTopicsModal(false)}
+              >
+                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' }}>
+                  <View style={{ backgroundColor: '#181818', borderRadius: 24, padding: 24, width: '90%' }}>
+                    <Text style={{ color: '#fff', fontSize: 18, fontFamily: 'questrial', marginBottom: 16, textAlign: 'center' }}>
+                      Choose your topics
+                    </Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }}>
+                      {trendingTopics.map((topic) => {
+                        const selected = topics.includes(topic);
+                        return (
+                          <TouchableOpacity
+                            key={topic}
+                            onPress={() => {
+                              setTopics((prev) =>
+                                prev.includes(topic)
+                                  ? prev.filter((t) => t !== topic)
+                                  : [...prev, topic]
+                              );
+                            }}
+                            style={{
+                              backgroundColor: selected ? '#FB2355' : '#222',
+                              borderRadius: 18,
+                              paddingVertical: 7,
+                              paddingHorizontal: 16,
+                              margin: 4,
+                              borderWidth: selected ? 0 : 1,
+                              borderColor: '#444',
+                            }}
+                          >
+                            <Text style={{ color: selected ? 'white' : '#aaa', fontFamily: 'questrial', fontSize: 15 }}>
+                              {topic}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                    <TouchableOpacity
+                      style={{ marginTop: 24, backgroundColor: '#FB2355', borderRadius: 16, paddingVertical: 12 }}
+                      onPress={() => setShowTopicsModal(false)}
+                    >
+                      <Text style={{ color: 'white', fontSize: 16, fontFamily: 'questrial', textAlign: 'center', fontWeight: 'bold' }}>
+                        Done
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </Modal>
+              {/* Subscriptions Button */}
+              <TouchableOpacity 
+                className="bg-[#222] rounded-lg py-4 mb-1 flex-row items-center justify-center"
+                activeOpacity={0.8}
+                onPress={async () => {
+                  await loadExistingPaymentData();
+                  setShowSubscriptionsModal(true);
+                }}
+              >
+                <Ionicons name="card-outline" size={22} color="#FB2355" style={{ marginRight: 10 }} />
+                <Text className="text-white text-center font-questrial text-lg">
+                  Subscriptions
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Update Button */}
             <TouchableOpacity 
-              className="bg-[#222] rounded-lg py-4 mb-1 flex-row items-center justify-center"
+              className={`bg-[#FB2355] rounded-lg py-4 mt-2 mb-2${!profileImage ? ' opacity-50' : ''}`}
               activeOpacity={0.8}
-              onPress={async () => {
-                await loadExistingPaymentData();
-                setShowSubscriptionsModal(true);
-              }}
+              onPress={handleUpdateProfile}
+              disabled={saving || !profileImage}
             >
-              <Ionicons name="card-outline" size={22} color="#FB2355" style={{ marginRight: 10 }} />
               <Text className="text-white text-center font-questrial text-lg">
-                Subscriptions
+                {saving ? 'Updating...' : 'Update Profile'}
               </Text>
             </TouchableOpacity>
+            {/* Show a message if no profile image */}
+            {!profileImage && (
+              <Text style={{ color: '#FB2355', textAlign: 'center', marginBottom: 8, fontFamily: 'questrial', fontWeight: '600' }}>
+                Please add a profile picture to update your profile.
+              </Text>
+            )}
+
+            {/* Success Message */}
+            {successMessage && (
+              <Text className="text-[#4CAF50] text-center mt-2 font-questrial">
+                  {successMessage}
+              </Text>
+            )}
           </View>
 
-          {/* Update Button */}
-          <TouchableOpacity 
-            className={`bg-[#FB2355] rounded-lg py-4 mt-2 mb-2${!profileImage ? ' opacity-50' : ''}`}
-            activeOpacity={0.8}
-            onPress={handleUpdateProfile}
-            disabled={saving || !profileImage}
+          {/* Date Picker Modal */}
+          <Modal
+            visible={showDatePicker}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={() => setShowDatePicker(false)}
           >
-            <Text className="text-white text-center font-questrial text-lg">
-              {saving ? 'Updating...' : 'Update Profile'}
-            </Text>
-          </TouchableOpacity>
-          {/* Show a message if no profile image */}
-          {!profileImage && (
-            <Text style={{ color: '#FB2355', textAlign: 'center', marginBottom: 8, fontFamily: 'questrial', fontWeight: '600' }}>
-              Please add a profile picture to update your profile.
-            </Text>
-          )}
-
-          {/* Success Message */}
-          {successMessage && (
-            <Text className="text-[#4CAF50] text-center mt-2 font-questrial">
-                {successMessage}
-            </Text>
-          )}
-        </View>
-
-        {/* Date Picker Modal */}
-        <Modal
-          visible={showDatePicker}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => setShowDatePicker(false)}
-        >
-          <View className="flex-1 bg-black/50 justify-end">
-            <View className="bg-[#1A1A1A] rounded-t-3xl p-4">
-              <View className="flex-row justify-between items-center mb-4">
-                <Text className="text-white text-xl font-bold">Select Birth Date</Text>
-                <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                  <Ionicons name="close" size={30} color="#FB2355" />
-                </TouchableOpacity>
-              </View>
-              <View className="flex-row justify-between">
-                {/* Month Picker */}
-                <View className="flex-1">
-                  <Text className="text-white text-center mb-2">Month</Text>
-                  <Picker
-                    selectedValue={selectedMonth}
-                    onValueChange={(value) => {
-                      setSelectedMonth(value);
-                      // Reset day if it's invalid for the new month
-                      const daysInMonth = getDaysInMonth(parseInt(value), parseInt(selectedYear));
-                      if (parseInt(selectedDay) > daysInMonth) {
-                        setSelectedDay(daysInMonth.toString());
-                      }
-                    }}
-                    style={{ color: 'white' }}
-                    itemStyle={{ color: 'white' }}
-                  >
-                    {months.map((month) => (
-                      <Picker.Item key={month} label={month} value={month} color="white" />
-                    ))}
-                  </Picker>
+            <View className="flex-1 bg-black/50 justify-end">
+              <View className="bg-[#1A1A1A] rounded-t-3xl p-4">
+                <View className="flex-row justify-between items-center mb-4">
+                  <Text className="text-white text-xl font-bold">Select Birth Date</Text>
+                  <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                    <Ionicons name="close" size={30} color="#FB2355" />
+                  </TouchableOpacity>
                 </View>
+                <View className="flex-row justify-between">
+                  {/* Month Picker */}
+                  <View className="flex-1">
+                    <Text className="text-white text-center mb-2">Month</Text>
+                    <Picker
+                      selectedValue={selectedMonth}
+                      onValueChange={(value) => {
+                        setSelectedMonth(value);
+                        // Reset day if it's invalid for the new month
+                        const daysInMonth = getDaysInMonth(parseInt(value), parseInt(selectedYear));
+                        if (parseInt(selectedDay) > daysInMonth) {
+                          setSelectedDay(daysInMonth.toString());
+                        }
+                      }}
+                      style={{ color: 'white' }}
+                      itemStyle={{ color: 'white' }}
+                    >
+                      {months.map((month) => (
+                        <Picker.Item key={month} label={month} value={month} color="white" />
+                      ))}
+                    </Picker>
+                  </View>
 
-                {/* Day Picker */}
-                <View className="flex-1">
-                  <Text className="text-white text-center mb-2">Day</Text>
-                  <Picker
-                    selectedValue={selectedDay}
-                    onValueChange={setSelectedDay}
-                    style={{ color: 'white' }}
-                    itemStyle={{ color: 'white' }}
-                  >
-                    {days.map((day) => (
-                      <Picker.Item key={day} label={day} value={day} color="white" />
-                    ))}
-                  </Picker>
-                </View>
+                  {/* Day Picker */}
+                  <View className="flex-1">
+                    <Text className="text-white text-center mb-2">Day</Text>
+                    <Picker
+                      selectedValue={selectedDay}
+                      onValueChange={setSelectedDay}
+                      style={{ color: 'white' }}
+                      itemStyle={{ color: 'white' }}
+                    >
+                      {days.map((day) => (
+                        <Picker.Item key={day} label={day} value={day} color="white" />
+                      ))}
+                    </Picker>
+                  </View>
 
-                {/* Year Picker */}
-                <View className="flex-1">
-                  <Text className="text-white text-center mb-2">Year</Text>
-                  <Picker
-                    selectedValue={selectedYear}
-                    onValueChange={(value) => {
-                      setSelectedYear(value);
-                      // Reset day if it's invalid for the new year
-                      const daysInMonth = getDaysInMonth(parseInt(selectedMonth), parseInt(value));
-                      if (parseInt(selectedDay) > daysInMonth) {
-                        setSelectedDay(daysInMonth.toString());
-                      }
-                    }}
-                    style={{ color: 'white' }}
-                    itemStyle={{ color: 'white' }}
-                  >
-                    {years.map((year) => (
-                      <Picker.Item key={year} label={year} value={year} color="white" />
-                    ))}
-                  </Picker>
+                  {/* Year Picker */}
+                  <View className="flex-1">
+                    <Text className="text-white text-center mb-2">Year</Text>
+                    <Picker
+                      selectedValue={selectedYear}
+                      onValueChange={(value) => {
+                        setSelectedYear(value);
+                        // Reset day if it's invalid for the new year
+                        const daysInMonth = getDaysInMonth(parseInt(selectedMonth), parseInt(value));
+                        if (parseInt(selectedDay) > daysInMonth) {
+                          setSelectedDay(daysInMonth.toString());
+                        }
+                      }}
+                      style={{ color: 'white' }}
+                      itemStyle={{ color: 'white' }}
+                    >
+                      {years.map((year) => (
+                        <Picker.Item key={year} label={year} value={year} color="white" />
+                      ))}
+                    </Picker>
+                  </View>
                 </View>
               </View>
             </View>
-          </View>
-        </Modal>
+          </Modal>
 
-        {/* Country Picker Modal */}
-        <Modal
-          visible={showCountryPicker}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setShowCountryPicker(false)}
-        >
-          <TouchableWithoutFeedback onPress={() => setShowCountryPicker(false)}>
-            <View style={{ 
-              flex: 1, 
-              backgroundColor: 'rgba(0,0,0,0.75)', 
-              justifyContent: 'center', 
-              alignItems: 'center',
-              backdropFilter: 'blur(10px)'
-            }}>
-              <Animated.View style={{
-                backgroundColor: '#1a1a1a',
-                borderRadius: 24,
-                padding: 32,
-                width: '90%',
-                maxWidth: 400,
-                maxHeight: '80%',
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 20 },
-                shadowOpacity: 0.3,
-                shadowRadius: 40,
-                elevation: 20,
-                borderWidth: 1,
-                borderColor: 'rgba(255,255,255,0.1)',
+          {/* Country Picker Modal */}
+          <Modal
+            visible={showCountryPicker}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => setShowCountryPicker(false)}
+          >
+            <TouchableWithoutFeedback onPress={() => setShowCountryPicker(false)}>
+              <View style={{ 
+                flex: 1, 
+                backgroundColor: 'rgba(0,0,0,0.75)', 
+                justifyContent: 'center', 
                 alignItems: 'center',
+                backdropFilter: 'blur(10px)'
               }}>
-                <View style={{ 
-                  flexDirection: 'row', 
-                  alignItems: 'center', 
-                  marginBottom: 24,
-                  paddingBottom: 16,
-                  borderBottomWidth: 1,
-                  borderBottomColor: 'rgba(255,255,255,0.1)',
-                  width: '100%'
+                <Animated.View style={{
+                  backgroundColor: '#1a1a1a',
+                  borderRadius: 24,
+                  padding: 32,
+                  width: '90%',
+                  maxWidth: 400,
+                  maxHeight: '80%',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 20 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 40,
+                  elevation: 20,
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,255,255,0.1)',
+                  alignItems: 'center',
                 }}>
-                  <View style={{
-                    backgroundColor: 'rgba(251, 35, 85, 0.1)',
-                    borderRadius: 12,
-                    padding: 8,
-                    marginRight: 12
+                  <View style={{ 
+                    flexDirection: 'row', 
+                    alignItems: 'center', 
+                    marginBottom: 24,
+                    paddingBottom: 16,
+                    borderBottomWidth: 1,
+                    borderBottomColor: 'rgba(255,255,255,0.1)',
+                    width: '100%'
                   }}>
-                    <Ionicons name="globe-outline" size={24} color="#FB2355" />
+                    <View style={{
+                      backgroundColor: 'rgba(251, 35, 85, 0.1)',
+                      borderRadius: 12,
+                      padding: 8,
+                      marginRight: 12
+                    }}>
+                      <Ionicons name="globe-outline" size={24} color="#FB2355" />
+                    </View>
+                    <Text style={{ 
+                      color: 'white', 
+                      fontSize: 20, 
+                      fontWeight: '600', 
+                      fontFamily: 'questrial',
+                      letterSpacing: 0.5
+                    }}>Select Country</Text>
                   </View>
-                  <Text style={{ 
-                    color: 'white', 
-                    fontSize: 20, 
-                    fontWeight: '600', 
-                    fontFamily: 'questrial',
-                    letterSpacing: 0.5
-                  }}>Select Country</Text>
+                  
+                  <FlatList
+                    data={countries}
+                    keyExtractor={(item) => item.code + item.name}
+                    style={{ width: '100%' }}
+                    showsVerticalScrollIndicator={false}
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          paddingVertical: 16,
+                          paddingHorizontal: 20,
+                          marginVertical: 2,
+                          borderRadius: 16,
+                          backgroundColor: selectedCountry.code === item.code && selectedCountry.name === item.name 
+                            ? 'rgba(251, 35, 85, 0.1)' 
+                            : 'transparent',
+                          borderWidth: selectedCountry.code === item.code && selectedCountry.name === item.name ? 1 : 0,
+                          borderColor: 'rgba(251, 35, 85, 0.3)',
+                        }}
+                        onPress={() => {
+                          setSelectedCountry(item);
+                          setShowCountryPicker(false);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <View style={{
+                          backgroundColor: 'rgba(255,255,255,0.1)',
+                          borderRadius: 12,
+                          padding: 8,
+                          marginRight: 16,
+                          minWidth: 40,
+                          alignItems: 'center'
+                        }}>
+                          <Text style={{ fontSize: 20 }}>{item.flag}</Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ 
+                            color: 'white', 
+                            fontSize: 16, 
+                            fontFamily: 'questrial',
+                            fontWeight: '500'
+                          }}>
+                            {item.name}
+                          </Text>
+                        </View>
+                        <View style={{
+                          backgroundColor: selectedCountry.code === item.code && selectedCountry.name === item.name 
+                            ? '#FB2355' 
+                            : 'rgba(255,255,255,0.1)',
+                          borderRadius: 8,
+                          paddingHorizontal: 12,
+                          paddingVertical: 6
+                        }}>
+                          <Text style={{ 
+                            color: selectedCountry.code === item.code && selectedCountry.name === item.name 
+                              ? 'white' 
+                              : 'rgba(255,255,255,0.8)', 
+                            fontSize: 14, 
+                            fontFamily: 'questrial',
+                            fontWeight: '600'
+                          }}>
+                            {item.code}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    )}
+                  />
+                  
+                  <TouchableOpacity 
+                    style={{ 
+                      backgroundColor: 'rgba(255,255,255,0.1)', 
+                      borderRadius: 16, 
+                      paddingVertical: 16, 
+                      paddingHorizontal: 32,
+                      marginTop: 24,
+                      borderWidth: 1,
+                      borderColor: 'rgba(255,255,255,0.1)',
+                      alignSelf: 'center'
+                    }}
+                    onPress={() => setShowCountryPicker(false)}
+                  >
+                    <Text style={{ 
+                      color: 'rgba(255,255,255,0.8)', 
+                      fontSize: 16, 
+                      fontFamily: 'questrial',
+                      fontWeight: '500'
+                    }}>Cancel</Text>
+                  </TouchableOpacity>
+                </Animated.View>
+              </View>
+            </TouchableWithoutFeedback>
+          </Modal>
+
+          {/* Gender Picker Modal */}
+          <Modal
+            visible={showGenderPicker}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={() => setShowGenderPicker(false)}
+          >
+            <View className="flex-1 bg-black/50 justify-end">
+              <View className="bg-[#1A1A1A] rounded-t-3xl p-4">
+                <View className="flex-row justify-between items-center mb-4">
+                  <Text className="text-white text-xl font-bold">Select Gender</Text>
+                  <TouchableOpacity onPress={() => setShowGenderPicker(false)}>
+                    <Ionicons name="close" size={32} color="#FB2355" />
+                  </TouchableOpacity>
                 </View>
-                
                 <FlatList
-                  data={countries}
-                  keyExtractor={(item) => item.code + item.name}
-                  style={{ width: '100%' }}
-                  showsVerticalScrollIndicator={false}
+                  data={genders}
+                  keyExtractor={(item) => item.value}
                   renderItem={({ item }) => (
                     <TouchableOpacity
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        paddingVertical: 16,
-                        paddingHorizontal: 20,
-                        marginVertical: 2,
-                        borderRadius: 16,
-                        backgroundColor: selectedCountry.code === item.code && selectedCountry.name === item.name 
-                          ? 'rgba(251, 35, 85, 0.1)' 
-                          : 'transparent',
-                        borderWidth: selectedCountry.code === item.code && selectedCountry.name === item.name ? 1 : 0,
-                        borderColor: 'rgba(251, 35, 85, 0.3)',
-                      }}
+                      className="flex-row items-center py-3 border-b border-gray-800"
                       onPress={() => {
-                        setSelectedCountry(item);
-                        setShowCountryPicker(false);
+                        setSelectedGender(item);
+                        setShowGenderPicker(false);
                       }}
-                      activeOpacity={0.7}
                     >
-                      <View style={{
-                        backgroundColor: 'rgba(255,255,255,0.1)',
-                        borderRadius: 12,
-                        padding: 8,
-                        marginRight: 16,
-                        minWidth: 40,
-                        alignItems: 'center'
-                      }}>
-                        <Text style={{ fontSize: 20 }}>{item.flag}</Text>
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ 
-                          color: 'white', 
-                          fontSize: 16, 
-                          fontFamily: 'questrial',
-                          fontWeight: '500'
-                        }}>
-                          {item.name}
-                        </Text>
-                      </View>
-                      <View style={{
-                        backgroundColor: selectedCountry.code === item.code && selectedCountry.name === item.name 
-                          ? '#FB2355' 
-                          : 'rgba(255,255,255,0.1)',
-                        borderRadius: 8,
-                        paddingHorizontal: 12,
-                        paddingVertical: 6
-                      }}>
-                        <Text style={{ 
-                          color: selectedCountry.code === item.code && selectedCountry.name === item.name 
-                            ? 'white' 
-                            : 'rgba(255,255,255,0.8)', 
-                          fontSize: 14, 
-                          fontFamily: 'questrial',
-                          fontWeight: '600'
-                        }}>
-                          {item.code}
-                        </Text>
-                      </View>
+                      <Text className="text-white text-xl mr-3">{item.icon}</Text>
+                      <Text className="text-white text-lg">{item.label}</Text>
                     </TouchableOpacity>
                   )}
                 />
-                
-                <TouchableOpacity 
-                  style={{ 
-                    backgroundColor: 'rgba(255,255,255,0.1)', 
-                    borderRadius: 16, 
-                    paddingVertical: 16, 
-                    paddingHorizontal: 32,
-                    marginTop: 24,
-                    borderWidth: 1,
-                    borderColor: 'rgba(255,255,255,0.1)',
-                    alignSelf: 'center'
-                  }}
-                  onPress={() => setShowCountryPicker(false)}
-                >
-                  <Text style={{ 
-                    color: 'rgba(255,255,255,0.8)', 
-                    fontSize: 16, 
-                    fontFamily: 'questrial',
-                    fontWeight: '500'
-                  }}>Cancel</Text>
-                </TouchableOpacity>
-              </Animated.View>
-            </View>
-          </TouchableWithoutFeedback>
-        </Modal>
-
-        {/* Gender Picker Modal */}
-        <Modal
-          visible={showGenderPicker}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => setShowGenderPicker(false)}
-        >
-          <View className="flex-1 bg-black/50 justify-end">
-            <View className="bg-[#1A1A1A] rounded-t-3xl p-4">
-              <View className="flex-row justify-between items-center mb-4">
-                <Text className="text-white text-xl font-bold">Select Gender</Text>
-                <TouchableOpacity onPress={() => setShowGenderPicker(false)}>
-                  <Ionicons name="close" size={32} color="#FB2355" />
-                </TouchableOpacity>
               </View>
-              <FlatList
-                data={genders}
-                keyExtractor={(item) => item.value}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    className="flex-row items-center py-3 border-b border-gray-800"
-                    onPress={() => {
-                      setSelectedGender(item);
-                      setShowGenderPicker(false);
-                    }}
-                  >
-                    <Text className="text-white text-xl mr-3">{item.icon}</Text>
-                    <Text className="text-white text-lg">{item.label}</Text>
+            </View>
+          </Modal>
+
+          {/* Subscriptions Modal */}
+          <Modal
+            visible={showSubscriptionsModal}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={() => setShowSubscriptionsModal(false)}
+          >
+            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' }}>
+              <View style={{ backgroundColor: '#181818', borderRadius: 24, padding: 24, width: '90%', maxHeight: '80%' }}>
+                <View className="flex-row justify-between items-center mb-4">
+                  <Text className="text-white text-xl font-bold">Subscription Pricing</Text>
+                  <TouchableOpacity onPress={() => setShowSubscriptionsModal(false)}>
+                    <Ionicons name="close" size={24} color="#FB2355" />
                   </TouchableOpacity>
-                )}
-              />
-            </View>
-          </View>
-        </Modal>
-
-        {/* Subscriptions Modal */}
-        <Modal
-          visible={showSubscriptionsModal}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => setShowSubscriptionsModal(false)}
-        >
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' }}>
-            <View style={{ backgroundColor: '#181818', borderRadius: 24, padding: 24, width: '90%', maxHeight: '80%' }}>
-              <View className="flex-row justify-between items-center mb-4">
-                <Text className="text-white text-xl font-bold">Subscription Pricing</Text>
-                <TouchableOpacity onPress={() => setShowSubscriptionsModal(false)}>
-                  <Ionicons name="close" size={24} color="#FB2355" />
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView>
-                {/* Monthly Price Input */}
-                <View className="mb-4">
-                  <Text className="text-white text-lg mb-2">Monthly Price ($)</Text>
-                  <TextInput
-                    className="bg-[#222] text-white rounded-lg px-4 py-3"
-                    value={monthlyPrice}
-                    onChangeText={setMonthlyPrice}
-                    keyboardType="decimal-pad"
-                    placeholder="Enter monthly price"
-                    placeholderTextColor="#666"
-                  />
-                  {monthlyPrice && (
-                    <View className="mt-2 bg-[#222] rounded-lg p-3">
-                      <Text className="text-gray-400 text-sm">Price Breakdown (Monthly):</Text>
-                      <Text className="text-white mt-1">Store Fee (30%): ${calculatePriceBreakdown(monthlyPrice).storeFee.toFixed(2)}</Text>
-                      <Text className="text-white mt-1">Platform Fee (15%): ${calculatePriceBreakdown(monthlyPrice).platformFee.toFixed(2)}</Text>
-                      <Text className="text-[#FB2355] font-bold mt-1">Your Earnings: ${calculatePriceBreakdown(monthlyPrice).creatorEarnings.toFixed(2)}</Text>
-                    </View>
-                  )}
                 </View>
 
-                {/* Yearly Price Input */}
-                <View className="mb-4">
-                  <Text className="text-white text-lg mb-2">Yearly Price ($)</Text>
-                  <TextInput
-                    className="bg-[#222] text-white rounded-lg px-4 py-3"
-                    value={yearlyPrice}
-                    onChangeText={setYearlyPrice}
-                    keyboardType="decimal-pad"
-                    placeholder="Enter yearly price"
-                    placeholderTextColor="#666"
-                  />
-                  {yearlyPrice && (
-                    <View className="mt-2 bg-[#222] rounded-lg p-3">
-                      <Text className="text-gray-400 text-sm">Price Breakdown (Yearly):</Text>
-                      <Text className="text-white mt-1">Store Fee (30%): ${calculatePriceBreakdown(yearlyPrice).storeFee.toFixed(2)}</Text>
-                      <Text className="text-white mt-1">Platform Fee (15%): ${calculatePriceBreakdown(yearlyPrice).platformFee.toFixed(2)}</Text>
-                      <Text className="text-[#FB2355] font-bold mt-1">Your Earnings: ${calculatePriceBreakdown(yearlyPrice).creatorEarnings.toFixed(2)}</Text>
-                    </View>
-                  )}
-                </View>
+                <ScrollView>
+                  {/* Monthly Price Input */}
+                  <View className="mb-4">
+                    <Text className="text-white text-lg mb-2">Monthly Price ($)</Text>
+                    <TextInput
+                      className="bg-[#222] text-white rounded-lg px-4 py-3"
+                      value={monthlyPrice}
+                      onChangeText={setMonthlyPrice}
+                      keyboardType="decimal-pad"
+                      placeholder="Enter monthly price"
+                      placeholderTextColor="#666"
+                    />
+                    {monthlyPrice && (
+                      <View className="mt-2 bg-[#222] rounded-lg p-3">
+                        <Text className="text-gray-400 text-sm">Price Breakdown (Monthly):</Text>
+                        <Text className="text-white mt-1">Store Fee (30%): ${calculatePriceBreakdown(monthlyPrice).storeFee.toFixed(2)}</Text>
+                        <Text className="text-white mt-1">Platform Fee (15%): ${calculatePriceBreakdown(monthlyPrice).platformFee.toFixed(2)}</Text>
+                        <Text className="text-[#FB2355] font-bold mt-1">Your Earnings: ${calculatePriceBreakdown(monthlyPrice).creatorEarnings.toFixed(2)}</Text>
+                      </View>
+                    )}
+                  </View>
 
-                {/* Save Button */}
-                <TouchableOpacity 
-                  className={`bg-[#FB2355] rounded-lg py-4 mt-4 ${savingPrices ? 'opacity-50' : ''}`}
-                  onPress={async () => {
-                    try {
-                      setSavingPrices(true);
-                      setPriceError(null);
-                      setSuccessMessage(null);
+                  {/* Yearly Price Input */}
+                  <View className="mb-4">
+                    <Text className="text-white text-lg mb-2">Yearly Price ($)</Text>
+                    <TextInput
+                      className="bg-[#222] text-white rounded-lg px-4 py-3"
+                      value={yearlyPrice}
+                      onChangeText={setYearlyPrice}
+                      keyboardType="decimal-pad"
+                      placeholder="Enter yearly price"
+                      placeholderTextColor="#666"
+                    />
+                    {yearlyPrice && (
+                      <View className="mt-2 bg-[#222] rounded-lg p-3">
+                        <Text className="text-gray-400 text-sm">Price Breakdown (Yearly):</Text>
+                        <Text className="text-white mt-1">Store Fee (30%): ${calculatePriceBreakdown(yearlyPrice).storeFee.toFixed(2)}</Text>
+                        <Text className="text-white mt-1">Platform Fee (15%): ${calculatePriceBreakdown(yearlyPrice).platformFee.toFixed(2)}</Text>
+                        <Text className="text-[#FB2355] font-bold mt-1">Your Earnings: ${calculatePriceBreakdown(yearlyPrice).creatorEarnings.toFixed(2)}</Text>
+                      </View>
+                    )}
+                  </View>
 
-                      // Validate prices
-                      if (!monthlyPrice || !yearlyPrice) {
-                        setPriceError('Please enter both monthly and yearly prices');
-                        return;
+                  {/* Save Button */}
+                  <TouchableOpacity 
+                    className={`bg-[#FB2355] rounded-lg py-4 mt-4 ${savingPrices ? 'opacity-50' : ''}`}
+                    onPress={async () => {
+                      try {
+                        setSavingPrices(true);
+                        setPriceError(null);
+                        setSuccessMessage(null);
+
+                        // Validate prices
+                        if (!monthlyPrice || !yearlyPrice) {
+                          setPriceError('Please enter both monthly and yearly prices');
+                          return;
+                        }
+
+                        const monthly = parseFloat(monthlyPrice);
+                        const yearly = parseFloat(yearlyPrice);
+
+                        if (isNaN(monthly) || isNaN(yearly)) {
+                          setPriceError('Please enter valid prices');
+                          return;
+                        }
+
+                        if (monthly <= 0 || yearly <= 0) {
+                          setPriceError('Prices must be greater than 0');
+                          return;
+                        }
+
+                        // Save prices to Appwrite
+                        if (globalUser?.$id) {
+                          await updateCreatorPayment(globalUser.$id, {
+                            monthlyPrice: monthly,
+                            yearlyPrice: yearly
+                          });
+                          
+                          // Show success message
+                          setSuccessMessage('Prices saved successfully!');
+                          // Hide success message after 2 seconds
+                          setTimeout(() => {
+                            setSuccessMessage(null);
+                            setShowSubscriptionsModal(false);
+                          }, 2000);
+                        }
+                      } catch (error) {
+                        console.error('Error saving prices:', error);
+                        setPriceError(error instanceof Error ? error.message : 'Failed to save prices');
+                      } finally {
+                        setSavingPrices(false);
                       }
+                    }}
+                    disabled={savingPrices}
+                  >
+                    <Text className="text-white text-center font-questrial text-lg">
+                      {savingPrices ? 'Saving...' : 'Save Prices'}
+                    </Text>
+                  </TouchableOpacity>
+                </ScrollView>
 
-                      const monthly = parseFloat(monthlyPrice);
-                      const yearly = parseFloat(yearlyPrice);
-
-                      if (isNaN(monthly) || isNaN(yearly)) {
-                        setPriceError('Please enter valid prices');
-                        return;
-                      }
-
-                      if (monthly <= 0 || yearly <= 0) {
-                        setPriceError('Prices must be greater than 0');
-                        return;
-                      }
-
-                      // Save prices to Appwrite
-                      if (globalUser?.$id) {
-                        await updateCreatorPayment(globalUser.$id, {
-                          monthlyPrice: monthly,
-                          yearlyPrice: yearly
-                        });
-                        
-                        // Show success message
-                        setSuccessMessage('Prices saved successfully!');
-                        // Hide success message after 2 seconds
-                        setTimeout(() => {
-                          setSuccessMessage(null);
-                          setShowSubscriptionsModal(false);
-                        }, 2000);
-                      }
-                    } catch (error) {
-                      console.error('Error saving prices:', error);
-                      setPriceError(error instanceof Error ? error.message : 'Failed to save prices');
-                    } finally {
-                      setSavingPrices(false);
-                    }
-                  }}
-                  disabled={savingPrices}
-                >
-                  <Text className="text-white text-center font-questrial text-lg">
-                    {savingPrices ? 'Saving...' : 'Save Prices'}
+                {/* Error Message */}
+                {priceError && (
+                  <Text className="text-red-500 text-center mt-2">
+                    {priceError}
                   </Text>
-                </TouchableOpacity>
-              </ScrollView>
+                )}
 
-              {/* Error Message */}
-              {priceError && (
-                <Text className="text-red-500 text-center mt-2">
-                  {priceError}
-                </Text>
-              )}
-
-              {/* Success Message */}
-              {successMessage && (
-                <Text className="text-green-500 text-center mt-2">
-                  {successMessage}
-                </Text>
-              )}
+                {/* Success Message */}
+                {successMessage && (
+                  <Text className="text-green-500 text-center mt-2">
+                    {successMessage}
+                  </Text>
+                )}
+              </View>
             </View>
-          </View>
-        </Modal>
+          </Modal>
+        </View>
       </ScrollView>
 
       {/* Creator Name Modal */}

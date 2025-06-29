@@ -3,7 +3,7 @@ import { useGlobalContext } from '@/lib/global-provider';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Dimensions, Image, Keyboard, RefreshControl, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Dimensions, Image, Keyboard, RefreshControl, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PhotoCard from '../../components/PhotoCard';
 import SearchInput from '../../components/SearchInput';
@@ -57,6 +57,7 @@ export default function Index() {
                 const postsWithSubscription = await Promise.all(
                     typedPosts.map(async (post) => {
                         const { isSubscribed, isCancelled } = await getSubscriptionStatus(user.$id, post.title || '');
+                        console.log(`Subscription check for "${post.title}":`, { isSubscribed, isCancelled, userId: user.$id });
                         return { ...post, isSubscribed, isCancelled };
                     })
                 );
@@ -183,7 +184,12 @@ export default function Index() {
             <View className="flex-row items-center justify-between px-4 py-2 bg-black">
                 <Image 
                     source={require('../../../assets/images/cherry-icon.png')}
-                    className="w-14 h-14"
+                    style={{
+                        width: 56,
+                        height: 56,
+                        borderRadius: 10, // Slightly rounded corners
+                        backgroundColor: 'white',
+                    }}
                     resizeMode="contain"
                 />
                 
@@ -262,9 +268,8 @@ export default function Index() {
                     
                     {isLoading ? (
                         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 60 }}>
-                            <Image source={require('../../../assets/images/cherry-icon.png')} style={{ width: 60, height: 60, marginBottom: 16 }} />
+                            <Image source={require('../../../assets/icon/loading-icon.png')} style={{ width: 60, height: 60, marginBottom: 16 }} />
                             <Text style={{ color: '#FB2355', fontSize: 18, marginBottom: 12 }}>Loading posts...</Text>
-                            <ActivityIndicator size="large" color="#FB2355" />
                         </View>
                     ) : (filteredPosts.length > 0 || isSearchFocused) ? (
                         <View className="flex-row flex-wrap justify-between">

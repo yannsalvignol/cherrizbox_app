@@ -64,11 +64,11 @@ export const createUser = async (email: string, password: string, username: stri
         await SignIn(email, password);
 
         const newUser = await databases.createDocument(
-            config.databaseId,
-            config.userCollectionId,
+            config.databaseId!,
+            config.userCollectionId!,
             ID.unique(),
             {
-                accountid: newAccount.$id,
+                accountId: newAccount.$id,
                 email,
                 username,
                 avatar: avatarUrl
@@ -201,8 +201,8 @@ export async function getCurrentUser() {
 export const getUserProfile = async (userId: string) => {
     try {
         const profile = await databases.listDocuments(
-            config.databaseId,
-            config.profileCollectionId,
+            config.databaseId!,
+            config.profileCollectionId!,
             [Query.equal('userId', userId)]
         );
         
@@ -241,18 +241,46 @@ export const updateUserProfile = async (userId: string, data: ProfileData): Prom
 
         // Check if profile exists
         const existingProfile = await databases.listDocuments(
-            config.databaseId,
-            config.profileCollectionId,
+            config.databaseId!,
+            config.profileCollectionId!,
             [Query.equal('userId', userId)]
         );
 
         console.log("Existing profile:", existingProfile);
 
+        // If there's a profile image URL, also update the user's avatar in the user collection
+        if (data.profileImageUri) {
+            try {
+                // Find the user document in the user collection
+                const userDocuments = await databases.listDocuments(
+                    config.databaseId!,
+                    config.userCollectionId!,
+                    [Query.equal('accountId', currentUser.$id)]
+                );
+
+                if (userDocuments.documents.length > 0) {
+                    // Update the avatar field in the user collection
+                    await databases.updateDocument(
+                        config.databaseId!,
+                        config.userCollectionId!,
+                        userDocuments.documents[0].$id,
+                        {
+                            avatar: data.profileImageUri
+                        }
+                    );
+                    console.log("User avatar updated in user collection:", data.profileImageUri);
+                }
+            } catch (avatarError) {
+                console.error("Error updating user avatar:", avatarError);
+                // Don't throw error for avatar update, continue with profile update
+            }
+        }
+
         if (existingProfile.documents.length > 0) {
             // Update existing profile
             const updatedProfile = await databases.updateDocument(
-                config.databaseId,
-                config.profileCollectionId,
+                config.databaseId!,
+                config.profileCollectionId!,
                 existingProfile.documents[0].$id,
                 {
                     ...data,
@@ -267,8 +295,8 @@ export const updateUserProfile = async (userId: string, data: ProfileData): Prom
         } else {
             // Create new profile
             const newProfile = await databases.createDocument(
-                config.databaseId,
-                config.profileCollectionId,
+                config.databaseId!,
+                config.profileCollectionId!,
                 ID.unique(),
                 {
                     ...data,
@@ -295,7 +323,7 @@ export const deleteFileFromBucket = async (fileUrl: string): Promise<void> => {
         // Extract file ID from the URL
         const fileId = fileUrl.split('/files/')[1]?.split('/')[0];
         if (fileId) {
-            await storage.deleteFile(config.storageId, fileId);
+            await storage.deleteFile(config.storageId!, fileId);
         }
     } catch (error) {
         console.error("Error deleting file:", error);
@@ -320,13 +348,13 @@ export const uploadProfilePicture = async (file: FileData, previousImageUrl?: st
 
         // Upload file to Appwrite Storage
         const response = await storage.createFile(
-            config.storageId,
+            config.storageId!,
             ID.unique(),
             fileToUpload
         );
 
         // Get the file's view URL (not preview)
-        const imageUrl = storage.getFileView(config.storageId, response.$id).href;
+        const imageUrl = storage.getFileView(config.storageId!, response.$id).href;
         
         return { $id: response.$id, imageUrl };
     } catch (error: unknown) {
@@ -354,8 +382,8 @@ export const getProfilePictureUrl = (photoIdOrUri: string | null): string | null
 export const getSubscriptionCount = async (creatorName: string): Promise<number> => {
     try {
         const subscriptions = await databases.listDocuments(
-            config.databaseId,
-            config.activeSubscriptionsCollectionId,
+            config.databaseId!,
+            config.activeSubscriptionsCollectionId!,
             [Query.equal('creatorName', creatorName)]
         );
         
@@ -371,8 +399,8 @@ export const getSubscriptionCount = async (creatorName: string): Promise<number>
 export const isUserSubscribed = async (userId: string, creatorName: string): Promise<boolean> => {
     try {
         const subscriptions = await databases.listDocuments(
-            config.databaseId,
-            config.activeSubscriptionsCollectionId,
+            config.databaseId!,
+            config.activeSubscriptionsCollectionId!,
             [
                 Query.equal('userId', userId),
                 Query.equal('creatorName', creatorName)
@@ -396,8 +424,8 @@ export const isUserSubscribed = async (userId: string, creatorName: string): Pro
 export const getSubscriptionStatus = async (userId: string, creatorName: string): Promise<{ isSubscribed: boolean; isCancelled: boolean }> => {
     try {
         const subscriptions = await databases.listDocuments(
-            config.databaseId,
-            config.activeSubscriptionsCollectionId,
+            config.databaseId!,
+            config.activeSubscriptionsCollectionId!,
             [
                 Query.equal('userId', userId),
                 Query.equal('creatorName', creatorName)
@@ -430,8 +458,8 @@ export const getSubscriptionStatus = async (userId: string, creatorName: string)
 export const getUserSubscriptions = async (userId: string) => {
     try {
         const subscriptions = await databases.listDocuments(
-            config.databaseId,
-            config.activeSubscriptionsCollectionId,
+            config.databaseId!,
+            config.activeSubscriptionsCollectionId!,
             [Query.equal('userId', userId)]
         );
         
@@ -445,8 +473,8 @@ export const getUserSubscriptions = async (userId: string) => {
 export const deleteExpiredSubscriptions = async (userId: string) => {
     try {
         const subscriptions = await databases.listDocuments(
-            config.databaseId,
-            config.activeSubscriptionsCollectionId,
+            config.databaseId!,
+            config.activeSubscriptionsCollectionId!,
             [Query.equal('userId', userId)]
         );
         
@@ -489,8 +517,8 @@ export const deleteExpiredSubscriptions = async (userId: string) => {
             };
 
             return databases.createDocument(
-                config.databaseId,
-                config.cancelledSubscriptionsCollectionId,
+                config.databaseId!,
+                config.cancelledSubscriptionsCollectionId!,
                 ID.unique(),
                 subscriptionData,
                 [
@@ -506,8 +534,8 @@ export const deleteExpiredSubscriptions = async (userId: string) => {
         // Then create an array of delete promises
         const deletePromises = subscriptionsToDelete.map(sub => 
             databases.deleteDocument(
-                config.databaseId,
-                config.activeSubscriptionsCollectionId,
+                config.databaseId!,
+                config.activeSubscriptionsCollectionId!,
                 sub.$id
             )
         );
@@ -524,18 +552,32 @@ export const deleteExpiredSubscriptions = async (userId: string) => {
 
 export const getCreatorIdByName = async (creatorName: string): Promise<string | null> => {
     try {
-        const profiles = await databases.listDocuments(
-            config.databaseId,
-            config.profileCollectionId,
-            [Query.equal('creatorsname', creatorName)]
+        console.log('🔍 getCreatorIdByName called with:', creatorName);
+        
+        // Query the photos collection to find the creator's IdCreator
+        const photos = await databases.listDocuments(
+            config.databaseId!,
+            config.photoCollectionId!,
+            [Query.equal('title', creatorName)]
         );
         
-        if (profiles.documents.length > 0) {
-            return profiles.documents[0].userId;
+        console.log('📊 Found photos:', photos.documents.length);
+        console.log('📋 Photo details:', photos.documents.map(p => ({
+            idCreator: p.IdCreator,
+            title: p.title,
+            creatorsname: p.creatorsname
+        })));
+        
+        if (photos.documents.length > 0) {
+            const creatorId = photos.documents[0].IdCreator;
+            console.log('✅ Returning creator ID from photos collection (IdCreator):', creatorId);
+            return creatorId;
         }
+        
+        console.log('❌ No creator found with title in photos collection:', creatorName);
         return null;
     } catch (error) {
-        console.error("Error getting creator ID:", error);
+        console.error("❌ Error getting creator ID from photos collection:", error);
         return null;
     }
 };

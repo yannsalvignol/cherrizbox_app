@@ -14,14 +14,24 @@
       "backgroundColor": "#000000"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yannsalvignol.cherrizboxcreator",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#000000"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -44,7 +54,6 @@
         {
           "fonts": [
             "./assets/fonts/Questrial-Regular.ttf",
-            "./assets/fonts/Questrial-Bold.ttf",
             "./assets/fonts/Urbanist-Regular.ttf",
             "./assets/fonts/Urbanist-Bold.ttf",
             "./assets/fonts/Urbanist-Medium.ttf",
@@ -63,7 +72,7 @@
         }
       ],
       [
-      "expo-video",
+        "expo-video",
         {
           "supportsBackgroundPlayback": true,
           "supportsPictureInPicture": true
@@ -87,6 +96,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "290eb785-e4e1-44ad-b020-2d23fcf3a3e0"
+      }
     }
   }
 }

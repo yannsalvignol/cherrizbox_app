@@ -126,7 +126,12 @@ export default function Profile() {
         >
           <Image 
             source={require('../../../assets/images/cherry-icon.png')}
-            className="w-14 h-14"
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: 10, // Slightly rounded corners
+              backgroundColor: 'white',
+            }}
             resizeMode="contain"
           />
         </TouchableOpacity>
@@ -272,12 +277,12 @@ export default function Profile() {
                       </Text>
                       {isCancelled && !isExpired && (
                         <Text style={{ color: '#F44336', fontFamily: 'questrial', fontSize: 12 }}>
-                          Access until {formatDate(subscription.endsAt)}
+                          Access until {formatDate(subscription.endsAt || '')}
                         </Text>
                       )}
                       {isCancelled && isExpired && (
                         <Text style={{ color: '#F44336', fontFamily: 'questrial', fontSize: 12 }}>
-                          Expired on {formatDate(subscription.endsAt)}
+                          Expired on {formatDate(subscription.endsAt || '')}
                         </Text>
                       )}
                     </View>
@@ -328,7 +333,7 @@ export default function Profile() {
                     <View className="flex-row justify-between">
                       <Text style={{ color: '#888', fontFamily: 'questrial' }}>Renews:</Text>
                       <Text style={{ color: '#FB2355', fontFamily: 'questrial' }}>
-                        {formatDate(subscription.renewalDate)}
+                        {formatDate(subscription.renewalDate || '')}
                       </Text>
                     </View>
                   )}
@@ -336,7 +341,7 @@ export default function Profile() {
                     <View className="flex-row justify-between">
                       <Text style={{ color: '#888', fontFamily: 'questrial' }}>Access until:</Text>
                       <Text style={{ color: '#F44336', fontFamily: 'questrial' }}>
-                        {formatDate(subscription.endsAt)}
+                        {formatDate(subscription.endsAt || '')}
                       </Text>
                     </View>
                   )}
@@ -398,30 +403,26 @@ export default function Profile() {
               <View className="flex-row justify-between">
                 <TouchableOpacity
                   style={[
-                    { backgroundColor: '#F44336', padding: 12, borderRadius: 8, flex: 1, marginRight: 2 },
-                    { disabled: isProcessingUnsubscribe }
+                    { backgroundColor: '#F44336', padding: 12, borderRadius: 8, flex: 1, marginRight: 2 }
                   ]}
                   onPress={confirmUnsubscribe}
                   disabled={isProcessingUnsubscribe}
                 >
                   <Text style={[
-                    { color: 'white', fontFamily: 'questrial', fontSize: 16, fontWeight: 'bold', textAlign: 'center' },
-                    { disabled: isProcessingUnsubscribe }
+                    { color: 'white', fontFamily: 'questrial', fontSize: 16, fontWeight: 'bold', textAlign: 'center' }
                   ]}>
                     {isProcessingUnsubscribe ? 'Processing...' : 'Unsubscribe'}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[
-                    { backgroundColor: '#9E9E9E', padding: 12, borderRadius: 8, flex: 1, marginLeft: 2 },
-                    { disabled: isProcessingUnsubscribe }
+                    { backgroundColor: '#9E9E9E', padding: 12, borderRadius: 8, flex: 1, marginLeft: 2 }
                   ]}
                   onPress={closeModal}
                   disabled={isProcessingUnsubscribe}
                 >
                   <Text style={[
-                    { color: 'white', fontFamily: 'questrial', fontSize: 16, fontWeight: 'bold', textAlign: 'center' },
-                    { disabled: isProcessingUnsubscribe }
+                    { color: 'white', fontFamily: 'questrial', fontSize: 16, fontWeight: 'bold', textAlign: 'center' }
                   ]}>
                     Cancel
                   </Text>

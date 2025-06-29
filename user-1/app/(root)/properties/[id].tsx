@@ -1,9 +1,9 @@
 import { useGlobalContext } from '@/lib/global-provider';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Image, ImageBackground, Linking, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Image, ImageBackground, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { getSubscriptionCount, isUserSubscribed } from '../../../lib/appwrite';
-import { initiateSubscription } from '../../../lib/subscription';
+import StripePaymentModal from '../../components/StripePaymentModal';
 
 const Property = () => {
   const { id } = useLocalSearchParams();
@@ -17,6 +17,7 @@ const Property = () => {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const params = useLocalSearchParams();
   const imageParam = params.image as string | undefined;
   const titleParam = params.title as string | undefined;
@@ -133,16 +134,8 @@ const Property = () => {
       const interval = selectedPricing === 'monthly' ? 'month' : 'year';
       const creatorName = titleParam || post.title || 'this';
       
-      const checkoutUrl = await initiateSubscription(amount, interval, creatorName);
-      
-      if (checkoutUrl) {
-        const supported = await Linking.canOpenURL(checkoutUrl);
-        if (supported) {
-          await Linking.openURL(checkoutUrl);
-        } else {
-          Alert.alert('Error', 'Cannot open payment page');
-        }
-      }
+      // Show the payment modal instead of opening browser
+      setShowPaymentModal(true);
     } catch (error) {
       console.error('Subscription error:', error);
       Alert.alert(
@@ -154,11 +147,32 @@ const Property = () => {
     }
   };
 
+  const handlePaymentSuccess = () => {
+    setShowPaymentModal(false);
+    Alert.alert(
+      'Success!',
+      'Your subscription has been activated successfully.',
+      [
+        {
+          text: 'OK',
+          onPress: () => {
+            // Optionally refresh subscription status
+            setIsSubscribed(true);
+          }
+        }
+      ]
+    );
+  };
+
+  const handlePaymentClose = () => {
+    setShowPaymentModal(false);
+  };
+
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: 'black', justifyContent: 'center', alignItems: 'center' }}>
         <Image 
-          source={require('../../../assets/images/cherry-icon.png')} 
+          source={require('../../../assets/icon/loading-icon.png')} 
           style={{ width: 80, height: 80, marginBottom: 20 }} 
         />
         <Text style={{ color: '#FB2355', fontSize: 18, fontFamily: 'questrial' }}>Loading...</Text>
@@ -383,6 +397,16 @@ const Property = () => {
           </View>
         </ImageBackground>
       </Animated.View>
+
+      {/* Stripe Payment Modal */}
+      <StripePaymentModal
+        visible={showPaymentModal}
+        onClose={handlePaymentClose}
+        onSuccess={handlePaymentSuccess}
+        amount={selectedPricing === 'monthly' ? parseFloat(JSON.parse(post?.payment || '{}').monthlyPrice || '0') : parseFloat(JSON.parse(post?.payment || '{}').yearlyPrice || '0')}
+        interval={selectedPricing === 'monthly' ? 'month' : 'year'}
+        creatorName={titleParam || post?.title || 'this'}
+      />
     </View>
   );
 };

@@ -1,5 +1,5 @@
 import { useGlobalContext } from '@/lib/global-provider';
-import { createCreatorChannel, disconnectStreamChat, initializeStreamChat } from '@/lib/stream-chat';
+import { connectUser, createCreatorChannel, disconnectUser } from '@/lib/stream-chat';
 import React, { useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,11 +21,7 @@ export default function TestChat() {
       setError(null);
       
       // First connect the user
-      const client = await initializeStreamChat(
-        user.$id,
-        user.name,
-        user.avatar
-      );
+      const client = await connectUser(user.$id);
       
       // Then create their channel
       const channel = await createCreatorChannel(user.$id, user.name);
@@ -44,7 +40,7 @@ export default function TestChat() {
 
   const handleDisconnect = async () => {
     try {
-      await disconnectStreamChat();
+      await disconnectUser();
       setConnectionStatus('Disconnected');
       setChannelInfo('');
     } catch (err) {

@@ -8,6 +8,9 @@
     "scheme": "cherrybox",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "extra": {
+      "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_test_51RQyjPBMxMFyUXHbGzFEIYSTdMdY8rajTo0CRJ32cv0SfdnLmvu0ViWjUqC4WGakM35JvcucUHwyS6TImjSrBYDF00a6PPIT7B"
+    },
     "ios": {
       "supportsTablet": true,
       "associatedDomains": ["applinks:cherrybox.app"]

@@ -103,16 +103,17 @@ const PhotoCard = ({ photo, index = 0, scrollY, isSubscribed = false, isCancelle
         : 1;
 
     const handlePress = async () => {
-        if (isSubscribed && !isCancelled) {
+        if (isSubscribed || isCancelled) {
             // Get creator ID from name
             const creatorId = await getCreatorIdByName(photo.title || '');
             if (creatorId) {
-                // Redirect to chat channel
+                // Redirect directly to group chat by default
                 router.push({
                     pathname: '/chat',
                     params: {
                         channelId: `creator-${creatorId}`,
-                        creatorName: photo.title
+                        creatorName: photo.title,
+                        chatType: 'group'
                     }
                 });
             }
@@ -171,6 +172,7 @@ const PhotoCard = ({ photo, index = 0, scrollY, isSubscribed = false, isCancelle
                             />
                         ) : (
                             <View style={{ width: '100%', height: 290, backgroundColor: '#222', alignItems: 'center', justifyContent: 'center' }}>
+                                <Image source={require('../../assets/icon/loading-icon.png')} style={{ width: 48, height: 48, marginBottom: 8, opacity: 0.7 }} />
                                 <Text style={{ color: '#aaa', fontWeight: '500' }}>No Image</Text>
                             </View>
                         )}
@@ -185,7 +187,7 @@ const PhotoCard = ({ photo, index = 0, scrollY, isSubscribed = false, isCancelle
                             maxWidth: '80%',
                             overflow: 'hidden',
                         }}>
-                            {isSubscribed && !isCancelled ? (
+                            {isSubscribed ? (
                                 <View style={{
                                     position: 'absolute',
                                     top: 0,

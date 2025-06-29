@@ -85,21 +85,27 @@ export async function createCreatorChannel(creatorId: string, creatorName: strin
     // Create a unique channel ID for this creator
     const channelId = `creator-${creatorId}`;
     
-    // Create the channel with proper permissions
+    // Create the channel for the creator's group chat
     const channel = client.channel('messaging', channelId, {
       members: [creatorId],
-      created_by_id: creatorId,
-      // own_capabilities, read, write, public, join are not valid channel properties for Stream Chat JS SDK
+      created_by_id: creatorId
     });
 
     await channel.create();
+    
+    // Create an initial welcome message that will serve as the main thread
+    const welcomeMessage = await channel.sendMessage({
+      text: `Welcome to ${creatorName}'s group chat! This is where the conversation begins.`,
+      user_id: creatorId,
+      show_in_channel: true
+    });
+
+    console.log('Creator channel created with thread support:', channelId);
     return channel;
   } catch (error) {
     console.error('Error creating creator channel:', error);
     throw error;
   }
 }
-
-export { client };
 
  

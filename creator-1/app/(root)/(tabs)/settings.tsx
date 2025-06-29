@@ -101,7 +101,6 @@ export default function Settings() {
             {renderSettingItem('Change Password', handleChangePassword)}
             {renderSettingItem('Add a payment method', () => router.push('/payment-methods' as any))}
             {renderSettingItem('Push Notifications', null, true)}
-            {renderSettingItem('Delete my group Chat', () => router.push('/confirm-delete-chat' as any), false, true)}
             {renderSettingItem('Logout', handleLogout, false, true)}
           </View>
         </View>

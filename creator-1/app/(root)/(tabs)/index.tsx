@@ -1,187 +1,513 @@
-import { deleteExpiredSubscriptions, getAllPosts, getSubscriptionStatus, getUserProfile } from '@/lib/appwrite';
+import { getUserByAccountId, getUserProfile } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
-import { LinearGradient } from 'expo-linear-gradient';
+import { client, connectUser } from '@/lib/stream-chat';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Dimensions, Image, Keyboard, RefreshControl, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Dimensions, FlatList, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { LineChart } from 'react-native-chart-kit';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import PhotoCard from '../../components/PhotoCard';
-import SearchInput from '../../components/SearchInput';
-import Trending from '../../components/Trending';
 
-const { width } = Dimensions.get('window');
-const cardWidth = (width - 24) / 2; // Reduced padding from 32 to 24 for wider cards
+interface Channel {
+  id: string;
+  type: string;
+  lastMessage?: string;
+  lastMessageAt?: string;
+  memberCount: number;
+  members: string[];
+  name?: string;
+  image?: string;
+  memberNames?: { [userId: string]: string };
+  memberAvatars?: { [userId: string]: string };
+}
 
-interface Post {
+interface Subscription {
     $id: string;
-    type: 'photo' | 'video';
-    title?: string;
-    thumbnail?: string;
-    imageUrl?: string;
-    fileUrl?: string;
-    $createdAt: string;
-    $updatedAt: string;
-    $collectionId: string;
-    $databaseId: string;
-    $permissions: string[];
-    PhotoTopics?: string;
-    isSubscribed?: boolean;
-    isCancelled?: boolean;
-    creatorId?: string;
+  userId: string;
+  stripeCustomerId: string;
+  stripeSubscriptionId: string;
+  status: 'active' | 'cancelled';
+  billingCycleAnchor: string;
+  createdAt: string;
+  creatorAccountId: string;
+  endsAt: string | null;
+  planCurrency: string;
+  planInterval: 'month' | 'year';
+  renewalDate: string;
+  cancelledAt: string | null;
+  planAmount: number;
+}
+
+interface EarningsData {
+  totalEarnings: number;
+  perceivedEarnings: number;
+  monthlyData: { month: string; earnings: number }[];
+  activeSubscriptions: number;
+  cancelledSubscriptions: number;
 }
 
 export default function Index() {
     const router = useRouter();
     const { user } = useGlobalContext();
-    const [refreshing, setRefreshing] = useState(false);
-    const [posts, setPosts] = useState<Post[]>([]);
-    const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
+  const [channels, setChannels] = useState<Channel[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [isSearchFocused, setIsSearchFocused] = useState(false);
     const [profileImage, setProfileImage] = useState<string | null>(null);
-    const [selectedTrends, setSelectedTrends] = useState<string[]>([]);
-    const [searchQuery, setSearchQuery] = useState('');
-    const scrollY = useRef(new Animated.Value(0)).current;
-    const [scrolling, setScrolling] = useState(false);
+    const [selectedTab, setSelectedTab] = useState('chats');
+    const [earningsData, setEarningsData] = useState<EarningsData>({
+      totalEarnings: 0,
+      perceivedEarnings: 0,
+      monthlyData: [],
+      activeSubscriptions: 0,
+      cancelledSubscriptions: 0
+    });
+    const [isLoadingEarnings, setIsLoadingEarnings] = useState(false);
 
-    const loadPosts = async () => {
-        try {
-            const allPosts = await getAllPosts();
-            // Ensure type is either 'photo' or 'video'
-            const typedPosts = allPosts.map(post => ({
-                ...post,
-                type: post.type === 'photo' ? 'photo' : 'video'
-            })) as Post[];
+    const tabs = [
+      { id: 'chats', label: 'Chats' },
+      { id: 'earnings', label: 'Earnings' },
+      { id: 'insights', label: 'Insights' },
+      { id: 'audience', label: 'Audience' },
+      { id: 'other', label: 'Other' }
+    ];
 
-            // Check subscription status for each post
-            if (user?.$id) {
-                const postsWithSubscription = await Promise.all(
-                    typedPosts.map(async (post) => {
-                        const { isSubscribed, isCancelled } = await getSubscriptionStatus(user.$id, post.title || '');
-                        return { ...post, isSubscribed, isCancelled };
-                    })
-                );
-                // Sort posts: active subscriptions first, then cancelled ones, then by creation date
-                const sortedPosts = postsWithSubscription.sort((a, b) => {
-                    // Active subscriptions first
-                    if (a.isSubscribed && !a.isCancelled && (!b.isSubscribed || b.isCancelled)) return -1;
-                    if ((!a.isSubscribed || a.isCancelled) && b.isSubscribed && !b.isCancelled) return 1;
-                    
-                    // Then cancelled subscriptions
-                    if (a.isCancelled && !b.isCancelled) return -1;
-                    if (!a.isCancelled && b.isCancelled) return 1;
-                    
-                    // If subscription status is the same, sort by creation date
-                    return new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime();
-                });
-                setPosts(sortedPosts);
-                setFilteredPosts(sortedPosts);
+  const loadChannels = async () => {
+    if (!user?.$id) return;
+
+    try {
+      setIsLoading(true);
+      
+      // Connect user to Stream Chat
+      await connectUser(user.$id);
+      
+      // Query channels where the current user is a member
+      const filter = { members: { $in: [user.$id] } };
+      const sort = [{ last_message_at: -1 }];
+      
+      const response = await client.queryChannels(filter, sort, {
+        limit: 50,
+        offset: 0,
+      });
+
+      // Transform channels to our format
+      const transformedChannels = response.map(channel => ({
+        id: channel.id || '',
+        type: channel.type,
+        lastMessage: (channel.state as any).last_message?.text || '',
+        lastMessageAt: channel.state.last_message_at?.toISOString() || '',
+        memberCount: Object.keys(channel.state.members || {}).length,
+        members: Object.keys(channel.state.members || {}),
+        name: (channel.data as any)?.name || '',
+        image: (channel.data as any)?.image || '',
+        memberNames: (channel.data as any)?.memberNames || {},
+        memberAvatars: (channel.data as any)?.memberAvatars || {},
+      }));
+
+      // Fetch user names for DM channels
+      const channelsWithNames = await Promise.all(
+        transformedChannels.map(async (channel) => {
+          if (channel.id.startsWith('dm-')) {
+            const memberNames: { [userId: string]: string } = {};
+            const memberAvatars: { [userId: string]: string } = {};
+            
+            // For DM channels, we want to get the OTHER person's name, not the current user
+            const otherMembers = channel.members.filter(memberId => memberId !== user?.$id);
+            
+            // Fetch names for the other members in the DM (not the current user)
+            for (const memberId of otherMembers) {
+              try {
+                const userData = await getUserByAccountId(memberId);
+                if (userData) {
+                  memberNames[memberId] = userData.username || memberId;
+                  memberAvatars[memberId] = userData.avatar || '';
+                  console.log(`✅ Found user data for ${memberId}: ${userData.username} with avatar: ${userData.avatar}`);
             } else {
-            setPosts(typedPosts);
-            setFilteredPosts(typedPosts);
+                  memberNames[memberId] = memberId; // Fallback to ID if user not found
+                  memberAvatars[memberId] = ''; // No avatar
+                  console.log(`❌ No user data found for ${memberId}`);
+                }
+              } catch (error) {
+                console.error('Error fetching user name for:', memberId, error);
+                memberNames[memberId] = memberId; // Fallback to ID
+                memberAvatars[memberId] = ''; // No avatar
+              }
             }
+            
+            return { ...channel, memberNames, memberAvatars };
+          }
+          return channel;
+        })
+      );
+
+      // Sort channels: group chat first, then by last message time
+      const sortedChannels = channelsWithNames.sort((a, b) => {
+        // Group chat (creator channel) first
+        if (a.id.startsWith('creator-') && !b.id.startsWith('creator-')) return -1;
+        if (!a.id.startsWith('creator-') && b.id.startsWith('creator-')) return 1;
+        
+        // Then by last message time (newest first)
+        if (a.lastMessageAt && b.lastMessageAt) {
+          return new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime();
+        }
+        
+        return 0;
+      });
+
+      // Deduplicate DM channels that have the same members
+      const uniqueChannels = sortedChannels.filter((channel, index, array) => {
+        if (!channel.id.startsWith('dm-')) return true; // Keep non-DM channels
+        
+        // For DM channels, check if we already have a channel with the same members
+        const currentMembers = channel.members.sort();
+        const hasDuplicate = array.slice(0, index).some(prevChannel => {
+          if (!prevChannel.id.startsWith('dm-')) return false;
+          const prevMembers = prevChannel.members.sort();
+          return JSON.stringify(currentMembers) === JSON.stringify(prevMembers);
+        });
+        
+        return !hasDuplicate;
+      });
+
+      // Separate group chats and DMs
+      const groupChats = uniqueChannels.filter(channel => channel.id.startsWith('creator-'));
+      const dmChannels = uniqueChannels.filter(channel => channel.id.startsWith('dm-'));
+
+      setChannels(uniqueChannels);
+      console.log(`📋 Loaded ${uniqueChannels.length} unique channels`);
+      console.log(`👥 Group chats: ${groupChats.length}`);
+      console.log(`💬 DM channels: ${dmChannels.length}`);
+      uniqueChannels.forEach(channel => {
+        console.log(`📝 Channel: ${channel.id} (${channel.memberCount} members)`);
+      });
         } catch (error) {
-            console.error('Error loading posts:', error);
+      console.error('Error loading channels:', error);
         } finally {
             setIsLoading(false);
         }
     };
-    const handleTrendsChange = (trends: string[]) => {
-        setSelectedTrends(trends);
-        filterPosts(searchQuery, trends);
-    };
 
-    const handleSearch = (query: string) => {
-        setSearchQuery(query);
-        if (query.trim()) {
-            filterPosts(query, selectedTrends);
+  const loadProfileImage = async () => {
+    if (!user?.$id) return;
+
+    try {
+      const profile = await getUserProfile(user.$id);
+      if (profile && profile.profileImageUri) {
+        setProfileImage(profile.profileImageUri);
+        console.log('✅ Loaded profile image:', profile.profileImageUri);
         } else {
-            setFilteredPosts(posts); // Reset to show all posts when search is empty
+        console.log('❌ No profile image found');
+      }
+    } catch (error) {
+      console.error('Error loading profile image:', error);
+    }
+  };
+
+  const loadEarningsData = async () => {
+    if (!user?.$id) return;
+
+    try {
+      setIsLoadingEarnings(true);
+      
+      // Import the databases and config from appwrite
+      const { databases, config } = await import('@/lib/appwrite');
+      const { Query } = await import('react-native-appwrite');
+      
+      // Fetch active subscriptions for this creator
+      const activeSubscriptions = await databases.listDocuments(
+        config.databaseId,
+        config.activeSubscriptionsCollectionId,
+        [Query.equal('creatorAccountId', user.$id)]
+      );
+
+      const subscriptions: Subscription[] = activeSubscriptions.documents.map(doc => ({
+        $id: doc.$id,
+        userId: doc.userId,
+        stripeCustomerId: doc.stripeCustomerId,
+        stripeSubscriptionId: doc.stripeSubscriptionId,
+        status: doc.status,
+        billingCycleAnchor: doc.billingCycleAnchor,
+        createdAt: doc.createdAt,
+        creatorAccountId: doc.creatorAccountId,
+        endsAt: doc.endsAt,
+        planCurrency: doc.planCurrency,
+        planInterval: doc.planInterval,
+        renewalDate: doc.renewalDate,
+        cancelledAt: doc.cancelledAt,
+        planAmount: doc.planAmount
+      }));
+
+      // Calculate earnings
+      let totalEarnings = 0;
+      let activeCount = 0;
+      let cancelledCount = 0;
+      const monthlyEarnings: { [key: string]: number } = {};
+
+      subscriptions.forEach(sub => {
+        if (sub.status === 'active') {
+          totalEarnings += sub.planAmount;
+          activeCount++;
+        } else if (sub.status === 'cancelled' && sub.endsAt) {
+          // For cancelled subscriptions, only count earnings until endsAt
+          const endsAt = new Date(sub.endsAt);
+          const now = new Date();
+          if (endsAt > now) {
+            totalEarnings += sub.planAmount;
+          }
+          cancelledCount++;
         }
-    };
 
-    const filterPosts = (query: string, trends: string[]) => {
-        let filtered = [...posts];
+        // Group by month for chart data
+        const date = new Date(sub.createdAt);
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        monthlyEarnings[monthKey] = (monthlyEarnings[monthKey] || 0) + sub.planAmount;
+      });
 
-        // Apply search filter
-        if (query.trim()) {
-            filtered = filtered.filter(post => 
-                post.title?.toLowerCase().includes(query.toLowerCase())
-            );
-        }
+      // Convert monthly data to array format for chart
+      const monthlyData = Object.entries(monthlyEarnings)
+        .map(([month, earnings]) => ({
+          month,
+          earnings
+        }))
+        .sort((a, b) => a.month.localeCompare(b.month));
 
-        // Apply trends filter
-        if (trends.length > 0) {
-            filtered = filtered.filter(post => {
-                const postTopics = post.PhotoTopics?.split(',').map(t => t.trim()) || [];
-                return trends.some(trend => postTopics.includes(trend));
-            });
-        }
+      // Calculate perceived earnings (after 20% platform commission and 10% Stripe fee)
+      const platformCommission = 0.20; // 20%
+      const stripeFee = 0.10; // 10%
+      const totalFees = platformCommission + stripeFee;
+      const perceivedEarnings = totalEarnings * (1 - totalFees);
 
-        setFilteredPosts(filtered);
-    };
+      setEarningsData({
+        totalEarnings,
+        perceivedEarnings,
+        monthlyData,
+        activeSubscriptions: activeCount,
+        cancelledSubscriptions: cancelledCount
+      });
 
-    const onRefresh = async () => {
-        setRefreshing(true);
-        try {
-            // First check and delete expired subscriptions if user is logged in
-            if (user?.$id) {
-                await deleteExpiredSubscriptions(user.$id);
-            }
-            // Then load posts
-            await loadPosts();
+      console.log('✅ Loaded earnings data:', {
+        totalEarnings,
+        perceivedEarnings,
+        activeSubscriptions: activeCount,
+        cancelledSubscriptions: cancelledCount
+      });
+
         } catch (error) {  
-            console.error('Error refreshing data:', error);
+      console.error('Error loading earnings data:', error);
         } finally {
-            setRefreshing(false);
-        }
-    };
+      setIsLoadingEarnings(false);
+    }
+  };
 
-    useEffect(() => {
-        loadPosts();
-    }, []);
-
-    useEffect(() => {
-        const loadProfileData = async () => {
-            try {
-                if (user?.$id) {
-                    const profile = await getUserProfile(user.$id);
-                    if (profile?.profileImageUri) {
-                        setProfileImage(profile.profileImageUri);
-                    }
-                }
-            } catch (error) {
-                console.error('Error loading profile data:', error);
-            }
-        };
-
-        loadProfileData();
-    }, [user]);
-
-    // Add keyboard listener to dismiss trending when keyboard is dismissed
-    useEffect(() => {
-        const keyboardDidHideListener = Keyboard.addListener(
-            'keyboardDidHide',
-            () => {
-                // Only dismiss trending if the search input is not focused
-                if (!isSearchFocused) {
-                    setIsSearchFocused(false);
-                }
-            }
-        );
-
-        return () => {
-            keyboardDidHideListener.remove();
-        };
-    }, [isSearchFocused]);
+  const getChannelDisplayName = (channel: Channel) => {
+    if (channel.name) return channel.name;
     
-    const handleSearchFocus = (focused: boolean) => {
-        setIsSearchFocused(focused);
-        if (!focused) {
-            setSearchQuery('');
-            setFilteredPosts(posts); // Reset to show all posts when search is unfocused
+    // For DM channels, show the other person's name
+    if (channel.id.startsWith('dm-') && channel.members.length > 0) {
+      const otherMembers = channel.members.filter(memberId => memberId !== user?.$id);
+      if (otherMembers.length > 0) {
+        const otherMemberId = otherMembers[0];
+        const otherMemberName = channel.memberNames?.[otherMemberId];
+        const displayName = otherMemberName ? `Chat with ${otherMemberName}` : `Chat with ${otherMemberId}`;
+        console.log(`📱 Channel ${channel.id}: ${displayName}`);
+        return displayName;
+      }
+    }
+    
+    // For creator channels
+    if (channel.id.startsWith('creator-')) {
+      return 'My Box';
+    }
+    
+    return 'Unnamed Channel';
+  };
+
+  const getChannelAvatar = (channel: Channel) => {
+    if (channel.image) return channel.image;
+    
+    // For DM channels, show the other person's avatar
+    if (channel.id.startsWith('dm-') && channel.members.length > 0) {
+      const otherMembers = channel.members.filter(memberId => memberId !== user?.$id);
+      if (otherMembers.length > 0) {
+        const otherMemberId = otherMembers[0];
+        const otherMemberAvatar = channel.memberAvatars?.[otherMemberId];
+        if (otherMemberAvatar) {
+          return otherMemberAvatar; // Return the avatar URL
         }
-    };
+        // Fallback to first letter of username or ID
+        const otherMemberName = channel.memberNames?.[otherMemberId];
+        return otherMemberName ? otherMemberName[0]?.toUpperCase() : otherMemberId[0]?.toUpperCase() || 'U';
+      }
+    }
+    
+    // For creator channels, show user's profile image or first letter
+    if (channel.id.startsWith('creator-')) {
+      return profileImage || user?.name?.[0]?.toUpperCase() || 'U';
+    }
+    
+    return 'C';
+  };
+
+  const formatLastMessageTime = (timestamp?: string) => {
+    if (!timestamp) return '';
+    
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+    
+    if (diffInHours < 1) return 'Just now';
+    if (diffInHours < 24) return `${Math.floor(diffInHours)}h ago`;
+    if (diffInHours < 48) return 'Yesterday';
+    return date.toLocaleDateString();
+  };
+
+  const renderChannelItem = ({ item }: { item: Channel }) => {
+    const displayName = getChannelDisplayName(item);
+    const avatar = getChannelAvatar(item);
+    const isDM = item.id.startsWith('dm-');
+    const isGroupChat = item.id.startsWith('creator-');
+    
+    return (
+      <TouchableOpacity 
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          padding: isGroupChat ? 16 : 12,
+          backgroundColor: isGroupChat ? '#2A1A2A' : '#1A1A1A',
+          marginHorizontal: 16,
+          marginVertical: isGroupChat ? 4 : 2,
+          borderRadius: isGroupChat ? 16 : 8,
+          borderWidth: isGroupChat ? 2 : 1,
+          borderColor: isGroupChat ? '#FB2355' : '#333333',
+          shadowColor: isGroupChat ? '#FB2355' : 'transparent',
+          shadowOffset: isGroupChat ? { width: 0, height: 2 } : { width: 0, height: 0 },
+          shadowOpacity: isGroupChat ? 0.3 : 0,
+          shadowRadius: isGroupChat ? 8 : 0,
+          elevation: isGroupChat ? 8 : 0,
+        }}
+        onPress={() => {
+          router.push(`/chat/${item.id}` as any);
+        }}
+      >
+        {/* Avatar */}
+        <View style={{
+          width: isGroupChat ? 48 : 40,
+          height: isGroupChat ? 48 : 40,
+          borderRadius: isGroupChat ? 24 : 20,
+          backgroundColor: isGroupChat ? '#FB2355' : '#FB2355',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginRight: isGroupChat ? 14 : 10,
+          borderWidth: isGroupChat ? 2 : 0,
+          borderColor: isGroupChat ? '#FFD700' : 'transparent',
+        }}>
+          {item.image || (avatar && avatar.startsWith('http')) ? (
+            <Image
+              source={{ uri: item.image || avatar }}
+              style={{ 
+                width: isGroupChat ? 48 : 40, 
+                height: isGroupChat ? 48 : 40, 
+                borderRadius: isGroupChat ? 24 : 20 
+              }}
+              resizeMode="cover"
+            />
+          ) : (
+            <Text style={{ 
+              color: 'white', 
+              fontSize: isGroupChat ? 18 : 16, 
+              fontWeight: 'bold',
+              fontFamily: 'Urbanist-Bold'
+            }}>
+              {avatar}
+            </Text>
+          )}
+        </View>
+
+        {/* Channel Info */}
+        <View style={{ flex: 1 }}>
+          <View style={{ 
+            flexDirection: 'row', 
+            alignItems: 'center', 
+            marginBottom: isGroupChat ? 4 : 2 
+          }}>
+            <Text style={{ 
+              color: 'white', 
+              fontSize: isGroupChat ? 18 : 16, 
+              fontWeight: 'bold',
+              fontFamily: 'Urbanist-Bold',
+              marginRight: isGroupChat ? 8 : 0,
+            }}>
+              {displayName}
+            </Text>
+          </View>
+          
+          <Text style={{ 
+            color: isGroupChat ? '#CCCCCC' : '#888888', 
+            fontSize: isGroupChat ? 14 : 13,
+            fontFamily: 'Urbanist-Regular',
+          }}>
+            {item.lastMessage || 'No messages yet'}
+          </Text>
+          
+          <View style={{ 
+            flexDirection: 'row', 
+            alignItems: 'center', 
+            marginTop: isGroupChat ? 4 : 2 
+          }}>
+            {!isDM && (
+              <Text style={{ 
+                color: isGroupChat ? '#FFD700' : '#666666', 
+                fontSize: isGroupChat ? 12 : 11,
+                fontFamily: 'Urbanist-Regular',
+                fontWeight: isGroupChat ? 'bold' : 'normal',
+              }}>
+                {item.memberCount} member{item.memberCount !== 1 ? 's' : ''}
+              </Text>
+            )}
+            
+            {item.lastMessageAt && (
+              <Text style={{ 
+                color: isGroupChat ? '#FFD700' : '#666666', 
+                fontSize: isGroupChat ? 12 : 11,
+                fontFamily: 'Urbanist-Regular',
+                marginLeft: isDM ? 0 : 8,
+                fontWeight: isGroupChat ? 'bold' : 'normal',
+              }}>
+                {formatLastMessageTime(item.lastMessageAt)}
+              </Text>
+            )}
+            
+            {isGroupChat && (
+              <View style={{
+                width: 8,
+                height: 8,
+                backgroundColor: '#FFD700',
+                borderRadius: 4,
+                marginLeft: 8,
+              }} />
+            )}
+          </View>
+        </View>
+
+        {/* Arrow */}
+        <View style={{
+          width: isGroupChat ? 24 : 20,
+          height: isGroupChat ? 24 : 20,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <Text style={{ 
+            color: isGroupChat ? '#FFD700' : '#666666', 
+            fontSize: isGroupChat ? 16 : 14 
+          }}>›</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  useEffect(() => {
+    loadChannels();
+    loadProfileImage();
+    loadEarningsData();
+  }, [user]);
+
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }} edges={['top']}>
             {/* Header */}
@@ -224,7 +550,7 @@ export default function Index() {
                     </View>
                 </View>
                 
-                <TouchableOpacity onPress={() => router.push('/profile')}>
+        <TouchableOpacity onPress={() => router.push('/edit-profile')}>
                     <View className="w-14 h-14 rounded-full bg-[#1A1A1A] items-center justify-center overflow-hidden">
                         {profileImage ? (
                             <Image
@@ -241,158 +567,141 @@ export default function Index() {
                 </TouchableOpacity>
             </View>
 
-            {/* Search input */}
-            <View className='px-4 mt-4 mb-4'>
-                <SearchInput onSearch={handleSearch} onFocus={handleSearchFocus} />
-            </View>
-
-            {/* Trending section - only visible when search is focused */}
-            {isSearchFocused && <Trending onTrendsChange={handleTrendsChange} />}
-
-            {/* Content */}
-            <Animated.ScrollView 
-                className="flex-1"
-                contentContainerStyle={{ paddingBottom: 100 }}
-                refreshControl={
-                    <RefreshControl
-                        refreshing={refreshing}
-                        onRefresh={onRefresh}
-                        tintColor="#FB2355"
-                        colors={["#FB2355"]}
-                    />
-                }
-                scrollEventThrottle={16}
-                onScroll={Animated.event(
-                    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-                    { useNativeDriver: true }
-                )}
-                onScrollBeginDrag={() => setScrolling(true)}
-                onScrollEndDrag={() => setScrolling(false)}
-                onMomentumScrollEnd={() => setScrolling(false)}
+      {/* Toggle Picker */}
+      <View style={{
+        backgroundColor: 'black',
+        paddingVertical: 8,
+      }}>
+        <FlatList
+          data={tabs}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingHorizontal: 16,
+            gap: 12,
+          }}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={{
+                paddingVertical: 10,
+                paddingHorizontal: 20,
+                borderRadius: 25,
+                backgroundColor: selectedTab === item.id ? 'white' : '#1A1A1A',
+                borderWidth: 1,
+                borderColor: selectedTab === item.id ? 'white' : '#333333',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: 80,
+              }}
+              onPress={() => setSelectedTab(item.id)}
             >
-                {/* Posts section */}
-                <View className="px-2 -mt-5">
-                    <Text className="text-white font-['Urbanist-Bold'] text-lg mb-1">
-                        {isSearchFocused ? 'Search Results' : 'For You'}
+              <Text style={{
+                color: selectedTab === item.id ? 'black' : '#888888',
+                fontSize: 14,
+                fontWeight: selectedTab === item.id ? 'bold' : 'normal',
+                fontFamily: selectedTab === item.id ? 'Urbanist-Bold' : 'Urbanist-Regular',
+              }}>
+                {item.label}
                     </Text>
+            </TouchableOpacity>
+          )}
+          keyExtractor={(item) => item.id}
+        />
+      </View>
                     
+      {/* Content based on selected tab */}
+      {selectedTab === 'chats' && (
+        <View style={{ flex: 1, backgroundColor: 'black' }}>
                     {isLoading ? (
-                        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 60 }}>
-                            <Image source={require('../../../assets/images/cherry-icon.png')} style={{ width: 60, height: 60, marginBottom: 16 }} />
-                            <Text style={{ color: '#FB2355', fontSize: 18, marginBottom: 12 }}>Loading posts...</Text>
+            <View style={{ 
+              flex: 1, 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              backgroundColor: 'black'
+            }}>
+              <Image 
+                source={require('../../../assets/images/cherry-icon.png')} 
+                style={{ width: 60, height: 60, marginBottom: 16 }} 
+              />
+              <Text style={{ 
+                color: '#FB2355', 
+                fontSize: 18, 
+                marginBottom: 12,
+                fontFamily: 'Urbanist-Bold'
+              }}>
+                Loading channels...
+              </Text>
                             <ActivityIndicator size="large" color="#FB2355" />
                         </View>
-                    ) : (filteredPosts.length > 0 || isSearchFocused) ? (
-                        <View className="flex-row flex-wrap justify-between">
-                            {filteredPosts.map((post, index) => (
-                                post.type === "photo" ? (
-                                    <View key={post.$id} style={{ marginBottom: 16, width: cardWidth }}>
-                                        {post.isSubscribed && !post.isCancelled ? (
+          ) : channels.length > 0 ? (
+            <FlatList
+              data={channels}
+              renderItem={({ item, index }) => {
+                const isGroupChat = item.id.startsWith('creator-');
+                const isFirstDM = !isGroupChat && index > 0 && channels[index - 1].id.startsWith('creator-');
+                
+                return (
+                  <View>
+                    {/* Section header for first DM */}
+                    {isFirstDM && (
                                             <View style={{
-                                                padding: 2,
-                                                borderRadius: 20,
-                                                backgroundColor: 'rgba(255,255,255,0.1)',
-                                                width: '100%',
-                                            }}>
-                                                <LinearGradient
-                                                    colors={['#FB2355', '#FFD700', '#FB2355']}
-                                                    start={{ x: 0, y: 0 }}
-                                                    end={{ x: 1, y: 1 }}
-                                                    style={{
-                                                        padding: 1,
-                                                        borderRadius: 19,
-                                                        width: '100%',
-                                                    }}
-                                                >
-                                                    <View style={{
-                                                        backgroundColor: 'black',
-                                                        borderRadius: 18,
-                                                        overflow: 'hidden',
-                                                        width: '100%',
-                                                    }}>
-                                                        <PhotoCard 
-                                                            photo={post} 
-                                                            index={index} 
-                                                            scrollY={scrollY} 
-                                                            scrolling={scrolling}
-                                                            isSubscribed={post.isSubscribed} 
-                                                            isCancelled={post.isCancelled}
-                                                            user={user}
-                                                        />
+                        paddingHorizontal: 20,
+                        paddingVertical: 12,
+                        backgroundColor: 'black',
+                      }}>
+                        <Text style={{
+                          color: '#888888',
+                          fontSize: 14,
+                          fontWeight: 'bold',
+                          fontFamily: 'Urbanist-Bold',
+                          textTransform: 'uppercase',
+                          letterSpacing: 1,
+                        }}>
+                          One-on-One Chats
+                        </Text>
                                                     </View>
-                                                </LinearGradient>
-                                            </View>
-                                        ) : post.creatorId === user?.$id ? (
+                    )}
+                    
+                    {/* Group chat section header */}
+                    {isGroupChat && index === 0 && (
                                             <View style={{
-                                                padding: 2,
-                                                borderRadius: 20,
-                                                backgroundColor: 'rgba(255,255,255,0.1)',
-                                                width: '100%',
-                                            }}>
-                                                <LinearGradient
-                                                    colors={['#FB2355', '#FF69B4', '#FB2355']}
-                                                    start={{ x: 0, y: 0 }}
-                                                    end={{ x: 1, y: 1 }}
-                                                    style={{
-                                                        padding: 1,
-                                                        borderRadius: 19,
-                                                        width: '100%',
-                                                    }}
-                                                >
-                                                    <View style={{
-                                                        backgroundColor: 'black',
-                                                        borderRadius: 18,
-                                                        overflow: 'hidden',
-                                                        width: '100%',
-                                                    }}>
-                                                        <PhotoCard 
-                                                            photo={post} 
-                                                            index={index} 
-                                                            scrollY={scrollY} 
-                                                            scrolling={scrolling}
-                                                            isSubscribed={post.isSubscribed} 
-                                                            isCancelled={post.isCancelled}
-                                                            user={user}
-                                                        />
-                                                    </View>
-                                                </LinearGradient>
-                                            </View>
-                                        ) : (
-                                            <PhotoCard 
-                                                photo={post} 
-                                                index={index} 
-                                                scrollY={scrollY} 
-                                                scrolling={scrolling}
-                                                isSubscribed={post.isSubscribed} 
-                                                isCancelled={post.isCancelled}
-                                                user={user}
-                                            />
-                                        )}
-                                    </View>
-                                ) : (
-                                    <TouchableOpacity 
-                                        key={post.$id} 
-                                        className="bg-[#1A1A1A] rounded-lg mb-3 p-4 w-full"
-                                        onPress={() => router.push(`/properties/${post.$id}`)}
-                                    >
-                                        <View className="flex-row items-center mb-2">
-                                            <Text className="font-['Urbanist-Bold'] text-white text-lg">
-                                                {post.title || 'Untitled'}
-                                            </Text>
-                                            {post.type && (
-                                                <View className="ml-2 px-2 py-1 bg-[#FB2355] rounded-full">
-                                                    <Text className="text-white text-xs font-['Urbanist-Bold']">
-                                                        {post.type}
+                        paddingHorizontal: 20,
+                        paddingVertical: 12,
+                        backgroundColor: 'black',
+                      }}>
+                        <Text style={{
+                          color: '#FFD700',
+                          fontSize: 14,
+                          fontWeight: 'bold',
+                          fontFamily: 'Urbanist-Bold',
+                          textTransform: 'uppercase',
+                          letterSpacing: 1,
+                        }}>
+                          My Box
                                                     </Text>
                                                 </View>
                                             )}
+                    
+                    {renderChannelItem({ item })}
                                         </View>
-                                    </TouchableOpacity>
-                                )
-                            ))}
-                        </View>
-                    ) : (
-                        <View className="items-center justify-center py-20">
+                );
+              }}
+              keyExtractor={(item) => item.id}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ 
+                paddingVertical: 16,
+                backgroundColor: 'black'
+              }}
+              style={{ backgroundColor: 'black' }}
+            />
+          ) : (
+            <View style={{ 
+              flex: 1, 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              backgroundColor: 'black',
+              paddingHorizontal: 32
+            }}>
                             <Image 
                                 source={require('../../../assets/images/cherry-icon.png')} 
                                 style={{ width: 80, height: 80, marginBottom: 16 }} 
@@ -404,24 +713,342 @@ export default function Index() {
                                 marginBottom: 16,
                                 textAlign: 'center'
                             }}>
-                                No posts found 😢
+                No channels yet 😢
                             </Text>
                             <Text style={{ 
                                 color: 'white', 
                                 fontSize: 18, 
                                 textAlign: 'center',
-                                paddingHorizontal: 32
-                            }}>
-                                {selectedTrends.length > 0 
-                                    ? `We couldn't find any posts matching "${selectedTrends.join(', ')}"`
-                                    : searchQuery 
-                                        ? `No results for "${searchQuery}"`
-                                        : 'No posts available at the moment'}
+                fontFamily: 'Urbanist-Regular'
+              }}>
+                Start a conversation or create your group chat to get started!
                             </Text>
                         </View>
                     )}
+        </View>
+      )}
+
+      {/* Other tab content placeholders */}
+      {selectedTab === 'earnings' && (
+        <ScrollView style={{ flex: 1, backgroundColor: 'black' }} showsVerticalScrollIndicator={false}>
+          {isLoadingEarnings ? (
+            <View style={{ 
+              flex: 1, 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              backgroundColor: 'black',
+              paddingVertical: 100
+            }}>
+              <ActivityIndicator size="large" color="#FB2355" />
+              <Text style={{ 
+                color: '#FB2355', 
+                fontSize: 16, 
+                marginTop: 16,
+                fontFamily: 'Urbanist-Regular'
+              }}>
+                Loading earnings data...
+              </Text>
+            </View>
+          ) : (
+            <View style={{ padding: 20 }}>
+              {/* Header */}
+              <Text style={{
+                color: 'white',
+                fontSize: 28,
+                fontWeight: 'bold',
+                fontFamily: 'Urbanist-Bold',
+                marginBottom: 24,
+                textAlign: 'center'
+              }}>
+                Earnings Dashboard
+              </Text>
+
+              {/* Total Earnings Card */}
+              <View style={{
+                backgroundColor: '#1A1A1A',
+                borderRadius: 16,
+                padding: 20,
+                marginBottom: 20,
+                borderWidth: 1,
+                borderColor: '#333333'
+              }}>
+                <Text style={{
+                  color: '#888888',
+                  fontSize: 14,
+                  fontFamily: 'Urbanist-Regular',
+                  marginBottom: 8
+                }}>
+                  Total Earnings
+                </Text>
+                <Text style={{
+                  color: '#FFD700',
+                  fontSize: 32,
+                  fontWeight: 'bold',
+                  fontFamily: 'Urbanist-Bold'
+                }}>
+                  ${earningsData.totalEarnings.toFixed(2)}
+                </Text>
+              </View>
+
+              {/* Perceived Earnings Card */}
+              <View style={{
+                backgroundColor: '#1A1A1A',
+                borderRadius: 16,
+                padding: 20,
+                marginBottom: 20,
+                borderWidth: 1,
+                borderColor: '#333333'
+              }}>
+                <Text style={{
+                  color: '#888888',
+                  fontSize: 14,
+                  fontFamily: 'Urbanist-Regular',
+                  marginBottom: 8
+                }}>
+                  Your Take (After Fees)
+                </Text>
+                <Text style={{
+                  color: '#FB2355',
+                  fontSize: 32,
+                  fontWeight: 'bold',
+                  fontFamily: 'Urbanist-Bold'
+                }}>
+                  ${earningsData.perceivedEarnings.toFixed(2)}
+                </Text>
+                <Text style={{
+                  color: '#666666',
+                  fontSize: 12,
+                  fontFamily: 'Urbanist-Regular',
+                  marginTop: 4
+                }}>
+                  After 20% platform + 10% Stripe fees
+                </Text>
+              </View>
+
+              {/* Subscription Stats */}
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                marginBottom: 20
+              }}>
+                <View style={{
+                  backgroundColor: '#1A1A1A',
+                  borderRadius: 12,
+                  padding: 16,
+                  flex: 1,
+                  marginRight: 8,
+                  borderWidth: 1,
+                  borderColor: '#333333'
+                }}>
+                  <Text style={{
+                    color: '#888888',
+                    fontSize: 12,
+                    fontFamily: 'Urbanist-Regular',
+                    marginBottom: 4
+                  }}>
+                    Active
+                  </Text>
+                  <Text style={{
+                    color: '#4CAF50',
+                    fontSize: 24,
+                    fontWeight: 'bold',
+                    fontFamily: 'Urbanist-Bold'
+                  }}>
+                    {earningsData.activeSubscriptions}
+                  </Text>
                 </View>
-            </Animated.ScrollView>
+                <View style={{
+                  backgroundColor: '#1A1A1A',
+                  borderRadius: 12,
+                  padding: 16,
+                  flex: 1,
+                  marginLeft: 8,
+                  borderWidth: 1,
+                  borderColor: '#333333'
+                }}>
+                  <Text style={{
+                    color: '#888888',
+                    fontSize: 12,
+                    fontFamily: 'Urbanist-Regular',
+                    marginBottom: 4
+                  }}>
+                    Cancelled
+                  </Text>
+                  <Text style={{
+                    color: '#FF9800',
+                    fontSize: 24,
+                    fontWeight: 'bold',
+                    fontFamily: 'Urbanist-Bold'
+                  }}>
+                    {earningsData.cancelledSubscriptions}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Earnings Chart */}
+              {earningsData.monthlyData.length > 0 && (
+                <View style={{
+                  backgroundColor: '#1A1A1A',
+                  borderRadius: 16,
+                  padding: 20,
+                  marginBottom: 20,
+                  borderWidth: 1,
+                  borderColor: '#333333'
+                }}>
+                  <Text style={{
+                    color: 'white',
+                    fontSize: 18,
+                    fontWeight: 'bold',
+                    fontFamily: 'Urbanist-Bold',
+                    marginBottom: 16
+                  }}>
+                    Earnings Over Time
+                  </Text>
+                  <LineChart
+                    data={{
+                      labels: earningsData.monthlyData.map(item => {
+                        const [year, month] = item.month.split('-');
+                        return `${month}/${year.slice(2)}`;
+                      }),
+                      datasets: [{
+                        data: earningsData.monthlyData.map(item => item.earnings)
+                      }]
+                    }}
+                    width={Dimensions.get('window').width - 80}
+                    height={220}
+                    chartConfig={{
+                      backgroundColor: '#1A1A1A',
+                      backgroundGradientFrom: '#1A1A1A',
+                      backgroundGradientTo: '#1A1A1A',
+                      decimalPlaces: 0,
+                      color: (opacity = 1) => `rgba(251, 35, 85, ${opacity})`,
+                      labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                      style: {
+                        borderRadius: 16
+                      },
+                      propsForDots: {
+                        r: '6',
+                        strokeWidth: '2',
+                        stroke: '#FB2355'
+                      }
+                    }}
+                    bezier
+                    style={{
+                      marginVertical: 8,
+                      borderRadius: 16
+                    }}
+                  />
+                </View>
+              )}
+
+              {/* No Data State */}
+              {earningsData.monthlyData.length === 0 && (
+                <View style={{
+                  backgroundColor: '#1A1A1A',
+                  borderRadius: 16,
+                  padding: 40,
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: '#333333'
+                }}>
+                  <Text style={{
+                    color: '#888888',
+                    fontSize: 16,
+                    fontFamily: 'Urbanist-Regular',
+                    textAlign: 'center'
+                  }}>
+                    No earnings data yet. Start building your audience to see your earnings here!
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+        </ScrollView>
+      )}
+
+      {selectedTab === 'insights' && (
+        <View style={{ 
+          flex: 1, 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          backgroundColor: 'black',
+          paddingHorizontal: 32
+        }}>
+          <Text style={{ 
+            color: 'white', 
+            fontSize: 24, 
+            fontFamily: 'Urbanist-Bold',
+            marginBottom: 16,
+            textAlign: 'center'
+          }}>
+            Insights
+          </Text>
+          <Text style={{ 
+            color: '#888888', 
+            fontSize: 16, 
+            textAlign: 'center',
+            fontFamily: 'Urbanist-Regular'
+          }}>
+            Analytics and insights will appear here
+          </Text>
+        </View>
+      )}
+
+      {selectedTab === 'audience' && (
+        <View style={{ 
+          flex: 1, 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          backgroundColor: 'black',
+          paddingHorizontal: 32
+        }}>
+          <Text style={{ 
+            color: 'white', 
+            fontSize: 24, 
+            fontFamily: 'Urbanist-Bold',
+            marginBottom: 16,
+            textAlign: 'center'
+          }}>
+            Audience
+          </Text>
+          <Text style={{ 
+            color: '#888888', 
+            fontSize: 16, 
+            textAlign: 'center',
+            fontFamily: 'Urbanist-Regular'
+          }}>
+            Your audience analytics will appear here
+          </Text>
+        </View>
+      )}
+
+      {selectedTab === 'other' && (
+        <View style={{ 
+          flex: 1, 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          backgroundColor: 'black',
+          paddingHorizontal: 32
+        }}>
+          <Text style={{ 
+            color: 'white', 
+            fontSize: 24, 
+            fontFamily: 'Urbanist-Bold',
+            marginBottom: 16,
+            textAlign: 'center'
+          }}>
+            Other
+          </Text>
+          <Text style={{ 
+            color: '#888888', 
+            fontSize: 16, 
+            textAlign: 'center',
+            fontFamily: 'Urbanist-Regular'
+          }}>
+            Additional features will appear here
+          </Text>
+        </View>
+      )}
         </SafeAreaView>
     );
 } 

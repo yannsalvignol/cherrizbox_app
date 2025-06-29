@@ -1,4 +1,6 @@
 import { GlobalProvider } from "@/lib/global-provider";
+import { StripeProvider } from '@stripe/stripe-react-native';
+import Constants from 'expo-constants';
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from 'expo-splash-screen';
@@ -36,8 +38,11 @@ export default function RootLayout() {
     return null;
   }
 
+  const publishableKey = Constants.expoConfig?.extra?.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+
   return (
     <GestureHandlerRootView style={styles.container}>
+      <StripeProvider publishableKey={publishableKey}>
       <GlobalProvider>
         <Stack 
           screenOptions={{ 
@@ -45,27 +50,10 @@ export default function RootLayout() {
             gestureEnabled: true,
             gestureDirection: 'horizontal',
             animation: 'slide_from_right',
-            cardStyleInterpolator: ({ current, next, layouts }) => ({
-              cardStyle: {
-                transform: [
-                  {
-                    translateX: current.progress.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [layouts.screen.width, 0],
-                    }),
-                  },
-                ],
-              },
-              overlayStyle: {
-                opacity: current.progress.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, 0.5],
-                }),
-              },
-            }),
           }} 
         />
       </GlobalProvider>
+      </StripeProvider>
     </GestureHandlerRootView>
   );
 }

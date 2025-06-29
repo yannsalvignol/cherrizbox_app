@@ -104,7 +104,7 @@ export const getAllPosts = async () => {
 
 export async function login() {
     try {
-        const redirectUri = Linking.createURL("/");
+        const redirectUri = Linking.createURL("/(root)/(tabs)");
   
         const response = await account.createOAuth2Token(
             OAuthProvider.Google,
@@ -721,5 +721,43 @@ export const getCreatorEarnings = async (creatorAccountId: string) => {
   } catch (error) {
     console.error('Error fetching creator earnings:', error);
     throw error;
+    }
+};
+
+// Get user's photo from photos collection
+export const getUserPhoto = async (creatorId: string) => {
+    try {
+        const response = await databases.listDocuments(
+            config.databaseId,
+            config.photoCollectionId,
+            [Query.equal('IdCreator', creatorId)]
+        );
+        
+        if (response.documents.length > 0) {
+            return response.documents[0];
+        }
+        return null;
+    } catch (error) {
+        console.error('Error getting user photo:', error);
+        return null;
+    }
+};
+
+// Get user information by account ID
+export const getUserByAccountId = async (accountId: string) => {
+    try {
+        const response = await databases.listDocuments(
+            config.databaseId,
+            '67e54c1d0003145e0149', // Direct collection ID for users
+            [Query.equal('accountId', accountId)]
+        );
+        
+        if (response.documents.length > 0) {
+            return response.documents[0];
+        }
+        return null;
+    } catch (error) {
+        console.error('Error getting user by account ID:', error);
+        return null;
     }
 };

@@ -89,4 +89,58 @@ export const isUserConnected = () => {
 // Function to get connected user ID
 export const getConnectedUserId = () => {
     return connectedUserId;
-}; 
+};
+
+// Create a direct message channel between two users
+export async function createDirectMessageChannel(user1Id: string, user2Id: string) {
+  try {
+    console.log('🔄 Creating direct message channel...');
+    console.log('📋 Channel creation details:', {
+      user1Id,
+      user2Id,
+      isConnected,
+      connectedUserId
+    });
+
+    // Check if we're connected to Stream Chat
+    if (!isConnected) {
+      console.log('⚠️ Not connected to Stream Chat, attempting to connect...');
+      const connected = await connectUser(user1Id);
+      if (!connected) {
+        throw new Error('Failed to connect to Stream Chat');
+      }
+    }
+
+    console.log('✅ Stream Chat connection verified');
+    
+    // Create a custom channel ID for direct messages
+    const channelId = `dm-${user1Id}-${user2Id}`;
+    console.log('🏗️ Creating channel with custom ID:', channelId);
+    console.log('👥 Channel members:', [user1Id, user2Id]);
+
+    const channel = client.channel('messaging', channelId, {
+      members: [user1Id, user2Id],
+    });
+
+    console.log('📡 Calling channel.create()...');
+    await channel.create();
+    
+    console.log('✅ Direct message channel created successfully!');
+    console.log('📊 Channel info:', {
+      channelId: channel.id,
+      channelType: channel.type,
+      memberCount: Object.keys(channel.state.members).length,
+      members: Object.keys(channel.state.members)
+    });
+
+    return channel;
+  } catch (error) {
+    console.error('❌ Error creating direct message channel:', error);
+    console.error('🔍 Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    throw error;
+  }
+} 

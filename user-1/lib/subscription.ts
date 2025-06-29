@@ -9,6 +9,10 @@ async function getCreatorId(creatorName: string): Promise<string> {
   try {
     console.log('Looking up creator with name:', creatorName);
     
+    if (!config.endpoint || !config.projectId) {
+      throw new Error('Appwrite configuration is incomplete');
+    }
+    
     const client = new Client()
       .setEndpoint(config.endpoint)
       .setProject(config.projectId);
@@ -16,6 +20,10 @@ async function getCreatorId(creatorName: string): Promise<string> {
     const databases = new Databases(client);
     console.log('Querying database:', config.databaseId);
     console.log('Collection:', PROFILES_COLLECTION_ID);
+    
+    if (!config.databaseId || !PROFILES_COLLECTION_ID) {
+      throw new Error('Database configuration is incomplete');
+    }
     
     // First try exact match
     let response = await databases.listDocuments(
@@ -67,67 +75,6 @@ async function getCreatorId(creatorName: string): Promise<string> {
     }
     throw error;
   }
-}
-
-export async function initiateSubscription(amount: number, interval: 'month' | 'year', creatorName: string) {
-  try {
-    const currentUser = await getCurrentUser();
-    if (!currentUser) {
-      throw new Error('No active user found');
-    }
-
-    if (!currentUser.email) {
-      throw new Error('User email is required for subscription');
-    }
-
-    // Get the creator ID
-    const creatorId = await getCreatorId(creatorName);
-
-    const requestBody = {
-      path: `/subscribe?creatorName=${encodeURIComponent(creatorName)}&creatorId=${encodeURIComponent(creatorId)}&price=${amount}&interval=${interval}&email=${encodeURIComponent(currentUser.email)}`,
-      email: currentUser.email
-    };
-
-    const response = await fetch(FUNCTION_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Appwrite-Project': config.projectId,
-        'X-Appwrite-User-ID': currentUser.$id
-      },
-      body: JSON.stringify(requestBody)
-    });
-
-    if (response.status === 404) {
-      throw new Error('Subscription endpoint not found. Please check if the function is properly deployed.');
-    }
-
-    if (!response.ok) {
-      throw new Error(`Function execution failed with status ${response.status}`);
-    }
-
-    try {
-      const data = JSON.parse(await response.text());
-      
-      // Look for the Stripe checkout URL in the location header
-      const locationHeader = data.responseHeaders?.find(
-        (header: { name: string; value: string }) => header.name === 'location'
-      );
-
-      if (locationHeader?.value) {
-        return locationHeader.value;
-      } else {
-        throw new Error('No checkout URL found in response');
-      }
-    } catch (parseError) {
-      throw new Error('Failed to process function response');
-    }
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(`Subscription failed: ${error.message}`);
-    }
-    throw error;
-  }
 } 
 
 export async function cancelSubscription(subscriptionId: string) {
@@ -135,6 +82,10 @@ export async function cancelSubscription(subscriptionId: string) {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
       throw new Error('No active user found');
+    }
+
+    if (!FUNCTION_ID || !config.projectId) {
+      throw new Error('Function configuration is incomplete');
     }
 
     const requestBody = {
@@ -155,6 +106,107 @@ export async function cancelSubscription(subscriptionId: string) {
     return { success: true };
   } catch (error) {
     console.error('Error in cancelSubscription:', error);
+    throw error;
+  }
+}
+
+export async function initiatePaymentIntent(amount: number, interval: 'month' | 'year', creatorName: string) {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      throw new Error('No active user found');
+    }
+
+    if (!currentUser.email) {
+      throw new Error('User email is required for payment');
+    }
+
+    if (!FUNCTION_ID) {
+      throw new Error('Function ID is not configured');
+    }
+
+    if (!config.projectId) {
+      throw new Error('Project ID is not configured');
+    }
+
+    // Get the creator ID
+    const creatorId = await getCreatorId(creatorName);
+
+    const requestBody = {
+      path: `/create-payment-intent?creatorName=${encodeURIComponent(creatorName)}&creatorId=${encodeURIComponent(creatorId)}&price=${amount}&interval=${interval}&email=${encodeURIComponent(currentUser.email)}`,
+      email: currentUser.email
+    };
+
+    console.log('Sending request to backend:', {
+      url: FUNCTION_ENDPOINT,
+      path: `/create-payment-intent?creatorName=${encodeURIComponent(creatorName)}&creatorId=${encodeURIComponent(creatorId)}&price=${amount}&interval=${interval}&email=${encodeURIComponent(currentUser.email)}`,
+      body: requestBody,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Appwrite-Project': config.projectId,
+        'X-Appwrite-User-ID': currentUser.$id
+      }
+    });
+
+    const response = await fetch(FUNCTION_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Appwrite-Project': config.projectId,
+        'X-Appwrite-User-ID': currentUser.$id
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    console.log('Backend response status:', response.status);
+    console.log('Backend response headers:', Object.fromEntries(response.headers.entries()));
+
+    if (response.status === 404) {
+      throw new Error('Payment intent endpoint not found. Please check if the function is properly deployed.');
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Backend error response:', errorText);
+      throw new Error(`Function execution failed with status ${response.status}: ${errorText}`);
+    }
+
+    const responseText = await response.text();
+    console.log('Backend response text:', responseText);
+
+    try {
+      const data = JSON.parse(responseText);
+      console.log('Parsed response data:', data);
+      
+      // Check if this is an Appwrite function execution response
+      if (data.responseBody) {
+        console.log('Found Appwrite function execution response, extracting responseBody');
+        const actualResponse = JSON.parse(data.responseBody);
+        console.log('Actual function response:', actualResponse);
+        
+        if (actualResponse.clientSecret) {
+          return actualResponse.clientSecret;
+        } else {
+          console.error('No client secret in actual response:', actualResponse);
+          throw new Error('No client secret found in response');
+        }
+      } else if (data.clientSecret) {
+        // Direct response (not wrapped by Appwrite)
+        return data.clientSecret;
+      } else {
+        console.error('No client secret in response:', data);
+        throw new Error('No client secret found in response');
+      }
+    } catch (parseError) {
+      console.error('Failed to parse response:', parseError);
+      console.error('Raw response was:', responseText);
+      throw new Error('Failed to process function response');
+    }
+  } catch (error) {
+    console.error('Payment intent creation error:', error);
+    if (error instanceof Error) {
+      throw new Error(`Payment intent creation failed: ${error.message}`);
+    }
     throw error;
   }
 }
