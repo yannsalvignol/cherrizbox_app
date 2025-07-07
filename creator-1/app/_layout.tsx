@@ -1,4 +1,5 @@
 import { GlobalProvider } from "@/lib/global-provider";
+import { StripeProvider } from "@stripe/stripe-react-native";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from 'expo-splash-screen';
@@ -33,18 +34,18 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+      <StripeProvider
+        publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''}
+        merchantIdentifier="merchant.com.cherrybox.app" // Replace with your actual merchant ID
+      >
       <GlobalProvider>
         <Stack 
           screenOptions={{ 
             headerShown: false,
-            cardStyleInterpolator: ({ current }) => ({
-              cardStyle: {
-                opacity: current.progress,
-              },
-            }),
           }} 
         />
       </GlobalProvider>
+      </StripeProvider>
     </GestureHandlerRootView>
   );
 }

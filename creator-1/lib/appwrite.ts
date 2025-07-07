@@ -22,7 +22,8 @@ export const config = {
     photoCollectionId: process.env.EXPO_PUBLIC_APPWRITE_PHOTO_COLLECTION_ID!,
     storageId: process.env.EXPO_PUBLIC_APPWRITE_STORAGE_ID!,
     activeSubscriptionsCollectionId: process.env.EXPO_PUBLIC_APPWRITE_ACTIVE_SUBSCRIPTIONS_COLLECTION_ID!,
-    cancelledSubscriptionsCollectionId: process.env.EXPO_PUBLIC_APPWRITE_CANCELLED_SUBSCRIPTIONS_COLLECTION_ID!
+    cancelledSubscriptionsCollectionId: process.env.EXPO_PUBLIC_APPWRITE_CANCELLED_SUBSCRIPTIONS_COLLECTION_ID!,
+    paidContentPurchasesCollectionId: process.env.EXPO_PUBLIC_APPWRITE_PAID_CONTENT_PURCHASES_COLLECTION_ID!
 };
 
 export const client = new Client();
@@ -746,18 +747,201 @@ export const getUserPhoto = async (creatorId: string) => {
 // Get user information by account ID
 export const getUserByAccountId = async (accountId: string) => {
     try {
-        const response = await databases.listDocuments(
+        const users = await databases.listDocuments(
             config.databaseId,
-            '67e54c1d0003145e0149', // Direct collection ID for users
-            [Query.equal('accountId', accountId)]
+            config.userCollectionId,
+            [Query.equal('creatoraccountid', accountId)]
         );
         
-        if (response.documents.length > 0) {
-            return response.documents[0];
+        if (users.documents.length > 0) {
+            return users.documents[0];
         }
+        
         return null;
     } catch (error) {
-        console.error('Error getting user by account ID:', error);
+        console.error("Error getting user by account ID:", error);
         return null;
+    }
+};
+
+// Create payment intent for paid content
+export const createPaidContentPaymentIntent = async (
+    amount: number,
+    currency: string = 'usd',
+    metadata: {
+        userId: string;
+        creatorId: string;
+        creatorName: string;
+        contentId: string;
+        contentType: string;
+        imageUrl?: string;
+    }
+) => {
+    try {
+        console.log('🚀 Starting createPaidContentPaymentIntent...');
+        
+        // Use the same function endpoint logic as your existing setup
+        const FUNCTION_ID = process.env.EXPO_PUBLIC_APPWRITE_FUNCTION_ID;
+        const backendUrl = `${config.endpoint}/functions/${FUNCTION_ID}/executions`;
+        
+        console.log('📋 Environment check:', {
+            functionId: FUNCTION_ID,
+            endpoint: config.endpoint,
+            backendUrl,
+            amount,
+            currency,
+            metadata
+        });
+
+        if (!FUNCTION_ID) {
+            console.error('❌ Missing EXPO_PUBLIC_APPWRITE_FUNCTION_ID');
+            throw new Error('EXPO_PUBLIC_APPWRITE_FUNCTION_ID is not configured. Please set your function ID in environment variables.');
+        }
+
+        if (!config.endpoint) {
+            console.error('❌ Missing config.endpoint');
+            throw new Error('Appwrite endpoint is not configured.');
+        }
+        
+        const requestBody = {
+            path: '/create-paid-content-payment-intent',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                amount: Math.round(amount * 100), // Convert to cents
+                currency,
+                metadata,
+            }),
+        };
+
+        console.log('📤 Sending request to backend:', {
+            url: backendUrl,
+            requestBody
+        });
+        
+        console.log('⏳ Making fetch request...');
+        
+        const response = await fetch(backendUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Appwrite-Project': config.projectId,
+            },
+            body: JSON.stringify(requestBody),
+        });
+
+        console.log('📥 Received response:', {
+            status: response.status,
+            statusText: response.statusText,
+            ok: response.ok,
+            headers: Object.fromEntries(response.headers.entries())
+        });
+
+        if (!response.ok) {
+            console.error('❌ Response not OK, reading error text...');
+            const errorText = await response.text();
+            console.error('❌ Backend error response:', errorText);
+            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        }
+
+        console.log('✅ Response OK, parsing JSON...');
+        const data = await response.json();
+        console.log('📊 Backend response data:', data);
+        
+        // Parse the actual response from Appwrite Function's responseBody
+        let actualResponse;
+        if (data.responseBody) {
+            try {
+                actualResponse = JSON.parse(data.responseBody);
+                console.log('📋 Parsed responseBody:', actualResponse);
+            } catch (parseError) {
+                console.error('❌ Failed to parse responseBody:', parseError);
+                throw new Error('Invalid response format from backend');
+            }
+        } else {
+            actualResponse = data;
+        }
+        
+        if (!actualResponse.success) {
+            console.error('❌ Backend returned success: false');
+            throw new Error(actualResponse.error || 'Failed to create payment intent');
+        }
+
+        console.log('🎉 Payment intent created successfully!');
+        return {
+            clientSecret: actualResponse.clientSecret,
+            paymentIntentId: actualResponse.paymentIntentId,
+        };
+    } catch (error) {
+        console.error('💥 Error in createPaidContentPaymentIntent:', {
+            error: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined,
+            name: error instanceof Error ? error.name : 'Unknown'
+        });
+        throw error;
+    }
+};
+
+// Record successful paid content purchase
+export const recordPaidContentPurchase = async (
+    userId: string,
+    creatorId: string,
+    contentId: string,
+    paymentIntentId: string,
+    amount: number
+) => {
+    try {
+        if (!config.paidContentPurchasesCollectionId) {
+            console.error('Missing paidContentPurchasesCollectionId in config');
+            throw new Error('Missing collection ID configuration');
+        }
+
+        // Create a purchase record in the database
+        const purchaseRecord = await databases.createDocument(
+            config.databaseId,
+            config.paidContentPurchasesCollectionId,
+            ID.unique(),
+            {
+                userId,
+                creatorId,
+                contentId,
+                paymentIntentId,
+                amount,
+                purchaseDate: new Date().toISOString(),
+                status: 'completed'
+            }
+        );
+
+        return purchaseRecord;
+    } catch (error) {
+        console.error('Error recording paid content purchase:', error);
+        throw error;
+    }
+};
+
+// Check if user has purchased specific content
+export const checkPaidContentPurchase = async (userId: string, contentId: string): Promise<boolean> => {
+    try {
+        if (!config.paidContentPurchasesCollectionId) {
+            console.error('Missing paidContentPurchasesCollectionId in config');
+            return false;
+        }
+
+        const purchases = await databases.listDocuments(
+            config.databaseId,
+            config.paidContentPurchasesCollectionId,
+            [
+                Query.equal('userId', userId),
+                Query.equal('contentId', contentId),
+                Query.equal('status', 'completed')
+            ]
+        );
+
+        return purchases.documents.length > 0;
+    } catch (error) {
+        console.error('Error checking paid content purchase:', error);
+        return false;
     }
 };

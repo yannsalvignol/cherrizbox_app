@@ -5,7 +5,16 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Channel, Chat, DeepPartial, MessageInput, MessageList, OverlayProvider, Theme } from 'stream-chat-expo'; // ✅ USE EXPO VERSION
+import {
+  Channel,
+  Chat,
+  CreatePoll,
+  DeepPartial,
+  MessageInput,
+  MessageList,
+  OverlayProvider,
+  Theme
+} from 'stream-chat-expo'; // ✅ USE EXPO VERSION
 
 const getTheme = (): DeepPartial<Theme> => ({
   colors: {
@@ -46,6 +55,65 @@ const getTheme = (): DeepPartial<Theme> => ({
       },
     },
   },
+  // Poll-specific theming - using proper theme structure
+  poll: {
+    container: {
+      backgroundColor: '#2A2A2A',
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: '#404040',
+      marginVertical: 8,
+    } as any,
+    header: {
+      backgroundColor: '#1A1A1A',
+      borderTopLeftRadius: 12,
+      borderTopRightRadius: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+    } as any,
+    title: {
+      color: '#FFFFFF',
+      fontSize: 16,
+      fontWeight: 'bold',
+    } as any,
+    subtitle: {
+      color: '#CCCCCC',
+      fontSize: 14,
+    } as any,
+    option: {
+      backgroundColor: '#404040',
+      borderRadius: 8,
+      marginHorizontal: 16,
+      marginVertical: 4,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+    } as any,
+    optionText: {
+      color: '#FFFFFF',
+      fontSize: 14,
+    } as any,
+    optionVoted: {
+      backgroundColor: '#FB2355',
+    } as any,
+    optionVotedText: {
+      color: '#FFFFFF',
+      fontWeight: 'bold',
+    } as any,
+    button: {
+      backgroundColor: '#FB2355',
+      borderRadius: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      marginHorizontal: 16,
+      marginVertical: 8,
+    } as any,
+    buttonText: {
+      color: '#FFFFFF',
+      fontSize: 14,
+      fontWeight: 'bold',
+      textAlign: 'center',
+    } as any,
+  } as any,
 });
 
 export default function ChatScreen() {
@@ -56,6 +124,7 @@ export default function ChatScreen() {
   const [error, setError] = useState<string | null>(null);
   const colorScheme = useColorScheme();
   const [theme, setTheme] = useState(getTheme());
+  const [showPollCreation, setShowPollCreation] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -90,6 +159,53 @@ export default function ChatScreen() {
 
     setupChannel();
   }, [channelId, user]);
+
+  // Function to handle poll creation
+  const handleCreatePoll = async (message: any) => {
+    try {
+      if (!channel) return;
+
+      // Send the poll message directly
+      await channel.sendMessage(message);
+      setShowPollCreation(false);
+    } catch (error) {
+      console.error('Error creating poll:', error);
+    }
+  };
+
+  // Custom MessageInput component with poll button
+  const CustomMessageInput = () => (
+    <View style={{ backgroundColor: '#1A1A1A' }}>
+      <View style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderTopWidth: 1,
+        borderTopColor: '#2A2A2A',
+      }}>
+        <TouchableOpacity
+          style={{
+            backgroundColor: '#FB2355',
+            borderRadius: 20,
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            marginRight: 8,
+          }}
+          onPress={() => setShowPollCreation(true)}
+        >
+          <Text style={{
+            color: 'white',
+            fontSize: 12,
+            fontWeight: 'bold',
+          }}>
+            📊 Poll
+          </Text>
+        </TouchableOpacity>
+      </View>
+      <MessageInput />
+    </View>
+  );
 
   if (loading) {
     return (
@@ -183,7 +299,15 @@ export default function ChatScreen() {
               </Text>
             </View>
             <MessageList />
-            <MessageInput />
+            <CustomMessageInput />
+            
+            {/* Poll Creation Modal */}
+            {showPollCreation && (
+              <CreatePoll
+                sendMessage={handleCreatePoll}
+                closePollCreationDialog={() => setShowPollCreation(false)}
+              />
+            )}
           </Channel>
         </Chat>
       </OverlayProvider>

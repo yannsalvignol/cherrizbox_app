@@ -89,7 +89,7 @@ export const isUserConnected = () => {
 // Function to get connected user ID
 export const getConnectedUserId = () => {
     return connectedUserId;
-};
+}; 
 
 // Create a direct message channel between two users
 export async function createDirectMessageChannel(user1Id: string, user2Id: string) {
