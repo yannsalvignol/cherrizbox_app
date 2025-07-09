@@ -1,15 +1,51 @@
-import React, { createContext, ReactNode, useContext, useEffect, useRef } from "react";
-import { Image } from 'react-native';
+import { Models } from 'appwrite';
+import * as FileSystem from 'expo-file-system';
+import React, { createContext, ReactNode, useContext, useEffect, useRef, useState } from "react";
 
-import { deleteExpiredSubscriptions, getAllPosts, getCurrentUser, getUserSubscriptions } from "./appwrite";
+import { deleteExpiredSubscriptions, getAllPosts, getCurrentUser, getSubscriptionStatus, getUserProfile, getUserSubscriptions } from "./appwrite";
 import { connectUser, disconnectUser } from "./stream-chat";
 import { useAppwrite } from "./useAppwrite";
 
-interface Subscription {
-    $id: string;
+const CACHE_DIR = FileSystem.cacheDirectory + 'images/';
+
+const getCacheKey = (url: string): string => {
+  // A simple hash function to create a unique key for the URL
+  let hash = 0;
+  for (let i = 0; i < url.length; i++) {
+    const char = url.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return Math.abs(hash).toString();
+};
+
+const cacheImage = async (url: string): Promise<string> => {
+  const cacheKey = getCacheKey(url);
+  // Basic extension extraction, default to jpg
+  const extMatch = url.match(/\.([^.?/]+)(?:\?.*)?$/);
+  const ext = extMatch ? extMatch[1] : 'jpg';
+  const localUri = `${CACHE_DIR}${cacheKey}.${ext}`;
+
+  const dirInfo = await FileSystem.getInfoAsync(CACHE_DIR);
+  if (!dirInfo.exists) {
+    await FileSystem.makeDirectoryAsync(CACHE_DIR, { intermediates: true });
+  }
+
+  try {
+    const { uri } = await FileSystem.downloadAsync(url, localUri);
+    return uri;
+  } catch (e) {
+    console.error(`Failed to download image for caching: ${url}`, e);
+    throw e; // rethrow to be caught by preloadImages
+  }
+};
+
+
+interface AppwriteDocument extends Models.Document {
     userId: string;
     status: 'active' | 'cancelled';
     createdAt: string;
+
     planCurrency: string;
     planInterval: string;
     creatorName: string;
@@ -19,107 +55,119 @@ interface Subscription {
     endsAt?: string;
 }
 
-interface Post {
-    $id: string;
+interface Subscription extends AppwriteDocument {}
+
+interface Post extends Models.Document {
     type: 'photo' | 'video';
     title?: string;
     thumbnail?: string;
     imageUrl?: string;
     fileUrl?: string;
-    $createdAt: string;
-    $updatedAt: string;
-    $collectionId: string;
-    $databaseId: string;
-    $permissions: string[];
     PhotoTopics?: string;
     isSubscribed?: boolean;
     isCancelled?: boolean;
 }
 
+interface UserProfile extends Models.Document {
+    userId: string;
+    profileImageUri?: string;
+}
+
+interface User extends Models.User<Models.Preferences> {}
+
 interface GlobalContextType {
   isLogged: boolean;
   user: User | null;
+  profile: UserProfile | null;
   loading: boolean;
-  refetch: () => void;
+  refetch: (newParams?: any) => Promise<void>;
   isStreamConnected: boolean;
-  creators: Subscription[];
-  loadCreators: () => Promise<void>;
+  creators: UserProfile[];
   refreshCreators: () => Promise<void>;
   posts: Post[];
-  loadPosts: () => Promise<void>;
   refreshPosts: () => Promise<void>;
-  preloadImages: () => Promise<void>;
   imagesPreloaded: boolean;
-}
-
-interface User {
-  $id: string;
-  name: string;
-  email: string;
-  avatar: string;
+  getCachedImageUrl: (url?: string) => string | undefined;
 }
 
 const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
 
-interface GlobalProviderProps {
-  children: ReactNode;
-}
+export const useGlobalContext = (): GlobalContextType => {
+  const context = useContext(GlobalContext);
+  if (context === undefined) {
+    throw new Error("useGlobalContext must be used within a GlobalProvider");
+  }
+  return context;
+};
 
-export const GlobalProvider = ({ children }: GlobalProviderProps) => {
-  const {
-    data: user,
-    loading,
-    refetch,
-  } = useAppwrite({
-    fn: getCurrentUser,
-  });
+export const GlobalProvider = ({ children }: { children: ReactNode }) => {
+  const { data: user, loading, refetch } = useAppwrite({ fn: getCurrentUser });
 
-  const [isStreamConnected, setIsStreamConnected] = React.useState(false);
-  const [creators, setCreators] = React.useState<Subscription[]>([]);
-  const [posts, setPosts] = React.useState<Post[]>([]);
-  const [imagesPreloaded, setImagesPreloaded] = React.useState(false);
+  const [isStreamConnected, setIsStreamConnected] = useState(false);
+  const [creators, setCreators] = useState<UserProfile[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [imagesPreloaded, setImagesPreloaded] = useState(false);
+  const [postsLoaded, setPostsLoaded] = useState(false);
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const imageDiskCache = useRef<{ [key: string]: string }>({});
+  const imageCachePath = FileSystem.documentDirectory + 'imageCache.json';
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const previousUserId = useRef<string | null>(null);
 
-  const isLogged = !!user;
+  const getCachedImageUrl = (remoteUrl?: string) => {
+    if (!remoteUrl) return undefined;
+    const cachedUri = imageDiskCache.current[remoteUrl];
+    return cachedUri || remoteUrl;
+  };
+
+  const initializeImageCache = async () => {
+    try {
+      console.log('Reading image cache from disk...');
+      const fileInfo = await FileSystem.getInfoAsync(imageCachePath);
+      if (fileInfo.exists) {
+        const content = await FileSystem.readAsStringAsync(imageCachePath);
+        if (content) {
+          imageDiskCache.current = JSON.parse(content);
+          console.log(`Image cache initialized with ${Object.keys(imageDiskCache.current).length} files.`);
+        }
+      } else {
+        console.log('No image cache file found.');
+      }
+    } catch (error) {
+      console.error('Failed to initialize image cache:', error);
+    }
+  };
+
+  const loadUserProfile = async () => {
+    setProfileLoaded(false);
+    if (!user?.$id) {
+      setProfileLoaded(true);
+      return;
+    }
+    try {
+      const userProfile = (await getUserProfile(user.$id)) as UserProfile;
+      setProfile(userProfile);
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+    } finally {
+      setProfileLoaded(true);
+    }
+  };
+
+  useEffect(() => {
+    initializeImageCache();
+  }, []);
 
   const loadCreators = async () => {
-    if (!user?.$id || creators.length > 0) return;
-    
+    if (!user?.$id) return;
     try {
-      // Delete expired subscriptions first
       await deleteExpiredSubscriptions(user.$id);
-      
-      // Then get the updated list of subscriptions
-      const userSubscriptions = await getUserSubscriptions(user.$id);
-      
-      // Filter out active subscriptions that have a cancelled counterpart
-      const filteredSubscriptions = userSubscriptions
-        .map(sub => ({
-          $id: sub.$id,
-          userId: sub.userId,
-          status: sub.status as 'active' | 'cancelled',
-          createdAt: sub.createdAt,
-          planCurrency: sub.planCurrency,
-          planInterval: sub.planInterval,
-          creatorName: sub.creatorName,
-          creatorAccountId: sub.creatorAccountId,
-          renewalDate: sub.renewalDate,
-          stripeSubscriptionId: sub.stripeSubscriptionId,
-          endsAt: sub.endsAt
-        }))
-        .filter((sub, index, self) => {
-          if (sub.status === 'cancelled') return true;
-          
-          // If this is an active subscription, check if there's a cancelled one with the same stripeSubscriptionId
-          const hasCancelledCounterpart = self.some(
-            otherSub => 
-              otherSub.status === 'cancelled' && 
-              otherSub.stripeSubscriptionId === sub.stripeSubscriptionId
-          );
-          
-          return !hasCancelledCounterpart;
-        });
-
+      const userSubscriptions = (await getUserSubscriptions(user.$id)) as AppwriteDocument[];
+      const filteredSubscriptions = userSubscriptions.filter((sub, _, self) => {
+        if (sub.status === 'cancelled') return true;
+        const hasCancelled = self.some(s => s.status === 'cancelled' && s.stripeSubscriptionId === sub.stripeSubscriptionId);
+        return !hasCancelled;
+      });
       setCreators(filteredSubscriptions);
     } catch (error) {
       console.error('Error loading creators:', error);
@@ -127,308 +175,140 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
   };
 
   const refreshCreators = async () => {
-    if (!user?.$id) return;
-    
-    try {
-      // Delete expired subscriptions first
-      await deleteExpiredSubscriptions(user.$id);
-      
-      // Then get the updated list of subscriptions
-      const userSubscriptions = await getUserSubscriptions(user.$id);
-      
-      // Filter out active subscriptions that have a cancelled counterpart
-      const filteredSubscriptions = userSubscriptions
-        .map(sub => ({
-          $id: sub.$id,
-          userId: sub.userId,
-          status: sub.status as 'active' | 'cancelled',
-          createdAt: sub.createdAt,
-          planCurrency: sub.planCurrency,
-          planInterval: sub.planInterval,
-          creatorName: sub.creatorName,
-          creatorAccountId: sub.creatorAccountId,
-          renewalDate: sub.renewalDate,
-          stripeSubscriptionId: sub.stripeSubscriptionId,
-          endsAt: sub.endsAt
-        }))
-        .filter((sub, index, self) => {
-          if (sub.status === 'cancelled') return true;
-          
-          // If this is an active subscription, check if there's a cancelled one with the same stripeSubscriptionId
-          const hasCancelledCounterpart = self.some(
-            otherSub => 
-              otherSub.status === 'cancelled' && 
-              otherSub.stripeSubscriptionId === sub.stripeSubscriptionId
-          );
-          
-          return !hasCancelledCounterpart;
-        });
-
-      setCreators(filteredSubscriptions);
-    } catch (error) {
-      console.error('Error refreshing creators:', error);
-    }
+    await loadCreators();
   };
 
   const loadPosts = async () => {
-    if (posts.length > 0) return;
-    
+    setPostsLoaded(false);
     try {
-      const allPosts = await getAllPosts();
-      // Ensure type is either 'photo' or 'video'
-      const typedPosts = allPosts.map(post => ({
-        ...post,
-        type: post.type === 'photo' ? 'photo' : 'video'
-      })) as Post[];
-      
-      setPosts(typedPosts);
+      const allPosts = (await getAllPosts()) as Post[];
+
+      if (user?.$id) {
+        // If user is logged in, check subscription status and sort
+        const postsWithSubscription = await Promise.all(
+          allPosts.map(async (post) => {
+            const { isSubscribed, isCancelled } = await getSubscriptionStatus(user.$id, post.title || '');
+            return { ...post, isSubscribed, isCancelled };
+          })
+        );
+        
+        const sortedPosts = postsWithSubscription.sort((a, b) => {
+          if (a.isSubscribed && !a.isCancelled && (!b.isSubscribed || b.isCancelled)) return -1;
+          if ((!a.isSubscribed || a.isCancelled) && b.isSubscribed && !b.isCancelled) return 1;
+          if (a.isCancelled && !b.isCancelled) return -1;
+          if (!a.isCancelled && b.isCancelled) return 1;
+          return new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime();
+        });
+
+        setPosts(sortedPosts);
+      } else {
+        // If no user, just set the posts
+        setPosts(allPosts);
+      }
     } catch (error) {
       console.error('Error loading posts:', error);
+    } finally {
+      setPostsLoaded(true);
     }
+  };
+
+  const refreshPosts = async () => {
+    await loadPosts();
   };
 
   const preloadImages = async () => {
     if (imagesPreloaded) return;
     
-    try {
-      console.log('Starting image preloading...');
-      console.log('Posts available:', posts.length);
-      
-      // Get all unique image URLs from posts
-      const imageUrls = posts
-        .map(post => post.thumbnail || post.imageUrl || post.fileUrl)
-        .filter(url => url && url.trim() !== '')
-        .filter((url, index, self) => self.indexOf(url) === index); // Remove duplicates
-      
-      console.log(`Preloading ${imageUrls.length} images...`);
-      console.log('Image URLs:', imageUrls);
-      
-      if (imageUrls.length === 0) {
-        console.log('No images to preload');
-        setImagesPreloaded(true);
-        return;
-      }
-      
-      // Preload images in parallel with a limit to avoid overwhelming the network
-      const batchSize = 3; // Reduced batch size
-      for (let i = 0; i < imageUrls.length; i += batchSize) {
-        const batch = imageUrls.slice(i, i + batchSize);
-        
-        await Promise.allSettled(
-          batch.map(url => 
-            new Promise((resolve, reject) => {
-              if (!url) {
-                resolve(null);
-                return;
-              }
-              
-              Image.prefetch(url)
-                .then(() => {
-                  console.log(`Preloaded: ${url}`);
-                  resolve(null);
-                })
-                .catch((error) => {
-                  console.log(`Failed to preload: ${url}`, error);
-                  resolve(null); // Don't fail the entire batch
-                });
-            })
-          )
-        );
-        
-        // Small delay between batches to be nice to the network
-        if (i + batchSize < imageUrls.length) {
-          await new Promise(resolve => setTimeout(resolve, 200));
+    const postImageUrls = posts
+      .map(post => post.thumbnail || post.imageUrl || post.fileUrl)
+      .filter((url): url is string => !!url);
+
+    const allImageUrls = [...postImageUrls];
+    if (profile?.profileImageUri) {
+      allImageUrls.push(profile.profileImageUri);
+    }
+
+    if (allImageUrls.length === 0) {
+      setImagesPreloaded(true);
+      return;
+    }
+
+    const uniqueUrls = [...new Set(allImageUrls)];
+
+    let downloadedCount = 0;
+    const promises = uniqueUrls.map(async (url) => {
+      if (!imageDiskCache.current[url]) { // Check if not already cached
+        try {
+          const fileUri = await cacheImage(url);
+          imageDiskCache.current[url] = fileUri;
+          downloadedCount++;
+        } catch (error) {
+          console.error(`Failed to cache image: ${url}`, error);
         }
       }
-      
-      console.log('Image preloading completed');
-      setImagesPreloaded(true);
-    } catch (error) {
-      console.error('Error preloading images:', error);
-      setImagesPreloaded(true); // Mark as done even if there was an error
+    });
+
+    await Promise.all(promises);
+
+    if (downloadedCount > 0) {
+      await FileSystem.writeAsStringAsync(imageCachePath, JSON.stringify(imageDiskCache.current));
+      console.log(`${downloadedCount} new images cached and saved to disk.`);
     }
+    setImagesPreloaded(true);
+    console.log("Image preloading complete. imagesPreloaded set to true.");
   };
 
-  // Function to preload missing images for new posts
-  const preloadMissingImages = async (newPosts: Post[]) => {
-    try {
-      console.log('Checking for missing images in new posts...');
-      
-      // Get all unique image URLs from new posts
-      const imageUrls = newPosts
-        .map(post => post.thumbnail || post.imageUrl || post.fileUrl)
-        .filter(url => url && url.trim() !== '')
-        .filter((url, index, self) => self.indexOf(url) === index); // Remove duplicates
-      
-      if (imageUrls.length === 0) {
-        console.log('No new images to preload');
-        return;
-      }
-      
-      console.log(`Preloading ${imageUrls.length} new images...`);
-      
-      // Preload new images in parallel
-      await Promise.allSettled(
-        imageUrls.map(url => 
-          new Promise((resolve) => {
-            if (!url) {
-              resolve(null);
-              return;
-            }
-            
-            Image.prefetch(url)
-              .then(() => {
-                console.log(`Preloaded new image: ${url}`);
-                resolve(null);
-              })
-              .catch((error) => {
-                console.log(`Failed to preload new image: ${url}`, error);
-                resolve(null); // Don't fail the entire operation
-              });
-          })
-        )
-      );
-      
-      console.log('New image preloading completed');
-    } catch (error) {
-      console.error('Error preloading new images:', error);
-    }
-  };
-
-  // Function to refresh posts and preload missing images
-  const refreshPosts = async () => {
-    try {
-      console.log('Refreshing posts...');
-      const allPosts = await getAllPosts();
-      
-      // Ensure type is either 'photo' or 'video'
-      const typedPosts = allPosts.map(post => ({
-        ...post,
-        type: post.type === 'photo' ? 'photo' : 'video'
-      })) as Post[];
-      
-      // Find new posts (posts that weren't in the previous list)
-      const existingPostIds = new Set(posts.map(post => post.$id));
-      const newPosts = typedPosts.filter(post => !existingPostIds.has(post.$id));
-      
-      if (newPosts.length > 0) {
-        console.log(`Found ${newPosts.length} new posts, preloading their images...`);
-        await preloadMissingImages(newPosts);
-      }
-      
-      setPosts(typedPosts);
-    } catch (error) {
-      console.error('Error refreshing posts:', error);
-    }
-  };
-
-  // Load creators when user is available
   useEffect(() => {
-    if (user?.$id) {
-      loadCreators();
-    } else {
-      setCreators([]);
-    }
-  }, [user?.$id]);
-
-  // Load posts when user is available
-  useEffect(() => {
-    if (user?.$id) {
-      loadPosts();
-    } else {
-      setPosts([]);
-    }
-  }, [user?.$id]);
-
-  // Auto-trigger image preloading when posts are loaded
-  useEffect(() => {
-    if (posts.length > 0 && !imagesPreloaded) {
-      console.log('Posts loaded, triggering image preloading...');
+    if (postsLoaded && profileLoaded) {
       preloadImages();
     }
-  }, [posts, imagesPreloaded]);
+  }, [postsLoaded, profileLoaded]);
 
-  // Connect to Stream Chat when user is loaded
   useEffect(() => {
-    const connectToStream = async () => {
-      if (user) {
-        try {
-          // Check if this is a different user than before
-          if (previousUserId.current && previousUserId.current !== user.$id) {
-            console.log('User changed, disconnecting previous user...');
-            try {
-              await disconnectUser();
-              setIsStreamConnected(false);
-            } catch (error) {
-              console.log('Error disconnecting previous user:', error);
-            }
-          }
-
-          // If not connected or user changed, connect
-          if (!isStreamConnected || previousUserId.current !== user.$id) {
-            console.log('Connecting user to Stream Chat...');
-            
-            // Connect user (this will create the user if it doesn't exist)
-            const connected = await connectUser(user.$id);
-            
-            if (connected) {
-              console.log('Successfully connected to Stream Chat');
-              setIsStreamConnected(true);
-              previousUserId.current = user.$id;
-            } else {
-              console.log('Failed to connect to Stream Chat');
-            }
-          }
-        } catch (error) {
-          console.error('Error connecting to Stream Chat:', error);
+    const handleConnection = async () => {
+      if (user && !loading) {
+        if (previousUserId.current !== user.$id) {
+          if (previousUserId.current) await disconnectUser();
+          await connectUser(user.$id);
+          setIsStreamConnected(true);
+          previousUserId.current = user.$id;
+          loadCreators();
+          loadPosts();
+          loadUserProfile();
         }
-      } else {
-        // No user, disconnect if connected
-        if (isStreamConnected) {
-          console.log('No user found, disconnecting from Stream Chat...');
-          try {
-            await disconnectUser();
-            setIsStreamConnected(false);
-            previousUserId.current = null;
-          } catch (error) {
-            console.log('Error disconnecting:', error);
-          }
-        }
+      } else if (!user && !loading && previousUserId.current) {
+        await disconnectUser();
+        setIsStreamConnected(false);
+        previousUserId.current = null;
+        setCreators([]);
+        setPosts([]);
+        imageDiskCache.current = {};
+        setImagesPreloaded(false);
+        setPostsLoaded(false);
+        setProfileLoaded(false);
       }
     };
+    handleConnection();
+  }, [user, loading]);
 
-    connectToStream();
-  }, [user, isStreamConnected]);
+  const contextValue: GlobalContextType = {
+    isLogged: !!user,
+    user: user as User | null,
+    profile,
+    loading,
+    refetch,
+    isStreamConnected,
+    creators,
+    refreshCreators,
+    posts,
+    refreshPosts,
+    imagesPreloaded,
+    getCachedImageUrl,
+  };
 
   return (
-    <GlobalContext.Provider
-      value={{
-        isLogged,
-        user,
-        loading,
-        refetch,
-        isStreamConnected,
-        creators,
-        loadCreators,
-        refreshCreators,
-        posts,
-        loadPosts,
-        refreshPosts,
-        preloadImages,
-        imagesPreloaded,
-      }}
-    >
+    <GlobalContext.Provider value={contextValue}>
       {children}
     </GlobalContext.Provider>
   );
 };
-
-export const useGlobalContext = (): GlobalContextType => {
-  const context = useContext(GlobalContext);
-  if (!context)
-    throw new Error("useGlobalContext must be used within a GlobalProvider");
-
-  return context;
-};
-
-export default GlobalProvider;

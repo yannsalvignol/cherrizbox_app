@@ -1,4 +1,3 @@
-import { getAllPosts, getSubscriptionStatus, getUserProfile } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -31,61 +30,21 @@ interface Post {
 
 export default function Index() {
     const router = useRouter();
-    const { user, refreshPosts } = useGlobalContext();
+    const { user, profile, posts, loading, refreshPosts, getCachedImageUrl } = useGlobalContext();
     const [refreshing, setRefreshing] = useState(false);
-    const [posts, setPosts] = useState<Post[]>([]);
     const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
     const [isSearchFocused, setIsSearchFocused] = useState(false);
-    const [profileImage, setProfileImage] = useState<string | null>(null);
     const [selectedTrends, setSelectedTrends] = useState<string[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const scrollY = useRef(new Animated.Value(0)).current;
     const [scrolling, setScrolling] = useState(false);
 
-    const loadPosts = async () => {
-        try {
-            const allPosts = await getAllPosts();
-            // Ensure type is either 'photo' or 'video'
-            const typedPosts = allPosts.map(post => ({
-                ...post,
-                type: post.type === 'photo' ? 'photo' : 'video'
-            })) as Post[];
+    useEffect(() => {
+      if (!loading) {
+        setFilteredPosts(posts);
+      }
+    }, [posts, loading]);
 
-            // Check subscription status for each post
-            if (user?.$id) {
-                const postsWithSubscription = await Promise.all(
-                    typedPosts.map(async (post) => {
-                        const { isSubscribed, isCancelled } = await getSubscriptionStatus(user.$id, post.title || '');
-                        console.log(`Subscription check for "${post.title}":`, { isSubscribed, isCancelled, userId: user.$id });
-                        return { ...post, isSubscribed, isCancelled };
-                    })
-                );
-                // Sort posts: active subscriptions first, then cancelled ones, then by creation date
-                const sortedPosts = postsWithSubscription.sort((a, b) => {
-                    // Active subscriptions first
-                    if (a.isSubscribed && !a.isCancelled && (!b.isSubscribed || b.isCancelled)) return -1;
-                    if ((!a.isSubscribed || a.isCancelled) && b.isSubscribed && !b.isCancelled) return 1;
-                    
-                    // Then cancelled subscriptions
-                    if (a.isCancelled && !b.isCancelled) return -1;
-                    if (!a.isCancelled && b.isCancelled) return 1;
-                    
-                    // If subscription status is the same, sort by creation date
-                    return new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime();
-                });
-                setPosts(sortedPosts);
-                setFilteredPosts(sortedPosts);
-            } else {
-            setPosts(typedPosts);
-            setFilteredPosts(typedPosts);
-            }
-        } catch (error) {
-            console.error('Error loading posts:', error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
     const handleTrendsChange = (trends: string[]) => {
         setSelectedTrends(trends);
         filterPosts(searchQuery, trends);
@@ -131,27 +90,6 @@ export default function Index() {
             setRefreshing(false);
         }
     };
-
-    useEffect(() => {
-        loadPosts();
-    }, []);
-
-    useEffect(() => {
-        const loadProfileData = async () => {
-            try {
-                if (user?.$id) {
-                    const profile = await getUserProfile(user.$id);
-                    if (profile?.profileImageUri) {
-                        setProfileImage(profile.profileImageUri);
-                    }
-                }
-            } catch (error) {
-                console.error('Error loading profile data:', error);
-            }
-        };
-
-        loadProfileData();
-    }, [user]);
 
     // Add keyboard listener to dismiss trending when keyboard is dismissed
     useEffect(() => {
@@ -215,9 +153,9 @@ export default function Index() {
             
                 <TouchableOpacity onPress={() => router.push('/profile')}>
                     <View className="w-16 h-16 rounded-full bg-[#1A1A1A] items-center justify-center overflow-hidden">
-                        {profileImage ? (
+                        {profile?.profileImageUri ? (
                             <Image
-                                source={{ uri: profileImage }}
+                                source={{ uri: getCachedImageUrl(profile.profileImageUri) }}
                                 className="w-full h-full"
                                 resizeMode="cover"
                             />
@@ -266,7 +204,7 @@ export default function Index() {
                         {isSearchFocused ? 'Search Results' : 'For You'}
                     </Text>
                     
-                    {isLoading ? (
+                    {loading && posts.length === 0 ? (
                         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 60 }}>
                             <Image source={require('../../../assets/icon/loading-icon.png')} style={{ width: 60, height: 60, marginBottom: 16 }} />
                             <Text style={{ color: '#FB2355', fontSize: 18, marginBottom: 12 }}>Loading posts...</Text>

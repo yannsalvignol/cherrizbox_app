@@ -1,4 +1,5 @@
 import { getCreatorIdByName } from '@/lib/appwrite';
+import { useGlobalContext } from '@/lib/global-provider';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
@@ -28,9 +29,26 @@ interface PhotoCardProps {
 
 const PhotoCard = ({ photo, index = 0, scrollY, isSubscribed = false, isCancelled = false, scrolling = false }: PhotoCardProps) => {
     const router = useRouter();
+    const { getCachedImageUrl } = useGlobalContext();
     const scaleAnim = useRef(new Animated.Value(1)).current;
     const opacityAnim = useRef(new Animated.Value(1)).current;
     const translateX = useRef(new Animated.Value(0)).current;
+
+    const imageUrl = photo.thumbnail || photo.imageUrl || photo.fileUrl || '';
+    const cachedUrl = getCachedImageUrl(imageUrl);
+
+    // Add logging to check if the image is cached
+    useEffect(() => {
+        if (imageUrl) {
+            console.log(
+                `PhotoCard Title: ${photo.title || 'Untitled'}\n` +
+                `  - Original URL: ${imageUrl}\n` +
+                `  - Used URL: ${cachedUrl}\n` +
+                `  - Is Cached: ${cachedUrl.startsWith('file://')}\n` +
+                `------------------------------------`
+            );
+        }
+    }, [photo.title, imageUrl, cachedUrl]);
 
     useEffect(() => {
         const delay = index * 50;
@@ -164,9 +182,9 @@ const PhotoCard = ({ photo, index = 0, scrollY, isSubscribed = false, isCancelle
                 >
                     <View style={{ borderRadius: 18, overflow: 'hidden', position: 'relative' }}>
                         {/* Image */}
-                        {photo.thumbnail || photo.imageUrl || photo.fileUrl ? (
+                        {imageUrl ? (
                             <Image
-                                source={{ uri: photo.thumbnail || photo.imageUrl || photo.fileUrl }}
+                                source={{ uri: cachedUrl }}
                                 style={{ width: '100%', height: 290 }}
                                 resizeMode="cover"
                             />

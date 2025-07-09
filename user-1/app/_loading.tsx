@@ -9,28 +9,29 @@ const LoadingScreen = () => {
   const [loadingText, setLoadingText] = useState('Initializing...');
 
   useEffect(() => {
-    // Only navigate after checking user state
-    if (user === undefined) return; // still loading
+    // Wait until user is loaded and images are preloaded
+    if (user === undefined || (user && !imagesPreloaded)) return;
+
     const timer = setTimeout(() => {
       if (user) {
         router.replace('/(root)/(tabs)');
       } else {
         router.replace('/sign-up');
       }
-    }, 1000); // shorter splash for better UX
+    }, 500); // Shorter delay now that preloading is handled
     return () => clearTimeout(timer);
-  }, [router, user]);
+  }, [router, user, imagesPreloaded]);
 
   // Update loading text based on connection status and preloading
   useEffect(() => {
-    if (user && isStreamConnected && imagesPreloaded) {
+    if (user && imagesPreloaded) {
       setLoadingText('Ready!');
-    } else if (user && isStreamConnected && posts.length > 0) {
+    } else if (user && posts.length > 0 && !imagesPreloaded) {
       setLoadingText('Preloading images...');
     } else if (user && isStreamConnected) {
       setLoadingText('Loading content...');
     } else if (user) {
-      setLoadingText('Connecting to chat...');
+      setLoadingText('Connecting...');
     } else {
       setLoadingText('Loading...');
     }

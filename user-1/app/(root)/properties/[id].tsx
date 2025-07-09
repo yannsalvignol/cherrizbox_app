@@ -8,7 +8,7 @@ import StripePaymentModal from '../../components/StripePaymentModal';
 const Property = () => {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { user, posts } = useGlobalContext();
+  const { user, posts, getCachedImageUrl } = useGlobalContext();
   const [post, setPost] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -71,9 +71,10 @@ const Property = () => {
   useEffect(() => {
     if (post) {
       const imageUrl = imageParam || post.thumbnail || post.imageUrl || post.fileUrl;
-      if (imageUrl) {
-        console.log('Preloading specific image:', imageUrl);
-        Image.prefetch(imageUrl)
+      const cachedUrl = getCachedImageUrl(imageUrl);
+      if (cachedUrl) {
+        console.log('Preloading specific image:', cachedUrl);
+        Image.prefetch(cachedUrl)
           .then(() => {
             console.log('Specific image preloaded successfully');
             setImageLoaded(true);
@@ -192,6 +193,7 @@ const Property = () => {
   }
 
   const imageUrl = imageParam || post.thumbnail || post.imageUrl || post.fileUrl;
+  const cachedImageUrl = getCachedImageUrl(imageUrl);
 
   return (
     <View style={{ flex: 1 }}>
@@ -206,7 +208,7 @@ const Property = () => {
         <View style={[StyleSheet.absoluteFill, { backgroundColor: '#1A1A1A' }]} />
         
         <ImageBackground
-          source={{ uri: imageUrl }}
+          source={{ uri: cachedImageUrl }}
           style={StyleSheet.absoluteFill}
           resizeMode="cover"
           blurRadius={0}

@@ -744,23 +744,54 @@ export const recordPaidContentPurchase = async (
 export const checkPaidContentPurchase = async (userId: string, contentId: string): Promise<boolean> => {
     try {
         if (!config.paidContentPurchasesCollectionId) {
-            console.error('Missing paidContentPurchasesCollectionId in config');
+            console.log("Paid content purchases collection ID not configured");
             return false;
         }
 
-        const purchases = await databases.listDocuments(
+        const response = await databases.listDocuments(
             config.databaseId!,
             config.paidContentPurchasesCollectionId,
             [
                 Query.equal('userId', userId),
-                Query.equal('contentId', contentId),
-                Query.equal('status', 'completed')
+                Query.equal('contentId', contentId)
             ]
         );
 
-        return purchases.documents.length > 0;
+        return response.documents.length > 0;
     } catch (error) {
         console.error('Error checking paid content purchase:', error);
         return false;
+    }
+};
+
+// Get purchased content based on filters
+export const getPurchasedContent = async (
+    userId: string, 
+    contentType?: string, 
+    creatorId?: string
+) => {
+    try {
+        const queries = [Query.equal('userId', userId)];
+        
+        // Add content type filter if specified
+        if (contentType) {
+            queries.push(Query.equal('contentType', contentType));
+        }
+        
+        // Add creator filter if specified
+        if (creatorId) {
+            queries.push(Query.equal('creatorId', creatorId));
+        }
+        
+        const response = await databases.listDocuments(
+            config.databaseId!,
+            '686a99d3002ec49567b3', // Paid content purchases collection ID
+            queries
+        );
+        
+        return response.documents;
+    } catch (error) {
+        console.error('Error fetching purchased content:', error);
+        return [];
     }
 };
