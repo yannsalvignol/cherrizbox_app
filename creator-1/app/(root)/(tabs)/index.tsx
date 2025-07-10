@@ -1,7 +1,7 @@
 import { getUserProfile } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
 import { client, connectUser } from '@/lib/stream-chat';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, FlatList, Image, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
@@ -18,6 +18,7 @@ interface Channel {
   image?: string;
   memberNames?: { [userId: string]: string };
   memberAvatars?: { [userId: string]: string };
+  unreadCount: number;
 }
 
 interface Subscription {
@@ -100,6 +101,7 @@ export default function Index() {
         image: (channel.data as any)?.image || '',
         memberNames: (channel.data as any)?.memberNames || {},
         memberAvatars: (channel.data as any)?.memberAvatars || {},
+        unreadCount: channel.countUnread(),
       }));
 
       // Fetch user names for DM channels
@@ -375,6 +377,7 @@ export default function Index() {
     const avatar = getChannelAvatar(item);
     const isDM = item.id.startsWith('dm-');
     const isGroupChat = item.id.startsWith('creator-');
+    const hasUnread = item.unreadCount > 0;
     
     return (
       <TouchableOpacity 
@@ -451,11 +454,11 @@ export default function Index() {
           </View>
           
           <Text style={{ 
-            color: isGroupChat ? '#CCCCCC' : '#888888', 
+            color: hasUnread ? 'white' : (isGroupChat ? '#CCCCCC' : '#888888'), 
             fontSize: isGroupChat ? 14 : 13,
-            fontFamily: 'Urbanist-Regular',
+            fontFamily: hasUnread ? 'Urbanist-Bold' : 'Urbanist-Regular',
           }}>
-            {item.lastMessage || 'No messages yet'}
+            {item.lastMessage || (hasUnread ? `${item.unreadCount} new message${item.unreadCount > 1 ? 's' : ''}` : (isGroupChat ? 'Share updates with your fans' : 'No messages yet'))}
           </Text>
           
           <View style={{ 
@@ -498,18 +501,39 @@ export default function Index() {
           </View>
         </View>
 
-        {/* Arrow */}
-        <View style={{
-          width: isGroupChat ? 24 : 20,
-          height: isGroupChat ? 24 : 20,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <Text style={{ 
-            color: isGroupChat ? '#FFD700' : '#666666', 
-            fontSize: isGroupChat ? 16 : 14 
-          }}>›</Text>
-        </View>
+        {/* Arrow or Unread Count Badge */}
+        {item.unreadCount > 0 ? (
+          <View style={{
+            backgroundColor: '#FB2355',
+            borderRadius: 12,
+            minWidth: 24,
+            height: 24,
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingHorizontal: 8,
+          }}>
+            <Text style={{
+              color: 'white',
+              fontSize: 12,
+              fontWeight: 'bold',
+              fontFamily: 'Urbanist-Bold',
+            }}>
+              {item.unreadCount > 99 ? '99+' : item.unreadCount}
+            </Text>
+          </View>
+        ) : (
+          <View style={{
+            width: isGroupChat ? 24 : 20,
+            height: isGroupChat ? 24 : 20,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <Text style={{ 
+              color: isGroupChat ? '#FFD700' : '#666666', 
+              fontSize: isGroupChat ? 16 : 14 
+            }}>›</Text>
+          </View>
+        )}
       </TouchableOpacity>
     );
   };
@@ -538,13 +562,21 @@ export default function Index() {
     loadEarningsData();
   }, [user]);
 
+  useFocusEffect(
+    React.useCallback(() => {
+      if (user) {
+        loadChannels();
+      }
+    }, [user])
+  );
+
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }} edges={['top']}>
             {/* Header */}
             <View className="flex-row items-center justify-between px-4 py-2 bg-black">
                 <Image 
                     source={require('../../../assets/images/cherry-icon.png')}
-                    className="w-14 h-14"
+                    className="w-16 h-16 rounded-lg"
                     resizeMode="contain"
                 />
                 
@@ -581,7 +613,7 @@ export default function Index() {
                 </View>
                 
         <TouchableOpacity onPress={() => router.push('/edit-profile')}>
-                    <View className="w-16 h-16 rounded-full bg-[#1A1A1A] items-center justify-center overflow-hidden">
+                    <View className="w-[61px] h-[61px] rounded-full bg-[#1A1A1A] items-center justify-center overflow-hidden">
                         {profileImage ? (
                             <Image
                                 source={{ uri: profileImage }}
@@ -650,7 +682,7 @@ export default function Index() {
               backgroundColor: 'black'
             }}>
               <Image 
-                source={require('../../../assets/images/cherry-icon.png')} 
+                source={require('../../../assets/icon/loading-icon.png')} 
                 style={{ width: 60, height: 60, marginBottom: 16 }} 
               />
               <Text style={{ 
@@ -753,7 +785,7 @@ export default function Index() {
               }
             >
                             <Image 
-                                source={require('../../../assets/images/cherry-icon.png')} 
+                                source={require('../../../assets/icon/loading-icon.png')} 
                                 style={{ width: 80, height: 80, marginBottom: 16 }} 
                             />
                             <Text style={{ 

@@ -5474,7 +5474,7 @@ export default function ChatScreen() {
       <SafeAreaView style={{ flex: 1, backgroundColor: '#1A1A1A' }} edges={['top']}>
         <View className="flex-1 items-center justify-center">
           <Image 
-            source={require('../../assets/images/cherry-icon.png')} 
+            source={require('../../assets/icon/loading-icon.png')} 
             style={{ width: 60, height: 60, marginBottom: 16 }} 
           />
           <Text style={{ 
@@ -5496,7 +5496,7 @@ export default function ChatScreen() {
       <SafeAreaView style={{ flex: 1, backgroundColor: '#1A1A1A' }} edges={['top']}>
         <View className="flex-1 items-center justify-center px-4">
           <Image 
-            source={require('../../assets/images/cherry-icon.png')} 
+            source={require('../../assets/icon/loading-icon.png')} 
             style={{ width: 80, height: 80, marginBottom: 16 }} 
           />
           <Text style={{ 
@@ -5544,7 +5544,7 @@ export default function ChatScreen() {
       <SafeAreaView style={{ flex: 1, backgroundColor: '#1A1A1A' }} edges={['top']}>
         <View className="flex-1 items-center justify-center px-4">
           <Image 
-            source={require('../../assets/images/cherry-icon.png')} 
+            source={require('../../assets/icon/loading-icon.png')} 
             style={{ width: 80, height: 80, marginBottom: 16 }} 
           />
           <Text style={{ 
@@ -5595,7 +5595,7 @@ export default function ChatScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <Image 
             source={require('../../assets/images/cherry-icon.png')}
-            className="w-14 h-14"
+            className="w-14 h-14 rounded-lg"
             resizeMode="contain"
           />
         </TouchableOpacity>
@@ -5704,7 +5704,11 @@ export default function ChatScreen() {
                         padding: 32 
                       }}>
                         <Image
-                          source={require('../../assets/images/cherry-icon.png')}
+                          source={
+                            channelId?.startsWith('dm-')
+                              ? require('../../assets/icon/loading-icon.png')
+                              : require('../../assets/images/cherry-icon.png')
+                          }
                           style={{ width: 60, height: 60, marginBottom: 18, opacity: 0.8 }}
                           resizeMode="contain"
                         />
