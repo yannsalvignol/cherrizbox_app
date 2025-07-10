@@ -8,7 +8,7 @@ import FormField from './components/FormField';
 
 const LoginScreen = () => {
     const router = useRouter();
-    const { refetch } = useGlobalContext();
+    const { refetch, preloadCommonImages } = useGlobalContext();
     const [form, setForm] = useState({
         email: '',
         password: ''
@@ -18,8 +18,22 @@ const LoginScreen = () => {
     const handleLogin = async () => {
         const result = await login();
         if(result){
+            // Start preloading common images in the background during login
+            const preloadPromise = preloadCommonImages();
+            
             await refetch();
-            router.replace('/(root)/(tabs)');
+            
+            // Wait for image preloading to complete (with a timeout to avoid blocking)
+            try {
+                await Promise.race([
+                    preloadPromise,
+                    new Promise(resolve => setTimeout(resolve, 5000)) // 5 second timeout
+                ]);
+            } catch (error) {
+                console.log('Image preloading during login completed or timed out');
+            }
+            
+            router.replace('/welcome-animation');
         } else{
             console.log('Login Failed');
         }
@@ -34,8 +48,23 @@ const LoginScreen = () => {
         try {
             setIsSubmitting(true);
             await SignIn(form.email, form.password);
+            
+            // Start preloading common images in the background during login
+            const preloadPromise = preloadCommonImages();
+            
             await refetch(); // Refresh the global state to update login status
-            router.replace('/(root)/(tabs)');
+            
+            // Wait for image preloading to complete (with a timeout to avoid blocking)
+            try {
+                await Promise.race([
+                    preloadPromise,
+                    new Promise(resolve => setTimeout(resolve, 5000)) // 5 second timeout
+                ]);
+            } catch (error) {
+                console.log('Image preloading during login completed or timed out');
+            }
+            
+            router.replace('/welcome-animation');
         } catch (error: any) {
             console.error('Login error:', error);
             Alert.alert('Error', error.message || 'Login failed');
@@ -81,7 +110,7 @@ const LoginScreen = () => {
                         disabled={isSubmitting}
                     >
                         <Text style={{ color: 'white', textAlign: 'center', fontFamily: 'Urbanist-Light', fontSize: 20 }}>
-                            {isSubmitting ? 'Signing in...' : 'Login'}
+                            {isSubmitting ? 'Signing in & Caching Images...' : 'Login'}
                         </Text>
                     </TouchableOpacity>
 

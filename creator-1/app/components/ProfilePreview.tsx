@@ -383,13 +383,20 @@ const ProfilePreview: React.FC<ProfilePreviewProps> = ({
                 backgroundColor: '#FB2355', 
                 borderRadius: 20, 
                 paddingVertical: 12, 
-                paddingHorizontal: 100,
+                paddingHorizontal: 20,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center'
               }}
             >
-              <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', fontFamily: 'questrial' }}>
+              <Text style={{ 
+                color: 'white', 
+                fontSize: 18, 
+                fontWeight: 'bold', 
+                fontFamily: 'questrial',
+                textAlign: 'center',
+                flex: 1
+              }} numberOfLines={1}>
                 {`Join ${name || 'this'}'s box`}
               </Text>
             </TouchableOpacity>

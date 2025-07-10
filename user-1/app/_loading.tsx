@@ -5,12 +5,12 @@ import { ImageBackground, StyleSheet, Text, View } from 'react-native';
 
 const LoadingScreen = () => {
   const router = useRouter();
-  const { user, isStreamConnected, posts, imagesPreloaded } = useGlobalContext();
+  const { user, isStreamConnected, posts, imagesPreloaded, postsLoaded, loading } = useGlobalContext();
   const [loadingText, setLoadingText] = useState('Initializing...');
 
   useEffect(() => {
-    // Wait until user is loaded and images are preloaded
-    if (user === undefined || (user && !imagesPreloaded)) return;
+    // Wait until user is loaded, posts are loaded, and images are preloaded
+    if (user === undefined || loading || (user && !postsLoaded) || (user && !imagesPreloaded)) return;
 
     const timer = setTimeout(() => {
       if (user) {
@@ -20,14 +20,16 @@ const LoadingScreen = () => {
       }
     }, 500); // Shorter delay now that preloading is handled
     return () => clearTimeout(timer);
-  }, [router, user, imagesPreloaded]);
+  }, [router, user, postsLoaded, imagesPreloaded, loading]);
 
   // Update loading text based on connection status and preloading
   useEffect(() => {
-    if (user && imagesPreloaded) {
+    if (user && imagesPreloaded && postsLoaded) {
       setLoadingText('Ready!');
-    } else if (user && posts.length > 0 && !imagesPreloaded) {
+    } else if (user && postsLoaded && !imagesPreloaded) {
       setLoadingText('Preloading images...');
+    } else if (user && isStreamConnected && !postsLoaded) {
+      setLoadingText('Loading posts...');
     } else if (user && isStreamConnected) {
       setLoadingText('Loading content...');
     } else if (user) {
@@ -35,7 +37,7 @@ const LoadingScreen = () => {
     } else {
       setLoadingText('Loading...');
     }
-  }, [user, isStreamConnected, posts.length, imagesPreloaded]);
+  }, [user, isStreamConnected, postsLoaded, imagesPreloaded]);
 
   return (
     <ImageBackground

@@ -1,9 +1,9 @@
-import { getUserByAccountId, getUserProfile } from '@/lib/appwrite';
+import { getUserProfile } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
 import { client, connectUser } from '@/lib/stream-chat';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, FlatList, Image, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -60,6 +60,7 @@ export default function Index() {
       cancelledSubscriptions: 0
     });
     const [isLoadingEarnings, setIsLoadingEarnings] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
 
     const tabs = [
       { id: 'chats', label: 'Chats' },
@@ -114,12 +115,23 @@ export default function Index() {
             // Fetch names for the other members in the DM (not the current user)
             for (const memberId of otherMembers) {
               try {
-                const userData = await getUserByAccountId(memberId);
-                if (userData) {
+                // Import the databases and config from appwrite
+                const { databases, config } = await import('@/lib/appwrite');
+                const { Query } = await import('react-native-appwrite');
+                
+                // Fetch user data from the user collection using accountId
+                const userResponse = await databases.listDocuments(
+                  config.databaseId,
+                  process.env.EXPO_PUBLIC_APPWRITE_USER_USER_COLLECTION_ID!,
+                  [Query.equal('accountId', memberId)]
+                );
+                
+                if (userResponse.documents.length > 0) {
+                  const userData = userResponse.documents[0];
                   memberNames[memberId] = userData.username || memberId;
                   memberAvatars[memberId] = userData.avatar || '';
                   console.log(`✅ Found user data for ${memberId}: ${userData.username} with avatar: ${userData.avatar}`);
-            } else {
+                } else {
                   memberNames[memberId] = memberId; // Fallback to ID if user not found
                   memberAvatars[memberId] = ''; // No avatar
                   console.log(`❌ No user data found for ${memberId}`);
@@ -391,7 +403,7 @@ export default function Index() {
           width: isGroupChat ? 48 : 40,
           height: isGroupChat ? 48 : 40,
           borderRadius: isGroupChat ? 24 : 20,
-          backgroundColor: isGroupChat ? '#FB2355' : '#FB2355',
+          backgroundColor: isGroupChat ? '#FB2355' : 'transparent',
           alignItems: 'center',
           justifyContent: 'center',
           marginRight: isGroupChat ? 14 : 10,
@@ -502,6 +514,24 @@ export default function Index() {
     );
   };
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      // Reload all data based on selected tab
+      if (selectedTab === 'chats') {
+        await loadChannels();
+        await loadProfileImage();
+      } else if (selectedTab === 'earnings') {
+        await loadEarningsData();
+      }
+      // For other tabs, you can add specific refresh logic here
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   useEffect(() => {
     loadChannels();
     loadProfileImage();
@@ -551,7 +581,7 @@ export default function Index() {
                 </View>
                 
         <TouchableOpacity onPress={() => router.push('/edit-profile')}>
-                    <View className="w-14 h-14 rounded-full bg-[#1A1A1A] items-center justify-center overflow-hidden">
+                    <View className="w-16 h-16 rounded-full bg-[#1A1A1A] items-center justify-center overflow-hidden">
                         {profileImage ? (
                             <Image
                                 source={{ uri: profileImage }}
@@ -559,7 +589,7 @@ export default function Index() {
                                 resizeMode="cover"
                             />
                         ) : (
-                            <Text className="text-xl text-white font-bold">
+                            <Text className="text-2xl text-white font-bold">
                                 {user?.name?.[0] || 'U'}
                             </Text>
                         )}
@@ -636,6 +666,15 @@ export default function Index() {
           ) : channels.length > 0 ? (
             <FlatList
               data={channels}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  tintColor="#FB2355"
+                  colors={["#FB2355"]}
+                  progressBackgroundColor="black"
+                />
+              }
               renderItem={({ item, index }) => {
                 const isGroupChat = item.id.startsWith('creator-');
                 const isFirstDM = !isGroupChat && index > 0 && channels[index - 1].id.startsWith('creator-');
@@ -695,13 +734,24 @@ export default function Index() {
               style={{ backgroundColor: 'black' }}
             />
           ) : (
-            <View style={{ 
-              flex: 1, 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              backgroundColor: 'black',
-              paddingHorizontal: 32
-            }}>
+            <ScrollView
+              contentContainerStyle={{ 
+                flex: 1, 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                backgroundColor: 'black',
+                paddingHorizontal: 32
+              }}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  tintColor="#FB2355"
+                  colors={["#FB2355"]}
+                  progressBackgroundColor="black"
+                />
+              }
+            >
                             <Image 
                                 source={require('../../../assets/images/cherry-icon.png')} 
                                 style={{ width: 80, height: 80, marginBottom: 16 }} 
@@ -723,14 +773,26 @@ export default function Index() {
               }}>
                 Start a conversation or create your group chat to get started!
                             </Text>
-                        </View>
+                        </ScrollView>
                     )}
         </View>
       )}
 
       {/* Other tab content placeholders */}
       {selectedTab === 'earnings' && (
-        <ScrollView style={{ flex: 1, backgroundColor: 'black' }} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          style={{ flex: 1, backgroundColor: 'black' }} 
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#FB2355"
+              colors={["#FB2355"]}
+              progressBackgroundColor="black"
+            />
+          }
+        >
           {isLoadingEarnings ? (
             <View style={{ 
               flex: 1, 
@@ -967,13 +1029,27 @@ export default function Index() {
       )}
 
       {selectedTab === 'insights' && (
-        <View style={{ 
-          flex: 1, 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          backgroundColor: 'black',
-          paddingHorizontal: 32
-        }}>
+        <ScrollView 
+          style={{ 
+            flex: 1, 
+            backgroundColor: 'black',
+            paddingHorizontal: 32
+          }}
+          contentContainerStyle={{
+            flex: 1,
+            alignItems: 'center', 
+            justifyContent: 'center',
+          }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#FB2355"
+              colors={["#FB2355"]}
+              progressBackgroundColor="black"
+            />
+          }
+        >
           <Text style={{ 
             color: 'white', 
             fontSize: 24, 
@@ -991,17 +1067,31 @@ export default function Index() {
           }}>
             Analytics and insights will appear here
           </Text>
-        </View>
+        </ScrollView>
       )}
 
       {selectedTab === 'audience' && (
-        <View style={{ 
-          flex: 1, 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          backgroundColor: 'black',
-          paddingHorizontal: 32
-        }}>
+        <ScrollView 
+          style={{ 
+            flex: 1, 
+            backgroundColor: 'black',
+            paddingHorizontal: 32
+          }}
+          contentContainerStyle={{
+            flex: 1,
+            alignItems: 'center', 
+            justifyContent: 'center',
+          }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#FB2355"
+              colors={["#FB2355"]}
+              progressBackgroundColor="black"
+            />
+          }
+        >
           <Text style={{ 
             color: 'white', 
             fontSize: 24, 
@@ -1019,17 +1109,31 @@ export default function Index() {
           }}>
             Your audience analytics will appear here
           </Text>
-        </View>
+        </ScrollView>
       )}
 
       {selectedTab === 'other' && (
-        <View style={{ 
-          flex: 1, 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          backgroundColor: 'black',
-          paddingHorizontal: 32
-        }}>
+        <ScrollView 
+          style={{ 
+            flex: 1, 
+            backgroundColor: 'black',
+            paddingHorizontal: 32
+          }}
+          contentContainerStyle={{
+            flex: 1,
+            alignItems: 'center', 
+            justifyContent: 'center',
+          }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#FB2355"
+              colors={["#FB2355"]}
+              progressBackgroundColor="black"
+            />
+          }
+        >
           <Text style={{ 
             color: 'white', 
             fontSize: 24, 
@@ -1047,7 +1151,7 @@ export default function Index() {
           }}>
             Additional features will appear here
           </Text>
-        </View>
+        </ScrollView>
       )}
         </SafeAreaView>
     );

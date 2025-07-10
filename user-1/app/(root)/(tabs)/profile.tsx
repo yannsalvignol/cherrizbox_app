@@ -78,7 +78,7 @@ interface Subscription {
 
 export default function Profile() {
   const router = useRouter();
-  const { creators, refreshCreators, user, profile, getCachedImageUrl } = useGlobalContext();
+  const { creators, refreshCreators, user, profileImage } = useGlobalContext();
   const [isPaidContent, setIsPaidContent] = useState(false);
   const [isUnsubscribeModalVisible, setIsUnsubscribeModalVisible] = useState(false);
   const [selectedCreator, setSelectedCreator] = useState<{ name: string; subscriptionId: string } | null>(null);
@@ -106,6 +106,9 @@ export default function Profile() {
     loadUserData();
     initializeCache();
   }, []);
+
+  // Remove all useEffect/useFocusEffect that fetch profile image and the local profileImage state
+  // Use profileImage from context in the avatar
 
   useEffect(() => {
     if (isPaidContent && user) {
@@ -340,8 +343,8 @@ export default function Profile() {
   };
 
   const loadUserData = async () => {
-    // Data (user, profile) is now loaded from GlobalProvider
-    // This function can be kept for future screen-specific logic or removed
+    // Data (user) is now loaded from GlobalProvider
+    // Profile image is loaded directly from database in useEffect above
   };
 
   const loadPurchasedContent = async () => {
@@ -621,9 +624,9 @@ export default function Profile() {
       {/* Profile Picture Section - Fixed */}
       <View className="items-center mb-6">
         <View className="w-32 h-32 rounded-full bg-[#1A1A1A] items-center justify-center mb-3 overflow-hidden">
-          {profile?.profileImageUri ? (
+          {profileImage ? (
             <ExpoImage
-              source={{ uri: getCachedImageUrl(profile.profileImageUri) }}
+              source={{ uri: profileImage }}
               style={{ width: '100%', height: '100%' }}
               contentFit="cover"
               cachePolicy="memory-disk"

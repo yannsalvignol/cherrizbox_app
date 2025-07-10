@@ -1,5 +1,6 @@
 import { createUser, login, SignIn } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
+import { Ionicons } from '@expo/vector-icons';
 import { Redirect, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -39,7 +40,7 @@ const PasswordCriteria = ({ password, isFocused }: { password: string; isFocused
 
 const App = () => {
     const router = useRouter();
-    const { refetch, loading, isLogged } = useGlobalContext();
+    const { refetch, loading, isLogged, preloadCommonImages } = useGlobalContext();
     const [form, setForm] = useState({
         username: '',
         email: '',
@@ -63,10 +64,26 @@ const App = () => {
 
         try {
             setIsSubmitting(true);
+            
+            // Start preloading common images in the background during sign-up
+            const preloadPromise = preloadCommonImages();
+            
+            // Create user account
             await createUser(form.email, form.password, form.username);
             await SignIn(form.email, form.password);
+            
+            // Wait for image preloading to complete (with a timeout to avoid blocking)
+            try {
+                await Promise.race([
+                    preloadPromise,
+                    new Promise(resolve => setTimeout(resolve, 5000)) // 5 second timeout
+                ]);
+            } catch (error) {
+                console.log('Image preloading during sign-up completed or timed out');
+            }
+            
             refetch();
-            router.replace('/(root)/(tabs)');
+            router.replace('/welcome-animation');
         } catch (error) {
             if (error instanceof Error) {
                 Alert.alert('Error', error.message);
@@ -133,7 +150,7 @@ const App = () => {
                         disabled={isSubmitting}
                     >
                         <Text style={{ color: 'white', textAlign: 'center', fontFamily: 'Urbanist-Light', fontSize: 20 }}>
-                            {isSubmitting ? 'Creating Account...' : 'Register'}
+                            {isSubmitting ? 'Creating Account & Caching Images...' : 'Register'}
                         </Text>
                     </TouchableOpacity>
 

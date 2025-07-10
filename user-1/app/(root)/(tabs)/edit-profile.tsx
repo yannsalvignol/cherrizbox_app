@@ -44,7 +44,7 @@ const genders = [
 
 export default function EditProfile() {
   const router = useRouter();
-  const { user: globalUser } = useGlobalContext();
+  const { user: globalUser, setProfileImage } = useGlobalContext();
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -57,10 +57,11 @@ export default function EditProfile() {
   const [selectedDay, setSelectedDay] = useState('1');
   const [selectedYear, setSelectedYear] = useState('2000');
   const [selectedGender, setSelectedGender] = useState<typeof genders[0] | null>(null);
-  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [localProfileImage, setLocalProfileImage] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const months = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
   const currentYear = new Date().getFullYear();
@@ -109,6 +110,7 @@ export default function EditProfile() {
           if (profile) {
             // Set profile image if exists
             if (profile.profileImageUri) {
+              setLocalProfileImage(profile.profileImageUri);
               setProfileImage(profile.profileImageUri);
             }
 
@@ -177,34 +179,44 @@ export default function EditProfile() {
       });
 
       if (!result.canceled) {
-        // Compress and resize the image
-        const manipResult = await ImageManipulator.manipulateAsync(
-          result.assets[0].uri,
-          [{ resize: { width: 250, height: 250 } }], // Resize to 200x200
-          { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG } // Compress to 10% quality
-        );
-
-        // Upload the compressed image to Appwrite
-        const photoResult = await uploadProfilePicture({
-          uri: manipResult.uri,
-          type: 'image/jpeg',
-          name: 'profile.jpg'
-        }, profileImage || undefined);
+        // Show loading indicator
+        setIsUploadingImage(true);
         
-        if (photoResult) {
-          setProfileImage(photoResult.imageUrl);
-          // Update profile immediately with the new image URL
-          if (globalUser?.$id) {
-            await updateUserProfile(globalUser.$id, {
-              userId: globalUser.$id,
-              profileImageUri: photoResult.imageUrl
-            });
+        try {
+          // Drastically compress and resize the image for profile picture
+          const manipResult = await ImageManipulator.manipulateAsync(
+            result.assets[0].uri,
+            [{ resize: { width: 200, height: 200 } }], // Resize to 200x200 for better quality
+            { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG } // Compress to 60% quality
+          );
+
+          // Upload the compressed image to Appwrite
+          const photoResult = await uploadProfilePicture({
+            uri: manipResult.uri,
+            type: 'image/jpeg',
+            name: 'profile.jpg'
+          }, localProfileImage || undefined);
+          
+          if (photoResult) {
+            setLocalProfileImage(photoResult.imageUrl); // update local state
+            setProfileImage(photoResult.imageUrl); // update global context
+            // Update profile immediately with the new image URL
+            if (globalUser?.$id) {
+              await updateUserProfile(globalUser.$id, {
+                userId: globalUser.$id,
+                profileImageUri: photoResult.imageUrl
+              });
+            }
           }
+        } finally {
+          // Hide loading indicator
+          setIsUploadingImage(false);
         }
       }
     } catch (error) {
       console.error('Error picking image:', error);
       alert('Error picking image');
+      setIsUploadingImage(false);
     }
   };
 
@@ -223,7 +235,7 @@ export default function EditProfile() {
         dateOfBirth: `${selectedYear}-${selectedMonth}-${selectedDay}`,
         gender: selectedGender?.value || '',
         phoneNumber: phoneNumber ? `${selectedCountry.code}${phoneNumber}` : '',
-        ...(profileImage && { profileImageUri: profileImage }) // Only include if profileImage exists
+        ...(localProfileImage && { profileImageUri: localProfileImage }) // Only include if profileImage exists
       };
 
       // Update profile in Appwrite
@@ -232,11 +244,6 @@ export default function EditProfile() {
       // Show success message and trigger haptic feedback
       setShowSuccess(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      
-      // Hide success message after 2 seconds
-      setTimeout(() => {
-        setShowSuccess(false);
-      }, 2000);
 
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -283,21 +290,28 @@ export default function EditProfile() {
       {/* Avatar */}
       <View className="items-center mt-8 mb-4">
         <View className="w-36 h-36 rounded-full bg-[#1A1A1A] items-center justify-center relative">
-          {profileImage ? (
+          {isUploadingImage ? (
+            <View className="w-36 h-36 rounded-full bg-[#1A1A1A] items-center justify-center">
+              <Image source={require('../../../assets/icon/loading-icon.png')} style={{ width: 48, height: 48 }} />
+              <Text className="text-white text-sm mt-2 font-questrial">Uploading...</Text>
+            </View>
+          ) : localProfileImage ? (
             <Image 
-              source={{ uri: profileImage }} 
+              source={{ uri: localProfileImage }} 
               className="w-36 h-36 rounded-full"
               style={{ resizeMode: 'cover' }}
             />
           ) : (
             <Text className="text-2xl text-white font-bold">{name?.[0] || 'U'}</Text>
           )}
-          <TouchableOpacity 
-            className="absolute bottom-0 right-0"
-            onPress={pickImage}
-          >
-            <Image source={require('../../../assets/icon/edit.png')} className="w-11 h-11" />
-          </TouchableOpacity>
+          {!isUploadingImage && (
+            <TouchableOpacity 
+              className="absolute bottom-0 right-0"
+              onPress={pickImage}
+            >
+              <Image source={require('../../../assets/icon/edit.png')} className="w-11 h-11" />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 

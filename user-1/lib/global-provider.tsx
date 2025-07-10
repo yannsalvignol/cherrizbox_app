@@ -87,7 +87,11 @@ interface GlobalContextType {
   posts: Post[];
   refreshPosts: () => Promise<void>;
   imagesPreloaded: boolean;
+  postsLoaded: boolean;
   getCachedImageUrl: (url?: string) => string | undefined;
+  preloadCommonImages: () => Promise<void>;
+  profileImage: string | null;
+  setProfileImage: (url: string | null) => void;
 }
 
 const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
@@ -113,6 +117,7 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
   const imageCachePath = FileSystem.documentDirectory + 'imageCache.json';
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const previousUserId = useRef<string | null>(null);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
 
   const getCachedImageUrl = (remoteUrl?: string) => {
     if (!remoteUrl) return undefined;
@@ -138,6 +143,56 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // New function to preload common images during sign-up
+  const preloadCommonImages = async () => {
+    try {
+      console.log('Starting to preload common images during sign-up...');
+      
+      // Get all posts without requiring user authentication
+      const allPosts = await getAllPosts();
+      
+      // Get the most recent posts (limit to first 10 for faster caching)
+      const recentPosts = allPosts.slice(0, 10);
+      
+      const postImageUrls = recentPosts
+        .map((post: any) => post.thumbnail || post.imageUrl || post.fileUrl)
+        .filter((url): url is string => !!url);
+
+      if (postImageUrls.length === 0) {
+        console.log('No images found to preload during sign-up.');
+        return;
+      }
+
+      const uniqueUrls = [...new Set(postImageUrls)];
+      console.log(`Found ${uniqueUrls.length} unique images to preload during sign-up.`);
+
+      let downloadedCount = 0;
+      const promises = uniqueUrls.map(async (url) => {
+        if (!imageDiskCache.current[url]) { // Check if not already cached
+          try {
+            const fileUri = await cacheImage(url);
+            imageDiskCache.current[url] = fileUri;
+            downloadedCount++;
+            console.log(`Cached image during sign-up: ${url}`);
+          } catch (error) {
+            console.error(`Failed to cache image during sign-up: ${url}`, error);
+          }
+        }
+      });
+
+      await Promise.all(promises);
+
+      if (downloadedCount > 0) {
+        await FileSystem.writeAsStringAsync(imageCachePath, JSON.stringify(imageDiskCache.current));
+        console.log(`${downloadedCount} new images cached during sign-up and saved to disk.`);
+      } else {
+        console.log('All images were already cached during sign-up.');
+      }
+    } catch (error) {
+      console.error('Error preloading common images during sign-up:', error);
+    }
+  };
+
   const loadUserProfile = async () => {
     setProfileLoaded(false);
     if (!user?.$id) {
@@ -147,6 +202,7 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
     try {
       const userProfile = (await getUserProfile(user.$id)) as UserProfile;
       setProfile(userProfile);
+      setProfileImage(userProfile?.profileImageUri || null);
     } catch (error) {
       console.error('Error loading user profile:', error);
     } finally {
@@ -303,7 +359,11 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
     posts,
     refreshPosts,
     imagesPreloaded,
+    postsLoaded,
     getCachedImageUrl,
+    preloadCommonImages,
+    profileImage,
+    setProfileImage,
   };
 
   return (

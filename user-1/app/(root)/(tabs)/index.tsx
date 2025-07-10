@@ -28,9 +28,14 @@ interface Post {
     isCancelled?: boolean;
 }
 
+interface UserProfile {
+    userId: string;
+    profileImageUri?: string;
+}
+
 export default function Index() {
     const router = useRouter();
-    const { user, profile, posts, loading, refreshPosts, getCachedImageUrl } = useGlobalContext();
+    const { user, profile, posts, loading, postsLoaded, refreshPosts, getCachedImageUrl, profileImage } = useGlobalContext();
     const [refreshing, setRefreshing] = useState(false);
     const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
     const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -153,9 +158,9 @@ export default function Index() {
             
                 <TouchableOpacity onPress={() => router.push('/profile')}>
                     <View className="w-16 h-16 rounded-full bg-[#1A1A1A] items-center justify-center overflow-hidden">
-                        {profile?.profileImageUri ? (
+                        {profileImage ? (
                             <Image
-                                source={{ uri: getCachedImageUrl(profile.profileImageUri) }}
+                                source={{ uri: profileImage }}
                                 className="w-full h-full"
                                 resizeMode="cover"
                             />
@@ -204,7 +209,7 @@ export default function Index() {
                         {isSearchFocused ? 'Search Results' : 'For You'}
                     </Text>
                     
-                    {loading && posts.length === 0 ? (
+                    {loading || !postsLoaded ? (
                         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 60 }}>
                             <Image source={require('../../../assets/icon/loading-icon.png')} style={{ width: 60, height: 60, marginBottom: 16 }} />
                             <Text style={{ color: '#FB2355', fontSize: 18, marginBottom: 12 }}>Loading posts...</Text>
