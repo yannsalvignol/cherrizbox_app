@@ -7,7 +7,7 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, FlatList, Image, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getUserProfile, updateUserProfile, uploadProfilePicture } from '../../../lib/appwrite';
+import { updateUserProfile, uploadProfilePicture } from '../../../lib/appwrite';
 import { useGlobalContext } from '../../../lib/global-provider';
 
 interface ProfileData {
@@ -44,11 +44,10 @@ const genders = [
 
 export default function EditProfile() {
   const router = useRouter();
-  const { user: globalUser, setProfileImage } = useGlobalContext();
+  const { user: globalUser, profile: globalProfile, setProfile, setProfileImage: setGlobalProfileImage } = useGlobalContext();
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState(countries[0]);
@@ -99,68 +98,41 @@ export default function EditProfile() {
   );
 
   useEffect(() => {
-    const loadUserData = async () => {
-      try {
-        if (globalUser) {
-          setName(globalUser.name || '');
-          setEmail(globalUser.email || '');
-          
-          // Load profile data from Appwrite
-          const profile = await getUserProfile(globalUser.$id);
-          if (profile) {
-            // Set profile image if exists
-            if (profile.profileImageUri) {
-              setLocalProfileImage(profile.profileImageUri);
-              setProfileImage(profile.profileImageUri);
-            }
+    // Populate form with data from Global Context instantly
+    if (globalUser) {
+      setName(globalUser.name || '');
+      setEmail(globalUser.email || '');
+    }
+    if (globalProfile) {
+      setLocalProfileImage(globalProfile.profileImageUri || null);
 
-            // Set gender if exists
-            if (profile.gender) {
-              const genderOption = genders.find(g => g.value === profile.gender);
-              if (genderOption) {
-                setSelectedGender(genderOption);
-              }
-            }
-
-            // Set phone number if exists
-            if (profile.phoneNumber) {
-              // Extract country code and phone number
-              const phoneData = profile.phoneNumber;
-              if (phoneData.startsWith('+')) {
-                // Find country by code
-                const countryCode = phoneData.substring(0, 3); // Get first 3 chars for country code
-                const country = countries.find(c => phoneData.startsWith(c.code));
-                if (country) {
-                  setSelectedCountry(country);
-                  // Set the phone number part (remove country code) and format it
-                  const phonePart = phoneData.substring(country.code.length);
-                  const formattedPhone = formatPhoneNumber(phonePart, country.format);
-                  setPhoneNumber(formattedPhone);
-                }
-              } else {
-                // If no country code, just set the phone number
-                setPhoneNumber(phoneData);
-              }
-            }
-
-            // Set birth date if exists
-            if (profile.dateOfBirth) {
-              const [year, month, day] = profile.dateOfBirth.split('-');
-              setSelectedYear(year);
-              setSelectedMonth(month);
-              setSelectedDay(day);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error loading user data:', error);
-      } finally {
-        setLoading(false);
+      if (globalProfile.gender) {
+        const genderOption = genders.find(g => g.value === globalProfile.gender);
+        setSelectedGender(genderOption || null);
       }
-    };
 
-    loadUserData();
-  }, [globalUser]);
+      if (globalProfile.phoneNumber) {
+        const phoneData = globalProfile.phoneNumber;
+        if (phoneData.startsWith('+')) {
+          const country = countries.find(c => phoneData.startsWith(c.code));
+          if (country) {
+            setSelectedCountry(country);
+            const phonePart = phoneData.substring(country.code.length);
+            setPhoneNumber(formatPhoneNumber(phonePart, country.format));
+          }
+        } else {
+          setPhoneNumber(phoneData);
+        }
+      }
+
+      if (globalProfile.dateOfBirth) {
+        const [year, month, day] = globalProfile.dateOfBirth.split('-');
+        setSelectedYear(year);
+        setSelectedMonth(month);
+        setSelectedDay(day);
+      }
+    }
+  }, [globalUser, globalProfile]);
 
   const pickImage = async () => {
     try {
@@ -199,7 +171,7 @@ export default function EditProfile() {
           
           if (photoResult) {
             setLocalProfileImage(photoResult.imageUrl); // update local state
-            setProfileImage(photoResult.imageUrl); // update global context
+            setGlobalProfileImage(photoResult.imageUrl); // update global context
             // Update profile immediately with the new image URL
             if (globalUser?.$id) {
               await updateUserProfile(globalUser.$id, {
@@ -241,6 +213,18 @@ export default function EditProfile() {
       // Update profile in Appwrite
       await updateUserProfile(globalUser.$id, profileData);
       
+      // Update global profile state
+      setProfile({
+        ...(globalProfile || {}),
+        ...profileData,
+        $id: globalProfile?.$id || '',
+        $collectionId: globalProfile?.$collectionId || '',
+        $databaseId: globalProfile?.$databaseId || '',
+        $createdAt: globalProfile?.$createdAt || '',
+        $updatedAt: new Date().toISOString(),
+        $permissions: globalProfile?.$permissions || [],
+      });
+
       // Show success message and trigger haptic feedback
       setShowSuccess(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -252,16 +236,6 @@ export default function EditProfile() {
       setSaving(false);
     }
   };
-
-  if (loading) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }} edges={['top']}>
-        <View className="flex-1 items-center justify-center">
-          <Text className="text-white">Loading...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }} edges={['top']}>

@@ -1,6 +1,6 @@
 import { useGlobalContext } from '@/lib/global-provider';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Dimensions, Image, Platform, Text, Vibration, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -22,6 +22,8 @@ export default function WelcomeAnimation() {
     const backgroundOpacity = useRef(new Animated.Value(0)).current;
     const overlayOpacity = useRef(new Animated.Value(1)).current;
     const dotPulse = useRef(new Animated.Value(1)).current;
+    const loadingTextOpacity = useRef(new Animated.Value(0)).current;
+    const [loadingText, setLoadingText] = useState('');
 
     // iOS-compatible vibration function
     const triggerVibration = (pattern?: number | number[]) => {
@@ -43,15 +45,17 @@ export default function WelcomeAnimation() {
     };
 
     useEffect(() => {
+        let textAnimationCleanup: (() => void) | undefined;
+
         // Start the animation sequence
-        const startAnimation = async () => {
+        const startAnimation = () => {
             // Initial vibration when animation starts
             triggerVibration([0, 200]);
 
             // Fade in background
             Animated.timing(backgroundOpacity, {
                 toValue: 1,
-                duration: 500,
+                duration: 300,
                 useNativeDriver: true,
             }).start();
 
@@ -59,17 +63,17 @@ export default function WelcomeAnimation() {
             Animated.parallel([
                 Animated.timing(logoPosition, {
                     toValue: 0,
-                    duration: 1000,
+                    duration: 600,
                     useNativeDriver: true,
                 }),
                 Animated.timing(logoOpacity, {
                     toValue: 1,
-                    duration: 800,
+                    duration: 500,
                     useNativeDriver: true,
                 }),
                 Animated.timing(logoScale, {
                     toValue: 1,
-                    duration: 1000,
+                    duration: 600,
                     useNativeDriver: true,
                 }),
             ]).start(() => {
@@ -82,19 +86,19 @@ export default function WelcomeAnimation() {
                 Animated.parallel([
                     Animated.timing(welcomeOpacity, {
                         toValue: 1,
-                        duration: 600,
+                        duration: 400,
                         useNativeDriver: true,
                     }),
                     Animated.timing(welcomeScale, {
                         toValue: 1,
-                        duration: 600,
+                        duration: 400,
                         useNativeDriver: true,
                     }),
                 ]).start(() => {
                     // Vibration when text appears
                     triggerVibration([0, 50, 50, 50]);
                 });
-            }, 800);
+            }, 400);
 
             // Start continuous floating animations
             setTimeout(() => {
@@ -161,7 +165,47 @@ export default function WelcomeAnimation() {
                         }),
                     ])
                 ).start();
-            }, 1800);
+                
+                // Loading text sequence
+                const loadingSteps = [
+                    "Connecting to servers...",
+                    "Encrypting files & channels...",
+                    "Warming up the cache...",
+                    "Finalizing setup...",
+                ];
+
+                let isMounted = true;
+                let stepIndex = 0;
+                let animation: Animated.CompositeAnimation;
+
+                const runAnimationStep = () => {
+                    if (!isMounted) return;
+
+                    setLoadingText(loadingSteps[stepIndex % loadingSteps.length]);
+                    stepIndex++;
+
+                    loadingTextOpacity.setValue(0);
+                    animation = Animated.sequence([
+                        Animated.timing(loadingTextOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+                        Animated.delay(900),
+                        Animated.timing(loadingTextOpacity, { toValue: 0, duration: 400, useNativeDriver: true }),
+                    ]);
+
+                    animation.start(({ finished }) => {
+                        if (finished && isMounted) {
+                            runAnimationStep();
+                        }
+                    });
+                };
+
+                runAnimationStep();
+                
+                textAnimationCleanup = () => {
+                    isMounted = false;
+                    animation?.stop();
+                };
+
+            }, 1000);
 
             // Wait for content to be ready and then transition
             setTimeout(() => {
@@ -178,27 +222,33 @@ export default function WelcomeAnimation() {
                             Animated.parallel([
                                 Animated.timing(logoScale, {
                                     toValue: 1.2,
-                                    duration: 200,
+                                    duration: 150,
                                     useNativeDriver: true,
                                 }),
                                 Animated.timing(welcomeScale, {
                                     toValue: 1.2,
-                                    duration: 200,
+                                    duration: 150,
                                     useNativeDriver: true,
                                 }),
                             ]),
                             Animated.timing(overlayOpacity, {
                                 toValue: 0,
-                                duration: 300,
+                                duration: 200,
                                 useNativeDriver: true,
                             }),
                         ]).start();
-                    }, 100); // Small delay to ensure navigation is complete
+                    }, 50); // Small delay to ensure navigation is complete
                 }
-            }, 3000); // Show animation for 3 seconds minimum
+            }, 3500); // Show animation for 3.5 seconds minimum
         };
 
         startAnimation();
+
+        return () => {
+            if (textAnimationCleanup) {
+                textAnimationCleanup();
+            }
+        };
     }, [postsLoaded, imagesPreloaded]);
 
     return (
@@ -303,6 +353,16 @@ export default function WelcomeAnimation() {
                         }}>
                             Your content is ready! 🎉
                         </Text>
+                        
+                        <Animated.Text style={{
+                            fontSize: 16,
+                            color: 'rgba(255, 255, 255, 0.7)',
+                            fontFamily: 'Urbanist-Regular',
+                            marginTop: 30,
+                            opacity: loadingTextOpacity,
+                        }}>
+                            {loadingText}
+                        </Animated.Text>
                     </Animated.View>
                 </Animated.View>
             </SafeAreaView>

@@ -5,6 +5,8 @@ import {
     Avatars,
     Client,
     Databases,
+    ExecutionMethod,
+    Functions,
     ID,
     OAuthProvider,
     Query,
@@ -55,6 +57,7 @@ export const avatars = new Avatars(client);
 export const account = new Account(client);
 export const databases = new Databases(client);
 export const storage = new Storage(client);
+export const functions = new Functions(client);
 
 export const createUser = async (email: string, password: string, username: string) => {
     try {
@@ -319,16 +322,104 @@ export const updateUserProfile = async (userId: string, data: ProfileData): Prom
     }
 };
 
-export const deleteFileFromBucket = async (fileUrl: string): Promise<void> => {
+export const deleteFileFromBucket = async (fileUrl: string) => {
     try {
-        // Extract file ID from the URL
-        const fileId = fileUrl.split('/files/')[1]?.split('/')[0];
-        if (fileId) {
-            await storage.deleteFile(config.storageId!, fileId);
+        const fileId = fileUrl.split('/files/')[1].split('/view')[0];
+        if (!fileId) {
+            console.error("Could not extract fileId from URL:", fileUrl);
+            return;
         }
-    } catch (error) {
-        console.error("Error deleting file:", error);
-        // Don't throw error, just log it
+        await storage.deleteFile(config.storageId!, fileId);
+        console.log("Successfully deleted file:", fileId);
+    } catch (error: any) {
+        // Appwrite throws a 404 error if the file doesn't exist, which is fine.
+        // We can safely ignore it and log other errors.
+        if (error.code === 404) {
+            console.log("File not found, which is okay. Proceeding.");
+        } else {
+            console.error("Error deleting file:", error);
+            // We don't re-throw here because failing to delete an old picture
+            // shouldn't prevent a new one from being uploaded.
+        }
+    }
+};
+
+export async function requestPasswordRecovery(email: string) {
+  try {
+    // This now uses the exact same, proven method as our Google Auth login.
+    const redirectUrl = Linking.createURL('/password-reset');
+
+    console.log(`[requestPasswordRecovery] Sending recovery with redirectUrl: ${redirectUrl}`);
+
+    const promise = await account.createRecovery(
+      email,
+      redirectUrl
+    );
+
+    console.log("Password recovery request sent successfully:", promise);
+    return promise;
+  } catch (error) {
+    console.error("Error requesting password recovery:", error);
+    throw new Error((error as Error).message);
+  }
+}
+
+export const codeBasedPasswordReset = async (email: string) => {
+    const FUNCTION_ID = process.env.EXPO_PUBLIC_REQUEST_PASSWORD_RESET_FUNCTION_ID;
+    if (!FUNCTION_ID) throw new Error('Request password reset function ID not set');
+
+    const execution = await functions.createExecution(
+        FUNCTION_ID,
+        JSON.stringify({ email }),
+        false, 
+        '/',
+        ExecutionMethod.POST,
+        { 'Content-Type': 'application/json' }
+    );
+    
+    if (execution.status === 'failed') {
+        throw new Error(JSON.parse(execution.responseBody).message || 'Failed to request password reset.');
+    }
+    
+    return JSON.parse(execution.responseBody);
+};
+
+export const verifyCodeAndResetPassword = async (email: string, code: string, password?: string) => {
+    const FUNCTION_ID = process.env.EXPO_PUBLIC_VERIFY_PASSWORD_RESET_FUNCTION_ID;
+    if (!FUNCTION_ID) throw new Error('Verify password reset function ID not set');
+    
+    const execution = await functions.createExecution(
+        FUNCTION_ID,
+        JSON.stringify({ email, code, password }),
+        false,
+        '/',
+        ExecutionMethod.POST,
+        { 'Content-Type': 'application/json' }
+    );
+    
+    const responseBody = JSON.parse(execution.responseBody);
+
+    if (execution.status === 'failed' || !responseBody.ok) {
+        throw new Error(responseBody.message || 'Failed to reset password.');
+    }
+    
+    return responseBody;
+};
+
+
+// Complete Password Recovery
+export const completePasswordRecovery = async (userId: string, secret: string, password: string):Promise<any> => {
+    try {
+        console.log(`[completePasswordRecovery] Attempting to reset password for userId: ${userId}`);
+        const result = await account.updateRecovery(userId, secret, password);
+        console.log(`[completePasswordRecovery] Successfully completed password recovery for userId: ${userId}`, result);
+        return result;
+    } catch (error: unknown) {
+        console.error(`[completePasswordRecovery] Error completing password recovery for userId: ${userId}`, error);
+        if (error instanceof Error) {
+            throw new Error(error.message || "Failed to complete password recovery.");
+        }
+        throw new Error("Failed to complete password recovery.");
     }
 };
 

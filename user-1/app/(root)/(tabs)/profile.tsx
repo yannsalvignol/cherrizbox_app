@@ -711,7 +711,7 @@ export default function Profile() {
                 className="flex-1 py-2 px-8 items-center z-10"
               >
                 <Text className={`font-questrial ${isPaidContent ? 'text-white' : 'text-gray-400'}`}>
-                  Other
+                  Paid Content
                 </Text>
               </Pressable>
             </View>

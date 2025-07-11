@@ -79,6 +79,7 @@ interface GlobalContextType {
   isLogged: boolean;
   user: User | null;
   profile: UserProfile | null;
+  setProfile: (profile: UserProfile | null) => void;
   loading: boolean;
   refetch: (newParams?: any) => Promise<void>;
   isStreamConnected: boolean;
@@ -220,10 +221,10 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
       await deleteExpiredSubscriptions(user.$id);
       const userSubscriptions = (await getUserSubscriptions(user.$id)) as AppwriteDocument[];
       const filteredSubscriptions = userSubscriptions.filter((sub, _, self) => {
-        if (sub.status === 'cancelled') return true;
+          if (sub.status === 'cancelled') return true;
         const hasCancelled = self.some(s => s.status === 'cancelled' && s.stripeSubscriptionId === sub.stripeSubscriptionId);
         return !hasCancelled;
-      });
+        });
       setCreators(filteredSubscriptions);
     } catch (error) {
       console.error('Error loading creators:', error);
@@ -255,7 +256,7 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
           if (!a.isCancelled && b.isCancelled) return 1;
           return new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime();
         });
-
+      
         setPosts(sortedPosts);
       } else {
         // If no user, just set the posts
@@ -276,7 +277,7 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
     if (imagesPreloaded) return;
     
     const postImageUrls = posts
-      .map(post => post.thumbnail || post.imageUrl || post.fileUrl)
+        .map(post => post.thumbnail || post.imageUrl || post.fileUrl)
       .filter((url): url is string => !!url);
 
     const allImageUrls = [...postImageUrls];
@@ -285,16 +286,16 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
     }
 
     if (allImageUrls.length === 0) {
-      setImagesPreloaded(true);
-      return;
-    }
-
+        setImagesPreloaded(true);
+        return;
+      }
+      
     const uniqueUrls = [...new Set(allImageUrls)];
 
     let downloadedCount = 0;
     const promises = uniqueUrls.map(async (url) => {
       if (!imageDiskCache.current[url]) { // Check if not already cached
-        try {
+    try {
           const fileUri = await cacheImage(url);
           imageDiskCache.current[url] = fileUri;
           downloadedCount++;
@@ -326,16 +327,16 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
         if (previousUserId.current !== user.$id) {
           if (previousUserId.current) await disconnectUser();
           await connectUser(user.$id);
-          setIsStreamConnected(true);
-          previousUserId.current = user.$id;
+              setIsStreamConnected(true);
+              previousUserId.current = user.$id;
           loadCreators();
           loadPosts();
           loadUserProfile();
         }
       } else if (!user && !loading && previousUserId.current) {
-        await disconnectUser();
-        setIsStreamConnected(false);
-        previousUserId.current = null;
+            await disconnectUser();
+            setIsStreamConnected(false);
+            previousUserId.current = null;
         setCreators([]);
         setPosts([]);
         imageDiskCache.current = {};
@@ -351,6 +352,7 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
     isLogged: !!user,
     user: user as User | null,
     profile,
+    setProfile,
     loading,
     refetch,
     isStreamConnected,

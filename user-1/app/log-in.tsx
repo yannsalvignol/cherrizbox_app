@@ -14,6 +14,7 @@ const LoginScreen = () => {
         password: ''
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState('');
 
     const handleLogin = async () => {
         const result = await login();
@@ -47,6 +48,7 @@ const LoginScreen = () => {
 
         try {
             setIsSubmitting(true);
+            setError(''); // Clear previous errors
             await SignIn(form.email, form.password);
             
             // Start preloading common images in the background during login
@@ -66,8 +68,7 @@ const LoginScreen = () => {
             
             router.replace('/welcome-animation');
         } catch (error: any) {
-            console.error('Login error:', error);
-            Alert.alert('Error', error.message || 'Login failed');
+            setError('Invalid credentials. Please check your email and password.');
         } finally {
             setIsSubmitting(false);
         }
@@ -84,17 +85,29 @@ const LoginScreen = () => {
                     <FormField 
                         title="Email" 
                         value={form.email} 
-                        handleChangeText={(e: string) => setForm({...form, email: e})} 
+                        handleChangeText={(e: string) => {
+                            setForm({...form, email: e});
+                            setError('');
+                        }} 
                         otherStyles="mt-7" 
                         keyboardType="email-address" 
                     />
                     <FormField 
                         title="Password" 
                         value={form.password} 
-                        handleChangeText={(e: string) => setForm({...form, password: e})} 
+                        handleChangeText={(e: string) => {
+                            setForm({...form, password: e});
+                            setError('');
+                        }} 
                         otherStyles="mt-7" 
                     />
                     
+                    {error ? (
+                        <Text style={{ color: '#ef4444' }} className="mt-2 text-center font-['Urbanist-SemiBold']">
+                            {error}
+                        </Text>
+                    ) : null}
+
                     <TouchableOpacity 
                         className="self-end mt-2"
                         onPress={() => router.push('/forgot_password_loged_out')}

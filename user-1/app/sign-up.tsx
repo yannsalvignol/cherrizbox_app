@@ -2,12 +2,12 @@ import { createUser, login, SignIn } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { sendVerificationEmail } from '../lib/email';
 import FormField from './components/FormField';
-
-
+import OtpInput from './components/OtpInput';
 
 const PasswordCriteria = ({ password, isFocused }: { password: string; isFocused: boolean }) => {
     if (!isFocused) return null;
@@ -37,7 +37,6 @@ const PasswordCriteria = ({ password, isFocused }: { password: string; isFocused
     );
 };
 
-
 const App = () => {
     const router = useRouter();
     const { refetch, loading, isLogged, preloadCommonImages } = useGlobalContext();
@@ -48,39 +47,77 @@ const App = () => {
         confirmPassword: ''
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [verificationSent, setVerificationSent] = useState(false);
+    const [verificationCode, setVerificationCode] = useState('');
+    const [generatedCode, setGeneratedCode] = useState('');
+    const [timer, setTimer] = useState(600); // 10 minutes in seconds
+    const [resendDisabled, setResendDisabled] = useState(false);
+    const [isPasswordFocused, setIsPasswordFocused] = useState(false);
+    const [verificationError, setVerificationError] = useState('');
 
-    if (!loading && isLogged) return <Redirect href="/" />;
+    useEffect(() => {
+        let interval: ReturnType<typeof setInterval>;
+        if (verificationSent && timer > 0) {
+            interval = setInterval(() => {
+                setTimer((prev) => prev - 1);
+            }, 1000);
+        } else if (timer === 0) {
+            setResendDisabled(false);
+        }
+        return () => clearInterval(interval);
+    }, [verificationSent, timer]);
 
-    const handleSubmit = async () => {
+    const handleSendVerification = async () => {
         if (!form.username || !form.email || !form.password || !form.confirmPassword) {
             Alert.alert('Error', 'Please fill in all fields');
             return;
         }
-
         if (form.password !== form.confirmPassword) {
             Alert.alert('Error', 'Passwords do not match');
             return;
         }
 
+        const hasMinLength = form.password.length >= 8;
+        const hasCapitalLetter = /[A-Z]/.test(form.password);
+        const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(form.password);
+
+        if (!hasMinLength || !hasCapitalLetter || !hasSpecialChar) {
+            Alert.alert('Error', 'Password does not meet security requirements.');
+            return;
+        }
+
+        setIsSubmitting(true);
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        setGeneratedCode(code);
+        
+        const { success } = await sendVerificationEmail(form.email, code);
+
+        if (success) {
+            setVerificationSent(true);
+            setTimer(600); // Reset timer
+            setResendDisabled(true);
+        } else {
+            Alert.alert('Error', 'Could not send verification email. Please try again.');
+        }
+        setIsSubmitting(false);
+    };
+
+    const handleVerifyAndCreateAccount = async () => {
+        if (verificationCode !== generatedCode) {
+            setVerificationError('Invalid verification code. Please try again.');
+            return;
+        }
+        setVerificationError(''); // Clear error on successful check
+        setIsSubmitting(true);
         try {
-            setIsSubmitting(true);
-            
-            // Start preloading common images in the background during sign-up
             const preloadPromise = preloadCommonImages();
-            
-            // Create user account
             await createUser(form.email, form.password, form.username);
             await SignIn(form.email, form.password);
             
-            // Wait for image preloading to complete (with a timeout to avoid blocking)
-            try {
-                await Promise.race([
-                    preloadPromise,
-                    new Promise(resolve => setTimeout(resolve, 5000)) // 5 second timeout
-                ]);
-            } catch (error) {
-                console.log('Image preloading during sign-up completed or timed out');
-            }
+            await Promise.race([
+                preloadPromise,
+                new Promise(resolve => setTimeout(resolve, 5000))
+            ]);
             
             refetch();
             router.replace('/welcome-animation');
@@ -94,7 +131,7 @@ const App = () => {
             setIsSubmitting(false);
         }
     };
-
+    
     const handleLogin = async () => {
         const result = await login();
         if(result){
@@ -111,97 +148,158 @@ const App = () => {
             </View>
         );
     }
+    
+    if (!loading && isLogged) return <Redirect href="/" />;
 
     return (
         <SafeAreaView className="flex-1 bg-white">
-            <ScrollView>
-                <View className="flex-1 px-4">
-                    <Text className="text-black font-['Urbanist-Bold'] text-4xl mt-[50px]">    
-                        Hello! Register to get in the Cherrizbox.
-                    </Text>
-                    <FormField 
-                        title="Username" 
-                        value={form.username}
-                        handleChangeText={(text) => setForm({ ...form, username: text })}
-                        otherStyles="mt-7" 
-                    />
-                    <FormField 
-                        title="Email" 
-                        value={form.email}
-                        handleChangeText={(text) => setForm({ ...form, email: text })}
-                        otherStyles="mt-7" 
-                        keyboardType="email-address" 
-                    />
-                    <FormField 
-                        title="Password" 
-                        value={form.password}
-                        handleChangeText={(text) => setForm({ ...form, password: text })}
-                        otherStyles="mt-7"
-                    />
-                    <FormField 
-                        title="Confirm Password" 
-                        value={form.confirmPassword}
-                        handleChangeText={(text) => setForm({ ...form, confirmPassword: text })}
-                        otherStyles="mt-7"
-                    />
-                    <TouchableOpacity 
-                        className={`w-full bg-[#FB2355] py-6 rounded-full mt-7 ${isSubmitting ? 'opacity-50' : ''}`}
-                        onPress={handleSubmit}
-                        disabled={isSubmitting}
-                    >
-                        <Text style={{ color: 'white', textAlign: 'center', fontFamily: 'Urbanist-Light', fontSize: 20 }}>
-                            {isSubmitting ? 'Creating Account & Caching Images...' : 'Register'}
-                        </Text>
+            <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}>
+                <View className="flex-1 px-4 py-8">
+                    <TouchableOpacity onPress={() => verificationSent && setVerificationSent(false)} className="absolute top-4 left-4 z-10">
+                        {verificationSent && <Ionicons name="arrow-back" size={24} color="black" />}
                     </TouchableOpacity>
-
-                    <View className="flex-row items-center justify-center mt-7">
-                        <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }} />
-                        <Text style={{ color: '#9CA3AF', fontFamily: 'Urbanist-Bold', marginHorizontal: 16 }}>
-                            Or register with
-                        </Text>
-                        <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }} />
-                    </View>
-
-                    <View className="flex-row items-center justify-between mt-4 px-4">
-                        <TouchableOpacity>
-                            <Image 
-                                source={require('../assets/images/facebook.png')}
-                                    className="w-32 h-32"
-                                resizeMode="contain"
-                            />
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={handleLogin}>
-                            <Image 
-                                source={require('../assets/images/google.png')}
-                                    className="w-32 h-32"
-                                resizeMode="contain"
-                            />
-                        </TouchableOpacity>
-                        <TouchableOpacity>
-                            <Image 
-                                source={require('../assets/images/apple.png')}
-                                    className="w-32 h-32"
-                                resizeMode="contain"
-                            />
-                        </TouchableOpacity>
-                    </View>
-
-                    <View className="flex-row justify-center items-center mt-1">
-                        <Text className="text-black font-['Urbanist-Bold']">
-                            Already have an account?{' '}
-                        </Text>
-                        <TouchableOpacity onPress={() => router.push('/log-in')}>
-                            <Text className="text-[#FB2355] font-['Urbanist-Bold']">
-                                Login Now
+                    
+                    {verificationSent ? (
+                        <View className="items-center">
+                            <Text className="text-black font-['Urbanist-Bold'] text-3xl mt-12 text-center">Verify Your Email</Text>
+                            <Text className="text-gray-500 font-['Urbanist-Regular'] text-base mt-4 text-center">
+                                We've sent a 6-digit code to {form.email}. Please enter it below.
                             </Text>
-                        </TouchableOpacity>
-                    </View>
+
+                            <View className="w-full mt-12">
+                                <OtpInput
+                                    code={verificationCode}
+                                    setCode={(code) => {
+                                        setVerificationCode(code);
+                                        if (verificationError) setVerificationError('');
+                                    }}
+                                />
+                            </View>
+
+                            {verificationError ? (
+                                <Text style={{ color: '#ef4444' }} className="mt-2 text-center font-['Urbanist-SemiBold']">
+                                    {verificationError}
+                                </Text>
+                            ) : null}
+
+                            <TouchableOpacity 
+                                className={`w-full bg-[#FB2355] py-5 rounded-full mt-12 ${isSubmitting ? 'opacity-50' : ''}`}
+                                onPress={handleVerifyAndCreateAccount}
+                                disabled={isSubmitting || verificationCode.length !== 6}
+                            >
+                                <Text style={{ color: 'white', textAlign: 'center', fontFamily: 'Urbanist-SemiBold', fontSize: 18 }}>
+                                    {isSubmitting ? 'Verifying...' : 'Verify & Create Account'}
+                                </Text>
+                            </TouchableOpacity>
+
+                            <View className="flex-row items-center mt-6">
+                                <Text className="text-gray-500 font-['Urbanist-Regular']">Didn't receive a code?</Text>
+                                <TouchableOpacity onPress={handleSendVerification} disabled={resendDisabled || timer > 0}>
+                                    <Text className={`font-['Urbanist-Bold'] ml-2 ${resendDisabled || timer > 0 ? 'text-gray-400' : 'text-[#FB2355]'}`}>
+                                        Resend {timer > 0 ? `(${Math.floor(timer / 60)}:${(timer % 60).toString().padStart(2, '0')})` : ''}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    ) : (
+                        <>
+                            <Text className="text-black font-['Urbanist-Bold'] text-4xl mt-[50px]">    
+                                Hello! Register to get in the Cherrizbox.
+                            </Text>
+                            <FormField 
+                                title="Username" 
+                                value={form.username}
+                                handleChangeText={(text) => setForm({ ...form, username: text })}
+                                otherStyles="mt-7" 
+                            />
+                            <FormField 
+                                title="Email" 
+                                value={form.email}
+                                handleChangeText={(text) => setForm({ ...form, email: text })}
+                                otherStyles="mt-7" 
+                                keyboardType="email-address" 
+                            />
+                            <FormField 
+                                title="Password" 
+                                value={form.password}
+                                handleChangeText={(text) => setForm({ ...form, password: text })}
+                                otherStyles="mt-7"
+                                secureTextEntry
+                                disableAutofill
+                                onFocus={() => setIsPasswordFocused(true)}
+                                onBlur={() => setIsPasswordFocused(false)}
+                            />
+                            <PasswordCriteria password={form.password} isFocused={isPasswordFocused} />
+                            <FormField 
+                                title="Confirm Password" 
+                                value={form.confirmPassword}
+                                handleChangeText={(text) => setForm({ ...form, confirmPassword: text })}
+                                otherStyles="mt-7"
+                                secureTextEntry
+                                disableAutofill
+                            />
+                            <TouchableOpacity 
+                                className={`w-full bg-[#FB2355] py-6 rounded-full mt-7 ${isSubmitting ? 'opacity-50' : ''}`}
+                                onPress={handleSendVerification}
+                                disabled={isSubmitting}
+                            >
+                                <Text style={{ color: 'white', textAlign: 'center', fontFamily: 'Urbanist-Light', fontSize: 20 }}>
+                                    {isSubmitting ? 'Sending Code...' : 'Register'}
+                                </Text>
+                            </TouchableOpacity>
+
+                            <View className="flex-row items-center justify-center mt-7">
+                                <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }} />
+                                <Text style={{ color: '#9CA3AF', fontFamily: 'Urbanist-Bold', marginHorizontal: 16 }}>
+                                    Or register with
+                                </Text>
+                                <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }} />
+                            </View>
+
+                            <View className="flex-row items-center justify-between mt-4 px-4">
+                                <TouchableOpacity>
+                                    <Image 
+                                        source={require('../assets/images/facebook.png')}
+                                            className="w-32 h-32"
+                                        resizeMode="contain"
+                                    />
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={handleLogin}>
+                                    <Image 
+                                        source={require('../assets/images/google.png')}
+                                            className="w-32 h-32"
+                                        resizeMode="contain"
+                                    />
+                                </TouchableOpacity>
+                                <TouchableOpacity>
+                                    <Image 
+                                        source={require('../assets/images/apple.png')}
+                                            className="w-32 h-32"
+                                        resizeMode="contain"
+                                    />
+                                </TouchableOpacity>
+                            </View>
+
+                            <View className="flex-row justify-center items-center mt-1">
+                                <Text className="text-black font-['Urbanist-Bold']">
+                                    Already have an account?{' '}
+                                </Text>
+                                <TouchableOpacity onPress={() => router.push('/log-in')}>
+                                    <Text className="text-[#FB2355] font-['Urbanist-Bold']">
+                                        Login Now
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        </>
+                    )}
                 </View>
             </ScrollView>
         </SafeAreaView>
     );
 }
 
-const styles = StyleSheet.create({});
+const styles = StyleSheet.create({
+    
+});
 
 export default App;
