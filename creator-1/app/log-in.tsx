@@ -1,7 +1,7 @@
 import { useGlobalContext } from '@/lib/global-provider';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SignIn, login } from '../lib/appwrite';
 import FormField from './components/FormField';
@@ -14,6 +14,8 @@ const LoginScreen = () => {
         password: ''
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleLogin = async () => {
         const result = await login();
@@ -27,18 +29,18 @@ const LoginScreen = () => {
 
     const submit = async () => {
         if (!form.email || !form.password) {
-            Alert.alert('Error', 'Please fill in all fields');
+            setError('Please fill in all fields');
             return;
         }
 
+        setError(''); // Clear any previous errors
         try {
             setIsSubmitting(true);
             await SignIn(form.email, form.password);
             await refetch(); // Refresh the global state to update login status
             router.replace('/(root)/(tabs)');
         } catch (error: any) {
-            console.error('Login error:', error);
-            Alert.alert('Error', error.message || 'Login failed');
+            setError('Invalid email or password');
         } finally {
             setIsSubmitting(false);
         }
@@ -59,12 +61,32 @@ const LoginScreen = () => {
                         otherStyles="mt-7" 
                         keyboardType="email-address" 
                     />
-                    <FormField 
-                        title="Password" 
-                        value={form.password} 
-                        handleChangeText={(e: string) => setForm({...form, password: e})} 
-                        otherStyles="mt-7" 
-                    />
+                    {/* Custom password input with eye icon */}
+                    <View className="mt-7 flex-row items-center bg-[#ECECEC] rounded-lg">
+                        <TextInput
+                            placeholder="Password"
+                            value={form.password}
+                            onChangeText={(e) => setForm({ ...form, password: e })}
+                            className="flex-1 px-5 py-6 font-['Urbanist-Regular']"
+                            placeholderTextColor="#9CA3AF"
+                            secureTextEntry={!showPassword}
+                        />
+                        <TouchableOpacity
+                            className="px-4"
+                            onPress={() => setShowPassword((prev) => !prev)}
+                        >
+                            <Image
+                                source={showPassword ? require('../assets/icon/eye_hide.png') : require('../assets/icon/eye.png')}
+                                className="w-6 h-6"
+                                resizeMode="contain"
+                            />
+                        </TouchableOpacity>
+                    </View>
+                    {error ? (
+                        <Text style={{ color: '#ef4444' }} className="mt-2 text-center font-['Urbanist-SemiBold']">
+                            {error}
+                        </Text>
+                    ) : null}
                     
                     <TouchableOpacity 
                         className="self-end mt-2"

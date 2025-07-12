@@ -39,11 +39,11 @@ const FormField = ({ title, value, handleChangeText, otherStyles, keyboardType, 
                     secureTextEntry={(title.toLowerCase().includes('password') || secureTextEntry) && !showPassword}
                 />
                 {(title.toLowerCase().includes('password') || secureTextEntry) && (
-                    <TouchableOpacity
+                    <TouchableOpacity 
                         className="px-4"
                         onPress={() => setShowPassword(!showPassword)}
                     >
-                        <Image
+                        <Image 
                             source={showPassword ? require('../../assets/icon/eye_hide.png') : require('../../assets/icon/eye.png')}
                             className="w-6 h-6"
                             resizeMode="contain"

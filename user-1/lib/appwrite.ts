@@ -329,7 +329,7 @@ export const deleteFileFromBucket = async (fileUrl: string) => {
             console.error("Could not extract fileId from URL:", fileUrl);
             return;
         }
-        await storage.deleteFile(config.storageId!, fileId);
+            await storage.deleteFile(config.storageId!, fileId);
         console.log("Successfully deleted file:", fileId);
     } catch (error: any) {
         // Appwrite throws a 404 error if the file doesn't exist, which is fine.
@@ -358,7 +358,7 @@ export async function requestPasswordRecovery(email: string) {
 
     console.log("Password recovery request sent successfully:", promise);
     return promise;
-  } catch (error) {
+    } catch (error) {
     console.error("Error requesting password recovery:", error);
     throw new Error((error as Error).message);
   }

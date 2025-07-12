@@ -99,9 +99,9 @@ export default function EditProfile() {
 
   useEffect(() => {
     // Populate form with data from Global Context instantly
-    if (globalUser) {
-      setName(globalUser.name || '');
-      setEmail(globalUser.email || '');
+        if (globalUser) {
+          setName(globalUser.name || '');
+          setEmail(globalUser.email || '');
     }
     if (globalProfile) {
       setLocalProfileImage(globalProfile.profileImageUri || null);
@@ -109,29 +109,29 @@ export default function EditProfile() {
       if (globalProfile.gender) {
         const genderOption = genders.find(g => g.value === globalProfile.gender);
         setSelectedGender(genderOption || null);
-      }
+              }
 
       if (globalProfile.phoneNumber) {
         const phoneData = globalProfile.phoneNumber;
-        if (phoneData.startsWith('+')) {
-          const country = countries.find(c => phoneData.startsWith(c.code));
-          if (country) {
-            setSelectedCountry(country);
-            const phonePart = phoneData.substring(country.code.length);
+              if (phoneData.startsWith('+')) {
+                const country = countries.find(c => phoneData.startsWith(c.code));
+                if (country) {
+                  setSelectedCountry(country);
+                  const phonePart = phoneData.substring(country.code.length);
             setPhoneNumber(formatPhoneNumber(phonePart, country.format));
-          }
-        } else {
-          setPhoneNumber(phoneData);
-        }
-      }
+                }
+              } else {
+                setPhoneNumber(phoneData);
+              }
+            }
 
       if (globalProfile.dateOfBirth) {
         const [year, month, day] = globalProfile.dateOfBirth.split('-');
-        setSelectedYear(year);
-        setSelectedMonth(month);
-        setSelectedDay(day);
-      }
-    }
+              setSelectedYear(year);
+              setSelectedMonth(month);
+              setSelectedDay(day);
+            }
+          }
   }, [globalUser, globalProfile]);
 
   const pickImage = async () => {
@@ -156,29 +156,29 @@ export default function EditProfile() {
         
         try {
           // Drastically compress and resize the image for profile picture
-          const manipResult = await ImageManipulator.manipulateAsync(
-            result.assets[0].uri,
+        const manipResult = await ImageManipulator.manipulateAsync(
+          result.assets[0].uri,
             [{ resize: { width: 200, height: 200 } }], // Resize to 200x200 for better quality
             { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG } // Compress to 60% quality
-          );
+        );
 
-          // Upload the compressed image to Appwrite
-          const photoResult = await uploadProfilePicture({
-            uri: manipResult.uri,
-            type: 'image/jpeg',
-            name: 'profile.jpg'
+        // Upload the compressed image to Appwrite
+        const photoResult = await uploadProfilePicture({
+          uri: manipResult.uri,
+          type: 'image/jpeg',
+          name: 'profile.jpg'
           }, localProfileImage || undefined);
-          
-          if (photoResult) {
+        
+        if (photoResult) {
             setLocalProfileImage(photoResult.imageUrl); // update local state
             setGlobalProfileImage(photoResult.imageUrl); // update global context
-            // Update profile immediately with the new image URL
-            if (globalUser?.$id) {
-              await updateUserProfile(globalUser.$id, {
-                userId: globalUser.$id,
-                profileImageUri: photoResult.imageUrl
-              });
-            }
+          // Update profile immediately with the new image URL
+          if (globalUser?.$id) {
+            await updateUserProfile(globalUser.$id, {
+              userId: globalUser.$id,
+              profileImageUri: photoResult.imageUrl
+            });
+          }
           }
         } finally {
           // Hide loading indicator
@@ -224,7 +224,7 @@ export default function EditProfile() {
         $updatedAt: new Date().toISOString(),
         $permissions: globalProfile?.$permissions || [],
       });
-
+      
       // Show success message and trigger haptic feedback
       setShowSuccess(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -279,12 +279,12 @@ export default function EditProfile() {
             <Text className="text-2xl text-white font-bold">{name?.[0] || 'U'}</Text>
           )}
           {!isUploadingImage && (
-            <TouchableOpacity 
-              className="absolute bottom-0 right-0"
-              onPress={pickImage}
-            >
-              <Image source={require('../../../assets/icon/edit.png')} className="w-11 h-11" />
-            </TouchableOpacity>
+          <TouchableOpacity 
+            className="absolute bottom-0 right-0"
+            onPress={pickImage}
+          >
+            <Image source={require('../../../assets/icon/edit.png')} className="w-11 h-11" />
+          </TouchableOpacity>
           )}
         </View>
       </View>

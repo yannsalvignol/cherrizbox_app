@@ -133,7 +133,7 @@ export default function Index() {
                   memberNames[memberId] = userData.username || memberId;
                   memberAvatars[memberId] = userData.avatar || '';
                   console.log(`✅ Found user data for ${memberId}: ${userData.username} with avatar: ${userData.avatar}`);
-                } else {
+            } else {
                   memberNames[memberId] = memberId; // Fallback to ID if user not found
                   memberAvatars[memberId] = ''; // No avatar
                   console.log(`❌ No user data found for ${memberId}`);
@@ -522,17 +522,17 @@ export default function Index() {
             </Text>
           </View>
         ) : (
-          <View style={{
-            width: isGroupChat ? 24 : 20,
-            height: isGroupChat ? 24 : 20,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <Text style={{ 
-              color: isGroupChat ? '#FFD700' : '#666666', 
-              fontSize: isGroupChat ? 16 : 14 
-            }}>›</Text>
-          </View>
+        <View style={{
+          width: isGroupChat ? 24 : 20,
+          height: isGroupChat ? 24 : 20,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <Text style={{ 
+            color: isGroupChat ? '#FFD700' : '#666666', 
+            fontSize: isGroupChat ? 16 : 14 
+          }}>›</Text>
+        </View>
         )}
       </TouchableOpacity>
     );
@@ -768,11 +768,11 @@ export default function Index() {
           ) : (
             <ScrollView
               contentContainerStyle={{ 
-                flex: 1, 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                backgroundColor: 'black',
-                paddingHorizontal: 32
+              flex: 1, 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              backgroundColor: 'black',
+              paddingHorizontal: 32
               }}
               refreshControl={
                 <RefreshControl
@@ -1063,9 +1063,9 @@ export default function Index() {
       {selectedTab === 'insights' && (
         <ScrollView 
           style={{ 
-            flex: 1, 
-            backgroundColor: 'black',
-            paddingHorizontal: 32
+          flex: 1, 
+          backgroundColor: 'black',
+          paddingHorizontal: 32
           }}
           contentContainerStyle={{
             flex: 1,
@@ -1105,9 +1105,9 @@ export default function Index() {
       {selectedTab === 'audience' && (
         <ScrollView 
           style={{ 
-            flex: 1, 
-            backgroundColor: 'black',
-            paddingHorizontal: 32
+          flex: 1, 
+          backgroundColor: 'black',
+          paddingHorizontal: 32
           }}
           contentContainerStyle={{
             flex: 1,
@@ -1147,9 +1147,9 @@ export default function Index() {
       {selectedTab === 'other' && (
         <ScrollView 
           style={{ 
-            flex: 1, 
-            backgroundColor: 'black',
-            paddingHorizontal: 32
+          flex: 1, 
+          backgroundColor: 'black',
+          paddingHorizontal: 32
           }}
           contentContainerStyle={{
             flex: 1,

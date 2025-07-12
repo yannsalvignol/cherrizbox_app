@@ -5,6 +5,8 @@ import {
     Avatars,
     Client,
     Databases,
+    ExecutionMethod,
+    Functions,
     ID,
     OAuthProvider,
     Query,
@@ -36,6 +38,7 @@ export const avatars = new Avatars(client);
 export const account = new Account(client);
 export const databases = new Databases(client);
 export const storage = new Storage(client);
+export const functions = new Functions(client);
 
 export const createUser = async (email: string, password: string, username: string) => {
     try {
@@ -944,4 +947,47 @@ export const checkPaidContentPurchase = async (userId: string, contentId: string
         console.error('Error checking paid content purchase:', error);
         return false;
     }
+};
+
+// Password Reset Functions
+export const codeBasedPasswordReset = async (email: string) => {
+    const FUNCTION_ID = process.env.EXPO_PUBLIC_REQUEST_PASSWORD_RESET_FUNCTION_ID;
+    if (!FUNCTION_ID) throw new Error('Request password reset function ID not set');
+
+    const execution = await functions.createExecution(
+        FUNCTION_ID,
+        JSON.stringify({ email }),
+        false, 
+        '/',
+        ExecutionMethod.POST,
+        { 'Content-Type': 'application/json' }
+    );
+    
+    if (execution.status === 'failed') {
+        throw new Error(JSON.parse(execution.responseBody).message || 'Failed to request password reset.');
+    }
+    
+    return JSON.parse(execution.responseBody);
+};
+
+export const verifyCodeAndResetPassword = async (email: string, code: string, password?: string) => {
+    const FUNCTION_ID = process.env.EXPO_PUBLIC_VERIFY_PASSWORD_RESET_FUNCTION_ID;
+    if (!FUNCTION_ID) throw new Error('Verify password reset function ID not set');
+    
+    const execution = await functions.createExecution(
+        FUNCTION_ID,
+        JSON.stringify({ email, code, password }),
+        false,
+        '/',
+        ExecutionMethod.POST,
+        { 'Content-Type': 'application/json' }
+    );
+    
+    const responseBody = JSON.parse(execution.responseBody);
+
+    if (execution.status === 'failed' || !responseBody.ok) {
+        throw new Error(responseBody.message || 'Failed to reset password.');
+    }
+    
+    return responseBody;
 };

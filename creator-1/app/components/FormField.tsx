@@ -10,10 +10,17 @@ interface FormFieldProps {
   keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad' | 'number-pad';
   onFocus?: () => void;
   onBlur?: () => void;
+  editable?: boolean;
+  secureTextEntry?: boolean;
 }
 
-const FormField = ({ title, value, handleChangeText, otherStyles, keyboardType, onFocus, onBlur }: FormFieldProps) => {
+const FormField = ({ title, value, handleChangeText, otherStyles, keyboardType, onFocus, onBlur, editable = true, secureTextEntry }: FormFieldProps) => {
     const [showPassword, setShowPassword] = useState(false);
+
+    // Determine if we should show password toggle
+    const shouldShowPasswordToggle = title.toLowerCase().includes('password') && secureTextEntry !== undefined;
+    const isPasswordField = title.toLowerCase().includes('password');
+    const finalSecureTextEntry = secureTextEntry !== undefined ? (secureTextEntry && !showPassword) : (isPasswordField && !showPassword);
 
     return (
         <View className={`${otherStyles}`}>
@@ -25,11 +32,12 @@ const FormField = ({ title, value, handleChangeText, otherStyles, keyboardType, 
                     keyboardType={keyboardType}
                     className="flex-1 px-5 py-6 font-['Urbanist-Regular']"
                     placeholderTextColor="#9CA3AF"
-                    secureTextEntry={title.toLowerCase().includes('password') && !showPassword}
+                    secureTextEntry={finalSecureTextEntry}
+                    editable={editable}
                     onFocus={onFocus}
                     onBlur={onBlur}
                 />
-                {title.toLowerCase().includes('password') && (
+                {shouldShowPasswordToggle && (
                     <TouchableOpacity 
                         className="px-4"
                         onPress={() => setShowPassword(!showPassword)}

@@ -131,7 +131,7 @@ const App = () => {
             setIsSubmitting(false);
         }
     };
-    
+
     const handleLogin = async () => {
         const result = await login();
         if(result){
@@ -203,93 +203,93 @@ const App = () => {
                         </View>
                     ) : (
                         <>
-                            <Text className="text-black font-['Urbanist-Bold'] text-4xl mt-[50px]">    
-                                Hello! Register to get in the Cherrizbox.
-                            </Text>
-                            <FormField 
-                                title="Username" 
-                                value={form.username}
-                                handleChangeText={(text) => setForm({ ...form, username: text })}
-                                otherStyles="mt-7" 
-                            />
-                            <FormField 
-                                title="Email" 
-                                value={form.email}
-                                handleChangeText={(text) => setForm({ ...form, email: text })}
-                                otherStyles="mt-7" 
-                                keyboardType="email-address" 
-                            />
-                            <FormField 
-                                title="Password" 
-                                value={form.password}
-                                handleChangeText={(text) => setForm({ ...form, password: text })}
-                                otherStyles="mt-7"
+                    <Text className="text-black font-['Urbanist-Bold'] text-4xl mt-[50px]">    
+                        Hello! Register to get in the Cherrizbox.
+                    </Text>
+                    <FormField 
+                        title="Username" 
+                        value={form.username}
+                        handleChangeText={(text) => setForm({ ...form, username: text })}
+                        otherStyles="mt-7" 
+                    />
+                    <FormField 
+                        title="Email" 
+                        value={form.email}
+                        handleChangeText={(text) => setForm({ ...form, email: text })}
+                        otherStyles="mt-7" 
+                        keyboardType="email-address" 
+                    />
+                    <FormField 
+                        title="Password" 
+                        value={form.password}
+                        handleChangeText={(text) => setForm({ ...form, password: text })}
+                        otherStyles="mt-7"
                                 secureTextEntry
                                 disableAutofill
                                 onFocus={() => setIsPasswordFocused(true)}
                                 onBlur={() => setIsPasswordFocused(false)}
-                            />
+                    />
                             <PasswordCriteria password={form.password} isFocused={isPasswordFocused} />
-                            <FormField 
-                                title="Confirm Password" 
-                                value={form.confirmPassword}
-                                handleChangeText={(text) => setForm({ ...form, confirmPassword: text })}
-                                otherStyles="mt-7"
+                    <FormField 
+                        title="Confirm Password" 
+                        value={form.confirmPassword}
+                        handleChangeText={(text) => setForm({ ...form, confirmPassword: text })}
+                        otherStyles="mt-7"
                                 secureTextEntry
                                 disableAutofill
-                            />
-                            <TouchableOpacity 
-                                className={`w-full bg-[#FB2355] py-6 rounded-full mt-7 ${isSubmitting ? 'opacity-50' : ''}`}
+                    />
+                    <TouchableOpacity 
+                        className={`w-full bg-[#FB2355] py-6 rounded-full mt-7 ${isSubmitting ? 'opacity-50' : ''}`}
                                 onPress={handleSendVerification}
-                                disabled={isSubmitting}
-                            >
-                                <Text style={{ color: 'white', textAlign: 'center', fontFamily: 'Urbanist-Light', fontSize: 20 }}>
+                        disabled={isSubmitting}
+                    >
+                        <Text style={{ color: 'white', textAlign: 'center', fontFamily: 'Urbanist-Light', fontSize: 20 }}>
                                     {isSubmitting ? 'Sending Code...' : 'Register'}
-                                </Text>
-                            </TouchableOpacity>
+                        </Text>
+                    </TouchableOpacity>
 
-                            <View className="flex-row items-center justify-center mt-7">
-                                <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }} />
-                                <Text style={{ color: '#9CA3AF', fontFamily: 'Urbanist-Bold', marginHorizontal: 16 }}>
-                                    Or register with
-                                </Text>
-                                <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }} />
-                            </View>
+                    <View className="flex-row items-center justify-center mt-7">
+                        <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }} />
+                        <Text style={{ color: '#9CA3AF', fontFamily: 'Urbanist-Bold', marginHorizontal: 16 }}>
+                            Or register with
+                        </Text>
+                        <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }} />
+                    </View>
 
-                            <View className="flex-row items-center justify-between mt-4 px-4">
-                                <TouchableOpacity>
-                                    <Image 
-                                        source={require('../assets/images/facebook.png')}
-                                            className="w-32 h-32"
-                                        resizeMode="contain"
-                                    />
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={handleLogin}>
-                                    <Image 
-                                        source={require('../assets/images/google.png')}
-                                            className="w-32 h-32"
-                                        resizeMode="contain"
-                                    />
-                                </TouchableOpacity>
-                                <TouchableOpacity>
-                                    <Image 
-                                        source={require('../assets/images/apple.png')}
-                                            className="w-32 h-32"
-                                        resizeMode="contain"
-                                    />
-                                </TouchableOpacity>
-                            </View>
+                    <View className="flex-row items-center justify-between mt-4 px-4">
+                        <TouchableOpacity>
+                            <Image 
+                                source={require('../assets/images/facebook.png')}
+                                    className="w-32 h-32"
+                                resizeMode="contain"
+                            />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={handleLogin}>
+                            <Image 
+                                source={require('../assets/images/google.png')}
+                                    className="w-32 h-32"
+                                resizeMode="contain"
+                            />
+                        </TouchableOpacity>
+                        <TouchableOpacity>
+                            <Image 
+                                source={require('../assets/images/apple.png')}
+                                    className="w-32 h-32"
+                                resizeMode="contain"
+                            />
+                        </TouchableOpacity>
+                    </View>
 
-                            <View className="flex-row justify-center items-center mt-1">
-                                <Text className="text-black font-['Urbanist-Bold']">
-                                    Already have an account?{' '}
-                                </Text>
-                                <TouchableOpacity onPress={() => router.push('/log-in')}>
-                                    <Text className="text-[#FB2355] font-['Urbanist-Bold']">
-                                        Login Now
-                                    </Text>
-                                </TouchableOpacity>
-                            </View>
+                    <View className="flex-row justify-center items-center mt-1">
+                        <Text className="text-black font-['Urbanist-Bold']">
+                            Already have an account?{' '}
+                        </Text>
+                        <TouchableOpacity onPress={() => router.push('/log-in')}>
+                            <Text className="text-[#FB2355] font-['Urbanist-Bold']">
+                                Login Now
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
                         </>
                     )}
                 </View>
