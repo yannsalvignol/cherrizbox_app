@@ -4,13 +4,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { CardField, useStripe } from '@stripe/stripe-react-native';
 import { ResizeMode, Video } from 'expo-av';
 import { BlurView } from 'expo-blur';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as MediaLibrary from 'expo-media-library';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Dimensions, Image, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Dimensions, Image, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { Client, Databases, Query } from 'react-native-appwrite';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Channel, Chat, DeepPartial, MessageAvatar, MessageInput, MessageList, MessageSimple, OverlayProvider, ReactionData, Theme, Thread, useMessageContext, useMessagesContext, useThreadContext } from 'stream-chat-react-native';
@@ -156,7 +160,181 @@ const CustomMessageAvatar = (props: any) => {
 };
 
 // Custom Message Input for Group Chat Restrictions
-const CustomMessageInput = ({ currentChatType }: { currentChatType: string }) => {
+const CustomMessageInput = ({ 
+  currentChatType, 
+  setSelectedAttachment,
+  selectedAttachment,
+  tipAmount,
+  setTipAmount,
+  currentChannel
+}: { 
+  currentChatType: string;
+  setSelectedAttachment: (attachment: any) => void;
+  selectedAttachment: any;
+  tipAmount: number;
+  setTipAmount: (amount: number) => void;
+  currentChannel: any;
+}) => {
+  const [showAttachmentModal, setShowAttachmentModal] = useState(false);
+
+    const handleImagePicker = async () => {
+    console.log('🖼️ Starting image picker...');
+    try {
+      // Request permissions
+      console.log('🔐 Requesting media library permissions...');
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      console.log('📋 Permission status:', status);
+      
+      if (status !== 'granted') {
+        console.log('❌ Permission denied');
+        Alert.alert('Permission needed', 'Please grant permission to access your photo library.');
+        return;
+      }
+
+      console.log('📱 Launching image library...');
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        allowsEditing: false,
+        quality: 0.8,
+        allowsMultipleSelection: false,
+      });
+
+      console.log('📋 Image picker result:', {
+        canceled: result.canceled,
+        assetsCount: result.assets?.length || 0,
+        assets: result.assets
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        console.log('📄 Selected asset:', {
+          uri: asset.uri,
+          type: asset.type,
+          fileName: asset.fileName,
+          fileSize: asset.fileSize,
+          width: asset.width,
+          height: asset.height
+        });
+        
+        const attachmentData = {
+          uri: asset.uri,
+          type: asset.type || 'image',
+          fileName: asset.fileName || 'image',
+          fileSize: asset.fileSize || 0,
+        };
+        
+        console.log('💾 Setting selected attachment:', attachmentData);
+        setSelectedAttachment(attachmentData);
+        console.log('📱 Showing preview in same modal');
+      } else {
+        console.log('❌ No asset selected or picker canceled');
+      }
+    } catch (error) {
+      console.error('❌ Error picking image/video:', error);
+      Alert.alert('Error', 'Failed to pick image or video.');
+    }
+  };
+
+    const handleDocumentPicker = async () => {
+    console.log('📄 Starting document picker...');
+    try {
+      console.log('📱 Launching document picker...');
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
+        copyToCacheDirectory: true,
+      });
+
+      console.log('📋 Document picker result:', {
+        canceled: result.canceled,
+        assetsCount: result.assets?.length || 0,
+        assets: result.assets
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        console.log('📄 Selected document:', {
+          uri: asset.uri,
+          name: asset.name,
+          size: asset.size,
+          mimeType: asset.mimeType
+        });
+        
+        const attachmentData = {
+          uri: asset.uri,
+          type: 'document',
+          fileName: asset.name || 'document',
+          fileSize: asset.size || 0,
+        };
+        
+        console.log('💾 Setting selected document:', attachmentData);
+        setSelectedAttachment(attachmentData);
+        console.log('📱 Showing preview in same modal');
+      } else {
+        console.log('❌ No document selected or picker canceled');
+      }
+    } catch (error) {
+      console.error('❌ Error picking document:', error);
+      Alert.alert('Error', 'Failed to pick document.');
+    }
+  };
+
+    const handleCamera = async () => {
+    console.log('📷 Starting camera...');
+    try {
+      // Request permissions
+      console.log('🔐 Requesting camera permissions...');
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      console.log('📋 Camera permission status:', status);
+      
+      if (status !== 'granted') {
+        console.log('❌ Camera permission denied');
+        Alert.alert('Permission needed', 'Please grant permission to access your camera.');
+        return;
+      }
+
+      console.log('📱 Launching camera...');
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: false,
+        quality: 0.8,
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
+      });
+
+      console.log('📋 Camera result:', {
+        canceled: result.canceled,
+        assetsCount: result.assets?.length || 0,
+        assets: result.assets
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        console.log('📄 Camera asset:', {
+          uri: asset.uri,
+          type: asset.type,
+          fileName: asset.fileName,
+          fileSize: asset.fileSize,
+          width: asset.width,
+          height: asset.height
+        });
+        
+        const attachmentData = {
+          uri: asset.uri,
+          type: asset.type || 'image',
+          fileName: asset.fileName || 'image',
+          fileSize: asset.fileSize || 0,
+        };
+        
+        console.log('💾 Setting camera attachment:', attachmentData);
+        setSelectedAttachment(attachmentData);
+        console.log('📱 Showing preview in same modal');
+      } else {
+        console.log('❌ No camera asset captured or canceled');
+      }
+    } catch (error) {
+      console.error('❌ Error taking photo/video:', error);
+      Alert.alert('Error', 'Failed to take photo or video.');
+    }
+  };
+
   // For group chats, show a message that encourages thread replies
   if (currentChatType === 'group') {
     return (
@@ -211,8 +389,437 @@ const CustomMessageInput = ({ currentChatType }: { currentChatType: string }) =>
     );
   }
   
-  // For direct messages, use normal message input
-  return <MessageInput />;
+  // For direct messages, use custom message input with attachment button
+  return (
+    <View style={{ backgroundColor: '#1A1A1A' }}>
+            <MessageInput 
+        InputButtons={() => (
+          <TouchableOpacity
+            onPress={() => setShowAttachmentModal(true)}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: '#FB2355',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginRight: 8,
+            }}
+          >
+            <Ionicons name="add" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+        )}
+      />
+      
+      {/* Attachment Modal with Preview */}
+      <Modal
+        visible={showAttachmentModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => {
+          setShowAttachmentModal(false);
+          setSelectedAttachment(null);
+        }}
+      >
+        <TouchableOpacity
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            justifyContent: 'flex-end',
+          }}
+          activeOpacity={1}
+          onPress={() => {
+            setShowAttachmentModal(false);
+            setSelectedAttachment(null);
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: '#1A1A1A',
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              paddingTop: 20,
+              paddingBottom: 40,
+              paddingHorizontal: 20,
+              maxHeight: selectedAttachment ? '80%' : 'auto',
+            }}
+          >
+            <View
+              style={{
+                width: 40,
+                height: 4,
+                backgroundColor: '#666666',
+                borderRadius: 2,
+                alignSelf: 'center',
+                marginBottom: 20,
+              }}
+            />
+            
+            {!selectedAttachment ? (
+              // Attachment selection view
+              <>
+                <Text style={{
+                  color: '#FFFFFF',
+                  fontSize: 20,
+                  fontFamily: 'questrial',
+                  fontWeight: 'bold',
+                  textAlign: 'center',
+                  marginBottom: 30,
+                }}>
+                  Send Attachment
+                </Text>
+                
+                <View style={{ gap: 16 }}>
+                  <TouchableOpacity
+                    onPress={handleCamera}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingVertical: 16,
+                      paddingHorizontal: 20,
+                      backgroundColor: '#2A2A2A',
+                      borderRadius: 12,
+                    }}
+                  >
+                    <Ionicons name="camera" size={24} color="#FB2355" style={{ marginRight: 16 }} />
+                    <Text style={{
+                      color: '#FFFFFF',
+                      fontSize: 16,
+                      fontFamily: 'questrial',
+                      flex: 1,
+                    }}>
+                      Camera
+                    </Text>
+                    <Ionicons name="chevron-forward" size={20} color="#666666" />
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    onPress={handleImagePicker}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingVertical: 16,
+                      paddingHorizontal: 20,
+                      backgroundColor: '#2A2A2A',
+                      borderRadius: 12,
+                    }}
+                  >
+                    <Ionicons name="images" size={24} color="#FB2355" style={{ marginRight: 16 }} />
+                    <Text style={{
+                      color: '#FFFFFF',
+                      fontSize: 16,
+                      fontFamily: 'questrial',
+                      flex: 1,
+                    }}>
+                      Photo & Video Library
+                    </Text>
+                    <Ionicons name="chevron-forward" size={20} color="#666666" />
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    onPress={handleDocumentPicker}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingVertical: 16,
+                      paddingHorizontal: 20,
+                      backgroundColor: '#2A2A2A',
+                      borderRadius: 12,
+                    }}
+                  >
+                    <Ionicons name="document" size={24} color="#FB2355" style={{ marginRight: 16 }} />
+                    <Text style={{
+                      color: '#FFFFFF',
+                      fontSize: 16,
+                      fontFamily: 'questrial',
+                      flex: 1,
+                    }}>
+                      Document
+                    </Text>
+                    <Ionicons name="chevron-forward" size={20} color="#666666" />
+                  </TouchableOpacity>
+                </View>
+                
+                <TouchableOpacity
+                  onPress={() => setShowAttachmentModal(false)}
+                  style={{
+                    marginTop: 30,
+                    paddingVertical: 16,
+                    backgroundColor: '#FB2355',
+                    borderRadius: 12,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{
+                    color: '#FFFFFF',
+                    fontSize: 16,
+                    fontFamily: 'questrial',
+                    fontWeight: 'bold',
+                  }}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              // Preview and tip view
+              <>
+                <Text style={{
+                  color: '#FFFFFF',
+                  fontSize: 24,
+                  fontFamily: 'questrial',
+                  fontWeight: 'bold',
+                  marginBottom: 20,
+                  textAlign: 'center',
+                }}>
+                  Preview & Tip
+                </Text>
+                
+                {/* Preview */}
+                <View style={{
+                  width: '100%',
+                  height: 150,
+                  borderRadius: 12,
+                  overflow: 'hidden',
+                  marginBottom: 15,
+                  backgroundColor: '#1A1A1A',
+                }}>
+                  {selectedAttachment?.type === 'video' ? (
+                    <Video
+                      source={{ uri: selectedAttachment.uri }}
+                      style={{ width: '100%', height: '100%' }}
+                      resizeMode={ResizeMode.CONTAIN}
+                      useNativeControls
+                    />
+                  ) : selectedAttachment?.type === 'document' ? (
+                    <View style={{
+                      flex: 1,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      backgroundColor: '#1A1A1A',
+                    }}>
+                      <Ionicons name="document" size={48} color="#FB2355" />
+                      <Text style={{
+                        color: '#FFFFFF',
+                        fontSize: 16,
+                        fontFamily: 'questrial',
+                        marginTop: 8,
+                        textAlign: 'center',
+                      }}>
+                        {selectedAttachment?.fileName}
+                      </Text>
+                    </View>
+                  ) : (
+                    <Image
+                      source={{ uri: selectedAttachment?.uri }}
+                      style={{ width: '100%', height: '100%' }}
+                      resizeMode="cover"
+                    />
+                  )}
+                </View>
+                
+
+                
+                {/* Tip Amount */}
+                <Text style={{
+                  color: '#FFFFFF',
+                  fontSize: 18,
+                  fontFamily: 'questrial',
+                  fontWeight: 'bold',
+                  marginBottom: 10,
+                }}>
+                  Tip Amount: ${tipAmount}
+                </Text>
+                
+                {/* Tip Slider */}
+                <View style={{
+                  width: '100%',
+                  marginBottom: 15,
+                }}>
+                  <View style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    marginBottom: 10,
+                  }}>
+                    {[1, 3, 5, 10, 20].map((amount) => (
+                      <TouchableOpacity
+                        key={amount}
+                        onPress={() => setTipAmount(amount)}
+                        style={{
+                          paddingHorizontal: 12,
+                          paddingVertical: 8,
+                          borderRadius: 8,
+                          backgroundColor: tipAmount === amount ? '#FB2355' : '#1A1A1A',
+                          borderWidth: 1,
+                          borderColor: tipAmount === amount ? '#FB2355' : '#666666',
+                        }}
+                      >
+                        <Text style={{
+                          color: '#FFFFFF',
+                          fontSize: 14,
+                          fontFamily: 'questrial',
+                          fontWeight: tipAmount === amount ? 'bold' : 'normal',
+                        }}>
+                          ${amount}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+                
+                {/* Custom Tip Input */}
+                <View style={{
+                  width: '100%',
+                  marginBottom: 15,
+                }}>
+                  <Text style={{
+                    color: '#FFFFFF',
+                    fontSize: 16,
+                    fontFamily: 'questrial',
+                    marginBottom: 8,
+                  }}>
+                    Or enter custom amount:
+                  </Text>
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: '#2A2A2A',
+                    borderRadius: 12,
+                    paddingHorizontal: 16,
+                    paddingVertical: 12,
+                  }}>
+                    <Text style={{
+                      color: '#FFFFFF',
+                      fontSize: 18,
+                      fontFamily: 'questrial',
+                      marginRight: 8,
+                    }}>
+                      $
+                    </Text>
+                    <TextInput
+                      value={tipAmount.toString()}
+                      onChangeText={(text: string) => {
+                        const numValue = parseFloat(text) || 0;
+                        if (numValue >= 0 && numValue <= 1000) {
+                          setTipAmount(numValue);
+                        }
+                      }}
+                      keyboardType="numeric"
+                      style={{
+                        flex: 1,
+                        color: '#FFFFFF',
+                        fontSize: 18,
+                        fontFamily: 'questrial',
+                      }}
+                      placeholder="0.00"
+                      placeholderTextColor="#666666"
+                    />
+                  </View>
+                </View>
+                
+                {/* Billing Policy Explanation */}
+                <View style={{
+                  backgroundColor: '#2A2A2A',
+                  borderRadius: 12,
+                  padding: 16,
+                  marginBottom: 20,
+                }}>
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'flex-start',
+                    marginBottom: 8,
+                  }}>
+                    <Ionicons name="information-circle" size={20} color="#FB2355" style={{ marginRight: 8, marginTop: 2 }} />
+                    <Text style={{
+                      color: '#FFFFFF',
+                      fontSize: 14,
+                      fontFamily: 'questrial',
+                      fontWeight: 'bold',
+                      flex: 1,
+                    }}>
+                      Billing Policy
+                    </Text>
+                  </View>
+                  <Text style={{
+                    color: '#CCCCCC',
+                    fontSize: 13,
+                    fontFamily: 'questrial',
+                    lineHeight: 18,
+                  }}>
+                    Your tip will only be charged if the creator responds to your message. Higher tips increase your chances of getting a response.
+                  </Text>
+                </View>
+                
+                {/* Action Buttons */}
+                <View style={{
+                  flexDirection: 'row',
+                  gap: 12,
+                  width: '100%',
+                }}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setSelectedAttachment(null);
+                      setTipAmount(5);
+                    }}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 16,
+                      backgroundColor: '#666666',
+                      borderRadius: 12,
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Text style={{
+                      color: '#FFFFFF',
+                      fontSize: 16,
+                      fontFamily: 'questrial',
+                      fontWeight: 'bold',
+                    }}>
+                      Back
+                    </Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    onPress={async () => {
+                      try {
+                        if (selectedAttachment?.type === 'document') {
+                          await currentChannel?.sendFile(selectedAttachment.uri);
+                        } else {
+                          await currentChannel?.sendImage(selectedAttachment.uri);
+                        }
+                        setShowAttachmentModal(false);
+                        setSelectedAttachment(null);
+                        setTipAmount(5);
+                        Alert.alert('Success', `Message sent with $${tipAmount} tip!`);
+                      } catch (error) {
+                        console.error('Error sending message:', error);
+                        Alert.alert('Error', 'Failed to send message.');
+                      }
+                    }}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 16,
+                      backgroundColor: '#FB2355',
+                      borderRadius: 12,
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Text style={{
+                      color: '#FFFFFF',
+                      fontSize: 16,
+                      fontFamily: 'questrial',
+                      fontWeight: 'bold',
+                    }}>
+                      Send with Tip
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </View>
+  );
 };
 
 // Custom theme for the chat - focused on timestamp visibility
@@ -287,6 +894,7 @@ const PaidContentAttachment = (props: any) => {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showImageViewer, setShowImageViewer] = useState(false);
 
   // Get message context to access message sender info
   const messageContext = useMessageContext();
@@ -345,10 +953,22 @@ const PaidContentAttachment = (props: any) => {
     setShowPaymentModal(false);
   };
 
+  const openImageViewer = () => {
+    if (isUnlocked) {
+      setShowImageViewer(true);
+    }
+  };
+
+  const closeImageViewer = () => {
+    setShowImageViewer(false);
+  };
+
   if (attachment?.type === 'paid_content') {
     return (
       <>
-        <View style={{
+        <TouchableOpacity
+          onPress={openImageViewer}
+          style={{
           width: 300,
           height: 200,
           borderRadius: 12,
@@ -357,7 +977,10 @@ const PaidContentAttachment = (props: any) => {
           marginLeft: 0,
           marginRight: 5,
           position: 'relative',
-        }}>
+          }}
+          activeOpacity={isUnlocked ? 0.8 : 1}
+          disabled={!isUnlocked}
+        >
           {/* Background Image */}
           <Image
             source={{ uri: attachment?.image_url }}
@@ -458,7 +1081,7 @@ const PaidContentAttachment = (props: any) => {
               </Text>
             </View>
           )}
-        </View>
+        </TouchableOpacity>
 
         {/* Stripe Payment Modal */}
         <PaidContentPaymentModal
@@ -473,6 +1096,63 @@ const PaidContentAttachment = (props: any) => {
           imageUrl={attachment?.image_url}
           contentType="image"
         />
+
+        {/* Image Viewer Modal */}
+        <Modal
+          visible={showImageViewer}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={closeImageViewer}
+        >
+          <View style={{ 
+            flex: 1, 
+            backgroundColor: 'rgba(0,0,0,0.95)', 
+            justifyContent: 'center', 
+            alignItems: 'center' 
+          }}>
+            <View style={{ 
+              width: '95%', 
+              maxHeight: '90%', 
+              backgroundColor: '#1A1A1A',
+              borderRadius: 16,
+              overflow: 'hidden',
+              position: 'relative'
+            }}>
+              {/* Close Button */}
+              <TouchableOpacity
+                style={{
+                  position: 'absolute',
+                  top: 16,
+                  right: 16,
+                  backgroundColor: 'rgba(0,0,0,0.7)',
+                  borderRadius: 20,
+                  width: 40,
+                  height: 40,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  zIndex: 10
+                }}
+                onPress={closeImageViewer}
+              >
+                <Text style={{ color: 'white', fontSize: 24, fontWeight: 'bold' }}>×</Text>
+              </TouchableOpacity>
+
+              {/* Image Display */}
+              <View style={{ alignItems: 'center', padding: 16, paddingTop: 60 }}>
+                <Image
+                  source={{ uri: attachment?.image_url }}
+                  style={{
+                    width: '100%',
+                    height: 400,
+                    borderRadius: 8,
+                    backgroundColor: '#2A2A2A'
+                  }}
+                  resizeMode="contain"
+                />
+              </View>
+            </View>
+          </View>
+        </Modal>
       </>
     );
   }
@@ -1590,6 +2270,879 @@ const customReactions: ReactionData[] = [
   { type: "party", Icon: () => <Text style={{ fontSize: 18 }}>🎉</Text> },
   { type: "skull", Icon: () => <Text style={{ fontSize: 18 }}>💀</Text> },
 ];
+
+// Creator Preview Modal Component
+const CreatorPreviewModal = ({ 
+  visible, 
+  onClose, 
+  creatorName, 
+  creatorThumbnail, 
+  channelId 
+}: {
+  visible: boolean;
+  onClose: () => void;
+  creatorName: string;
+  creatorThumbnail: string | null;
+  channelId: string;
+}) => {
+  const { posts, user } = useGlobalContext();
+  const [creatorPost, setCreatorPost] = useState<any>(null);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [purchasedContent, setPurchasedContent] = useState<any[]>([]);
+  const [isLoadingContent, setIsLoadingContent] = useState(false);
+  const [selectedContentType, setSelectedContentType] = useState<string>('Videos');
+  const [selectedContentItem, setSelectedContentItem] = useState<any | null>(null);
+  const [isContentViewerVisible, setIsContentViewerVisible] = useState(false);
+  const [isDownloadComplete, setIsDownloadComplete] = useState(false);
+
+  // Get creator ID from channel ID
+  const getCreatorId = () => {
+    if (channelId?.startsWith('creator-')) {
+      return channelId.replace('creator-', '');
+    } else if (channelId?.startsWith('dm-')) {
+      return channelId.replace('dm-', '').split('-')[0];
+    }
+    return '';
+  };
+
+  // Temporary function definitions to work around import issues
+  const getPurchasedContent = async (
+    userId: string, 
+    contentType?: string, 
+    creatorId?: string
+  ) => {
+    try {
+      const { Query } = await import('react-native-appwrite');
+      const { config, databases } = await import('../../lib/appwrite');
+      
+      const queries = [Query.equal('userId', userId)];
+      
+      // Add content type filter if specified
+      if (contentType) {
+        queries.push(Query.equal('contentType', contentType));
+      }
+      
+      // Add creator filter if specified
+      if (creatorId) {
+        queries.push(Query.equal('creatorId', creatorId));
+      }
+      
+      console.log(`[Query] Filtering purchased content with:`, { userId, contentType, creatorId });
+
+      const response = await databases.listDocuments(
+        config.databaseId!,
+        '686a99d3002ec49567b3', // Paid content purchases collection ID
+        queries
+      );
+      
+      console.log(`[Query Result] Found ${response.documents.length} documents.`);
+      response.documents.forEach((doc, index) => {
+        console.log(` -> Doc ${index + 1}: ID=${doc.$id}, Type=${doc.contentType}, Title=${doc.title || 'N/A'}`);
+      });
+
+      return response.documents;
+    } catch (error) {
+      console.error('Error fetching purchased content:', error);
+      return [];
+    }
+  };
+
+  // Find creator's post data and location
+  useEffect(() => {
+    const fetchCreatorData = async () => {
+      if (visible && posts.length > 0) {
+        const creatorId = getCreatorId();
+        const found = posts.find((p: any) => p.$id === creatorId);
+        setCreatorPost(found);
+        
+        // Fetch location from photos collection
+        try {
+          const { config, databases } = await import('../../lib/appwrite');
+          const { Query } = await import('react-native-appwrite');
+          
+          // Query photos collection for the creator's location
+          const photos = await databases.listDocuments(
+            config.databaseId!,
+            config.photoCollectionId!,
+            [Query.equal('IdCreator', creatorId)]
+          );
+          
+          if (photos.documents.length > 0) {
+            // Update the creator post with location data
+            setCreatorPost((prev: any) => ({
+              ...prev,
+              PhotosLocation: photos.documents[0].PhotosLocation
+            }));
+          }
+        } catch (error) {
+          console.error('Error fetching creator location:', error);
+        }
+        
+        setLoading(false);
+      }
+    };
+    
+    fetchCreatorData();
+  }, [visible, posts, channelId]);
+
+  // Get follower count and purchased content
+  useEffect(() => {
+    const fetchData = async () => {
+      if (creatorName && user) {
+        try {
+          // Get follower count
+          const { getSubscriptionCount } = await import('../../lib/appwrite');
+          const count = await getSubscriptionCount(creatorName);
+          setFollowerCount(count);
+
+          // Get purchased content
+          setIsLoadingContent(true);
+          const { getPurchasedContent } = await import('../../lib/appwrite');
+          
+          // Map content type from picker to database values
+          let dbContentType: string | undefined;
+          switch (selectedContentType) {
+            case 'Videos':
+              dbContentType = 'video';
+              break;
+            case 'Photos':
+              dbContentType = 'image';
+              break;
+            case 'Files':
+              dbContentType = 'file';
+              break;
+          }
+          
+          // Get creator ID from channel ID
+          const creatorId = getCreatorId();
+          
+          const content = await getPurchasedContent(user.$id, dbContentType, creatorId);
+          setPurchasedContent(content);
+        } catch (error) {
+          console.error('Error fetching data:', error);
+        } finally {
+          setIsLoadingContent(false);
+        }
+      }
+    };
+    
+    if (visible && creatorName && user) {
+      fetchData();
+    }
+  }, [visible, creatorName, user, selectedContentType]);
+
+  // Preload image
+  useEffect(() => {
+    if (creatorPost && creatorThumbnail) {
+      Image.prefetch(creatorThumbnail)
+        .then(() => setImageLoaded(true))
+        .catch(() => setImageLoaded(true));
+    } else {
+      setImageLoaded(true);
+    }
+  }, [creatorPost, creatorThumbnail]);
+
+  // Content viewer functions
+  const openContentItem = (item: any) => {
+    setSelectedContentItem(item);
+    setIsContentViewerVisible(true);
+    setIsDownloadComplete(false); // Reset download state for new item
+  };
+
+  const closeContentViewer = () => {
+    setIsContentViewerVisible(false);
+    setSelectedContentItem(null);
+  };
+
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const shareContent = async () => {
+    if (!selectedContentItem) return;
+
+    setIsProcessing(true);
+    try {
+      // Check if imageUri exists
+      if (!selectedContentItem.imageUri) {
+        Alert.alert('Error', 'Content URL is not available');
+        return;
+      }
+
+      // Convert Appwrite view URL to download URL
+      const downloadUrl = selectedContentItem.imageUri.includes('/view?')
+        ? selectedContentItem.imageUri.replace('/view?', '/download?').concat('&output=attachment')
+        : selectedContentItem.imageUri;
+
+      // Generate filename based on content type
+      const getFileExtension = (type: string) => {
+        switch (type) {
+          case 'image': return 'jpg';
+          case 'video': return 'mp4';
+          case 'file': return 'pdf';
+          default: return 'file';
+        }
+      };
+      
+      const fileName = selectedContentItem.title || `content_${selectedContentItem.$id}.${getFileExtension(selectedContentItem.contentType || '')}`;
+      const localFileUri = FileSystem.documentDirectory + fileName;
+
+      // Download the file
+      const downloadResumable = FileSystem.createDownloadResumable(
+        downloadUrl,
+        localFileUri
+      );
+
+      const result = await downloadResumable.downloadAsync();
+      
+      if (!result) {
+        Alert.alert('Error', 'Failed to download content');
+        return;
+      }
+
+      // Check if it's an image or video
+      const contentType = selectedContentItem.contentType || '';
+      const isImageOrVideo = contentType === 'image' || contentType === 'video';
+
+      if (isImageOrVideo) {
+        // For photos/videos: Save to device gallery
+        const { status } = await MediaLibrary.requestPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission required', 'Please grant permission to save to your photo library');
+          return;
+        }
+
+        await MediaLibrary.saveToLibraryAsync(result.uri);
+        setIsDownloadComplete(true);
+      } else {
+        // For files: Share using sharing API
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(result.uri, {
+            dialogTitle: `Share ${selectedContentItem.title || 'Content'}`,
+          });
+          setIsDownloadComplete(true);
+        } else {
+          Alert.alert('Sharing not available', 'Sharing is not available on this device');
+        }
+      }
+
+      // Clean up the temporary file
+      await FileSystem.deleteAsync(result.uri, { idempotent: true });
+    } catch (error) {
+      console.error('Error processing content:', error);
+      Alert.alert(
+        'Error',
+        'Failed to process content. Please try again.'
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const getActionText = () => {
+    if (!selectedContentItem) return 'Download';
+    
+    const contentType = selectedContentItem.contentType || '';
+    const isImageOrVideo = contentType === 'image' || contentType === 'video';
+    
+    if (isDownloadComplete) {
+      return 'Done';
+    }
+    
+    if (isProcessing) {
+      return isImageOrVideo ? 'Downloading...' : 'Sharing...';
+    }
+    
+    return isImageOrVideo ? 'Download' : 'Share';
+  };
+
+  if (!visible) return null;
+
+  return (
+    <Modal
+      visible={visible}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <View style={{ 
+        flex: 1, 
+        backgroundColor: 'rgba(0,0,0,0.9)', 
+        justifyContent: 'center', 
+        alignItems: 'center' 
+      }}>
+        <View style={{ 
+          width: '95%', 
+          maxWidth: 400,
+          backgroundColor: '#1A1A1A',
+          borderRadius: 24,
+          overflow: 'hidden',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 20 },
+          shadowOpacity: 0.5,
+          shadowRadius: 30,
+          elevation: 20
+        }}>
+          {/* Header with close button */}
+          <View style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            paddingHorizontal: 20,
+            paddingVertical: 16,
+            borderBottomWidth: 1,
+            borderBottomColor: '#333'
+          }}>
+            <Text style={{ 
+              color: 'white', 
+              fontSize: 18, 
+              fontWeight: 'bold', 
+              fontFamily: 'questrial'
+            }}>
+              Creator Profile
+            </Text>
+            <TouchableOpacity 
+              onPress={onClose}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                backgroundColor: '#333',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}
+            >
+              <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold' }}>×</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Content */}
+          <ScrollView 
+            showsVerticalScrollIndicator={false}
+            style={{ maxHeight: 700 }}
+          >
+            {loading ? (
+              <View style={{ padding: 40, alignItems: 'center' }}>
+                <ActivityIndicator size="large" color="#FB2355" />
+                <Text style={{ color: 'white', marginTop: 16, fontFamily: 'questrial' }}>
+                  Loading profile...
+                </Text>
+              </View>
+            ) : (
+              <>
+                {/* Creator Image */}
+                <View style={{
+                  width: '100%',
+                  height: 200,
+                  backgroundColor: '#2A2A2A',
+                  position: 'relative'
+                }}>
+                  {creatorThumbnail ? (
+                    <Image
+                      source={{ uri: creatorThumbnail }}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        opacity: imageLoaded ? 1 : 0
+                      }}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={{
+                      width: '100%',
+                      height: '100%',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      backgroundColor: '#2A2A2A'
+                    }}>
+                      <Text style={{ 
+                        fontSize: 48,
+                        fontWeight: 'bold',
+                        color: 'white', 
+                        fontFamily: 'questrial'
+                      }}>
+                        {creatorName?.charAt(0)?.toUpperCase() || 'C'}
+                      </Text>
+                    </View>
+                  )}
+                  
+                  {/* Gradient overlay */}
+                  <LinearGradient
+                    colors={['transparent', 'rgba(0,0,0,0.7)']}
+                    style={{
+                      position: 'absolute',
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      height: 80
+                    }}
+                  />
+                  
+                  {/* Creator name overlay */}
+                  <View style={{
+                    position: 'absolute',
+                    bottom: 16,
+                    left: 16,
+                    right: 16
+                  }}>
+                    <Text style={{ 
+                      color: 'white', 
+                      fontSize: 24, 
+                      fontWeight: 'bold', 
+                      fontFamily: 'questrial',
+                      textShadowColor: 'rgba(0,0,0,0.8)',
+                      textShadowOffset: { width: 1, height: 1 },
+                      textShadowRadius: 4
+                    }}>
+                      {creatorName || 'Creator'}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Stats and Info */}
+                <View style={{ padding: 20 }}>
+                  {/* Stats Row */}
+                  <View style={{ 
+                    flexDirection: 'row', 
+                    justifyContent: 'space-around',
+                    marginBottom: 20,
+                    paddingVertical: 16,
+                    backgroundColor: '#2A2A2A',
+                    borderRadius: 12
+                  }}>
+                    <View style={{ alignItems: 'center' }}>
+                      <Text style={{
+                        color: 'white',
+                        fontSize: 24,
+                        fontWeight: 'bold',
+                        fontFamily: 'questrial'
+                      }}>
+                        {followerCount}
+                      </Text>
+                      <Text style={{
+                        color: '#B9B9B9',
+                        fontSize: 14,
+                        fontFamily: 'questrial'
+                      }}>
+                        Followers
+                      </Text>
+                    </View>
+                    
+                    <View style={{ alignItems: 'center' }}>
+                      <Text style={{
+                        color: 'white',
+                        fontSize: 24,
+                        fontWeight: 'bold',
+                        fontFamily: 'questrial'
+                      }}>
+                        {creatorPost?.PhotosLocation || 'N/A'}
+                      </Text>
+                      <Text style={{
+                        color: '#B9B9B9',
+                        fontSize: 14,
+                        fontFamily: 'questrial'
+                      }}>
+                        Location
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Bio Section */}
+                  {creatorPost?.Bio && (
+                    <View style={{
+                      backgroundColor: '#2A2A2A',
+                      borderRadius: 12,
+                      padding: 16,
+                      marginBottom: 20
+                    }}>
+                      <Text style={{
+                        color: '#B9B9B9',
+                        fontSize: 14,
+                        fontFamily: 'questrial',
+                        marginBottom: 8
+                      }}>
+                        About
+                      </Text>
+                      <Text style={{ 
+                        color: 'white', 
+                        fontSize: 16, 
+                        lineHeight: 24, 
+                        fontFamily: 'questrial'
+                      }}>
+                        {creatorPost.Bio}
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Purchased Content Section */}
+                  <View style={{
+                    backgroundColor: '#2A2A2A',
+                    borderRadius: 12,
+                    padding: 16,
+                    marginBottom: 20
+                  }}>
+                    <Text style={{
+                      color: '#B9B9B9',
+                      fontSize: 14,
+                      fontFamily: 'questrial',
+                      marginBottom: 12
+                    }}>
+                      Your Purchased Content
+                    </Text>
+                    
+                    {/* Content Type Filter */}
+                    <View style={{ 
+                      flexDirection: 'row', 
+                      justifyContent: 'space-between',
+                      marginBottom: 12
+                    }}>
+                      {['Videos', 'Photos', 'Files'].map((contentType) => (
+                        <TouchableOpacity 
+                          key={contentType}
+                          onPress={() => setSelectedContentType(contentType)}
+                          style={{
+                            backgroundColor: selectedContentType === contentType ? '#FB2355' : '#404040',
+                            paddingHorizontal: 12,
+                            paddingVertical: 6,
+                            borderRadius: 16,
+                            flex: 1,
+                            marginHorizontal: 2,
+                            alignItems: 'center'
+                          }}
+                        >
+                          <Text style={{ 
+                            color: 'white', 
+                            fontFamily: 'questrial', 
+                            fontSize: 12,
+                            fontWeight: selectedContentType === contentType ? 'bold' : 'normal'
+                          }}>
+                            {contentType}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+
+                    {/* Content Display */}
+                    {isLoadingContent ? (
+                      <View style={{ alignItems: 'center', paddingVertical: 20 }}>
+                        <ActivityIndicator size="small" color="#FB2355" />
+                        <Text style={{ 
+                          color: '#B9B9B9', 
+                          fontSize: 12, 
+                          fontFamily: 'questrial',
+                          marginTop: 8
+                        }}>
+                          Loading content...
+                        </Text>
+                      </View>
+                    ) : purchasedContent.length > 0 ? (
+                      <View>
+                        <Text style={{ 
+                          color: '#B9B9B9', 
+                          fontSize: 12, 
+                          fontFamily: 'questrial',
+                          marginBottom: 8,
+                          textAlign: 'center'
+                        }}>
+                          {purchasedContent.length} {selectedContentType.toLowerCase()} purchased
+                        </Text>
+                        
+                        <View style={{ 
+                          flexDirection: 'row', 
+                          flexWrap: 'wrap', 
+                          justifyContent: 'space-between' 
+                        }}>
+                          {purchasedContent.slice(0, 6).map((item, index) => (
+                            <TouchableOpacity
+                              key={item.$id}
+                              onPress={() => openContentItem(item)}
+                              style={{
+                                width: '48%',
+                                marginBottom: 8,
+                                backgroundColor: '#404040',
+                                borderRadius: 8,
+                                overflow: 'hidden'
+                              }}
+                              activeOpacity={0.7}
+                            >
+                              <Image
+                                source={{ uri: item.imageUri }}
+                                style={{
+                                  width: '100%',
+                                  height: 60,
+                                  backgroundColor: '#2A2A2A'
+                                }}
+                                resizeMode="cover"
+                              />
+                              {item.contentType === 'video' && (
+                                <View style={{
+                                  position: 'absolute',
+                                  top: 4,
+                                  right: 4,
+                                  backgroundColor: 'rgba(0,0,0,0.7)',
+                                  borderRadius: 8,
+                                  padding: 2
+                                }}>
+                                  <Text style={{ color: 'white', fontSize: 8, fontFamily: 'questrial' }}>VIDEO</Text>
+                                </View>
+                              )}
+                              <View style={{ padding: 4 }}>
+                                <Text style={{ 
+                                  color: 'white', 
+                                  fontSize: 10, 
+                                  fontFamily: 'questrial' 
+                                }} numberOfLines={1}>
+                                  {item.title || `${item.contentType} content`}
+                                </Text>
+                              </View>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                        
+                        {purchasedContent.length > 6 && (
+                          <Text style={{ 
+                            color: '#FB2355', 
+                            fontSize: 12, 
+                            fontFamily: 'questrial',
+                            textAlign: 'center',
+                            marginTop: 8
+                          }}>
+                            +{purchasedContent.length - 6} more items
+                          </Text>
+                        )}
+                      </View>
+                    ) : (
+                      <View style={{ alignItems: 'center', paddingVertical: 20 }}>
+                        <Ionicons name="folder-open" size={32} color="#666666" />
+                        <Text style={{ 
+                          color: '#666666', 
+                          fontSize: 14, 
+                          fontFamily: 'questrial',
+                          textAlign: 'center',
+                          marginTop: 8
+                        }}>
+                          No {selectedContentType.toLowerCase()} purchased yet
+                        </Text>
+                        <Text style={{ 
+                          color: '#888888', 
+                          fontSize: 12, 
+                          fontFamily: 'questrial',
+                          textAlign: 'center',
+                          marginTop: 4
+                        }}>
+                          Visit their profile to purchase content
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              </>
+            )}
+          </ScrollView>
+
+          {/* Footer */}
+          <View style={{
+            paddingHorizontal: 20,
+            paddingVertical: 16,
+            borderTopWidth: 1,
+            borderTopColor: '#333'
+          }}>
+            <TouchableOpacity 
+              style={{
+                backgroundColor: '#FB2355',
+                borderRadius: 12,
+                paddingVertical: 12,
+                alignItems: 'center'
+              }}
+              onPress={onClose}
+            >
+              <Text style={{ 
+                color: 'white', 
+                fontSize: 16, 
+                fontWeight: 'bold', 
+                fontFamily: 'questrial'
+              }}>
+                Close 
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+
+      {/* Content Viewer Modal */}
+      <Modal
+        visible={isContentViewerVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={closeContentViewer}
+      >
+        <View style={{ 
+          flex: 1, 
+          backgroundColor: 'rgba(0,0,0,0.95)', 
+          justifyContent: 'center', 
+          alignItems: 'center' 
+        }}>
+          <View style={{ 
+            width: '95%', 
+            maxHeight: '90%', 
+            backgroundColor: '#1A1A1A',
+            borderRadius: 16,
+            overflow: 'hidden',
+            position: 'relative'
+          }}>
+            {/* Close Button */}
+            <TouchableOpacity
+              style={{
+                position: 'absolute',
+                top: 16,
+                right: 16,
+                backgroundColor: 'rgba(0,0,0,0.7)',
+                borderRadius: 20,
+                width: 40,
+                height: 40,
+                justifyContent: 'center',
+                alignItems: 'center',
+                zIndex: 10
+              }}
+              onPress={closeContentViewer}
+            >
+              <Text style={{ color: 'white', fontSize: 24, fontWeight: 'bold' }}>×</Text>
+            </TouchableOpacity>
+
+            {selectedContentItem && (
+              <View>
+                {/* Content Header */}
+                <View style={{ padding: 16, paddingTop: 60 }}>
+                  <Text style={{ 
+                    color: 'white', 
+                    fontSize: 18, 
+                    fontFamily: 'questrial', 
+                    fontWeight: 'bold',
+                    textAlign: 'center'
+                  }}>
+                    {selectedContentItem.title || `${selectedContentItem.contentType} Content`}
+                  </Text>
+                  <Text style={{ 
+                    color: '#888', 
+                    fontSize: 14, 
+                    fontFamily: 'questrial',
+                    textAlign: 'center',
+                    marginTop: 4
+                  }}>
+                    {selectedContentItem.contentType}
+                  </Text>
+                </View>
+
+                {/* Content Display */}
+                <View style={{ alignItems: 'center', paddingHorizontal: 16, paddingBottom: 16 }}>
+                  {selectedContentItem.contentType === 'image' || selectedContentItem.contentType === 'video' ? (
+                    <Image
+                      source={{ uri: selectedContentItem.imageUri }}
+                      style={{
+                        width: '100%',
+                        height: 400,
+                        borderRadius: 8,
+                        backgroundColor: '#2A2A2A'
+                      }}
+                      resizeMode="contain"
+                    />
+                  ) : (
+                    <View style={{
+                      backgroundColor: '#2A2A2A',
+                      padding: 32,
+                      borderRadius: 8,
+                      alignItems: 'center',
+                      width: '100%'
+                    }}>
+                      <Ionicons name="document" size={48} color="#888" />
+                      <Text style={{ 
+                        color: 'white', 
+                        fontSize: 16, 
+                        fontFamily: 'questrial',
+                        textAlign: 'center',
+                        marginTop: 16
+                      }}>
+                        File Content
+                      </Text>
+                      <Text style={{ 
+                        color: '#888', 
+                        fontSize: 14, 
+                        fontFamily: 'questrial',
+                        textAlign: 'center',
+                        marginTop: 8
+                      }}>
+                        {selectedContentItem.title || 'Document'}
+                      </Text>
+                    </View>
+                  )}
+
+                  {selectedContentItem.contentType === 'video' && (
+                    <View style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: [{ translateX: -30 }, { translateY: -30 }],
+                      backgroundColor: 'rgba(251, 35, 85, 0.9)',
+                      borderRadius: 30,
+                      width: 60,
+                      height: 60,
+                      justifyContent: 'center',
+                      alignItems: 'center'
+                    }}>
+                      <Text style={{ color: 'white', fontSize: 24 }}>▶</Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* Download Button */}
+                <View style={{ padding: 16 }}>
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: isDownloadComplete ? '#4CAF50' : (isProcessing ? '#999' : '#FB2355'),
+                      padding: 16,
+                      borderRadius: 8,
+                      alignItems: 'center',
+                      flexDirection: 'row',
+                      justifyContent: 'center'
+                    }}
+                    onPress={shareContent}
+                    disabled={isProcessing || isDownloadComplete}
+                  >
+                    {isProcessing ? (
+                      <ActivityIndicator size="small" color="white" style={{ marginRight: 8 }} />
+                    ) : isDownloadComplete ? (
+                      <Ionicons 
+                        name="checkmark" 
+                        size={20} 
+                        color="white" 
+                        style={{ marginRight: 8 }} 
+                      />
+                    ) : (
+                      <Ionicons 
+                        name={selectedContentItem?.contentType === 'image' || selectedContentItem?.contentType === 'video' ? "download" : "share"} 
+                        size={20} 
+                        color="white" 
+                        style={{ marginRight: 8 }} 
+                      />
+                    )}
+                    <Text style={{ 
+                      color: 'white', 
+                      fontSize: 16, 
+                      fontFamily: 'questrial', 
+                      fontWeight: 'bold' 
+                    }}>
+                      {getActionText()}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
+    </Modal>
+  );
+};
 
 // Stripe Payment Modal for Paid Content
 interface PaidContentPaymentModalProps {
@@ -3212,6 +4765,14 @@ export default function ChatScreen() {
   const [thread, setThread] = useState<any>(null);
   const [showCustomModal, setShowCustomModal] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<any>(null);
+  const [showCreatorPreview, setShowCreatorPreview] = useState(false);
+  
+  // Attachment preview modal state
+  const [selectedAttachment, setSelectedAttachment] = useState<any>(null);
+  const [tipAmount, setTipAmount] = useState(5);
+
+
+  
   const colorScheme = useColorScheme();
   const [theme, setTheme] = useState(getTheme());
   const router = useRouter();
@@ -3329,61 +4890,56 @@ export default function ChatScreen() {
           return;
         }
 
-        console.log('💬 Setting up both channels for creator:', creatorId);
+        console.log('💬 Loading pre-setup channels for creator:', creatorId);
 
-        // Setup group channel
+        // Use pre-setup group channel
         const groupChannelId = `creator-${creatorId}`;
         const groupChannel = client.channel('messaging', groupChannelId);
         
         try {
+          // Check if channel is already watched (pre-setup)
+          if (!groupChannel.state.isUpToDate) {
+            console.log('📡 Watching group channel (not pre-setup)...');
           await groupChannel.watch();
-          if (!groupChannel.state.members[user.$id]) {
-            await groupChannel.addMembers([user.$id]);
+          } else {
+            console.log('✅ Group channel already watched (pre-setup)');
           }
           setGroupChannel(groupChannel);
-          console.log('✅ Group channel setup successful:', {
+          console.log('✅ Group channel loaded successfully:', {
             channelId: groupChannel.id,
             memberCount: Object.keys(groupChannel.state.members).length,
-            members: Object.keys(groupChannel.state.members),
             messageCount: groupChannel.state.messages ? Object.keys(groupChannel.state.messages).length : 0
           });
         } catch (groupError) {
-          console.error('Error setting up group channel:', groupError);
+          console.error('Error loading group channel:', groupError);
         }
 
-        // Setup DM channel
+        // Use pre-setup DM channel
         const dmChannelId = `dm-${creatorId}-${user.$id}`;
         const dmChannel = client.channel('messaging', dmChannelId);
         
         try {
+          // Check if channel is already watched (pre-setup)
+          if (!dmChannel.state.isUpToDate) {
+            console.log('📡 Watching DM channel (not pre-setup)...');
           await dmChannel.watch();
-          // Add both creator and user to DM channel
-          const membersToAdd = [];
-          if (!dmChannel.state.members[creatorId]) {
-            membersToAdd.push(creatorId);
+          } else {
+            console.log('✅ DM channel already watched (pre-setup)');
           }
-          if (!dmChannel.state.members[user.$id]) {
-            membersToAdd.push(user.$id);
-          }
-          
-          if (membersToAdd.length > 0) {
-            await dmChannel.addMembers(membersToAdd);
-          }
-          
           setDmChannel(dmChannel);
-          console.log('✅ DM channel setup successful:', {
+          console.log('✅ DM channel loaded successfully:', {
             channelId: dmChannel.id,
             memberCount: Object.keys(dmChannel.state.members).length,
             members: Object.keys(dmChannel.state.members)
           });
         } catch (dmError) {
-          console.error('Error setting up DM channel:', dmError);
+          console.error('Error loading DM channel:', dmError);
         }
 
         setError(null);
       } catch (error) {
-        console.error('Error setting up channels:', error);
-        setError('Failed to set up channels');
+        console.error('Error loading channels:', error);
+        setError('Failed to load channels');
       } finally {
         setLoading(false);
       }
@@ -3447,6 +5003,8 @@ export default function ChatScreen() {
       <SafeAreaView style={{ flex: 1, backgroundColor: '#1A1A1A' }}>
         <Stack.Screen options={{ headerShown: false }} />
       <StatusBar style="light" />
+        
+
       <OverlayProvider>
         <Chat client={client} style={theme}>
           <Channel
@@ -3497,12 +5055,16 @@ export default function ChatScreen() {
               
               {/* Cherrizbox Icon - Positioned absolutely on the left */}
               {!thread && (
-              <View style={{
+                <TouchableOpacity 
+                  onPress={() => router.back()}
+                  style={{
                   position: 'absolute',
                   left: 16,
                   flexDirection: 'row',
                   alignItems: 'center'
-                }}>
+                  }}
+                  activeOpacity={0.7}
+                >
                   <Image 
                     source={require('../../assets/images/cherry-icon.png')}
                     style={{
@@ -3513,7 +5075,7 @@ export default function ChatScreen() {
                     }}
                     resizeMode="contain"
                   />
-                </View>
+                </TouchableOpacity>
               )}
               
               {/* Centered Text */}
@@ -3543,7 +5105,9 @@ export default function ChatScreen() {
               
               {/* Creator's photo - Positioned absolutely on the right */}
               {!thread && (
-                <View style={{
+                <TouchableOpacity 
+                  onPress={() => setShowCreatorPreview(true)}
+                  style={{
                   position: 'absolute',
                   right: 16,
                   width: 64,
@@ -3553,7 +5117,9 @@ export default function ChatScreen() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   overflow: 'hidden'
-                }}>
+                  }}
+                  activeOpacity={0.7}
+                >
                   {creatorThumbnail ? (
                     <Image
                       source={{ uri: creatorThumbnail }}
@@ -3574,7 +5140,7 @@ export default function ChatScreen() {
                       {(creatorName as string)?.charAt(0)?.toUpperCase() || 'C'}
               </Text>
                   )}
-            </View>
+                </TouchableOpacity>
               )}
             </View>
             
@@ -3682,7 +5248,14 @@ export default function ChatScreen() {
                   )}
                   onThreadSelect={setThread}
                 />
-                <CustomMessageInput currentChatType={currentChatType as string} />
+                <CustomMessageInput 
+                  currentChatType={currentChatType as string}
+                  setSelectedAttachment={setSelectedAttachment}
+                  selectedAttachment={selectedAttachment}
+                  tipAmount={tipAmount}
+                  setTipAmount={setTipAmount}
+                  currentChannel={currentChannel}
+                />
               </>
             )}
 
@@ -3693,9 +5266,20 @@ export default function ChatScreen() {
               message={selectedMessage}
               onThreadReply={handleThreadReply}
             />
+
+            {/* Creator Preview Modal */}
+            <CreatorPreviewModal
+              visible={showCreatorPreview}
+              onClose={() => setShowCreatorPreview(false)}
+              creatorName={creatorName as string}
+              creatorThumbnail={creatorThumbnail}
+              channelId={channelId as string}
+            />
           </Channel>
         </Chat>
       </OverlayProvider>
+      
+            
     </SafeAreaView>
   );
 } 

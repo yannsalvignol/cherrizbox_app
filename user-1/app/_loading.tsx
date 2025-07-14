@@ -5,7 +5,7 @@ import { ImageBackground, StyleSheet, Text, View } from 'react-native';
 
 const LoadingScreen = () => {
   const router = useRouter();
-  const { user, isStreamConnected, posts, imagesPreloaded, postsLoaded, loading } = useGlobalContext();
+  const { user, isStreamConnected, posts, imagesPreloaded, postsLoaded, loading, creators } = useGlobalContext();
   const [loadingText, setLoadingText] = useState('Initializing...');
 
   useEffect(() => {
@@ -39,6 +39,9 @@ const LoadingScreen = () => {
     }
   }, [user, isStreamConnected, postsLoaded, imagesPreloaded]);
 
+  // Get active creators count for channel setup status
+  const activeCreatorsCount = creators.filter(c => c.status === 'active').length;
+
   return (
     <ImageBackground
       source={require('../assets/images/cherry.png')}
@@ -51,6 +54,13 @@ const LoadingScreen = () => {
           <Text style={styles.dot}>.</Text>
         </View>
         <Text style={styles.loadingText}>{loadingText}</Text>
+        
+        {/* Show channel setup status if user is connected and has active creators */}
+        {user && isStreamConnected && activeCreatorsCount > 0 && (
+          <Text style={styles.channelText}>
+            Setting up {activeCreatorsCount} creator channels...
+          </Text>
+        )}
       </View>
     </ImageBackground>
   );
@@ -94,6 +104,13 @@ const styles = StyleSheet.create({
     fontFamily: 'questrial',
     marginTop: 10,
     opacity: 0.8,
+  },
+  channelText: {
+    fontSize: 14,
+    color: 'white',
+    fontFamily: 'questrial',
+    marginTop: 8,
+    opacity: 0.6,
   },
 });
 

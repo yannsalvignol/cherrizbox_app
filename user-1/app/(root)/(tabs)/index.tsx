@@ -157,15 +157,27 @@ export default function Index() {
                 
             
                 <TouchableOpacity onPress={() => router.push('/profile')}>
-                    <View className="w-16 h-16 rounded-full bg-[#1A1A1A] items-center justify-center overflow-hidden">
+                    <View style={{
+                        width: 67,
+                        height: 67,
+                        borderRadius: 36,
+                        backgroundColor: '#1A1A1A',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        overflow: 'hidden'
+                    }}>
                         {profileImage ? (
                             <Image
                                 source={{ uri: profileImage }}
-                                className="w-full h-full"
+                                style={{ width: '100%', height: '100%' }}
                                 resizeMode="cover"
                             />
                         ) : (
-                            <Text className="text-xl text-white font-bold">
+                            <Text style={{ 
+                                fontSize: 24, 
+                                color: 'white', 
+                                fontWeight: 'bold' 
+                            }}>
                                 {user?.name?.[0] || 'U'}
                             </Text>
                         )}

@@ -1,11 +1,10 @@
-import { createUser, login, SignIn } from '@/lib/appwrite';
+import { createUser, login, loginWithApple, sendVerificationEmailViaFunction, SignIn } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { sendVerificationEmail } from '../lib/email';
 import FormField from './components/FormField';
 import OtpInput from './components/OtpInput';
 
@@ -51,7 +50,7 @@ const App = () => {
     const [verificationCode, setVerificationCode] = useState('');
     const [generatedCode, setGeneratedCode] = useState('');
     const [timer, setTimer] = useState(600); // 10 minutes in seconds
-    const [resendDisabled, setResendDisabled] = useState(false);
+    const [resendButtonDisabled, setResendButtonDisabled] = useState(false);
     const [isPasswordFocused, setIsPasswordFocused] = useState(false);
     const [verificationError, setVerificationError] = useState('');
 
@@ -62,17 +61,27 @@ const App = () => {
                 setTimer((prev) => prev - 1);
             }, 1000);
         } else if (timer === 0) {
-            setResendDisabled(false);
+            setResendButtonDisabled(false);
         }
         return () => clearInterval(interval);
     }, [verificationSent, timer]);
 
     const handleSendVerification = async () => {
+        console.log(`📝 [handleSendVerification] Starting verification process`);
+        console.log(`📝 [handleSendVerification] Form data:`, { 
+            username: form.username, 
+            email: form.email, 
+            passwordLength: form.password.length,
+            confirmPasswordLength: form.confirmPassword.length 
+        });
+        
         if (!form.username || !form.email || !form.password || !form.confirmPassword) {
+            console.log(`❌ [handleSendVerification] Missing required fields`);
             Alert.alert('Error', 'Please fill in all fields');
             return;
         }
         if (form.password !== form.confirmPassword) {
+            console.log(`❌ [handleSendVerification] Passwords do not match`);
             Alert.alert('Error', 'Passwords do not match');
             return;
         }
@@ -81,25 +90,42 @@ const App = () => {
         const hasCapitalLetter = /[A-Z]/.test(form.password);
         const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(form.password);
 
+        console.log(`🔍 [handleSendVerification] Password validation:`, {
+            hasMinLength,
+            hasCapitalLetter,
+            hasSpecialChar
+        });
+
         if (!hasMinLength || !hasCapitalLetter || !hasSpecialChar) {
+            console.log(`❌ [handleSendVerification] Password does not meet security requirements`);
             Alert.alert('Error', 'Password does not meet security requirements.');
             return;
         }
 
+        console.log(`✅ [handleSendVerification] Form validation passed, generating verification code`);
         setIsSubmitting(true);
         const code = Math.floor(100000 + Math.random() * 900000).toString();
         setGeneratedCode(code);
+        console.log(`🔢 [handleSendVerification] Generated verification code: ${code}`);
         
-        const { success } = await sendVerificationEmail(form.email, code);
-
-        if (success) {
+        try {
+            console.log(`📧 [handleSendVerification] Calling email verification function`);
+            await sendVerificationEmailViaFunction(form.email, code);
+            console.log(`✅ [handleSendVerification] Email verification successful`);
             setVerificationSent(true);
             setTimer(600); // Reset timer
-            setResendDisabled(true);
-        } else {
-            Alert.alert('Error', 'Could not send verification email. Please try again.');
+            setResendButtonDisabled(true);
+            console.log(`⏰ [handleSendVerification] Timer reset to 600 seconds`);
+        } catch (error) {
+            console.log(`❌ [handleSendVerification] Email verification failed:`, error);
+            if (error instanceof Error) {
+                Alert.alert('Error', error.message);
+            } else {
+                Alert.alert('Error', 'Could not send verification email. Please try again.');
+            }
         }
         setIsSubmitting(false);
+        console.log(`🏁 [handleSendVerification] Process completed`);
     };
 
     const handleVerifyAndCreateAccount = async () => {
@@ -138,6 +164,15 @@ const App = () => {
             refetch();
         } else{
             console.log('Login Failed');
+        }
+    };
+
+    const handleAppleLogin = async () => {
+        const result = await loginWithApple();
+        if(result){
+            refetch();
+        } else{
+            console.log('Apple Login Failed');
         }
     };
 
@@ -194,8 +229,8 @@ const App = () => {
 
                             <View className="flex-row items-center mt-6">
                                 <Text className="text-gray-500 font-['Urbanist-Regular']">Didn't receive a code?</Text>
-                                <TouchableOpacity onPress={handleSendVerification} disabled={resendDisabled || timer > 0}>
-                                    <Text className={`font-['Urbanist-Bold'] ml-2 ${resendDisabled || timer > 0 ? 'text-gray-400' : 'text-[#FB2355]'}`}>
+                                <TouchableOpacity onPress={handleSendVerification} disabled={resendButtonDisabled || timer > 0}>
+                                    <Text className={`font-['Urbanist-Bold'] ml-2 ${resendButtonDisabled || timer > 0 ? 'text-gray-400' : 'text-[#FB2355]'}`}>
                                         Resend {timer > 0 ? `(${Math.floor(timer / 60)}:${(timer % 60).toString().padStart(2, '0')})` : ''}
                                     </Text>
                                 </TouchableOpacity>
@@ -271,7 +306,7 @@ const App = () => {
                                 resizeMode="contain"
                             />
                         </TouchableOpacity>
-                        <TouchableOpacity>
+                        <TouchableOpacity onPress={handleAppleLogin}>
                             <Image 
                                 source={require('../assets/images/apple.png')}
                                     className="w-32 h-32"

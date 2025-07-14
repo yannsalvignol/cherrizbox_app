@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "cherrybox",
+    "scheme": "com.yannsalvignol.cherrizboxuser",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "extra": {
@@ -13,7 +13,16 @@
     },
     "ios": {
       "supportsTablet": true,
-      "associatedDomains": ["applinks:cherrybox.app"]
+      "bundleIdentifier": "com.yannsalvignol.cherrizboxuser",
+      "associatedDomains": ["applinks:cherrybox.app"],
+      "infoPlist": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLName": "OAuth Callback",
+            "CFBundleURLSchemes": ["com.yannsalvignol.cherrizboxuser"]
+          }
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -27,7 +36,7 @@
           "autoVerify": true,
           "data": [
             {
-              "scheme": "cherrybox"
+              "scheme": "com.yannsalvignol.cherrizboxuser"
             }
           ],
           "category": [
@@ -58,7 +67,6 @@
         {
           "fonts": [
             "./assets/fonts/Questrial-Regular.ttf",
-            "./assets/fonts/Questrial-Bold.ttf",
             "./assets/fonts/Urbanist-Regular.ttf",
             "./assets/fonts/Urbanist-Bold.ttf",
             "./assets/fonts/Urbanist-Medium.ttf",

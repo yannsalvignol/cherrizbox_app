@@ -127,7 +127,9 @@ export const getAllPosts = async () => {
 
 export async function login() {
     try {
-        const redirectUri = Linking.createURL("/");
+        // Use custom URI scheme for mobile OAuth
+        const redirectUri = "com.yannsalvignol.cherrizboxuser://oauth-callback";
+        console.log("Google OAuth redirect URI:", redirectUri);
   
         const response = await account.createOAuth2Token(
             OAuthProvider.Google,
@@ -152,7 +154,41 @@ export async function login() {
   
         return true;
     } catch (error) {
-        console.error(error);
+        console.error("Google OAuth error:", error);
+        return false;
+    }
+}
+
+export async function loginWithApple() {
+    try {
+        // Use custom URI scheme for mobile OAuth
+        const redirectUri = "com.yannsalvignol.cherrizboxuser://oauth-callback";
+        console.log("Apple OAuth redirect URI:", redirectUri);
+  
+        const response = await account.createOAuth2Token(
+            OAuthProvider.Apple,
+            redirectUri
+        );
+        if (!response) throw new Error("Create Apple OAuth2 token failed");
+  
+        const browserResult = await openAuthSessionAsync(
+            response.toString(),
+            redirectUri
+        );
+        if (browserResult.type !== "success")
+            throw new Error("Create Apple OAuth2 token failed");
+  
+        const url = new URL(browserResult.url);
+        const secret = url.searchParams.get("secret")?.toString();
+        const userId = url.searchParams.get("userId")?.toString();
+        if (!secret || !userId) throw new Error("Create Apple OAuth2 token failed");
+  
+        const session = await account.createSession(userId, secret);
+        if (!session) throw new Error("Failed to create Apple session");
+  
+        return true;
+    } catch (error) {
+        console.error("Apple OAuth error:", error);
         return false;
     }
 }
@@ -404,6 +440,78 @@ export const verifyCodeAndResetPassword = async (email: string, code: string, pa
     }
     
     return responseBody;
+};
+
+// Send verification email using Appwrite function
+export const sendVerificationEmailViaFunction = async (email: string, code: string) => {
+    console.log(`📧 [sendVerificationEmailViaFunction] Starting email verification process`);
+    console.log(`📧 [sendVerificationEmailViaFunction] Email: ${email}, Code: ${code}`);
+    
+    const FUNCTION_ID = process.env.EXPO_PUBLIC_SEND_SIGNUP_EMAIL_FUNCTION_ID;
+    if (!FUNCTION_ID) {
+        console.log(`❌ [sendVerificationEmailViaFunction] Function ID not configured`);
+        throw new Error('Send signup email function ID not set');
+    }
+    
+    console.log(`✅ [sendVerificationEmailViaFunction] Function ID found: ${FUNCTION_ID}`);
+    
+    const requestBody = JSON.stringify({ email, code });
+    console.log(`📤 [sendVerificationEmailViaFunction] Request body: ${requestBody}`);
+    
+    try {
+        console.log(`🚀 [sendVerificationEmailViaFunction] Executing Appwrite function...`);
+        const execution = await functions.createExecution(
+            FUNCTION_ID,
+            requestBody,
+            false,
+            '/send-verification-email',
+            ExecutionMethod.POST,
+            { 'Content-Type': 'application/json' }
+        );
+        
+        console.log(`📥 [sendVerificationEmailViaFunction] Function execution completed`);
+        console.log(`📊 [sendVerificationEmailViaFunction] Execution status: ${execution.status}`);
+        console.log(`📊 [sendVerificationEmailViaFunction] Response body: ${execution.responseBody}`);
+        
+        if (execution.status === 'failed') {
+            console.log(`❌ [sendVerificationEmailViaFunction] Function execution failed`);
+            let errorResponse;
+            try {
+                errorResponse = JSON.parse(execution.responseBody);
+                console.log(`📋 [sendVerificationEmailViaFunction] Parsed error response:`, errorResponse);
+            } catch (parseError) {
+                const errorMessage = parseError instanceof Error ? parseError.message : 'Unknown parsing error';
+                console.log(`❌ [sendVerificationEmailViaFunction] Failed to parse error response: ${errorMessage}`);
+                throw new Error('Failed to send verification email - invalid response format.');
+            }
+            throw new Error(errorResponse.error || 'Failed to send verification email.');
+        }
+        
+        let responseBody;
+        try {
+            responseBody = JSON.parse(execution.responseBody);
+            console.log(`📋 [sendVerificationEmailViaFunction] Parsed response body:`, responseBody);
+        } catch (parseError) {
+            const errorMessage = parseError instanceof Error ? parseError.message : 'Unknown parsing error';
+            console.log(`❌ [sendVerificationEmailViaFunction] Failed to parse response body: ${errorMessage}`);
+            throw new Error('Failed to send verification email - invalid response format.');
+        }
+        
+        if (!responseBody.success) {
+            console.log(`❌ [sendVerificationEmailViaFunction] Response indicates failure:`, responseBody);
+            throw new Error(responseBody.error || 'Failed to send verification email.');
+        }
+        
+        console.log(`✅ [sendVerificationEmailViaFunction] Email verification process completed successfully`);
+        return responseBody;
+        
+    } catch (error) {
+        console.log(`💥 [sendVerificationEmailViaFunction] Error during function execution:`, error);
+        if (error instanceof Error) {
+            throw new Error(`Email verification failed: ${error.message}`);
+        }
+        throw new Error('Email verification failed with unknown error.');
+    }
 };
 
 

@@ -6,6 +6,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, BackHandler, Dimensions, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { getCreatorIdByName, getCurrentUser } from '../../lib/appwrite';
+import { useGlobalContext } from '../../lib/global-provider';
 import { createDirectMessageChannel } from '../../lib/stream-chat';
 
 const { width, height } = Dimensions.get('window');
@@ -14,6 +15,7 @@ export default function PaymentSuccess() {
   const router = useRouter();
   const navigation = useNavigation();
   const { creatorName } = useLocalSearchParams();
+  const { refreshPosts, refreshCreators } = useGlobalContext();
   
   // Animation values for logo movement and scale
   const logoTranslateY = useRef(new Animated.Value(-height * 0.18)).current;
@@ -110,7 +112,15 @@ export default function PaymentSuccess() {
         tension: 100,
         friction: 5,
         useNativeDriver: true,
-      }).start();
+      }).start(() => {
+        // Refetch data during animation completion
+        console.log('🔄 Refreshing posts and creators during animation...');
+        Promise.all([refreshPosts(), refreshCreators()]).then(() => {
+          console.log('✅ Data refresh completed during animation');
+        }).catch((error) => {
+          console.error('❌ Error refreshing data during animation:', error);
+        });
+      });
     });
     // Rotate background icons
     Animated.timing(rotateAnim, {
@@ -143,6 +153,8 @@ export default function PaymentSuccess() {
       const creatorNameStr = Array.isArray(creatorName) ? creatorName[0] : creatorName;
       if (!creatorNameStr) {
         console.warn('⚠️ No creator name available - skipping channel creation');
+        // Data already refreshed during animation, just navigate
+        console.log('🏠 Navigating to app tabs...');
         router.replace('/(root)/(tabs)');
         return;
       }
@@ -160,6 +172,8 @@ export default function PaymentSuccess() {
         console.log('👤 Current user ID:', user.$id);
         console.log('🎯 Creator ID:', creatorId);
         console.log('📝 Creator name:', creatorNameStr);
+        // Data already refreshed during animation, just navigate
+        console.log('🏠 Navigating to app tabs...');
         router.replace('/(root)/(tabs)');
         return;
       }
@@ -177,7 +191,7 @@ export default function PaymentSuccess() {
       const totalTime = Date.now() - startTime;
       console.log(`⏱️ Channel creation completed in ${totalTime}ms`);
 
-      // Navigate to app
+      // Data already refreshed during animation, just navigate
       console.log('🏠 Navigating to app tabs...');
       router.replace('/(root)/(tabs)');
       
@@ -191,7 +205,7 @@ export default function PaymentSuccess() {
         stack: err instanceof Error ? err.stack : undefined
       });
       
-      // Still navigate to app even if channel creation fails
+      // Data already refreshed during animation, just navigate
       console.log('🏠 Navigating to app tabs despite channel creation failure...');
       router.replace('/(root)/(tabs)');
     } finally {

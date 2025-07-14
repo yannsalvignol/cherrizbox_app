@@ -91,6 +91,102 @@ export const getConnectedUserId = () => {
     return connectedUserId;
 }; 
 
+// Pre-setup channels for all subscribed creators
+export const preSetupChannels = async (userId: string, creatorIds: string[]) => {
+    try {
+        console.log('🚀 Pre-setting up channels for subscribed creators...');
+        console.log('📋 Creator IDs to setup:', creatorIds);
+
+        // Check if we're connected to Stream Chat
+        if (!isConnected) {
+            console.log('⚠️ Not connected to Stream Chat, attempting to connect...');
+            const connected = await connectUser(userId);
+            if (!connected) {
+                throw new Error('Failed to connect to Stream Chat');
+            }
+        }
+
+        console.log('✅ Stream Chat connection verified for pre-setup');
+
+        const setupPromises = creatorIds.map(async (creatorId) => {
+            try {
+                console.log(`🏗️ Setting up channels for creator: ${creatorId}`);
+
+                // Setup group channel
+                const groupChannelId = `creator-${creatorId}`;
+                const groupChannel = client.channel('messaging', groupChannelId);
+                
+                try {
+                    await groupChannel.watch();
+                    if (!groupChannel.state.members[userId]) {
+                        await groupChannel.addMembers([userId]);
+                    }
+                    
+                    console.log(`✅ Group channel setup successful for creator ${creatorId}:`, {
+                        channelId: groupChannel.id,
+                        memberCount: Object.keys(groupChannel.state.members).length,
+                        messageCount: groupChannel.state.messages ? Object.keys(groupChannel.state.messages).length : 0
+                    });
+                } catch (groupError) {
+                    console.error(`❌ Error setting up group channel for creator ${creatorId}:`, groupError);
+                }
+
+                // Setup DM channel
+                const dmChannelId = `dm-${creatorId}-${userId}`;
+                const dmChannel = client.channel('messaging', dmChannelId);
+                
+                try {
+                    await dmChannel.watch();
+                    // Add both creator and user to DM channel
+                    const membersToAdd = [];
+                    if (!dmChannel.state.members[creatorId]) {
+                        membersToAdd.push(creatorId);
+                    }
+                    if (!dmChannel.state.members[userId]) {
+                        membersToAdd.push(userId);
+                    }
+                    
+                    if (membersToAdd.length > 0) {
+                        await dmChannel.addMembers(membersToAdd);
+                    }
+                    
+                    console.log(`✅ DM channel setup successful for creator ${creatorId}:`, {
+                        channelId: dmChannel.id,
+                        memberCount: Object.keys(dmChannel.state.members).length,
+                        members: Object.keys(dmChannel.state.members)
+                    });
+                } catch (dmError) {
+                    console.error(`❌ Error setting up DM channel for creator ${creatorId}:`, dmError);
+                }
+
+                return { creatorId, success: true };
+            } catch (error) {
+                console.error(`❌ Error setting up channels for creator ${creatorId}:`, error);
+                return { creatorId, success: false, error };
+            }
+        });
+
+        const results = await Promise.all(setupPromises);
+        const successful = results.filter(r => r.success);
+        const failed = results.filter(r => !r.success);
+
+        console.log(`🎉 Channel pre-setup completed:`, {
+            total: creatorIds.length,
+            successful: successful.length,
+            failed: failed.length
+        });
+
+        if (failed.length > 0) {
+            console.warn('⚠️ Failed channel setups:', failed);
+        }
+
+        return { successful, failed };
+    } catch (error) {
+        console.error('❌ Error in channel pre-setup:', error);
+        throw error;
+    }
+};
+
 // Create a direct message channel between two users
 export async function createDirectMessageChannel(user1Id: string, user2Id: string) {
   try {

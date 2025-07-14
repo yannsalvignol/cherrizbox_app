@@ -1,7 +1,7 @@
 import { useGlobalContext } from '@/lib/global-provider';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Image, ImageBackground, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Image, ImageBackground, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { getSubscriptionCount, isUserSubscribed } from '../../../lib/appwrite';
 import StripePaymentModal from '../../components/StripePaymentModal';
 
@@ -250,43 +250,222 @@ const Property = () => {
               </View>
             </View>
 
-            {/* Bio Modal */}
+            {/* Bio Modal - New Approach */}
             <Modal
               visible={showBioModal}
               transparent={true}
-              animationType="slide"
+              animationType="fade"
               onRequestClose={() => setShowBioModal(false)}
             >
-              <TouchableWithoutFeedback onPress={() => setShowBioModal(false)}>
-                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' }}>
-                  <TouchableWithoutFeedback>
-                    <View style={{ backgroundColor: '#181818', borderRadius: 24, padding: 24, width: '90%', maxHeight: '80%' }}>
-                      <View className="flex-row justify-between items-center mb-4">
-                        <Text className="text-white text-xl font-bold">About</Text>
-                        <TouchableOpacity onPress={() => setShowBioModal(false)}>
-                          <Image 
-                            source={require('../../../assets/icon/close.png')} 
-                            style={{ width: 24, height: 24, tintColor: '#FB2355' }} 
-                          />
-                        </TouchableOpacity>
-                      </View>
-
-                      <ScrollView>
-                        <Text style={{ color: 'white', fontSize: 16, lineHeight: 24, fontFamily: 'questrial' }}>
-                          {post?.Bio || 'No bio available'}
-                        </Text>
-                      </ScrollView>
-
-                      <TouchableOpacity 
-                        className="bg-[#FB2355] rounded-lg px-6 py-3 mt-4"
-                        onPress={() => setShowBioModal(false)}
-                      >
-                        <Text className="text-white font-questrial text-center">Close</Text>
-                      </TouchableOpacity>
+              <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' }}>
+                <View style={{ 
+                  width: '90%', 
+                  maxWidth: 400,
+                  backgroundColor: '#1A1A1A',
+                  borderRadius: 24,
+                  overflow: 'hidden',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 20 },
+                  shadowOpacity: 0.5,
+                  shadowRadius: 30,
+                  elevation: 20
+                }}>
+                  {/* Header */}
+                  <View style={{
+                    backgroundColor: '#FB2355',
+                    paddingVertical: 20,
+                    paddingHorizontal: 24,
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                      <View style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: 'white',
+                        marginRight: 12
+                      }} />
+                      <Text style={{ 
+                        color: 'white', 
+                        fontSize: 20, 
+                        fontWeight: 'bold', 
+                        fontFamily: 'questrial',
+                        flex: 1
+                      }} numberOfLines={1}>
+                        About {titleParam || post?.title || 'Creator'}
+                      </Text>
                     </View>
-                  </TouchableWithoutFeedback>
+                    <TouchableOpacity 
+                      onPress={() => setShowBioModal(false)}
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 14,
+                        backgroundColor: 'rgba(255,255,255,0.2)',
+                        justifyContent: 'center',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <Image 
+                        source={require('../../../assets/icon/close.png')} 
+                        style={{ width: 16, height: 16, tintColor: 'white' }} 
+                      />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Content */}
+                  <ScrollView 
+                    showsVerticalScrollIndicator={false}
+                    style={{ maxHeight: 400 }}
+                    contentContainerStyle={{ padding: 20 }}
+                  >
+                    {post?.Bio ? (
+                      <View>
+                        {/* Bio Card */}
+                        <View style={{
+                          backgroundColor: '#2A2A2A',
+                          borderRadius: 16,
+                          padding: 16,
+                          marginBottom: 16
+                        }}>
+                          <Text style={{ 
+                            color: 'white', 
+                            fontSize: 16, 
+                            lineHeight: 24, 
+                            fontFamily: 'questrial'
+                          }}>
+                            {post.Bio}
+                          </Text>
+                        </View>
+                        
+                        {/* Stats Cards */}
+                        <View style={{ flexDirection: 'row', gap: 12 }}>
+                          <View style={{ 
+                            flex: 1,
+                            backgroundColor: '#2A2A2A',
+                            borderRadius: 16,
+                            padding: 16,
+                            alignItems: 'center'
+                          }}>
+                            <Text style={{
+                              color: 'white',
+                              fontSize: 24,
+                              fontWeight: 'bold',
+                              fontFamily: 'questrial',
+                              marginBottom: 4
+                            }}>
+                              {followerCount}
+                            </Text>
+                            <Text style={{
+                              color: '#B9B9B9',
+                              fontSize: 13,
+                              fontFamily: 'questrial'
+                            }}>
+                              Followers
+                            </Text>
+                          </View>
+                          
+                          <View style={{ 
+                            flex: 1,
+                            backgroundColor: '#2A2A2A',
+                            borderRadius: 16,
+                            padding: 16,
+                            alignItems: 'center'
+                          }}>
+                            <Text style={{
+                              color: 'white',
+                              fontSize: 24,
+                              fontWeight: 'bold',
+                              fontFamily: 'questrial',
+                              marginBottom: 4
+                            }} numberOfLines={1}>
+                              {post.PhotosLocation || 'N/A'}
+                            </Text>
+                            <Text style={{
+                              color: '#B9B9B9',
+                              fontSize: 13,
+                              fontFamily: 'questrial'
+                            }}>
+                              Location
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    ) : (
+                      <View style={{ 
+                        alignItems: 'center', 
+                        paddingVertical: 40
+                      }}>
+                        <View style={{
+                          width: 64,
+                          height: 64,
+                          borderRadius: 32,
+                          backgroundColor: '#FB2355',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          marginBottom: 16
+                        }}>
+                          <Image 
+                            source={require('../../../assets/icon/image.png')} 
+                            style={{ 
+                              width: 32, 
+                              height: 32, 
+                              tintColor: 'white'
+                            }} 
+                          />
+                        </View>
+                        <Text style={{ 
+                          color: '#999', 
+                          fontSize: 18, 
+                          fontFamily: 'questrial',
+                          textAlign: 'center',
+                          fontWeight: 'bold',
+                          marginBottom: 8
+                        }}>
+                          No bio available yet
+                        </Text>
+                        <Text style={{ 
+                          color: '#666', 
+                          fontSize: 14, 
+                          fontFamily: 'questrial',
+                          textAlign: 'center'
+                        }}>
+                          Check back later for updates
+                        </Text>
+                      </View>
+                    )}
+                  </ScrollView>
+
+                  {/* Footer */}
+                  <View style={{
+                    paddingHorizontal: 20,
+                    paddingVertical: 16,
+                    borderTopWidth: 1,
+                    borderTopColor: '#333'
+                  }}>
+                    <TouchableOpacity 
+                      style={{
+                        backgroundColor: '#FB2355',
+                        borderRadius: 12,
+                        paddingVertical: 12,
+                        alignItems: 'center'
+                      }}
+                      onPress={() => setShowBioModal(false)}
+                    >
+                      <Text style={{ 
+                        color: 'white', 
+                        fontSize: 16, 
+                        fontWeight: 'bold', 
+                        fontFamily: 'questrial'
+                      }}>
+                        Close
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </TouchableWithoutFeedback>
+              </View>
             </Modal>
 
             <Animated.View style={[
@@ -372,7 +551,7 @@ const Property = () => {
                     backgroundColor: '#FB2355', 
                     borderRadius: 20, 
                     paddingVertical: 12, 
-                    paddingHorizontal: 100,
+                    paddingHorizontal: 20,
                     flexDirection: 'row',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -389,7 +568,14 @@ const Property = () => {
                       </Text>
                     </>
                   ) : (
-                    <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', fontFamily: 'questrial' }} numberOfLines={1} ellipsizeMode="clip">
+                    <Text style={{ 
+                      color: 'white', 
+                      fontSize: 18, 
+                      fontWeight: 'bold', 
+                      fontFamily: 'questrial',
+                      textAlign: 'center',
+                      flex: 1
+                    }} numberOfLines={1}>
                       Join {titleParam || post.title || 'this'}'s box
                     </Text>
                   )}

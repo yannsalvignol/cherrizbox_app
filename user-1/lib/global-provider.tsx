@@ -3,7 +3,7 @@ import * as FileSystem from 'expo-file-system';
 import React, { createContext, ReactNode, useContext, useEffect, useRef, useState } from "react";
 
 import { deleteExpiredSubscriptions, getAllPosts, getCurrentUser, getSubscriptionStatus, getUserProfile, getUserSubscriptions } from "./appwrite";
-import { connectUser, disconnectUser } from "./stream-chat";
+import { connectUser, disconnectUser, preSetupChannels } from "./stream-chat";
 import { useAppwrite } from "./useAppwrite";
 
 const CACHE_DIR = FileSystem.cacheDirectory + 'images/';
@@ -226,6 +226,21 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
         return !hasCancelled;
         });
       setCreators(filteredSubscriptions);
+
+      // Pre-setup channels for active subscriptions
+      const activeCreatorIds = filteredSubscriptions
+        .filter(sub => sub.status === 'active')
+        .map(sub => sub.creatorAccountId);
+
+      if (activeCreatorIds.length > 0) {
+        console.log('🚀 Starting channel pre-setup for active creators...');
+        // Run channel pre-setup in background (don't await to avoid blocking UI)
+        preSetupChannels(user.$id, activeCreatorIds).then((result) => {
+          console.log('✅ Channel pre-setup completed:', result);
+        }).catch((error) => {
+          console.error('❌ Channel pre-setup failed:', error);
+        });
+      }
     } catch (error) {
       console.error('Error loading creators:', error);
     }

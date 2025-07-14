@@ -1,11 +1,10 @@
-import { createUser, login, SignIn } from '@/lib/appwrite';
+import { createUser, login, sendVerificationEmail, SignIn } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { sendVerificationEmail } from '../lib/email';
 import FormField from './components/FormField';
 import OtpInput from './components/OtpInput';
 

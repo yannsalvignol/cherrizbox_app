@@ -158,7 +158,7 @@ const ForgotPasswordLoggedIn = () => {
 
   const { title, subtitle } = getStepInfo();
 
-  return (
+    return (
     <SafeAreaView className="bg-black flex-1">
       {!showSuccessModal && (
         <ScrollView
@@ -249,14 +249,14 @@ const ForgotPasswordLoggedIn = () => {
                   onBlur={() => setIsPasswordFocused(false)}
                 />
                 <PasswordCriteria password={password} isFocused={isPasswordFocused} />
-                <FormField
+                    <FormField 
                   title="Confirm New Password"
                   value={confirmPassword}
                   handleChangeText={(text: string) => setConfirmPassword(text)}
                   otherStyles="mt-4"
                   secureTextEntry
-                />
-                <TouchableOpacity
+                    />
+                    <TouchableOpacity 
                   onPress={handleResetPassword}
                   className="w-full bg-[#FB2355] py-4 rounded-full mt-8"
                   disabled={isLoading}
@@ -266,9 +266,9 @@ const ForgotPasswordLoggedIn = () => {
                   ) : (
                     <Text style={{ color: 'white' }} className="text-center font-['Urbanist-Bold'] text-lg">
                       Reset Password
-                    </Text>
+                        </Text>
                   )}
-                </TouchableOpacity>
+                    </TouchableOpacity>
               </>
             )}
           </View>
@@ -289,21 +289,21 @@ const ForgotPasswordLoggedIn = () => {
             </Text>
             <Text className="text-base font-['Urbanist-Regular'] text-gray-600 mt-2 text-center">
               Your password has been changed. You will now be logged out.
-            </Text>
+                        </Text>
             <TouchableOpacity
               onPress={handleLogout}
               className="w-full bg-[#FB2355] py-3 rounded-full mt-8"
             >
               <Text style={{ color: 'white' }} className="text-center font-['Urbanist-Bold'] text-lg">
                 Log Out
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
       </Modal>
 
-    </SafeAreaView>
-  );
+        </SafeAreaView>
+    );
 };
 
 export default ForgotPasswordLoggedIn;

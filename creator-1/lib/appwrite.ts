@@ -991,3 +991,96 @@ export const verifyCodeAndResetPassword = async (email: string, code: string, pa
     
     return responseBody;
 };
+
+// --- EMAIL VERIFICATION FUNCTION ---
+import { Alert } from 'react-native';
+
+export const sendVerificationEmailViaFunction = async (email: string, code: string) => {
+    console.log(`📧 [sendVerificationEmailViaFunction] Starting email verification process`);
+    console.log(`📧 [sendVerificationEmailViaFunction] Email: ${email}, Code: ${code}`);
+    
+    const FUNCTION_ID = process.env.EXPO_PUBLIC_SEND_SIGNUP_EMAIL_FUNCTION_ID;
+    if (!FUNCTION_ID) {
+        console.log(`❌ [sendVerificationEmailViaFunction] Function ID not configured`);
+        throw new Error('Send signup email function ID not set');
+    }
+    
+    console.log(`✅ [sendVerificationEmailViaFunction] Function ID found: ${FUNCTION_ID}`);
+    
+    const requestBody = JSON.stringify({ email, code });
+    console.log(`📤 [sendVerificationEmailViaFunction] Request body: ${requestBody}`);
+    
+    try {
+        console.log(`🚀 [sendVerificationEmailViaFunction] Executing Appwrite function...`);
+        const execution = await functions.createExecution(
+            FUNCTION_ID,
+            requestBody,
+            false,
+            '/send-verification-email',
+            ExecutionMethod.POST,
+            { 'Content-Type': 'application/json' }
+        );
+        
+        console.log(`📥 [sendVerificationEmailViaFunction] Function execution completed`);
+        console.log(`📊 [sendVerificationEmailViaFunction] Execution status: ${execution.status}`);
+        console.log(`📊 [sendVerificationEmailViaFunction] Response body: ${execution.responseBody}`);
+        
+        if (execution.status === 'failed') {
+            console.log(`❌ [sendVerificationEmailViaFunction] Function execution failed`);
+            let errorResponse;
+            try {
+                errorResponse = JSON.parse(execution.responseBody);
+                console.log(`📋 [sendVerificationEmailViaFunction] Parsed error response:`, errorResponse);
+            } catch (parseError) {
+                const errorMessage = parseError instanceof Error ? parseError.message : 'Unknown parsing error';
+                console.log(`❌ [sendVerificationEmailViaFunction] Failed to parse error response: ${errorMessage}`);
+                throw new Error('Failed to send verification email - invalid response format.');
+            }
+            throw new Error(errorResponse.error || 'Failed to send verification email.');
+        }
+        
+        let responseBody;
+        try {
+            responseBody = JSON.parse(execution.responseBody);
+            console.log(`📋 [sendVerificationEmailViaFunction] Parsed response body:`, responseBody);
+        } catch (parseError) {
+            const errorMessage = parseError instanceof Error ? parseError.message : 'Unknown parsing error';
+            console.log(`❌ [sendVerificationEmailViaFunction] Failed to parse response body: ${errorMessage}`);
+            throw new Error('Failed to send verification email - invalid response format.');
+        }
+        
+        if (!responseBody.success) {
+            console.log(`❌ [sendVerificationEmailViaFunction] Response indicates failure:`, responseBody);
+            throw new Error(responseBody.error || 'Failed to send verification email.');
+        }
+        
+        console.log(`✅ [sendVerificationEmailViaFunction] Email verification process completed successfully`);
+        return responseBody;
+        
+    } catch (error) {
+        console.log(`💥 [sendVerificationEmailViaFunction] Error during function execution:`, error);
+        if (error instanceof Error) {
+            throw new Error(`Email verification failed: ${error.message}`);
+        }
+        throw new Error('Email verification failed with unknown error.');
+    }
+};
+
+export const sendVerificationEmail = async (email: string, code: string) => {
+    try {
+        return await sendVerificationEmailViaFunction(email, code);
+    } catch (error) {
+        console.error('Error sending verification email:', error);
+        
+        // Fallback for development/testing when function is not configured
+        if (error instanceof Error && error.message.includes('function ID not set')) {
+            Alert.alert(
+                "Email Not Sent (DEMO)",
+                `Backend function not configured. For testing, your code is: ${code}`
+            );
+            return { success: true };
+        }
+        
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to send verification email.' };
+    }
+};
