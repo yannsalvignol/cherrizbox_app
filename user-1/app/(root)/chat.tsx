@@ -14,7 +14,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Dimensions, Image, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Dimensions, Image, ImageBackground, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { Client, Databases, Query } from 'react-native-appwrite';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Channel, Chat, DeepPartial, MessageAvatar, MessageInput, MessageList, MessageSimple, OverlayProvider, ReactionData, Theme, Thread, useMessageContext, useMessagesContext, useThreadContext } from 'stream-chat-react-native';
@@ -110,7 +110,7 @@ const CustomMessageAvatar = (props: any) => {
         );
         
         if (profiles.documents.length > 0) {
-          const profileImageUri = profiles.documents[0].profileImageUri;
+          const profileImageUri = profiles.documents[0].compressed_thumbnail;
           if (profileImageUri) {
             // Cache the result
             profileImageCache.set(userId, profileImageUri);
@@ -417,22 +417,25 @@ const CustomMessageInput = ({
         transparent={true}
         animationType="slide"
         onRequestClose={() => {
-          setShowAttachmentModal(false);
-          setSelectedAttachment(null);
+          // Only allow closing via close button, not back button
+          return;
         }}
       >
-        <TouchableOpacity
+        <View
           style={{
             flex: 1,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
             justifyContent: 'flex-end',
           }}
-          activeOpacity={1}
-          onPress={() => {
-            setShowAttachmentModal(false);
-            setSelectedAttachment(null);
-          }}
         >
+          <TouchableOpacity
+            style={{
+              flex: 1,
+            }}
+            activeOpacity={1}
+            onPress={() => {
+              // Do nothing - prevent closing on outside tap
+            }}
+          />
           <View
             style={{
               backgroundColor: '#1A1A1A',
@@ -560,9 +563,12 @@ const CustomMessageInput = ({
                   </Text>
                 </TouchableOpacity>
               </>
-            ) : (
+                        ) : (
               // Preview and tip view
-              <>
+              <ScrollView 
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 20 }}
+              >
                 <Text style={{
                   color: '#FFFFFF',
                   fontSize: 24,
@@ -577,7 +583,7 @@ const CustomMessageInput = ({
                 {/* Preview */}
                 <View style={{
                   width: '100%',
-                  height: 150,
+                  height: 250,
                   borderRadius: 12,
                   overflow: 'hidden',
                   marginBottom: 15,
@@ -617,7 +623,7 @@ const CustomMessageInput = ({
                   )}
                 </View>
                 
-
+                
                 
                 {/* Tip Amount */}
                 <Text style={{
@@ -630,42 +636,6 @@ const CustomMessageInput = ({
                   Tip Amount: ${tipAmount}
                 </Text>
                 
-                {/* Tip Slider */}
-                <View style={{
-                  width: '100%',
-                  marginBottom: 15,
-                }}>
-                  <View style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    marginBottom: 10,
-                  }}>
-                    {[1, 3, 5, 10, 20].map((amount) => (
-                      <TouchableOpacity
-                        key={amount}
-                        onPress={() => setTipAmount(amount)}
-                        style={{
-                          paddingHorizontal: 12,
-                          paddingVertical: 8,
-                          borderRadius: 8,
-                          backgroundColor: tipAmount === amount ? '#FB2355' : '#1A1A1A',
-                          borderWidth: 1,
-                          borderColor: tipAmount === amount ? '#FB2355' : '#666666',
-                        }}
-                      >
-                        <Text style={{
-                          color: '#FFFFFF',
-                          fontSize: 14,
-                          fontFamily: 'questrial',
-                          fontWeight: tipAmount === amount ? 'bold' : 'normal',
-                        }}>
-                          ${amount}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-                
                 {/* Custom Tip Input */}
                 <View style={{
                   width: '100%',
@@ -677,7 +647,7 @@ const CustomMessageInput = ({
                     fontFamily: 'questrial',
                     marginBottom: 8,
                   }}>
-                    Or enter custom amount:
+                    Enter custom amount:
                   </Text>
                   <View style={{
                     flexDirection: 'row',
@@ -713,6 +683,50 @@ const CustomMessageInput = ({
                       placeholder="0.00"
                       placeholderTextColor="#666666"
                     />
+                  </View>
+                </View>
+                
+                {/* Recommended Tip Amounts */}
+                <View style={{
+                  width: '100%',
+                  marginBottom: 15,
+                }}>
+                  <Text style={{
+                    color: '#FFFFFF',
+                    fontSize: 16,
+                    fontFamily: 'questrial',
+                    marginBottom: 8,
+                  }}>
+                    Or choose from recommended amounts:
+                  </Text>
+                  <View style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    marginBottom: 10,
+                  }}>
+                    {[1, 3, 5, 10, 20].map((amount) => (
+                      <TouchableOpacity
+                        key={amount}
+                        onPress={() => setTipAmount(amount)}
+                        style={{
+                          paddingHorizontal: 12,
+                          paddingVertical: 8,
+                          borderRadius: 8,
+                          backgroundColor: tipAmount === amount ? '#FB2355' : '#1A1A1A',
+                          borderWidth: 1,
+                          borderColor: tipAmount === amount ? '#FB2355' : '#666666',
+                        }}
+                      >
+                        <Text style={{
+                          color: '#FFFFFF',
+                          fontSize: 14,
+                          fontFamily: 'questrial',
+                          fontWeight: tipAmount === amount ? 'bold' : 'normal',
+                        }}>
+                          ${amount}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
                   </View>
                 </View>
                 
@@ -781,18 +795,44 @@ const CustomMessageInput = ({
                   <TouchableOpacity
                     onPress={async () => {
                       try {
-                        if (selectedAttachment?.type === 'document') {
-                          await currentChannel?.sendFile(selectedAttachment.uri);
-                        } else {
-                          await currentChannel?.sendImage(selectedAttachment.uri);
-                        }
+                        console.log('📤 Sending custom attachment with tip...');
+                        
+                        // Create a custom message with tip and attachment data
+                        const messageData = {
+                          text: `💝 Tip: $${tipAmount.toFixed(2)}`,
+                          attachments: [
+                            {
+                              type: 'custom_attachment',
+                              local_uri: selectedAttachment.uri,
+                              file_size: selectedAttachment.fileSize || 0,
+                              title: selectedAttachment.fileName || 'Attachment',
+                              mime_type: selectedAttachment.type === 'video' ? 'video/mp4' : 
+                                        selectedAttachment.type === 'document' ? (selectedAttachment.mimeType || 'application/octet-stream') : 'image/jpeg',
+                              attachment_type: selectedAttachment.type,
+                              tip_amount: tipAmount,
+                              timestamp: new Date().toISOString(),
+                            },
+                          ],
+                        };
+
+                        console.log('📤 Sending custom message with data:', JSON.stringify(messageData, null, 2));
+                        
+                        // Send message with custom attachment
+                        await currentChannel?.sendMessage(messageData);
+
+                        console.log('✅ Custom message sent successfully');
+                        
+                        // Close modal and reset state
                         setShowAttachmentModal(false);
                         setSelectedAttachment(null);
                         setTipAmount(5);
-                        Alert.alert('Success', `Message sent with $${tipAmount} tip!`);
+                        
+                        // Success feedback
+                        Alert.alert('Success', `Message sent with $${tipAmount.toFixed(2)} tip!`);
+                        
                       } catch (error) {
-                        console.error('Error sending message:', error);
-                        Alert.alert('Error', 'Failed to send message.');
+                        console.error('❌ Error sending message:', error);
+                        Alert.alert('Error', 'Failed to send message. Please try again.');
                       }
                     }}
                     style={{
@@ -813,10 +853,10 @@ const CustomMessageInput = ({
                     </Text>
                   </TouchableOpacity>
                 </View>
-              </>
+              </ScrollView>
             )}
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
     </View>
   );
@@ -885,6 +925,204 @@ const getTheme = (): DeepPartial<Theme> => ({
 // Custom MessageStatus component that hides the default timestamp completely
 const CustomMessageStatus = () => {
   return null; // Hide the default timestamp completely
+};
+
+// Custom Attachment Component for Tips
+const CustomTipAttachment = (props: any) => {
+  const { attachment } = props;
+  const [showFullScreenImage, setShowFullScreenImage] = useState(false);
+  
+  // Return null if no attachment or not a custom attachment
+  if (!attachment || attachment.type !== 'custom_attachment') {
+    return null;
+  }
+
+  const renderAttachmentContent = () => {
+    const { attachment_type, local_uri, title, tip_amount } = attachment;
+    
+    if (attachment_type === 'video') {
+      return (
+        <Video
+          source={{ uri: local_uri }}
+          style={{ width: '100%', height: 200 }}
+          resizeMode={ResizeMode.CONTAIN}
+          useNativeControls
+        />
+      );
+    } else if (attachment_type === 'document') {
+      return (
+        <View style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: '#2A2A2A',
+          borderRadius: 8,
+          padding: 20,
+        }}>
+          <Ionicons name="document" size={48} color="#FB2355" />
+          <Text style={{
+            color: '#FFFFFF',
+            fontSize: 16,
+            fontFamily: 'questrial',
+            marginTop: 8,
+            textAlign: 'center',
+          }}>
+            {title}
+          </Text>
+        </View>
+      );
+    } else {
+      // Image
+      return (
+        <Image
+          source={{ uri: local_uri }}
+          style={{ width: '100%', height: 200 }}
+          resizeMode="cover"
+        />
+      );
+    }
+  };
+
+  return (
+    <>
+      <View style={{
+        backgroundColor: '#1A1A1A',
+        borderRadius: 12,
+        overflow: 'hidden',
+        marginVertical: 8,
+        marginLeft: 12,
+        marginRight: -2,
+        borderWidth: 1,
+        borderColor: '#FB2355',
+        alignSelf: 'flex-end',
+        maxWidth: '80%',
+      }}>
+        {/* Attachment Content */}
+        <TouchableOpacity
+          onPress={async () => {
+            if (attachment.local_uri) {
+              if (attachment.attachment_type === 'image') {
+                // For images, show full screen modal
+                setShowFullScreenImage(true);
+              } else if (attachment.attachment_type === 'document') {
+                // For documents (including PDFs), use expo-sharing
+                const isSharingAvailable = await Sharing.isAvailableAsync();
+                if (isSharingAvailable) {
+                  try {
+                    await Sharing.shareAsync(attachment.local_uri);
+                  } catch (error) {
+                    console.warn('Failed to share document:', error);
+                    Alert.alert('Error', 'Unable to share this document.');
+                  }
+                } else {
+                  Alert.alert('Error', 'Sharing is not available on this device.');
+                }
+              } else {
+                // For other file types, try to open with default app
+                Linking.openURL(attachment.local_uri);
+              }
+            }
+          }}
+          activeOpacity={0.8}
+        >
+          <View style={{ height: 200 }}>
+            {renderAttachmentContent()}
+          </View>
+        </TouchableOpacity>
+        
+        {/* Tip Information */}
+        <View style={{
+          backgroundColor: '#FB2355',
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Ionicons name="heart" size={20} color="#FFFFFF" />
+            <Text style={{
+              color: '#FFFFFF',
+              fontSize: 16,
+              fontFamily: 'questrial',
+              fontWeight: 'bold',
+              marginLeft: 8,
+            }}>
+              Tip: ${attachment.tip_amount?.toFixed(2) || '0.00'}
+            </Text>
+          </View>
+          
+          <View style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            borderRadius: 12,
+            paddingHorizontal: 8,
+            paddingVertical: 4,
+          }}>
+            <Text style={{
+              color: '#FFFFFF',
+              fontSize: 12,
+              fontFamily: 'questrial',
+              fontWeight: 'bold',
+            }}>
+              💝
+            </Text>
+          </View>
+        </View>
+      </View>
+      
+      {/* Full Screen Image Modal */}
+      <Modal
+        visible={showFullScreenImage}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowFullScreenImage(false)}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0, 0, 0, 0.9)',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+          <TouchableOpacity
+            style={{
+              position: 'absolute',
+              top: 50,
+              right: 20,
+              zIndex: 1,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              borderRadius: 20,
+              padding: 10,
+            }}
+            onPress={() => setShowFullScreenImage(false)}
+          >
+            <Ionicons name="close" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              justifyContent: 'center',
+              alignItems: 'center',
+              width: '100%',
+            }}
+            onPress={() => setShowFullScreenImage(false)}
+            activeOpacity={1}
+          >
+            <Image
+              source={{ uri: attachment.local_uri }}
+              style={{
+                width: '100%',
+                height: '100%',
+              }}
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
+        </View>
+      </Modal>
+      
+
+    </>
+  );
 };
 
 // Custom Paid Content Attachment Component
@@ -1483,19 +1721,10 @@ const CustomMessageSimple = (props: any) => {
   // Check if this message contains a poll (check for poll_id)
   const hasPoll = message?.poll_id || message?.poll;
   
-  console.log('Message data:', {
-    id: message?.id,
-    text: message?.text,
-    hasPoll: !!hasPoll,
-    poll_id: message?.poll_id,
-    poll: message?.poll,
-    type: message?.type,
-    attachments: message?.attachments
-  });
+
   
   // If message has a poll, render our custom poll component
   if (hasPoll && message?.poll) {
-    console.log('Rendering custom poll component');
     return (
       <View>
         {/* Show the message text if any */}
@@ -1512,7 +1741,6 @@ const CustomMessageSimple = (props: any) => {
   
   // If poll_id exists but no poll data, use default MessageSimple
   if (hasPoll) {
-    console.log('Rendering poll message with default MessageSimple');
     return <MessageSimple {...props} />;
   }
   
@@ -1580,6 +1808,9 @@ const CustomMessageSimple = (props: any) => {
     return timeDifference >= fiveMinutesInMs;
   };
 
+  // Check if message has custom tip attachments
+  const hasCustomTipAttachment = message?.attachments?.some((attachment: any) => attachment?.type === 'custom_attachment');
+
   // Check if message has paid content attachments
   const hasPaidContent = message?.attachments?.some((attachment: any) => attachment?.type === 'paid_content');
   
@@ -1589,8 +1820,78 @@ const CustomMessageSimple = (props: any) => {
   // Check if message has blurry file attachments
   const hasBlurryFile = message?.attachments?.some((attachment: any) => attachment?.type === 'blurry_file');
 
+  if (hasCustomTipAttachment) {
+    return (
+      <View style={{ 
+        flexDirection: 'row', 
+        alignItems: 'flex-end',
+        justifyContent: 'flex-end',
+        marginVertical: 4,
+        paddingHorizontal: 5,
+      }}>
+        {/* Message content */}
+        <View style={{ 
+          flexDirection: 'column',
+          alignItems: 'flex-end',
+          flex: 1,
+          maxWidth: '80%',
+          marginLeft: -4,
+        }}>
+          {message.attachments?.map((attachment: any, index: number) => (
+            attachment?.type === 'custom_attachment' ? (
+              <CustomTipAttachment 
+                key={`custom-tip-${index}`}
+                attachment={attachment}
+              />
+            ) : null
+          ))}
+          
+          {/* Add timestamp for custom tip messages */}
+          {shouldShowTimestamp() && (
+            <View style={{ 
+              paddingTop: 0,
+              paddingHorizontal: 2,
+              alignItems: 'flex-start',
+              marginLeft: -4,
+            }}>
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+                borderRadius: 8,
+                backgroundColor: 'rgba(0, 0, 0, 0.1)',
+              }}>
+                <Ionicons 
+                  name="checkmark" 
+                  size={13}
+                  color="#00C851"
+                  style={{ opacity: 0.9 }}
+                />
+                <Text style={{
+                  color: '#FFFFFF',
+                  fontSize: 12,
+                  fontWeight: '600',
+                  fontFamily: 'questrial',
+                  opacity: 0.8,
+                  letterSpacing: 0.3,
+                }}>
+                  {new Date(message.created_at).toLocaleTimeString([], { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: true 
+                  })}
+                </Text>
+              </View>
+            </View>
+          )}
+        </View>
+      </View>
+    );
+  }
+
   if (hasPaidVideo) {
-    console.log('Rendering message with paid video attachment');
     return (
       <View style={{ 
         flexDirection: 'row', 
@@ -1667,7 +1968,6 @@ const CustomMessageSimple = (props: any) => {
   }
 
   if (hasBlurryFile) {
-    console.log('Rendering message with blurry file attachment');
     return (
       <View style={{ 
         flexDirection: 'row', 
@@ -1744,7 +2044,6 @@ const CustomMessageSimple = (props: any) => {
   }
   
   if (hasPaidContent) {
-    console.log('Rendering message with paid content attachment');
     return (
       <View style={{ 
         flexDirection: 'row', 
@@ -4753,6 +5052,898 @@ const BlurryFileAttachment = (props: any) => {
   );
 };
 
+// Full Screen Profile Picture Modal
+const FullScreenProfileModal = ({ 
+  visible, 
+  onClose, 
+  imageUrl, 
+  creatorName 
+}: {
+  visible: boolean;
+  onClose: () => void;
+  imageUrl: string | null;
+  creatorName: string;
+}) => {
+  const { getCachedImageUrl, user } = useGlobalContext();
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [creatorData, setCreatorData] = useState<any>(null);
+  const [purchasedContent, setPurchasedContent] = useState<any[]>([]);
+  const [isLoadingContent, setIsLoadingContent] = useState(false);
+  const [selectedContentItem, setSelectedContentItem] = useState<any | null>(null);
+  const [isContentViewerVisible, setIsContentViewerVisible] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [contentCache, setContentCache] = useState<Map<string, string>>(new Map());
+  const [videoThumbnails, setVideoThumbnails] = useState<Map<string, string>>(new Map());
+
+  // Animation values
+  const backgroundScale = useRef(new Animated.Value(0.95)).current;
+  const backgroundOpacity = useRef(new Animated.Value(0)).current;
+
+  // Temporary function to get purchased content (same as profile.tsx)
+  const getPurchasedContent = async (
+    userId: string, 
+    contentType?: string, 
+    creatorId?: string
+  ) => {
+    try {
+      const queries = [Query.equal('userId', userId)];
+      
+      if (contentType) {
+        queries.push(Query.equal('contentType', contentType));
+      }
+      
+      if (creatorId) {
+        queries.push(Query.equal('creatorId', creatorId));
+      }
+
+      const appwriteClient = new Client()
+        .setEndpoint(config.endpoint)
+        .setProject(config.projectId);
+      
+      const databases = new Databases(appwriteClient);
+
+      const response = await databases.listDocuments(
+        config.databaseId!,
+        '686a99d3002ec49567b3', // Paid content purchases collection ID
+        queries
+      );
+
+      return response.documents;
+    } catch (error) {
+      console.error('Error fetching purchased content:', error);
+      return [];
+    }
+  };
+
+  // Load purchased content for this creator
+  const loadPurchasedContent = async () => {
+    if (!user || !creatorName) return;
+    
+    setIsLoadingContent(true);
+    try {
+      // Get creator ID from name
+      const { getCreatorIdByName } = await import('../../lib/appwrite');
+      const creatorId = await getCreatorIdByName(creatorName);
+      
+      if (creatorId) {
+        const content = await getPurchasedContent(user.$id, undefined, creatorId);
+        setPurchasedContent(content);
+      } else {
+        setPurchasedContent([]);
+      }
+    } catch (error) {
+      console.error('Error loading purchased content:', error);
+      setPurchasedContent([]);
+    } finally {
+      setIsLoadingContent(false);
+    }
+  };
+
+  // Fetch creator data when modal becomes visible
+  useEffect(() => {
+    const fetchCreatorData = async () => {
+      if (!visible || !creatorName) return;
+      
+      try {
+        // Get follower count from subscriptions
+        const { getSubscriptionCount } = await import('../../lib/appwrite');
+        const followerCount = await getSubscriptionCount(creatorName);
+        
+        // Get creator post data (including location) from photos collection
+        if (!config.endpoint || !config.projectId || !config.databaseId || !config.photoCollectionId) {
+          return;
+        }
+
+        const appwriteClient = new Client()
+          .setEndpoint(config.endpoint)
+          .setProject(config.projectId);
+        
+        const databases = new Databases(appwriteClient);
+        
+        // Query photos collection for the creator's data
+        const photos = await databases.listDocuments(
+          config.databaseId,
+          config.photoCollectionId,
+          [Query.equal('title', creatorName)]
+        );
+        
+        if (photos.documents.length > 0) {
+          const postData = photos.documents[0];
+          setCreatorData({
+            followers: followerCount,
+            location: postData.PhotosLocation || null
+          });
+        } else {
+          // If no post found, still set follower count
+          setCreatorData({
+            followers: followerCount,
+            location: null
+          });
+        }
+
+        // Load purchased content for this creator
+        await loadPurchasedContent();
+      } catch (error) {
+        console.error('Error fetching creator data:', error);
+        // Set default data even if there's an error
+        setCreatorData({
+          followers: 0,
+          location: null
+        });
+      }
+    };
+    
+    fetchCreatorData();
+  }, [visible, creatorName, user]);
+
+  // Generate video thumbnail
+  const generateVideoThumbnail = async (item: any): Promise<string | null> => {
+    try {
+      if (item.contentType !== 'video') return null;
+      
+      const thumbnailKey = `thumbnail_${item.$id}`;
+      if (videoThumbnails.has(thumbnailKey)) {
+        return videoThumbnails.get(thumbnailKey) || null;
+      }
+
+      const { uri } = await VideoThumbnails.getThumbnailAsync(item.imageUri, {
+        time: 1000,
+        quality: 0.8,
+      });
+
+      setVideoThumbnails(prev => new Map(prev.set(thumbnailKey, uri)));
+      return uri;
+    } catch (error) {
+      console.warn('Failed to generate video thumbnail:', error);
+      return null;
+    }
+  };
+
+  // Generate thumbnails for videos
+  useEffect(() => {
+    const generateThumbnailsForVideos = async () => {
+      for (const item of purchasedContent) {
+        if (item.contentType === 'video') {
+          const thumbnailKey = `thumbnail_${item.$id}`;
+          if (!videoThumbnails.has(thumbnailKey)) {
+            generateVideoThumbnail(item).catch(error => {
+              console.warn(`Failed to generate thumbnail for video ${item.$id}:`, error);
+            });
+          }
+        }
+      }
+    };
+
+    if (purchasedContent.length > 0) {
+      generateThumbnailsForVideos();
+    }
+  }, [purchasedContent]);
+
+  // Get display URL (thumbnail for videos, regular URL for images)
+  const getDisplayUrl = (item: any): string => {
+    if (item.contentType === 'video') {
+      const thumbnailKey = `thumbnail_${item.$id}`;
+      const thumbnail = videoThumbnails.get(thumbnailKey);
+      return thumbnail || item.imageUri;
+    }
+    return item.imageUri;
+  };
+
+  // Check if video thumbnail is being generated
+  const isGeneratingThumbnail = (item: any): boolean => {
+    if (item.contentType !== 'video') return false;
+    const thumbnailKey = `thumbnail_${item.$id}`;
+    return !videoThumbnails.has(thumbnailKey);
+  };
+
+  const openContentItem = (item: any) => {
+    setSelectedContentItem(item);
+    setIsContentViewerVisible(true);
+  };
+
+  const closeContentViewer = () => {
+    setIsContentViewerVisible(false);
+    setSelectedContentItem(null);
+  };
+
+  const getActionText = () => {
+    if (!selectedContentItem) return 'Process';
+    
+    const contentType = selectedContentItem.contentType || '';
+    const isImageOrVideo = contentType === 'image' || contentType === 'video';
+    
+    if (isProcessing) {
+      return isImageOrVideo ? 'Downloading...' : 'Sharing...';
+    }
+    
+    return isImageOrVideo ? 'Download' : 'Share';
+  };
+
+  const shareContent = async () => {
+    if (!selectedContentItem) return;
+
+    setIsProcessing(true);
+    try {
+      if (!selectedContentItem.imageUri) {
+        Alert.alert('Error', 'Content URL is not available');
+        return;
+      }
+
+      const downloadUrl = selectedContentItem.imageUri.includes('/view?')
+        ? selectedContentItem.imageUri.replace('/view?', '/download?').concat('&output=attachment')
+        : selectedContentItem.imageUri;
+
+      const getFileExtension = (type: string) => {
+        switch (type) {
+          case 'image': return 'jpg';
+          case 'video': return 'mp4';
+          case 'file': return 'pdf';
+          default: return 'file';
+        }
+      };
+      
+      const fileName = selectedContentItem.title || `content_${selectedContentItem.$id}.${getFileExtension(selectedContentItem.contentType || '')}`;
+      const localFileUri = FileSystem.documentDirectory + fileName;
+
+      const downloadResumable = FileSystem.createDownloadResumable(
+        downloadUrl,
+        localFileUri
+      );
+
+      const result = await downloadResumable.downloadAsync();
+      
+      if (!result) {
+        Alert.alert('Error', 'Failed to download content');
+        return;
+      }
+
+      const contentType = selectedContentItem.contentType || '';
+      const isImageOrVideo = contentType === 'image' || contentType === 'video';
+
+      if (isImageOrVideo) {
+        const { status } = await MediaLibrary.requestPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission required', 'Please grant permission to save to your photo library');
+          return;
+        }
+
+        await MediaLibrary.saveToLibraryAsync(result.uri);
+        Alert.alert('Success', `${contentType === 'image' ? 'Photo' : 'Video'} saved to your gallery!`);
+      } else {
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(result.uri, {
+            dialogTitle: `Share ${selectedContentItem.title || 'Content'}`,
+          });
+        } else {
+          Alert.alert('Sharing not available', 'Sharing is not available on this device');
+        }
+      }
+
+      await FileSystem.deleteAsync(result.uri, { idempotent: true });
+    } catch (error) {
+      console.error('Error processing content:', error);
+      Alert.alert(
+        'Error',
+        'Failed to process content. Please try again.'
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Preload image using cached URL
+  useEffect(() => {
+    if (visible && imageUrl) {
+      const cachedUrl = getCachedImageUrl(imageUrl);
+      if (cachedUrl) {
+        Image.prefetch(cachedUrl)
+          .then(() => setImageLoaded(true))
+          .catch(() => setImageLoaded(true));
+      } else {
+        setImageLoaded(true);
+      }
+    }
+  }, [visible, imageUrl, getCachedImageUrl]);
+
+  // Animate when visible
+  useEffect(() => {
+    if (visible) {
+      // Animate background
+      Animated.parallel([
+        Animated.spring(backgroundScale, {
+          toValue: 1,
+          useNativeDriver: true,
+          tension: 50,
+          friction: 7,
+        }),
+        Animated.timing(backgroundOpacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [visible]);
+
+  const cachedImageUrl = getCachedImageUrl(imageUrl || '');
+
+  return (
+    <Modal
+      visible={visible}
+      transparent={true}
+      animationType="fade"
+      statusBarTranslucent={true}
+      onRequestClose={onClose}
+    >
+      <View style={{ 
+        flex: 1, 
+        backgroundColor: 'rgba(0,0,0,0.9)',
+        zIndex: 9999,
+        elevation: 9999
+      }}>
+        <Animated.View style={[
+          StyleSheet.absoluteFill,
+          {
+            opacity: backgroundOpacity,
+            transform: [{ scale: backgroundScale }],
+            zIndex: 10000,
+            elevation: 10000
+          }
+        ]}>
+          {/* Fallback background for instant display */}
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: '#1A1A1A' }]} />
+          
+          <ImageBackground
+            source={{ uri: cachedImageUrl }}
+            style={StyleSheet.absoluteFill}
+            resizeMode="cover"
+            blurRadius={0}
+            imageStyle={{ opacity: imageLoaded ? 1 : 0 }}
+            onLoad={() => {
+              console.log('FullScreenProfile ImageBackground loaded');
+              setImageLoaded(true);
+            }}
+            onLoadStart={() => console.log('FullScreenProfile ImageBackground loading started')}
+            onError={(error: any) => console.log('FullScreenProfile ImageBackground error:', error)}
+          >
+            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' }}>
+              {/* Top section with back button, creator name, and logo */}
+              <View style={{ 
+                flexDirection: 'row', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                marginTop: 50, 
+                marginHorizontal: 20 
+              }}>
+                {/* Back button in top left */}
+                <TouchableOpacity onPress={onClose} style={{ 
+                  backgroundColor: 'rgba(0,0,0,0.4)',
+                  borderRadius: 24,
+                  paddingHorizontal: 12,
+                  paddingVertical: 12
+                }}>
+                  <Image 
+                    source={require('../../assets/icon/back.png')} 
+                    style={{ width: 20, height: 20, tintColor: 'white', resizeMode: 'contain' }} 
+                  />
+                </TouchableOpacity>
+                
+                {/* Creator name in top middle */}
+                <BlurView intensity={80} style={{
+                  borderRadius: 40,
+                  paddingHorizontal: 24,
+                  paddingVertical: 16,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 8 },
+                  shadowOpacity: 0.4,
+                  shadowRadius: 16,
+                  elevation: 12,
+                  overflow: 'hidden'
+                }}>
+                  <Text style={{ 
+                    color: 'white', 
+                    fontSize: 22, 
+                    fontWeight: '600', 
+                    fontFamily: 'Questrial-Regular',
+                    textAlign: 'center'
+                  }}>
+                    {creatorName || 'Creator'}
+                  </Text>
+                </BlurView>
+                
+                {/* Cherrizbox logo in top right */}
+                <Image 
+                  source={require('../../assets/images/cherry-icon.png')} 
+                  style={{ 
+                    width: 56, 
+                    height: 56, 
+                    resizeMode: 'contain',
+                    borderRadius: 14,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 8
+                  }} 
+                />
+              </View>
+
+              {/* Horizontal info section below */}
+              <View style={{ 
+                flexDirection: 'row', 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                marginTop: 20, 
+                marginHorizontal: 20,
+                gap: 12
+              }}>
+                {/* Location with neutral card */}
+                {creatorData?.location && (
+                  <BlurView intensity={80} style={{
+                    borderRadius: 36,
+                    paddingHorizontal: 20,
+                    paddingVertical: 12,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 6 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 12,
+                    elevation: 8,
+                    overflow: 'hidden'
+                  }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Ionicons name="location-outline" size={16} color="rgba(255, 255, 255, 0.9)" style={{ marginRight: 6 }} />
+                      <Text style={{ 
+                        color: 'rgba(255, 255, 255, 0.9)', 
+                        fontSize: 15, 
+                        fontFamily: 'Questrial-Regular',
+                        fontWeight: '500'
+                      }}>
+                        {creatorData.location}
+                      </Text>
+                    </View>
+                  </BlurView>
+                )}
+                
+                {/* Followers with neutral card */}
+                {creatorData?.followers && (
+                  <BlurView intensity={80} style={{
+                    borderRadius: 36,
+                    paddingHorizontal: 20,
+                    paddingVertical: 12,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 6 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 12,
+                    elevation: 8,
+                    overflow: 'hidden'
+                  }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Ionicons name="people-outline" size={16} color="rgba(255, 255, 255, 0.9)" style={{ marginRight: 6 }} />
+                      <Text style={{ 
+                        color: 'rgba(255, 255, 255, 0.9)', 
+                        fontSize: 15, 
+                        fontFamily: 'Questrial-Regular',
+                        fontWeight: '500'
+                      }}>
+                        {creatorData.followers} followers
+                      </Text>
+                    </View>
+                  </BlurView>
+                )}
+              </View>
+
+              {/* Scrollable Paid Content Section - Positioned to show first bubble at bottom */}
+              <ScrollView 
+                style={{ 
+                  flex: 1,
+                  marginTop: 20
+                }}
+                contentContainerStyle={{ 
+                  paddingHorizontal: 20,
+                  paddingTop: Dimensions.get('window').height - 400, // Push content to bottom of screen
+                  paddingBottom: 40
+                }}
+                showsVerticalScrollIndicator={false}
+              >
+                {/* Content Header */}
+                <BlurView intensity={80} style={{ 
+                  marginHorizontal: 20, 
+                  borderRadius: 40, 
+                  padding: 24, 
+                  marginBottom: 24,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 8 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 16,
+                  elevation: 12,
+                  overflow: 'hidden'
+                }}>
+                  <View style={{ alignItems: 'center', marginBottom: 8 }}>
+                    <View style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 24,
+                      backgroundColor: '#FB2355',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      marginBottom: 12
+                    }}>
+                      <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold' }}>📱</Text>
+                    </View>
+                    <Text style={{ 
+                      color: 'white', 
+                      fontSize: 22, 
+                      fontWeight: 'bold', 
+                      fontFamily: 'Questrial-Regular',
+                      textAlign: 'center',
+                      marginBottom: 6
+                    }}>
+                      Scroll for your paid content
+                    </Text>
+                    <Text style={{ 
+                      color: '#B9B9B9', 
+                      fontSize: 15, 
+                      fontFamily: 'Questrial-Regular',
+                      textAlign: 'center'
+                    }}>
+                      {purchasedContent.length} items from {creatorName}
+                    </Text>
+                  </View>
+                </BlurView>
+
+                {/* Content Grid */}
+                {isLoadingContent ? (
+                  <BlurView intensity={80} style={{ 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    paddingVertical: 60,
+                    marginHorizontal: 20,
+                    borderRadius: 36,
+                    padding: 40,
+                    overflow: 'hidden'
+                  }}>
+                    <View style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 20,
+                      backgroundColor: '#FB2355',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      marginBottom: 16
+                    }}>
+                      <Text style={{ color: 'white', fontSize: 16 }}>⏳</Text>
+                    </View>
+                    <Text style={{ 
+                      color: '#888', 
+                      fontSize: 16, 
+                      fontFamily: 'Questrial-Regular', 
+                      textAlign: 'center' 
+                    }}>
+                      Loading content...
+                    </Text>
+                  </BlurView>
+                ) : purchasedContent.length > 0 ? (
+                  <View style={{ 
+                    flexDirection: 'row', 
+                    flexWrap: 'wrap', 
+                    justifyContent: 'space-between',
+                    paddingHorizontal: 20
+                  }}>
+                    {purchasedContent.map((item, index) => (
+                      <TouchableOpacity
+                        key={item.$id}
+                        onPress={() => openContentItem(item)}
+                        style={{
+                          width: '48%',
+                          marginBottom: 16,
+                          backgroundColor: '#1A1A1A',
+                          borderRadius: 16,
+                          overflow: 'hidden',
+                          shadowColor: '#000',
+                          shadowOffset: { width: 0, height: 4 },
+                          shadowOpacity: 0.3,
+                          shadowRadius: 8,
+                          elevation: 6
+                        }}
+                      >
+                        <Image
+                          source={{ uri: getDisplayUrl(item) }}
+                          style={{
+                            width: '100%',
+                            height: 140,
+                            backgroundColor: '#2A2A2A'
+                          }}
+                          resizeMode="cover"
+                        />
+                        {item.contentType === 'video' && (
+                          <>
+                            {/* Play Button Overlay */}
+                            <View style={{
+                              position: 'absolute',
+                              top: '50%',
+                              left: '50%',
+                              transform: [{ translateX: -22 }, { translateY: -22 }],
+                              backgroundColor: 'rgba(251, 35, 85, 0.95)',
+                              borderRadius: 22,
+                              width: 44,
+                              height: 44,
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              shadowColor: '#000',
+                              shadowOffset: { width: 0, height: 4 },
+                              shadowOpacity: 0.3,
+                              shadowRadius: 8,
+                              elevation: 6
+                            }}>
+                              <Text style={{ color: 'white', fontSize: 18, marginLeft: 2 }}>▶</Text>
+                            </View>
+                            
+                            {/* Video Badge */}
+                            <View style={{
+                              position: 'absolute',
+                              top: 8,
+                              right: 8,
+                              backgroundColor: 'rgba(0,0,0,0.8)',
+                              borderRadius: 12,
+                              paddingHorizontal: 8,
+                              paddingVertical: 4
+                            }}>
+                              <Text style={{ color: 'white', fontSize: 10, fontFamily: 'Questrial-Regular', fontWeight: 'bold' }}>VIDEO</Text>
+                            </View>
+                          </>
+                        )}
+                        
+                        <View style={{ padding: 12 }}>
+                          <Text style={{ 
+                            color: 'white', 
+                            fontSize: 13, 
+                            fontFamily: 'Questrial-Regular',
+                            fontWeight: '500'
+                          }} numberOfLines={1}>
+                            {item.contentType === 'video' ? 'Video Content' : 
+                             item.contentType === 'image' ? 'Photo Content' : 'File Content'}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                ) : (
+                  <BlurView intensity={80} style={{ 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    paddingVertical: 60,
+                    marginHorizontal: 20,
+                    borderRadius: 36,
+                    padding: 40,
+                    overflow: 'hidden'
+                  }}>
+                    <View style={{
+                      width: 64,
+                      height: 64,
+                      borderRadius: 32,
+                      backgroundColor: '#FB2355',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      marginBottom: 16
+                    }}>
+                      <Text style={{ color: 'white', fontSize: 24 }}>📱</Text>
+                    </View>
+                    <Text style={{ 
+                      color: '#888', 
+                      fontSize: 18, 
+                      fontFamily: 'Questrial-Regular', 
+                      textAlign: 'center',
+                      fontWeight: 'bold',
+                      marginBottom: 8
+                    }}>
+                      No purchased content yet
+                    </Text>
+                    <Text style={{ 
+                      color: '#666', 
+                      fontSize: 14, 
+                      fontFamily: 'Questrial-Regular', 
+                      textAlign: 'center'
+                    }}>
+                      Content you purchase will appear here
+                    </Text>
+                  </BlurView>
+                )}
+              </ScrollView>
+            </View>
+          </ImageBackground>
+        </Animated.View>
+      </View>
+
+      {/* Content Viewer Modal */}
+      <Modal
+        visible={isContentViewerVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={closeContentViewer}
+      >
+        <View style={{ 
+          flex: 1, 
+          backgroundColor: 'rgba(0,0,0,0.9)',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <View style={{ 
+            backgroundColor: '#000', 
+            width: '95%', 
+            maxHeight: '90%', 
+            borderRadius: 12, 
+            overflow: 'hidden',
+            position: 'relative'
+          }}>
+            {/* Close Button */}
+            <TouchableOpacity
+              style={{
+                position: 'absolute',
+                top: 16,
+                right: 16,
+                backgroundColor: 'rgba(0,0,0,0.7)',
+                borderRadius: 20,
+                width: 40,
+                height: 40,
+                justifyContent: 'center',
+                alignItems: 'center',
+                zIndex: 10
+              }}
+              onPress={closeContentViewer}
+            >
+              <Image 
+                source={require('../../assets/icon/close.png')}
+                style={{ width: 20, height: 20, tintColor: 'white' }}
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
+
+            {selectedContentItem && (
+              <View>
+                {/* Content Header */}
+                <View style={{ padding: 16, paddingTop: 60 }}>
+                  <Text style={{ 
+                    color: 'white', 
+                    fontSize: 18, 
+                    fontFamily: 'Questrial-Regular', 
+                    fontWeight: 'bold',
+                    textAlign: 'center'
+                  }}>
+                    {selectedContentItem.contentType === 'video' ? 'Video Content' : 
+                     selectedContentItem.contentType === 'image' ? 'Photo Content' : 'File Content'}
+                  </Text>
+                  <Text style={{ 
+                    color: '#888', 
+                    fontSize: 14, 
+                    fontFamily: 'Questrial-Regular',
+                    textAlign: 'center',
+                    marginTop: 4
+                  }}>
+                    {selectedContentItem.contentType}
+                  </Text>
+                </View>
+
+                {/* Content Display */}
+                <View style={{ alignItems: 'center', paddingHorizontal: 16, paddingBottom: 16 }}>
+                  {selectedContentItem.contentType === 'image' || selectedContentItem.contentType === 'video' ? (
+                    <Image
+                      source={{ uri: selectedContentItem.imageUri }}
+                      style={{
+                        width: '100%',
+                        height: 400,
+                        borderRadius: 8,
+                        backgroundColor: '#1A1A1A'
+                      }}
+                      resizeMode="contain"
+                    />
+                  ) : (
+                    <View style={{
+                      backgroundColor: '#1A1A1A',
+                      padding: 32,
+                      borderRadius: 8,
+                      alignItems: 'center',
+                      width: '100%'
+                    }}>
+                      <Image 
+                        source={require('../../assets/icon/edit.png')}
+                        style={{ width: 48, height: 48, tintColor: '#888', marginBottom: 16 }}
+                        resizeMode="contain"
+                      />
+                      <Text style={{ 
+                        color: 'white', 
+                        fontSize: 16, 
+                        fontFamily: 'Questrial-Regular',
+                        textAlign: 'center'
+                      }}>
+                        File Content
+                      </Text>
+                      <Text style={{ 
+                        color: '#888', 
+                        fontSize: 14, 
+                        fontFamily: 'Questrial-Regular',
+                        textAlign: 'center',
+                        marginTop: 8
+                      }}>
+                        Tap to download or view
+                      </Text>
+                    </View>
+                  )}
+
+                  {selectedContentItem.contentType === 'video' && (
+                    <TouchableOpacity
+                      style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: [{ translateX: -30 }, { translateY: -30 }],
+                        backgroundColor: 'rgba(251, 35, 85, 0.9)',
+                        borderRadius: 30,
+                        width: 60,
+                        height: 60,
+                        justifyContent: 'center',
+                        alignItems: 'center'
+                      }}
+                      onPress={shareContent}
+                    >
+                      <Text style={{ color: 'white', fontSize: 24 }}>▶</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                {/* Action Button */}
+                <View style={{ padding: 16 }}>
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: isProcessing ? '#999' : '#FB2355',
+                      padding: 16,
+                      borderRadius: 8,
+                      alignItems: 'center'
+                    }}
+                    onPress={shareContent}
+                    disabled={isProcessing}
+                  >
+                    <Text style={{ 
+                      color: 'white', 
+                      fontSize: 16, 
+                      fontFamily: 'Questrial-Regular', 
+                      fontWeight: 'bold' 
+                    }}>
+                      {getActionText()}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
+    </Modal>
+  );
+};
+
 export default function ChatScreen() {
   const { channelId, creatorName, chatType } = useLocalSearchParams();
   const { user, isStreamConnected } = useGlobalContext();
@@ -4762,17 +5953,22 @@ export default function ChatScreen() {
   const [error, setError] = useState<string | null>(null);
   const [currentChatType, setCurrentChatType] = useState(chatType || 'group');
   const [creatorThumbnail, setCreatorThumbnail] = useState<string | null>(null);
+  const [creatorFullThumbnail, setCreatorFullThumbnail] = useState<string | null>(null);
   const [thread, setThread] = useState<any>(null);
   const [showCustomModal, setShowCustomModal] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<any>(null);
-  const [showCreatorPreview, setShowCreatorPreview] = useState(false);
+  
+  // Full-screen profile picture state
+  const [showFullScreenProfile, setShowFullScreenProfile] = useState(false);
   
   // Attachment preview modal state
   const [selectedAttachment, setSelectedAttachment] = useState<any>(null);
   const [tipAmount, setTipAmount] = useState(5);
-
-
   
+  // Full-screen image modal state
+  const [showFullScreenImage, setShowFullScreenImage] = useState(false);
+  const [fullScreenImageUri, setFullScreenImageUri] = useState<string | null>(null);
+
   const colorScheme = useColorScheme();
   const [theme, setTheme] = useState(getTheme());
   const router = useRouter();
@@ -4848,9 +6044,15 @@ export default function ChatScreen() {
         );
         
         if (photos.documents.length > 0) {
-          const thumbnail = photos.documents[0].thumbnail;
-          if (thumbnail) {
-            setCreatorThumbnail(thumbnail);
+          const compressedThumbnail = photos.documents[0].compressed_thumbnail;
+          const fullThumbnail = photos.documents[0].thumbnail;
+          
+          if (compressedThumbnail) {
+            setCreatorThumbnail(compressedThumbnail);
+          }
+          
+          if (fullThumbnail) {
+            setCreatorFullThumbnail(fullThumbnail);
           }
         }
       }
@@ -4947,6 +6149,12 @@ export default function ChatScreen() {
 
     setupChannels();
   }, [channelId, user, isStreamConnected]);
+
+  // Function to open image in full screen
+  const openImageInFullScreen = (imageUri: string) => {
+    setFullScreenImageUri(imageUri);
+    setShowFullScreenImage(true);
+  };
 
   // Function to switch between chat types - no navigation needed
   const switchChatType = () => {
@@ -5106,7 +6314,7 @@ export default function ChatScreen() {
               {/* Creator's photo - Positioned absolutely on the right */}
               {!thread && (
                 <TouchableOpacity 
-                  onPress={() => setShowCreatorPreview(true)}
+                  onPress={() => setShowFullScreenProfile(true)}
                   style={{
                   position: 'absolute',
                   right: 16,
@@ -5140,7 +6348,7 @@ export default function ChatScreen() {
                       {(creatorName as string)?.charAt(0)?.toUpperCase() || 'C'}
               </Text>
                   )}
-                </TouchableOpacity>
+            </TouchableOpacity>
               )}
             </View>
             
@@ -5267,18 +6475,17 @@ export default function ChatScreen() {
               onThreadReply={handleThreadReply}
             />
 
-            {/* Creator Preview Modal */}
-            <CreatorPreviewModal
-              visible={showCreatorPreview}
-              onClose={() => setShowCreatorPreview(false)}
-              creatorName={creatorName as string}
-              creatorThumbnail={creatorThumbnail}
-              channelId={channelId as string}
-            />
           </Channel>
         </Chat>
       </OverlayProvider>
       
+      {/* Full Screen Profile Picture Modal - At highest level */}
+      <FullScreenProfileModal
+        visible={showFullScreenProfile}
+        onClose={() => setShowFullScreenProfile(false)}
+        imageUrl={creatorFullThumbnail || creatorThumbnail}
+        creatorName={creatorName as string}
+      />
             
     </SafeAreaView>
   );

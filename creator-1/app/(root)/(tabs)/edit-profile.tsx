@@ -96,6 +96,7 @@ export default function EditProfile() {
   const [showCreatorNameModal, setShowCreatorNameModal] = useState(false);
   const [tempCreatorName, setTempCreatorName] = useState('');
   const [userPhotoThumbnail, setUserPhotoThumbnail] = useState<string | null>(null);
+  const [compressedThumbnail, setCompressedThumbnail] = useState<string | null>(null);
   const [photoTitle, setPhotoTitle] = useState<string>('');
   const [photoState, setPhotoState] = useState<string>('');
 
@@ -186,6 +187,7 @@ export default function EditProfile() {
               const userPhoto = await getUserPhoto(globalUser.$id);
               if (userPhoto && userPhoto.thumbnail) {
                 setUserPhotoThumbnail(userPhoto.thumbnail);
+                setCompressedThumbnail(userPhoto.compressed_thumbnail);
                 setPhotoTitle(userPhoto.title);
                 setPhotoState(userPhoto.state || '');
               }
@@ -236,7 +238,7 @@ export default function EditProfile() {
       if (!result.canceled) {
         setIsUploadingImage(true);
         try {
-          // Upload the image to Appwrite
+          // Upload the image to Appwrite (returns both imageUrl and compressedImageUrl)
           const photoResult = await uploadProfilePicture({
             uri: result.assets[0].uri,
             type: 'image/jpeg',
@@ -245,12 +247,60 @@ export default function EditProfile() {
           
           if (photoResult) {
             setProfileImage(photoResult.imageUrl);
-            // Update profile immediately with the new image URL
+            setCompressedThumbnail(photoResult.compressedImageUrl);
+            // Update profile immediately with the new image URL and compressed thumbnail
             if (globalUser?.$id) {
               await updateUserProfile(globalUser.$id, {
                 userId: globalUser.$id,
-                profileImageUri: photoResult.imageUrl
+                profileImageUri: photoResult.imageUrl,
+                compressed_thumbnail: photoResult.compressedImageUrl
               });
+              
+              // Also update the photos collection with both images
+              const userPhoto = await getUserPhoto(globalUser.$id);
+              if (userPhoto) {
+                // Update existing photo document
+                await databases.updateDocument(
+                  config.databaseId,
+                  config.photoCollectionId,
+                  userPhoto.$id,
+                  {
+                    thumbnail: photoResult.imageUrl,
+                    compressed_thumbnail: photoResult.compressedImageUrl,
+                    title: creatorName || name || '',
+                    prompte: creatorName || name || '',
+                    IdCreator: globalUser.$id,
+                    payment: JSON.stringify({
+                      monthlyPrice: monthlyPrice || '0',
+                      yearlyPrice: yearlyPrice || '0'
+                    }),
+                    PhotosLocation: location,
+                    PhotoTopics: topics.join(', '),
+                    Bio: bio
+                  }
+                );
+              } else {
+                // Create new photo document
+                await databases.createDocument(
+                  config.databaseId,
+                  config.photoCollectionId,
+                  ID.unique(),
+                  {
+                    thumbnail: photoResult.imageUrl,
+                    compressed_thumbnail: photoResult.compressedImageUrl,
+                    title: creatorName || name || '',
+                    prompte: creatorName || name || '',
+                    IdCreator: globalUser.$id,
+                    payment: JSON.stringify({
+                      monthlyPrice: monthlyPrice || '0',
+                      yearlyPrice: yearlyPrice || '0'
+                    }),
+                    PhotosLocation: location,
+                    PhotoTopics: topics.join(', '),
+                    Bio: bio
+                  }
+                );
+              }
             }
           }
         } finally {
@@ -264,17 +314,19 @@ export default function EditProfile() {
     }
   };
 
-  const handleImageUpdate = async (newImageUrl: string) => {
+  const handleImageUpdate = async (newImageUrl: string, newCompressedImageUrl?: string) => {
     try {
       if (!globalUser?.$id) return;
       
       // Update the local state immediately for UI feedback
       setProfileImage(newImageUrl);
+      setCompressedThumbnail(newCompressedImageUrl || null);
       
       // Update the profile image in the profiles collection
       await updateUserProfile(globalUser.$id, {
         userId: globalUser.$id,
-        profileImageUri: newImageUrl
+        profileImageUri: newImageUrl,
+        ...(newCompressedImageUrl ? { compressed_thumbnail: newCompressedImageUrl } : {})
       });
       
       // Also update the photos collection with the same image
@@ -287,6 +339,7 @@ export default function EditProfile() {
           userPhoto.$id,
           {
             thumbnail: newImageUrl,
+            compressed_thumbnail: newCompressedImageUrl || '',
             title: creatorName || name || '',
             prompte: creatorName || name || '',
             IdCreator: globalUser.$id,
@@ -309,6 +362,7 @@ export default function EditProfile() {
           ID.unique(),
           {
             thumbnail: newImageUrl,
+            compressed_thumbnail: newCompressedImageUrl || '',
             title: creatorName || name || '',
             prompte: creatorName || name || '',
             IdCreator: globalUser.$id,
@@ -340,7 +394,7 @@ export default function EditProfile() {
       setSaving(true);
 
       // Prepare profile data (only fields in profile collection schema)
-      const profileData = {
+      const profileData: any = {
         Location: location,
         creatorsname: creatorName,
         topics: topics.join(', '),
@@ -351,10 +405,13 @@ export default function EditProfile() {
       };
 
       // Add phone number digits if present
-      // Find the phone number input value (search for the TextInput for phone number)
-      // We'll assume you have a phoneNumber state or can extract it from the input
       if (typeof phoneNumber === 'string' && phoneNumber.trim() !== '') {
         profileData.phoneNumber = selectedCountry.code + phoneNumber.trim();
+      }
+      // If profileImage is set, try to get compressed_thumbnail from userPhotoThumbnail
+      if (profileImage && compressedThumbnail) {
+        profileData.profileImageUri = profileImage;
+        profileData.compressed_thumbnail = compressedThumbnail;
       }
 
       // Update profile in Appwrite
@@ -385,6 +442,7 @@ export default function EditProfile() {
         // Prepare photo data with all required attributes
         const photoData = {
           thumbnail: profileImage || '',
+          compressed_thumbnail: compressedThumbnail || '',
           title: creatorName || name || '',
           prompte: creatorName || name || '',
           IdCreator: globalUser.$id,
@@ -500,6 +558,7 @@ export default function EditProfile() {
           ID.unique(),
           {
             thumbnail: profileImage || '',
+            compressed_thumbnail: compressedThumbnail || '',
             title: creatorName || name || '',
             prompte: creatorName || name || '',
             IdCreator: globalUser.$id,

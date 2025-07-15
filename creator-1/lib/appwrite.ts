@@ -1,3 +1,4 @@
+import * as ImageManipulator from 'expo-image-manipulator';
 import * as Linking from "expo-linking";
 import { openAuthSessionAsync } from "expo-web-browser";
 import {
@@ -323,14 +324,14 @@ export const deleteFileFromBucket = async (fileUrl: string): Promise<void> => {
     }
 };
 
-export const uploadProfilePicture = async (file: FileData, previousImageUrl?: string): Promise<{ $id: string; imageUrl: string }> => {
+export const uploadProfilePicture = async (file: FileData, previousImageUrl?: string): Promise<{ $id: string; imageUrl: string; compressedImageUrl: string }> => {
     try {
         // Delete previous image if it exists
         if (previousImageUrl) {
             await deleteFileFromBucket(previousImageUrl);
         }
 
-        // Create a file object from the URI
+        // Create a file object from the URI (original)
         const fileToUpload = {
             uri: file.uri,
             name: file.name || 'profile.jpg',
@@ -338,17 +339,34 @@ export const uploadProfilePicture = async (file: FileData, previousImageUrl?: st
             size: 0 // Appwrite will calculate the actual size
         };
 
-        // Upload file to Appwrite Storage
+        // Upload original file to Appwrite Storage
         const response = await storage.createFile(
             config.storageId,
             ID.unique(),
             fileToUpload
         );
-
-        // Get the file's view URL (not preview)
         const imageUrl = storage.getFileView(config.storageId, response.$id).href;
-        
-        return { $id: response.$id, imageUrl };
+
+        // --- Compress the image ---
+        const compressed = await ImageManipulator.manipulateAsync(
+            file.uri,
+            [{ resize: { width: 200, height: 200 } }],
+            { compress: 0.4, format: ImageManipulator.SaveFormat.JPEG }
+        );
+        const compressedFileToUpload = {
+            uri: compressed.uri,
+            name: 'compressed_' + (file.name || 'profile.jpg'),
+            type: 'image/jpeg',
+            size: 0
+        };
+        const compressedResponse = await storage.createFile(
+            config.storageId,
+            ID.unique(),
+            compressedFileToUpload
+        );
+        const compressedImageUrl = storage.getFileView(config.storageId, compressedResponse.$id).href;
+
+        return { $id: response.$id, imageUrl, compressedImageUrl };
     } catch (error: unknown) {
         console.error("Error uploading profile picture:", error);
         if (error instanceof Error) {
