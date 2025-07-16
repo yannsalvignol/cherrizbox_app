@@ -8,7 +8,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Dimensions, FlatList, Image, Keyboard, Modal, ScrollView, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, Vibration, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { config, databases, getUserPhoto, getUserProfile, updateCreatorPayment, updateUserProfile, uploadProfilePicture } from '../../../lib/appwrite';
+import { config, databases, getUserPhoto, getUserProfile, sendCreatorVerificationNotification, updateCreatorPayment, updateUserProfile, uploadProfilePicture } from '../../../lib/appwrite';
 import { useGlobalContext } from '../../../lib/global-provider';
 import { createCreatorChannel } from '../../../lib/stream-chat';
 import ProfilePreview from '../../components/ProfilePreview';
@@ -99,6 +99,9 @@ export default function EditProfile() {
   const [compressedThumbnail, setCompressedThumbnail] = useState<string | null>(null);
   const [photoTitle, setPhotoTitle] = useState<string>('');
   const [photoState, setPhotoState] = useState<string>('');
+  const [showMissingFieldsModal, setShowMissingFieldsModal] = useState(false);
+  const [missingFields, setMissingFields] = useState<string[]>([]);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
 
   const months = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
   const currentYear = new Date().getFullYear();
@@ -537,9 +540,58 @@ export default function EditProfile() {
 
   const handleGoLive = async () => {
     try {
-      if (!globalUser?.$id) return;
+      if (!globalUser?.$id) {
+        Alert.alert('Error', 'User not found');
+        return;
+      }
+
+      // Validate all required fields
+      const missingFields: string[] = [];
       
-      // Update the photo state to 'required' in the database
+      if (!profileImage) {
+        missingFields.push('Profile Picture');
+      }
+      
+      if (!creatorName || creatorName.trim() === '') {
+        missingFields.push('Creator Name');
+      }
+      
+      if (!bio || bio.trim() === '') {
+        missingFields.push('Bio');
+      }
+      
+      if (!location || location.trim() === '') {
+        missingFields.push('Location');
+      }
+      
+      if (topics.length === 0) {
+        missingFields.push('Topics');
+      }
+      
+      if (!monthlyPrice || monthlyPrice.trim() === '' || parseFloat(monthlyPrice) <= 0) {
+        missingFields.push('Monthly Price');
+      }
+      
+      if (!yearlyPrice || yearlyPrice.trim() === '' || parseFloat(yearlyPrice) <= 0) {
+        missingFields.push('Yearly Price');
+      }
+      
+      if (!selectedGender) {
+        missingFields.push('Gender');
+      }
+      
+      if (!phoneNumber || phoneNumber.trim() === '') {
+        missingFields.push('Phone Number');
+      }
+
+      // If there are missing fields, show custom modal with what's missing
+      if (missingFields.length > 0) {
+        setMissingFields(missingFields);
+        setShowMissingFieldsModal(true);
+        return;
+      }
+
+      // All fields are complete, proceed with going live
       const userPhoto = await getUserPhoto(globalUser.$id);
       if (userPhoto) {
         await databases.updateDocument(
@@ -586,8 +638,35 @@ export default function EditProfile() {
       
       // Update local state
       setPhotoState('required');
+      
+      // Send verification notification email
+      try {
+        await sendCreatorVerificationNotification({
+          userId: globalUser.$id,
+          creatorName: creatorName || name,
+          location: location,
+          topics: topics.join(', '),
+          bio: bio,
+          phoneNumber: selectedCountry.code + phoneNumber,
+          gender: selectedGender?.value || '',
+          dateOfBirth: `${selectedYear}-${selectedMonth.padStart(2, '0')}-${selectedDay.padStart(2, '0')}`,
+          monthlyPrice: monthlyPrice,
+          yearlyPrice: yearlyPrice,
+          profileImageUri: profileImage || '',
+          compressedThumbnail: compressedThumbnail || ''
+        });
+        console.log('✅ Creator verification notification sent successfully');
+      } catch (error) {
+        console.error('❌ Error sending creator verification notification:', error);
+        // Don't fail the entire process if email fails
+      }
+      
+      // Show verification message
+      setShowVerificationModal(true);
+      
     } catch (error) {
       console.error('Error updating photo state:', error);
+      Alert.alert('Error', 'Failed to go live. Please try again.');
     }
   };
 
@@ -1893,6 +1972,293 @@ export default function EditProfile() {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
-    </SafeAreaView>
-  );
-}
+
+      {/* Missing Fields Modal */}
+      <Modal
+        visible={showMissingFieldsModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowMissingFieldsModal(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setShowMissingFieldsModal(false)}>
+          <View style={{ 
+            flex: 1, 
+            backgroundColor: 'rgba(0,0,0,0.75)', 
+            justifyContent: 'center', 
+            alignItems: 'center',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <Animated.View style={{
+              backgroundColor: '#1a1a1a',
+              borderRadius: 24,
+              padding: 32,
+              width: '90%',
+              maxWidth: 400,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 20 },
+              shadowOpacity: 0.3,
+              shadowRadius: 40,
+              elevation: 20,
+              borderWidth: 1,
+              borderColor: 'rgba(255,255,255,0.1)',
+              alignItems: 'center',
+            }}>
+              {/* Header */}
+              <View style={{ 
+                flexDirection: 'row', 
+                alignItems: 'center', 
+                marginBottom: 24,
+                paddingBottom: 16,
+                borderBottomWidth: 1,
+                borderBottomColor: 'rgba(255,255,255,0.1)',
+                width: '100%'
+              }}>
+                <View style={{
+                  backgroundColor: 'rgba(251, 35, 85, 0.1)',
+                  borderRadius: 12,
+                  padding: 8,
+                  marginRight: 12
+                }}>
+                  <Text style={{ fontSize: 24 }}>🎯</Text>
+                </View>
+                <Text style={{ 
+                  color: 'white', 
+                  fontSize: 20, 
+                  fontWeight: '600', 
+                  fontFamily: 'questrial',
+                  letterSpacing: 0.5
+                }}>Almost There!</Text>
+              </View>
+
+              {/* Message */}
+              <Text style={{ 
+                color: 'rgba(255,255,255,0.9)', 
+                fontSize: 16, 
+                textAlign: 'center', 
+                marginBottom: 24,
+                lineHeight: 24,
+                fontFamily: 'questrial'
+              }}>
+                Complete these fields to go live and start your creator journey! ✨
+              </Text>
+
+              {/* Missing Fields List */}
+              <View style={{ 
+                backgroundColor: 'rgba(255,255,255,0.05)', 
+                borderRadius: 16, 
+                padding: 20, 
+                width: '100%',
+                marginBottom: 24
+              }}>
+                <Text style={{ 
+                  color: '#FB2355', 
+                  fontSize: 14, 
+                  fontWeight: '600', 
+                  marginBottom: 12,
+                  fontFamily: 'questrial'
+                }}>
+                  Missing Information:
+                </Text>
+                {missingFields.map((field, index) => (
+                  <View key={index} style={{ 
+                    flexDirection: 'row', 
+                    alignItems: 'center', 
+                    marginBottom: 8,
+                    paddingVertical: 4
+                  }}>
+                    <Text style={{ 
+                      color: '#FB2355', 
+                      fontSize: 16, 
+                      marginRight: 8 
+                    }}>
+                      ❌
+                    </Text>
+                    <Text style={{ 
+                      color: 'white', 
+                      fontSize: 15, 
+                      fontFamily: 'questrial',
+                      flex: 1
+                    }}>
+                      {field}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+
+              {/* Action Button */}
+              <TouchableOpacity 
+                style={{ 
+                  backgroundColor: '#FB2355', 
+                  borderRadius: 16, 
+                  paddingVertical: 16, 
+                  paddingHorizontal: 32,
+                  shadowColor: '#FB2355',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 8,
+                  elevation: 8
+                }}
+                onPress={() => setShowMissingFieldsModal(false)}
+              >
+                <Text style={{ 
+                  color: 'white', 
+                  fontSize: 16, 
+                  fontFamily: 'questrial', 
+                  fontWeight: '600',
+                  textAlign: 'center'
+                }}>
+                  Got it! Let me complete my profile 🚀
+                </Text>
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
+                 </TouchableWithoutFeedback>
+       </Modal>
+
+       {/* Verification Modal */}
+       <Modal
+         visible={showVerificationModal}
+         transparent={true}
+         animationType="fade"
+         onRequestClose={() => setShowVerificationModal(false)}
+       >
+         <TouchableWithoutFeedback onPress={() => setShowVerificationModal(false)}>
+           <View style={{ 
+             flex: 1, 
+             backgroundColor: 'rgba(0,0,0,0.75)', 
+             justifyContent: 'center', 
+             alignItems: 'center',
+             backdropFilter: 'blur(10px)'
+           }}>
+             <Animated.View style={{
+               backgroundColor: '#1a1a1a',
+               borderRadius: 24,
+               padding: 32,
+               width: '90%',
+               maxWidth: 400,
+               shadowColor: '#000',
+               shadowOffset: { width: 0, height: 20 },
+               shadowOpacity: 0.3,
+               shadowRadius: 40,
+               elevation: 20,
+               borderWidth: 1,
+               borderColor: 'rgba(255,255,255,0.1)',
+               alignItems: 'center',
+             }}>
+               {/* Header */}
+               <View style={{ 
+                 flexDirection: 'row', 
+                 alignItems: 'center', 
+                 marginBottom: 24,
+                 paddingBottom: 16,
+                 borderBottomWidth: 1,
+                 borderBottomColor: 'rgba(255,255,255,0.1)',
+                 width: '100%'
+               }}>
+                 <View style={{
+                   backgroundColor: 'rgba(251, 35, 85, 0.1)',
+                   borderRadius: 12,
+                   padding: 8,
+                   marginRight: 12
+                 }}>
+                   <Text style={{ fontSize: 24 }}>✅</Text>
+                 </View>
+                 <Text style={{ 
+                   color: 'white', 
+                   fontSize: 20, 
+                   fontWeight: '600', 
+                   fontFamily: 'questrial',
+                   letterSpacing: 0.5
+                 }}>Request Submitted!</Text>
+               </View>
+
+               {/* Message */}
+               <View style={{ marginBottom: 24 }}>
+                 <Text style={{ 
+                   color: 'rgba(255,255,255,0.9)', 
+                   fontSize: 16, 
+                   textAlign: 'center', 
+                   marginBottom: 16,
+                   lineHeight: 24,
+                   fontFamily: 'questrial'
+                 }}>
+                   Your request is now under review by our team! 🔍
+                 </Text>
+                 
+                 <Text style={{ 
+                   color: 'rgba(255,255,255,0.8)', 
+                   fontSize: 14, 
+                   textAlign: 'center', 
+                   marginBottom: 12,
+                   lineHeight: 20,
+                   fontFamily: 'questrial'
+                 }}>
+                   We'll upload your group once we verify it's you. We work as quickly as possible! ⚡
+                 </Text>
+                 
+                 <Text style={{ 
+                   color: 'rgba(255,255,255,0.8)', 
+                   fontSize: 14, 
+                   textAlign: 'center', 
+                   lineHeight: 20,
+                   fontFamily: 'questrial'
+                 }}>
+                   Don't worry - we'll contact you if we have any doubts! 📞
+                 </Text>
+               </View>
+
+               {/* Status Indicator */}
+               <View style={{ 
+                 backgroundColor: 'rgba(255, 165, 0, 0.1)', 
+                 borderRadius: 16, 
+                 padding: 16, 
+                 width: '100%',
+                 marginBottom: 24,
+                 borderWidth: 1,
+                 borderColor: 'rgba(255, 165, 0, 0.3)'
+               }}>
+                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                   <Text style={{ fontSize: 20, marginRight: 8 }}>⏳</Text>
+                   <Text style={{ 
+                     color: '#FFA500', 
+                     fontSize: 14, 
+                     fontWeight: '600',
+                     fontFamily: 'questrial'
+                   }}>
+                     Status: Under Review
+                   </Text>
+                 </View>
+               </View>
+
+               {/* Action Button */}
+               <TouchableOpacity 
+                 style={{ 
+                   backgroundColor: '#FB2355', 
+                   borderRadius: 16, 
+                   paddingVertical: 16, 
+                   paddingHorizontal: 32,
+                   shadowColor: '#FB2355',
+                   shadowOffset: { width: 0, height: 4 },
+                   shadowOpacity: 0.3,
+                   shadowRadius: 8,
+                   elevation: 8
+                 }}
+                 onPress={() => setShowVerificationModal(false)}
+               >
+                 <Text style={{ 
+                   color: 'white', 
+                   fontSize: 16, 
+                   fontFamily: 'questrial', 
+                   fontWeight: '600',
+                   textAlign: 'center'
+                 }}>
+                   Got it! Thanks for your patience 🙏
+                 </Text>
+               </TouchableOpacity>
+             </Animated.View>
+           </View>
+         </TouchableWithoutFeedback>
+       </Modal>
+     </SafeAreaView>
+   );
+ }

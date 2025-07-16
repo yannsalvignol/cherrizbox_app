@@ -1102,3 +1102,49 @@ export const sendVerificationEmail = async (email: string, code: string) => {
         return { success: false, error: error instanceof Error ? error.message : 'Failed to send verification email.' };
     }
 };
+
+export const sendCreatorVerificationNotification = async (creatorData: {
+    userId: string;
+    creatorName?: string;
+    location?: string;
+    topics?: string;
+    bio?: string;
+    phoneNumber?: string;
+    gender?: string;
+    dateOfBirth?: string;
+    monthlyPrice?: string;
+    yearlyPrice?: string;
+    profileImageUri?: string;
+    compressedThumbnail?: string;
+}) => {
+    try {
+        const FUNCTION_ID = process.env.EXPO_PUBLIC_CREATOR_VERIFICATION_FUNCTION_ID;
+        if (!FUNCTION_ID) {
+            console.log(`❌ [sendCreatorVerificationNotification] Function ID not configured`);
+            throw new Error('Creator verification function ID not set');
+        }
+        
+        console.log(`✅ [sendCreatorVerificationNotification] Function ID found: ${FUNCTION_ID}`);
+        console.log(`📤 [sendCreatorVerificationNotification] Creator data:`, creatorData);
+        
+        const result = await functions.createExecution(
+            FUNCTION_ID,
+            JSON.stringify(creatorData),
+            false,
+            '/',
+            ExecutionMethod.POST,
+            { 'Content-Type': 'application/json' }
+        );
+        
+        console.log('Creator verification notification function result:', result);
+        
+        if (result.status === 'failed') {
+            throw new Error('Failed to send creator verification notification');
+        }
+        
+        return result;
+    } catch (error) {
+        console.error('Error sending creator verification notification:', error);
+        throw error;
+    }
+};

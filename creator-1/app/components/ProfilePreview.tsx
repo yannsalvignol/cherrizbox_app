@@ -97,45 +97,9 @@ const ProfilePreview: React.FC<ProfilePreviewProps> = ({
   };
 
   const handleGoLive = () => {
-    const missing = [];
-    
-    if (!creatorsname || creatorsname.trim() === '') {
-      missing.push('Creator Name');
-    }
-    if (!location || location.trim() === '') {
-      missing.push('Location');
-    }
-    if (!topics || topics.trim() === '') {
-      missing.push('Topics');
-    }
-    if (!ProfilesBio || ProfilesBio.trim() === '') {
-      missing.push('Bio');
-    }
-    if (!creatorpayment || creatorpayment.trim() === '') {
-      missing.push('Subscription Pricing');
-    }
-    if (!profileImageUri || profileImageUri.trim() === '') {
-      missing.push('Profile Picture');
-    }
-    if (!phoneNumber || phoneNumber.trim() === '') {
-      missing.push('Phone Number');
-    }
-    if (!gender || gender.trim() === '') {
-      missing.push('Gender');
-    }
-    if (!dateOfBirth || dateOfBirth.trim() === '') {
-      missing.push('Date of Birth');
-    }
-
-    if (missing.length > 0) {
-      setMissingFields(missing);
-      setShowMissingFieldsModal(true);
-    } else {
-      setShowPendingMessage(true);
-      setShowMissingFieldsModal(true);
-      if (onGoLive) {
-        onGoLive();
-      }
+    // Simply call the parent's onGoLive function which handles all validation
+    if (onGoLive) {
+      onGoLive();
     }
   };
 
@@ -154,8 +118,8 @@ const ProfilePreview: React.FC<ProfilePreviewProps> = ({
 
   return (
     <View style={{ width: '100%', height: SCREEN_HEIGHT }}>
-      {/* Go Live button - show when profile is complete and not already live */}
-      {isProfileComplete() && state !== 'required' && (
+      {/* Go Live button - always show, but handle validation in onGoLive */}
+      {state !== 'required' && (
         <View style={{
           position: 'absolute',
           bottom: '32%',
