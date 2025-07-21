@@ -346,7 +346,7 @@ export const uploadProfilePicture = async (file: FileData, previousImageUrl?: st
             fileToUpload
         );
         const imageUrl = storage.getFileView(config.storageId, response.$id).href;
-
+        
         // --- Compress the image ---
         const compressed = await ImageManipulator.manipulateAsync(
             file.uri,

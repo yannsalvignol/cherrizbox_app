@@ -1,11 +1,13 @@
 import { getUserProfile } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
 import { client, connectUser } from '@/lib/stream-chat';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, Image, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Dimensions, FlatList, Image, Modal, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { WebView } from 'react-native-webview';
 
 interface Channel {
   id: string;
@@ -46,6 +48,15 @@ interface EarningsData {
   cancelledSubscriptions: number;
 }
 
+interface StripeConnectProfile {
+  stripeConnectAccountId?: string;
+  stripeConnectEnabled?: boolean;
+  stripeConnectPayoutsEnabled?: boolean;
+  stripeConnectVerified?: boolean;
+  stripeConnectSetupComplete?: boolean;
+  stripeConnectSetupDate?: string;
+}
+
 export default function Index() {
     const router = useRouter();
     const { user } = useGlobalContext();
@@ -62,13 +73,18 @@ export default function Index() {
     });
     const [isLoadingEarnings, setIsLoadingEarnings] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+    const [isLoadingStripeConnect, setIsLoadingStripeConnect] = useState(false);
+    const [showStripeConnect, setShowStripeConnect] = useState(false);
+    const [stripeConnectUrl, setStripeConnectUrl] = useState<string>('');
+    const [stripeConnectProfile, setStripeConnectProfile] = useState<StripeConnectProfile | null>(null);
+    const [isLoadingStripeProfile, setIsLoadingStripeProfile] = useState(false);
 
     const tabs = [
       { id: 'chats', label: 'Chats' },
       { id: 'earnings', label: 'Earnings' },
       { id: 'insights', label: 'Insights' },
       { id: 'audience', label: 'Audience' },
-      { id: 'other', label: 'Other' }
+      { id: 'other', label: 'Stripe' }
     ];
 
   const loadChannels = async () => {
@@ -310,6 +326,117 @@ export default function Index() {
     }
   };
 
+  const loadStripeConnectProfile = async () => {
+    if (!user?.$id) return;
+
+    try {
+      setIsLoadingStripeProfile(true);
+      const { databases, config } = await import('@/lib/appwrite');
+      const { Query } = await import('react-native-appwrite');
+
+      const profileResponse = await databases.listDocuments(
+        config.databaseId,
+        process.env.EXPO_PUBLIC_APPWRITE_PROFILE_COLLECTION_ID!,
+        [Query.equal('userId', user.$id)]
+      );
+
+      if (profileResponse.documents.length > 0) {
+        const profileData = profileResponse.documents[0];
+        setStripeConnectProfile({
+          stripeConnectAccountId: profileData.stripeConnectAccountId,
+          stripeConnectEnabled: profileData.stripeConnectEnabled,
+          stripeConnectPayoutsEnabled: profileData.stripeConnectPayoutsEnabled,
+          stripeConnectVerified: profileData.stripeConnectVerified,
+          stripeConnectSetupComplete: profileData.stripeConnectSetupComplete,
+          stripeConnectSetupDate: profileData.stripeConnectSetupDate,
+        });
+        console.log('✅ Loaded Stripe Connect profile data.');
+      } else {
+        console.log('❌ No Stripe Connect profile data found for this user.');
+        setStripeConnectProfile(null);
+      }
+    } catch (error) {
+      console.error('Error loading Stripe Connect profile:', error);
+      setStripeConnectProfile(null);
+    } finally {
+      setIsLoadingStripeProfile(false);
+    }
+  };
+
+  const handleOnboarding = async () => {
+    if (isLoadingStripeConnect || stripeConnectProfile?.stripeConnectSetupComplete) return;
+
+    setIsLoadingStripeConnect(true);
+    console.log('🚀 Starting Stripe Onboarding...');
+    
+    try {
+      const { functions } = await import('@/lib/appwrite');
+      const { ExecutionMethod } = await import('react-native-appwrite');
+      
+      const result = await functions.createExecution(
+        process.env.EXPO_PUBLIC_STRIPE_CONNECT_FUNCTION_ID!,
+        JSON.stringify({
+          userEmail: user?.email,
+          userName: user?.name,
+          returnUrl: 'https://cherrybox.app/connect-return'
+        }),
+        false,
+        '/create-connect-account',
+        ExecutionMethod.POST,
+        { 'Content-Type': 'application/json' }
+      );
+
+      const response = JSON.parse(result.responseBody);
+      if (response.success && response.accountLinkUrl) {
+        console.log('✅ Got account link URL:', response.accountLinkUrl);
+        setStripeConnectUrl(response.accountLinkUrl);
+        setShowStripeConnect(true);
+      } else {
+        throw new Error(response.error || 'Failed to create Stripe Connect account.');
+      }
+    } catch (error) {
+      console.error('❌ Error during Stripe onboarding:', error);
+      Alert.alert("Error", (error as Error).message || "An unexpected error occurred. Please try again.");
+    } finally {
+      setIsLoadingStripeConnect(false);
+    }
+  };
+
+  const handleOpenDashboard = async () => {
+    if (isLoadingStripeConnect || !stripeConnectProfile?.stripeConnectAccountId) return;
+    
+    setIsLoadingStripeConnect(true);
+    console.log('🚀 Opening Stripe Dashboard...');
+
+    try {
+      const { functions } = await import('@/lib/appwrite');
+      const { ExecutionMethod } = await import('react-native-appwrite');
+
+      const result = await functions.createExecution(
+        process.env.EXPO_PUBLIC_STRIPE_CONNECT_FUNCTION_ID!,
+        JSON.stringify({ accountId: stripeConnectProfile.stripeConnectAccountId }),
+        false,
+        '/create-dashboard-link',
+        ExecutionMethod.POST,
+        { 'Content-Type': 'application/json' }
+      );
+
+      const response = JSON.parse(result.responseBody);
+      if (response.success && response.url) {
+        console.log('✅ Got dashboard link URL:', response.url);
+        setStripeConnectUrl(response.url);
+        setShowStripeConnect(true);
+      } else {
+        throw new Error(response.error || 'Failed to create dashboard link.');
+      }
+    } catch (error) {
+      console.error('❌ Error opening Stripe dashboard:', error);
+      Alert.alert("Error", (error as Error).message || "An unexpected error occurred. Please try again.");
+    } finally {
+      setIsLoadingStripeConnect(false);
+    }
+  };
+
   const getChannelDisplayName = (channel: Channel) => {
     if (channel.name) return channel.name;
     
@@ -547,6 +674,8 @@ export default function Index() {
         await loadProfileImage();
       } else if (selectedTab === 'earnings') {
         await loadEarningsData();
+      } else if (selectedTab === 'other') {
+        await loadStripeConnectProfile();
       }
       // For other tabs, you can add specific refresh logic here
     } catch (error) {
@@ -560,6 +689,7 @@ export default function Index() {
     loadChannels();
     loadProfileImage();
     loadEarningsData();
+    loadStripeConnectProfile();
   }, [user]);
 
   useFocusEffect(
@@ -1147,14 +1277,14 @@ export default function Index() {
       {selectedTab === 'other' && (
         <ScrollView 
           style={{ 
-          flex: 1, 
-          backgroundColor: 'black',
-          paddingHorizontal: 32
+            flex: 1, 
+            backgroundColor: 'black',
           }}
           contentContainerStyle={{
-            flex: 1,
-            alignItems: 'center', 
-            justifyContent: 'center',
+            flexGrow: 1,
+            justifyContent: 'space-between',
+            paddingHorizontal: 24,
+            paddingVertical: 20,
           }}
           refreshControl={
             <RefreshControl
@@ -1166,25 +1296,310 @@ export default function Index() {
             />
           }
         >
-          <Text style={{ 
-            color: 'white', 
-            fontSize: 24, 
-            fontFamily: 'Urbanist-Bold',
-            marginBottom: 16,
-            textAlign: 'center'
-          }}>
-            Other
-          </Text>
-          <Text style={{ 
-            color: '#888888', 
-            fontSize: 16, 
-            textAlign: 'center',
-            fontFamily: 'Urbanist-Regular'
-          }}>
-            Additional features will appear here
-          </Text>
+          <View>
+           
+            
+            {/* Stripe Status Display */}
+            {isLoadingStripeProfile ? (
+              <ActivityIndicator color="#FB2355" style={{ marginVertical: 40 }} />
+            ) : stripeConnectProfile?.stripeConnectSetupComplete ? (
+              <View style={{
+                backgroundColor: '#1A1A1A',
+                borderRadius: 16,
+                padding: 20,
+                width: '100%',
+                borderWidth: 1,
+                borderColor: '#333333'
+              }}>
+                <Text style={{
+                  color: 'white',
+                  fontSize: 18,
+                  fontWeight: 'bold',
+                  fontFamily: 'Urbanist-Bold',
+                  marginBottom: 16
+                }}>
+                  Payment Status
+                </Text>
+                {/* Status Items */}
+                <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Ionicons name="shield-checkmark-outline" size={20} color="#4CAF50" style={{ marginRight: 10 }} />
+                    <Text style={{ color: '#CCCCCC', fontFamily: 'Urbanist-Regular' }}>Setup Complete</Text>
+                  </View>
+                  <Text style={{ color: '#4CAF50', fontFamily: 'Urbanist-Bold' }}>Yes</Text>
+                </View>
+                <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Ionicons name={stripeConnectProfile.stripeConnectEnabled ? "card-outline" : "alert-circle-outline"} size={20} color={stripeConnectProfile.stripeConnectEnabled ? '#4CAF50' : '#F44336'} style={{ marginRight: 10 }} />
+                    <Text style={{ color: '#CCCCCC', fontFamily: 'Urbanist-Regular' }}>Payments Active</Text>
+                  </View>
+                  <Text style={{ color: stripeConnectProfile.stripeConnectEnabled ? '#4CAF50' : '#F44336', fontFamily: 'Urbanist-Bold' }}>
+                    {stripeConnectProfile.stripeConnectEnabled ? 'Yes' : 'No'}
+                  </Text>
+                </View>
+                <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Ionicons name={stripeConnectProfile.stripeConnectPayoutsEnabled ? "cash-outline" : "alert-circle-outline"} size={20} color={stripeConnectProfile.stripeConnectPayoutsEnabled ? '#4CAF50' : '#F44336'} style={{ marginRight: 10 }} />
+                    <Text style={{ color: '#CCCCCC', fontFamily: 'Urbanist-Regular' }}>Payouts Active</Text>
+                  </View>
+                  <Text style={{ color: stripeConnectProfile.stripeConnectPayoutsEnabled ? '#4CAF50' : '#F44336', fontFamily: 'Urbanist-Bold' }}>
+                    {stripeConnectProfile.stripeConnectPayoutsEnabled ? 'Yes' : 'No'}
+                  </Text>
+                </View>
+                <View style={{ marginBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Ionicons name={stripeConnectProfile.stripeConnectVerified ? "person-circle-outline" : "alert-circle-outline"} size={20} color={stripeConnectProfile.stripeConnectVerified ? '#4CAF50' : '#FF9800'} style={{ marginRight: 10 }} />
+                    <Text style={{ color: '#CCCCCC', fontFamily: 'Urbanist-Regular' }}>Account Verified</Text>
+                  </View>
+                  <Text style={{ color: stripeConnectProfile.stripeConnectVerified ? '#4CAF50' : '#FF9800', fontFamily: 'Urbanist-Bold' }}>
+                    {stripeConnectProfile.stripeConnectVerified ? 'Yes' : 'Pending'}
+                  </Text>
+                </View>
+                
+                {/* View Dashboard Button */}
+                <TouchableOpacity
+                  onPress={handleOpenDashboard}
+                  style={{
+                    backgroundColor: '#333',
+                    borderRadius: 12,
+                    paddingVertical: 12,
+                    marginTop: 16,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexDirection: 'row'
+                  }}
+                >
+                  <Ionicons name="open-outline" size={18} color="white" style={{ marginRight: 8 }} />
+                  <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>
+                    View Dashboard
+                  </Text>
+                </TouchableOpacity>
+
+                {stripeConnectProfile.stripeConnectSetupDate && (
+                  <View style={{ marginTop: 12, borderTopColor: '#333', borderTopWidth: 1, paddingTop: 12 }}>
+                    <Text style={{ color: '#888', fontFamily: 'Urbanist-Regular', fontSize: 12, textAlign: 'center' }}>
+                      Setup completed on: {new Date(stripeConnectProfile.stripeConnectSetupDate).toLocaleDateString()}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            ) : (
+              <View style={{
+                backgroundColor: 'rgba(251, 35, 85, 0.1)',
+                borderRadius: 16,
+                padding: 20,
+                width: '100%',
+                flexDirection: 'row',
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: 'rgba(251, 35, 85, 0.3)'
+              }}>
+                <Ionicons name="information-circle-outline" size={32} color="#FB2355" style={{ marginRight: 16 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{
+                    color: 'white',
+                    fontSize: 16,
+                    fontFamily: 'Urbanist-Bold',
+                    marginBottom: 4
+                  }}>
+                    Get Paid
+                  </Text>
+                  <Text style={{
+                    color: '#CCCCCC',
+                    fontSize: 14,
+                    fontFamily: 'Urbanist-Regular',
+                    lineHeight: 20
+                  }}>
+                    Connect a Stripe account to start accepting payments and earning from your content.
+                  </Text>
+                </View>
+              </View>
+            )}
+          </View>
+          
+          <View style={{ alignItems: 'center', width: '100%', paddingBottom: 10 }}>
+            {/* Stripe Connect Express Button */}
+            <TouchableOpacity
+              style={{
+                backgroundColor: stripeConnectProfile?.stripeConnectSetupComplete ? '#333' : '#FB2355',
+                paddingVertical: 16,
+                borderRadius: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '100%',
+                shadowColor: stripeConnectProfile?.stripeConnectSetupComplete ? 'transparent' : '#FB2355',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.4,
+                shadowRadius: 10,
+                elevation: stripeConnectProfile?.stripeConnectSetupComplete ? 0 : 8,
+                opacity: isLoadingStripeConnect ? 0.7 : 1,
+              }}
+              disabled={isLoadingStripeConnect || stripeConnectProfile?.stripeConnectSetupComplete}
+              onPress={handleOnboarding}
+            >
+              <Ionicons name="card-outline" size={22} color="white" style={{ marginRight: 12 }} />
+              <View>
+                <Text style={{ 
+                  color: 'white',
+                  fontSize: 18, 
+                  fontWeight: 'bold',
+                  fontFamily: 'Urbanist-Bold',
+                  textAlign: 'left'
+                }}>
+                  {isLoadingStripeConnect 
+                    ? 'Connecting...' 
+                    : (stripeConnectProfile?.stripeConnectSetupComplete ? 'Setup Complete' : 'Set Up Payments')}
+                </Text>
+                <Text style={{
+                  color: 'rgba(255, 255, 255, 0.8)',
+                  fontSize: 13,
+                  fontFamily: 'Urbanist-Regular',
+                  textAlign: 'left',
+                  marginTop: 2
+                }}>
+                  {stripeConnectProfile?.stripeConnectSetupComplete ? 'You can now manage payouts from your dashboard' : 'Connect with Stripe to get paid'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       )}
+
+      {/* Stripe Connect WebView Modal */}
+      <Modal
+        visible={showStripeConnect}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowStripeConnect(false)}
+      >
+        <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }}>
+          {/* Header */}
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            backgroundColor: 'black',
+            borderBottomWidth: 1,
+            borderBottomColor: '#333333'
+          }}>
+            <Text style={{
+              color: 'white',
+              fontSize: 18,
+              fontWeight: 'bold',
+              fontFamily: 'Urbanist-Bold'
+            }}>
+              Stripe Connect Setup
+            </Text>
+            <TouchableOpacity
+              onPress={() => setShowStripeConnect(false)}
+              style={{
+                padding: 8,
+                backgroundColor: '#333333',
+                borderRadius: 8
+              }}
+            >
+              <Text style={{
+                color: 'white',
+                fontSize: 16,
+                fontWeight: 'bold',
+                fontFamily: 'Urbanist-Bold'
+              }}>
+                ✕
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* WebView */}
+          {stripeConnectUrl ? (
+            <WebView
+              source={{ uri: stripeConnectUrl }}
+              style={{ flex: 1, backgroundColor: 'white' }}
+              startInLoadingState={true}
+              renderLoading={() => (
+                <View style={{
+                  flex: 1,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  backgroundColor: 'white'
+                }}>
+                  <ActivityIndicator size="large" color="#FB2355" />
+                  <Text style={{
+                    color: '#666666',
+                    fontSize: 16,
+                    fontFamily: 'Urbanist-Regular',
+                    marginTop: 16
+                  }}>
+                    Loading Stripe Connect...
+                  </Text>
+                </View>
+              )}
+              onNavigationStateChange={(navState) => {
+                // Handle navigation state changes
+                console.log('🌐 Navigation state changed:', navState.url);
+                
+                // Close modal when user completes onboarding or goes to return URL
+                if (navState.url.includes('cherrybox.app/connect-return') || 
+                    navState.url.includes('success') ||
+                    navState.url.includes('complete') ||
+                    navState.url.includes('dashboard.stripe.com/connect/accounts') ||
+                    navState.url.includes('account_updated=true')) {
+                  setShowStripeConnect(false);
+                  Alert.alert(
+                    "Setup Complete",
+                    "Your Stripe Connect account has been set up successfully! You can now receive payments directly.",
+                    [{ text: "OK", style: "default" }]
+                  );
+                }
+                
+                // Handle errors or cancellations
+                if (navState.url.includes('error') || 
+                    navState.url.includes('cancel') ||
+                    navState.url.includes('failure')) {
+                  setShowStripeConnect(false);
+                  Alert.alert(
+                    "Setup Incomplete",
+                    "Stripe Connect setup was not completed. You can try again anytime.",
+                    [{ text: "OK", style: "default" }]
+                  );
+                }
+              }}
+              onError={(syntheticEvent) => {
+                const { nativeEvent } = syntheticEvent;
+                console.error('WebView error:', nativeEvent);
+                Alert.alert(
+                  "Error",
+                  "Failed to load Stripe Connect. Please try again.",
+                  [{ text: "OK", style: "default" }]
+                );
+              }}
+              onHttpError={(syntheticEvent) => {
+                const { nativeEvent } = syntheticEvent;
+                console.error('WebView HTTP error:', nativeEvent);
+              }}
+            />
+          ) : (
+            <View style={{
+              flex: 1,
+              justifyContent: 'center',
+              alignItems: 'center',
+              backgroundColor: 'white'
+            }}>
+              <ActivityIndicator size="large" color="#FB2355" />
+              <Text style={{
+                color: '#666666',
+                fontSize: 16,
+                fontFamily: 'Urbanist-Regular',
+                marginTop: 16
+              }}>
+                Preparing Stripe Connect...
+          </Text>
+        </View>
+      )}
+        </SafeAreaView>
+      </Modal>
         </SafeAreaView>
     );
 } 

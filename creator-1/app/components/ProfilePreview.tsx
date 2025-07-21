@@ -98,8 +98,8 @@ const ProfilePreview: React.FC<ProfilePreviewProps> = ({
 
   const handleGoLive = () => {
     // Simply call the parent's onGoLive function which handles all validation
-    if (onGoLive) {
-      onGoLive();
+      if (onGoLive) {
+        onGoLive();
     }
   };
 
