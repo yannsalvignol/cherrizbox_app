@@ -1,11 +1,10 @@
 import { getUserProfile } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
 import { client, connectUser } from '@/lib/stream-chat';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, FlatList, Image, Modal, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { LineChart } from 'react-native-chart-kit';
+import { ActivityIndicator, Alert, FlatList, Image, Modal, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 
@@ -23,31 +22,6 @@ interface Channel {
   unreadCount: number;
 }
 
-interface Subscription {
-    $id: string;
-  userId: string;
-  stripeCustomerId: string;
-  stripeSubscriptionId: string;
-  status: 'active' | 'cancelled';
-  billingCycleAnchor: string;
-  createdAt: string;
-  creatorAccountId: string;
-  endsAt: string | null;
-  planCurrency: string;
-  planInterval: 'month' | 'year';
-  renewalDate: string;
-  cancelledAt: string | null;
-  planAmount: number;
-}
-
-interface EarningsData {
-  totalEarnings: number;
-  perceivedEarnings: number;
-  monthlyData: { month: string; earnings: number }[];
-  activeSubscriptions: number;
-  cancelledSubscriptions: number;
-}
-
 interface StripeConnectProfile {
   stripeConnectAccountId?: string;
   stripeConnectEnabled?: boolean;
@@ -55,6 +29,18 @@ interface StripeConnectProfile {
   stripeConnectVerified?: boolean;
   stripeConnectSetupComplete?: boolean;
   stripeConnectSetupDate?: string;
+  // Financial data from the creator collection
+  lifetimeVolume?: number;
+  stripeBalanceAvailable?: number;
+  stripeBalancePending?: number;
+  payoutsInTransitAmount?: number;
+  payoutsPendingAmount?: number;
+  stripeLastBalanceUpdate?: string;
+  number_of_photos?: number;
+  number_of_videos?: number;
+  number_of_files?: number;
+  number_of_monthly_subscribers?: number;
+  number_of_yearly_subscriptions?: number;
 }
 
 export default function Index() {
@@ -64,27 +50,20 @@ export default function Index() {
     const [isLoading, setIsLoading] = useState(true);
     const [profileImage, setProfileImage] = useState<string | null>(null);
     const [selectedTab, setSelectedTab] = useState('chats');
-    const [earningsData, setEarningsData] = useState<EarningsData>({
-      totalEarnings: 0,
-      perceivedEarnings: 0,
-      monthlyData: [],
-      activeSubscriptions: 0,
-      cancelledSubscriptions: 0
-    });
-    const [isLoadingEarnings, setIsLoadingEarnings] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [isLoadingStripeConnect, setIsLoadingStripeConnect] = useState(false);
     const [showStripeConnect, setShowStripeConnect] = useState(false);
     const [stripeConnectUrl, setStripeConnectUrl] = useState<string>('');
-    const [stripeConnectProfile, setStripeConnectProfile] = useState<StripeConnectProfile | null>(null);
-    const [isLoadingStripeProfile, setIsLoadingStripeProfile] = useState(false);
+    const [creatorFinancials, setCreatorFinancials] = useState<StripeConnectProfile | null>(null);
+    const [isLoadingFinancials, setIsLoadingFinancials] = useState(false);
+    const [payoutTab, setPayoutTab] = useState('history');
+    const [isLoadingInsights, setIsLoadingInsights] = useState(false);
 
     const tabs = [
       { id: 'chats', label: 'Chats' },
-      { id: 'earnings', label: 'Earnings' },
+      { id: 'other', label: 'Earnings' },
       { id: 'insights', label: 'Insights' },
-      { id: 'audience', label: 'Audience' },
-      { id: 'other', label: 'Stripe' }
+      { id: 'audience', label: 'Audience' }
     ];
 
   const loadChannels = async () => {
@@ -230,141 +209,71 @@ export default function Index() {
     }
   };
 
-  const loadEarningsData = async () => {
+  const loadCreatorFinancials = async () => {
     if (!user?.$id) return;
 
+    setIsLoadingFinancials(true);
     try {
-      setIsLoadingEarnings(true);
-      
-      // Import the databases and config from appwrite
       const { databases, config } = await import('@/lib/appwrite');
       const { Query } = await import('react-native-appwrite');
-      
-      // Fetch active subscriptions for this creator
-      const activeSubscriptions = await databases.listDocuments(
+
+      const creatorResponse = await databases.listDocuments(
         config.databaseId,
-        config.activeSubscriptionsCollectionId,
-        [Query.equal('creatorAccountId', user.$id)]
+        process.env.EXPO_PUBLIC_APPWRITE_USER_COLLECTION_ID!,
+        [Query.equal('creatoraccountid', user.$id)]
       );
 
-      const subscriptions: Subscription[] = activeSubscriptions.documents.map(doc => ({
-        $id: doc.$id,
-        userId: doc.userId,
-        stripeCustomerId: doc.stripeCustomerId,
-        stripeSubscriptionId: doc.stripeSubscriptionId,
-        status: doc.status,
-        billingCycleAnchor: doc.billingCycleAnchor,
-        createdAt: doc.createdAt,
-        creatorAccountId: doc.creatorAccountId,
-        endsAt: doc.endsAt,
-        planCurrency: doc.planCurrency,
-        planInterval: doc.planInterval,
-        renewalDate: doc.renewalDate,
-        cancelledAt: doc.cancelledAt,
-        planAmount: doc.planAmount
-      }));
-
-      // Calculate earnings
-      let totalEarnings = 0;
-      let activeCount = 0;
-      let cancelledCount = 0;
-      const monthlyEarnings: { [key: string]: number } = {};
-
-      subscriptions.forEach(sub => {
-        if (sub.status === 'active') {
-          totalEarnings += sub.planAmount;
-          activeCount++;
-        } else if (sub.status === 'cancelled' && sub.endsAt) {
-          // For cancelled subscriptions, only count earnings until endsAt
-          const endsAt = new Date(sub.endsAt);
-          const now = new Date();
-          if (endsAt > now) {
-            totalEarnings += sub.planAmount;
-          }
-          cancelledCount++;
-        }
-
-        // Group by month for chart data
-        const date = new Date(sub.createdAt);
-        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        monthlyEarnings[monthKey] = (monthlyEarnings[monthKey] || 0) + sub.planAmount;
-      });
-
-      // Convert monthly data to array format for chart
-      const monthlyData = Object.entries(monthlyEarnings)
-        .map(([month, earnings]) => ({
-          month,
-          earnings
-        }))
-        .sort((a, b) => a.month.localeCompare(b.month));
-
-      // Calculate perceived earnings (after 20% platform commission and 10% Stripe fee)
-      const platformCommission = 0.20; // 20%
-      const stripeFee = 0.10; // 10%
-      const totalFees = platformCommission + stripeFee;
-      const perceivedEarnings = totalEarnings * (1 - totalFees);
-
-      setEarningsData({
-        totalEarnings,
-        perceivedEarnings,
-        monthlyData,
-        activeSubscriptions: activeCount,
-        cancelledSubscriptions: cancelledCount
-      });
-
-      console.log('✅ Loaded earnings data:', {
-        totalEarnings,
-        perceivedEarnings,
-        activeSubscriptions: activeCount,
-        cancelledSubscriptions: cancelledCount
-      });
-
-        } catch (error) {  
-      console.error('Error loading earnings data:', error);
-        } finally {
-      setIsLoadingEarnings(false);
+      if (creatorResponse.documents.length > 0) {
+        const creatorData = creatorResponse.documents[0];
+        setCreatorFinancials(creatorData as StripeConnectProfile);
+        console.log('✅ Loaded creator financial data.');
+        return creatorData;
+      } else {
+        console.log('❌ No creator document found for this user.');
+        setCreatorFinancials(null);
+        return null;
+      }
+    } catch (error) {
+      console.error('Error loading creator financials:', error);
+      setCreatorFinancials(null);
+      return null;
+    } finally {
+      setIsLoadingFinancials(false);
     }
   };
 
-  const loadStripeConnectProfile = async () => {
-    if (!user?.$id) return;
-
+  const handleUpdateStripeData = async () => {
+    if (!creatorFinancials?.stripeConnectAccountId) {
+        Alert.alert("Error", "Stripe account not connected.");
+        return;
+    }
+    
+    setIsLoadingFinancials(true);
     try {
-      setIsLoadingStripeProfile(true);
-      const { databases, config } = await import('@/lib/appwrite');
-      const { Query } = await import('react-native-appwrite');
+        const { functions } = await import('@/lib/appwrite');
+        const { ExecutionMethod } = await import('react-native-appwrite');
 
-      const profileResponse = await databases.listDocuments(
-        config.databaseId,
-        process.env.EXPO_PUBLIC_APPWRITE_PROFILE_COLLECTION_ID!,
-        [Query.equal('userId', user.$id)]
-      );
+        // Trigger the backend to update the DB
+        await functions.createExecution(
+            process.env.EXPO_PUBLIC_STRIPE_BALANCE_FUNCTION_ID!,
+            JSON.stringify({ stripeConnectAccountId: creatorFinancials.stripeConnectAccountId }),
+            false, '/get-balance', ExecutionMethod.POST,
+            { 'Content-Type': 'application/json' }
+        );
 
-      if (profileResponse.documents.length > 0) {
-        const profileData = profileResponse.documents[0];
-        setStripeConnectProfile({
-          stripeConnectAccountId: profileData.stripeConnectAccountId,
-          stripeConnectEnabled: profileData.stripeConnectEnabled,
-          stripeConnectPayoutsEnabled: profileData.stripeConnectPayoutsEnabled,
-          stripeConnectVerified: profileData.stripeConnectVerified,
-          stripeConnectSetupComplete: profileData.stripeConnectSetupComplete,
-          stripeConnectSetupDate: profileData.stripeConnectSetupDate,
-        });
-        console.log('✅ Loaded Stripe Connect profile data.');
-      } else {
-        console.log('❌ No Stripe Connect profile data found for this user.');
-        setStripeConnectProfile(null);
-      }
+        // Refetch the data from our DB
+        await loadCreatorFinancials();
+
     } catch (error) {
-      console.error('Error loading Stripe Connect profile:', error);
-      setStripeConnectProfile(null);
+        console.error('Error updating Stripe data:', error);
+        Alert.alert("Error", "Could not update your financial data. Please try again.");
     } finally {
-      setIsLoadingStripeProfile(false);
+        setIsLoadingFinancials(false);
     }
   };
 
   const handleOnboarding = async () => {
-    if (isLoadingStripeConnect || stripeConnectProfile?.stripeConnectSetupComplete) return;
+    if (isLoadingStripeConnect || creatorFinancials?.stripeConnectSetupComplete) return;
 
     setIsLoadingStripeConnect(true);
     console.log('🚀 Starting Stripe Onboarding...');
@@ -391,6 +300,8 @@ export default function Index() {
         console.log('✅ Got account link URL:', response.accountLinkUrl);
         setStripeConnectUrl(response.accountLinkUrl);
         setShowStripeConnect(true);
+        // Refresh data after onboarding attempt
+        await loadCreatorFinancials();
       } else {
         throw new Error(response.error || 'Failed to create Stripe Connect account.');
       }
@@ -403,7 +314,7 @@ export default function Index() {
   };
 
   const handleOpenDashboard = async () => {
-    if (isLoadingStripeConnect || !stripeConnectProfile?.stripeConnectAccountId) return;
+    if (isLoadingStripeConnect || !creatorFinancials?.stripeConnectAccountId) return;
     
     setIsLoadingStripeConnect(true);
     console.log('🚀 Opening Stripe Dashboard...');
@@ -414,7 +325,7 @@ export default function Index() {
 
       const result = await functions.createExecution(
         process.env.EXPO_PUBLIC_STRIPE_CONNECT_FUNCTION_ID!,
-        JSON.stringify({ accountId: stripeConnectProfile.stripeConnectAccountId }),
+        JSON.stringify({ accountId: creatorFinancials.stripeConnectAccountId }),
         false,
         '/create-dashboard-link',
         ExecutionMethod.POST,
@@ -668,16 +579,12 @@ export default function Index() {
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      // Reload all data based on selected tab
       if (selectedTab === 'chats') {
         await loadChannels();
         await loadProfileImage();
-      } else if (selectedTab === 'earnings') {
-        await loadEarningsData();
       } else if (selectedTab === 'other') {
-        await loadStripeConnectProfile();
+        await loadCreatorFinancials();
       }
-      // For other tabs, you can add specific refresh logic here
     } catch (error) {
       console.error('Error refreshing data:', error);
     } finally {
@@ -688,8 +595,9 @@ export default function Index() {
   useEffect(() => {
     loadChannels();
     loadProfileImage();
-    loadEarningsData();
-    loadStripeConnectProfile();
+    if (user?.$id) {
+        loadCreatorFinancials();
+    }
   }, [user]);
 
   useFocusEffect(
@@ -940,295 +848,129 @@ export default function Index() {
         </View>
       )}
 
-      {/* Other tab content placeholders */}
-      {selectedTab === 'earnings' && (
-        <ScrollView 
-          style={{ flex: 1, backgroundColor: 'black' }} 
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="#FB2355"
-              colors={["#FB2355"]}
-              progressBackgroundColor="black"
-            />
-          }
-        >
-          {isLoadingEarnings ? (
-            <View style={{ 
-              flex: 1, 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              backgroundColor: 'black',
-              paddingVertical: 100
-            }}>
-              <ActivityIndicator size="large" color="#FB2355" />
-              <Text style={{ 
-                color: '#FB2355', 
-                fontSize: 16, 
-                marginTop: 16,
-                fontFamily: 'Urbanist-Regular'
-              }}>
-                Loading earnings data...
-              </Text>
-            </View>
-          ) : (
-            <View style={{ padding: 20 }}>
-              {/* Header */}
-              <Text style={{
-                color: 'white',
-                fontSize: 28,
-                fontWeight: 'bold',
-                fontFamily: 'Urbanist-Bold',
-                marginBottom: 24,
-                textAlign: 'center'
-              }}>
-                Earnings Dashboard
-              </Text>
-
-              {/* Total Earnings Card */}
-              <View style={{
-                backgroundColor: '#1A1A1A',
-                borderRadius: 16,
-                padding: 20,
-                marginBottom: 20,
-                borderWidth: 1,
-                borderColor: '#333333'
-              }}>
-                <Text style={{
-                  color: '#888888',
-                  fontSize: 14,
-                  fontFamily: 'Urbanist-Regular',
-                  marginBottom: 8
-                }}>
-                  Total Earnings
-                </Text>
-                <Text style={{
-                  color: '#FFD700',
-                  fontSize: 32,
-                  fontWeight: 'bold',
-                  fontFamily: 'Urbanist-Bold'
-                }}>
-                  ${earningsData.totalEarnings.toFixed(2)}
-                </Text>
-              </View>
-
-              {/* Perceived Earnings Card */}
-              <View style={{
-                backgroundColor: '#1A1A1A',
-                borderRadius: 16,
-                padding: 20,
-                marginBottom: 20,
-                borderWidth: 1,
-                borderColor: '#333333'
-              }}>
-                <Text style={{
-                  color: '#888888',
-                  fontSize: 14,
-                  fontFamily: 'Urbanist-Regular',
-                  marginBottom: 8
-                }}>
-                  Your Take (After Fees)
-                </Text>
-                <Text style={{
-                  color: '#FB2355',
-                  fontSize: 32,
-                  fontWeight: 'bold',
-                  fontFamily: 'Urbanist-Bold'
-                }}>
-                  ${earningsData.perceivedEarnings.toFixed(2)}
-                </Text>
-                <Text style={{
-                  color: '#666666',
-                  fontSize: 12,
-                  fontFamily: 'Urbanist-Regular',
-                  marginTop: 4
-                }}>
-                  After 20% platform + 10% Stripe fees
-                </Text>
-              </View>
-
-              {/* Subscription Stats */}
-              <View style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                marginBottom: 20
-              }}>
-                <View style={{
-                  backgroundColor: '#1A1A1A',
-                  borderRadius: 12,
-                  padding: 16,
-                  flex: 1,
-                  marginRight: 8,
-                  borderWidth: 1,
-                  borderColor: '#333333'
-                }}>
-                  <Text style={{
-                    color: '#888888',
-                    fontSize: 12,
-                    fontFamily: 'Urbanist-Regular',
-                    marginBottom: 4
-                  }}>
-                    Active
-                  </Text>
-                  <Text style={{
-                    color: '#4CAF50',
-                    fontSize: 24,
-                    fontWeight: 'bold',
-                    fontFamily: 'Urbanist-Bold'
-                  }}>
-                    {earningsData.activeSubscriptions}
-                  </Text>
-                </View>
-                <View style={{
-                  backgroundColor: '#1A1A1A',
-                  borderRadius: 12,
-                  padding: 16,
-                  flex: 1,
-                  marginLeft: 8,
-                  borderWidth: 1,
-                  borderColor: '#333333'
-                }}>
-                  <Text style={{
-                    color: '#888888',
-                    fontSize: 12,
-                    fontFamily: 'Urbanist-Regular',
-                    marginBottom: 4
-                  }}>
-                    Cancelled
-                  </Text>
-                  <Text style={{
-                    color: '#FF9800',
-                    fontSize: 24,
-                    fontWeight: 'bold',
-                    fontFamily: 'Urbanist-Bold'
-                  }}>
-                    {earningsData.cancelledSubscriptions}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Earnings Chart */}
-              {earningsData.monthlyData.length > 0 && (
-                <View style={{
-                  backgroundColor: '#1A1A1A',
-                  borderRadius: 16,
-                  padding: 20,
-                  marginBottom: 20,
-                  borderWidth: 1,
-                  borderColor: '#333333'
-                }}>
-                  <Text style={{
-                    color: 'white',
-                    fontSize: 18,
-                    fontWeight: 'bold',
-                    fontFamily: 'Urbanist-Bold',
-                    marginBottom: 16
-                  }}>
-                    Earnings Over Time
-                  </Text>
-                  <LineChart
-                    data={{
-                      labels: earningsData.monthlyData.map(item => {
-                        const [year, month] = item.month.split('-');
-                        return `${month}/${year.slice(2)}`;
-                      }),
-                      datasets: [{
-                        data: earningsData.monthlyData.map(item => item.earnings)
-                      }]
-                    }}
-                    width={Dimensions.get('window').width - 80}
-                    height={220}
-                    chartConfig={{
-                      backgroundColor: '#1A1A1A',
-                      backgroundGradientFrom: '#1A1A1A',
-                      backgroundGradientTo: '#1A1A1A',
-                      decimalPlaces: 0,
-                      color: (opacity = 1) => `rgba(251, 35, 85, ${opacity})`,
-                      labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                      style: {
-                        borderRadius: 16
-                      },
-                      propsForDots: {
-                        r: '6',
-                        strokeWidth: '2',
-                        stroke: '#FB2355'
-                      }
-                    }}
-                    bezier
-                    style={{
-                      marginVertical: 8,
-                      borderRadius: 16
-                    }}
-                  />
-                </View>
-              )}
-
-              {/* No Data State */}
-              {earningsData.monthlyData.length === 0 && (
-                <View style={{
-                  backgroundColor: '#1A1A1A',
-                  borderRadius: 16,
-                  padding: 40,
-                  alignItems: 'center',
-                  borderWidth: 1,
-                  borderColor: '#333333'
-                }}>
-                  <Text style={{
-                    color: '#888888',
-                    fontSize: 16,
-                    fontFamily: 'Urbanist-Regular',
-                    textAlign: 'center'
-                  }}>
-                    No earnings data yet. Start building your audience to see your earnings here!
-                  </Text>
-                </View>
-              )}
-            </View>
-          )}
-        </ScrollView>
-      )}
-
       {selectedTab === 'insights' && (
         <ScrollView 
           style={{ 
           flex: 1, 
           backgroundColor: 'black',
-          paddingHorizontal: 32
+          paddingHorizontal: 4
           }}
           contentContainerStyle={{
-            flex: 1,
+            flexGrow: 1,
             alignItems: 'center', 
-            justifyContent: 'center',
+            justifyContent: 'flex-start',
+            paddingTop: 24
           }}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="#FB2355"
-              colors={["#FB2355"]}
-              progressBackgroundColor="black"
-            />
-          }
         >
-          <Text style={{ 
-            color: 'white', 
-            fontSize: 24, 
-            fontFamily: 'Urbanist-Bold',
-            marginBottom: 16,
-            textAlign: 'center'
-          }}>
-            Insights
-          </Text>
-          <Text style={{ 
-            color: '#888888', 
-            fontSize: 16, 
-            textAlign: 'center',
-            fontFamily: 'Urbanist-Regular'
-          }}>
-            Analytics and insights will appear here
-          </Text>
+          {/* Stats Grid */}
+          <View style={{ width: '100%', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
+            {[
+              {
+                key: 'monthly',
+                icon: <Ionicons name="people" size={24} color="#FFD700" />, label: 'Monthly Subscribers', color: '#FFD700',
+                value: creatorFinancials?.number_of_monthly_subscribers ?? '—',
+                onPress: () => {/* TODO: Show monthly detail */}
+              },
+              {
+                key: 'yearly',
+                icon: <MaterialCommunityIcons name="calendar-star" size={24} color="#4CAF50" />, label: 'Yearly Subscribers', color: '#4CAF50',
+                value: creatorFinancials?.number_of_yearly_subscriptions ?? '—',
+                onPress: () => {/* TODO: Show yearly detail */}
+              },
+              {
+                key: 'total',
+                icon: <Ionicons name="star" size={24} color="#FB2355" />, label: 'Total Subscribers', color: '#FB2355',
+                value: (typeof creatorFinancials?.number_of_monthly_subscribers === 'number' || typeof creatorFinancials?.number_of_yearly_subscriptions === 'number')
+                  ? ((creatorFinancials?.number_of_monthly_subscribers || 0) + (creatorFinancials?.number_of_yearly_subscriptions || 0))
+                  : '—',
+                onPress: () => {/* TODO: Show total detail */}
+              },
+              {
+                key: 'photos',
+                icon: <Ionicons name="image" size={24} color="#00BFFF" />, label: 'Photos Purchased', color: '#00BFFF',
+                value: creatorFinancials?.number_of_photos ?? '—',
+                onPress: () => {/* TODO: Show photos detail */}
+              },
+              {
+                key: 'videos',
+                icon: <Ionicons name="videocam" size={24} color="#4CAF50" />, label: 'Videos Purchased', color: '#4CAF50',
+                value: creatorFinancials?.number_of_videos ?? '—',
+                onPress: () => {/* TODO: Show videos detail */}
+              },
+              {
+                key: 'files',
+                icon: <Ionicons name="document" size={24} color="#FB2355" />, label: 'Files Purchased', color: '#FB2355',
+                value: creatorFinancials?.number_of_files ?? '—',
+                onPress: () => {/* TODO: Show files detail */}
+              },
+            ].map((card, idx) => (
+              <View
+                key={card.key}
+                style={{
+                  backgroundColor: '#18181B',
+                  borderRadius: 16,
+                  marginBottom: 16,
+                  borderWidth: 1,
+                  borderColor: '#23232B',
+                  width: '48%',
+                  minWidth: 140,
+                  paddingVertical: 14,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.12,
+                  shadowRadius: 6,
+                  elevation: 3,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: idx % 2 === 0 ? 8 : 0,
+                }}
+              >
+                <View style={{ alignItems: 'center', marginBottom: 10 }}>
+                  <View style={{ backgroundColor: card.color + '22', borderRadius: 20, padding: 8, marginBottom: 8 }}>{card.icon}</View>
+                  <Text style={{ color: card.color, fontFamily: 'Urbanist-Bold', fontSize: 15, flexShrink: 1, textAlign: 'center' }} numberOfLines={1} ellipsizeMode="tail">{card.label}</Text>
+                </View>
+                <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 32, marginBottom: 8, flexShrink: 1, textAlign: 'center' }} numberOfLines={1} ellipsizeMode="tail">{card.value}</Text>
+                <TouchableOpacity
+                  style={{
+                    borderWidth: 1,
+                    borderColor: card.color,
+                    borderRadius: 16,
+                    paddingVertical: 5,
+                    paddingHorizontal: 16,
+                    alignSelf: 'center',
+                    marginTop: 2
+                  }}
+                  onPress={card.onPress}
+                >
+                  <Text style={{ color: card.color, fontFamily: 'Urbanist-Bold', fontSize: 13 }}>See Details</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+
+          {/* Update Insights Button */}
+          <TouchableOpacity
+            onPress={async () => {
+              setIsLoadingInsights(true);
+              await loadCreatorFinancials();
+              setIsLoadingInsights(false);
+            }}
+            disabled={isLoadingInsights}
+            style={{
+              backgroundColor: '#333',
+              borderRadius: 16,
+              paddingVertical: 16,
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: isLoadingInsights ? 0.5 : 1,
+              width: '100%',
+              marginBottom: 32
+            }}
+          >
+            <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 18 }}>
+              {isLoadingInsights ? 'Updating...' : 'Update Insights'}
+            </Text>
+          </TouchableOpacity>
         </ScrollView>
       )}
 
@@ -1286,30 +1028,165 @@ export default function Index() {
             paddingHorizontal: 24,
             paddingVertical: 20,
           }}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="#FB2355"
-              colors={["#FB2355"]}
-              progressBackgroundColor="black"
-            />
-          }
         >
           <View>
-           
+            
+            {/* Lifetime Volume */}
+            {creatorFinancials?.lifetimeVolume !== undefined && (
+              <View style={{
+                backgroundColor: '#2A1A2A',
+                borderRadius: 16,
+                padding: 20,
+                marginBottom: 20,
+                borderWidth: 1,
+                borderColor: '#FB2355'
+              }}>
+                <Text style={{
+                  color: '#CCCCCC',
+                  fontSize: 14,
+                  fontFamily: 'Urbanist-Regular',
+                  marginBottom: 8
+                }}>
+                  Lifetime Volume
+                </Text>
+                <Text style={{
+                  color: '#FFD700',
+                  fontSize: 28,
+                  fontWeight: 'bold',
+                  fontFamily: 'Urbanist-Bold'
+                }}>
+                  ${(creatorFinancials.lifetimeVolume / 100).toFixed(2)}
+                </Text>
+                <Text style={{
+                  color: '#888888',
+                  fontSize: 12,
+                  fontFamily: 'Urbanist-Regular',
+                  marginTop: 4
+                }}>
+                  Last updated: {creatorFinancials.stripeLastBalanceUpdate ? new Date(creatorFinancials.stripeLastBalanceUpdate).toLocaleString() : 'N/A'}
+                </Text>
+              </View>
+            )}
+
+            {/* Balance and Payouts Display */}
+            {creatorFinancials && (
+              <View style={{
+                backgroundColor: '#1A1A1A',
+                borderRadius: 16,
+                padding: 20,
+                marginBottom: 20,
+                borderWidth: 1,
+                borderColor: '#333333'
+              }}>
+                <Text style={{
+                  color: 'white',
+                  fontSize: 18,
+                  fontWeight: 'bold',
+                  fontFamily: 'Urbanist-Bold',
+                  marginBottom: 16
+                }}>
+                   Balance
+                </Text>
+                
+                {/* Available Balance */}
+                <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ color: '#CCCCCC', fontFamily: 'Urbanist-Regular', fontSize: 16 }}>Available</Text>
+                  <Text style={{ color: '#4CAF50', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>
+                    ${((creatorFinancials.stripeBalanceAvailable || 0) / 100).toFixed(2)}
+                  </Text>
+                </View>
+
+                {/* Pending Balance */}
+                <View style={{ marginBottom: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ color: '#CCCCCC', fontFamily: 'Urbanist-Regular', fontSize: 16 }}>Pending</Text>
+                  <Text style={{ color: '#FF9800', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>
+                    ${((creatorFinancials.stripeBalancePending || 0) / 100).toFixed(2)}
+                  </Text>
+                </View>
+
+                {/* Payouts Section */}
+                <View style={{ borderTopColor: '#333', borderTopWidth: 1, paddingTop: 16 }}>
+                  {/* Payout Tabs */}
+                  <View style={{ flexDirection: 'row', marginBottom: 12, backgroundColor: '#222', borderRadius: 8, padding: 4 }}>
+                    {['inTransit', 'pending'].map(tab => (
+                      <TouchableOpacity
+                        key={tab}
+                        onPress={() => setPayoutTab(tab)}
+                        style={{
+                          flex: 1,
+                          paddingVertical: 8,
+                          borderRadius: 6,
+                          backgroundColor: payoutTab === tab ? '#FB2355' : 'transparent',
+                        }}
+                      >
+                        <Text style={{
+                          color: 'white',
+                          fontFamily: 'Urbanist-Bold',
+                          textAlign: 'center',
+                          fontSize: 13,
+                          textTransform: 'capitalize'
+                        }}>
+                          {tab === 'inTransit' ? 'In Transit' : tab}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  
+                  {/* Payout Amounts */}
+                   <View style={{ marginBottom: 6, paddingVertical: 4 }}>
+                      {payoutTab === 'inTransit' && (
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+                          <Text style={{ color: '#E0E0E0', fontFamily: 'Urbanist-Bold', fontSize: 14 }}>
+                            In Transit Amount
+                          </Text>
+                          <Text style={{ color: '#BDBDBD', fontFamily: 'Urbanist-Regular', fontSize: 13 }}>
+                             ${((creatorFinancials.payoutsInTransitAmount || 0) / 100).toFixed(2)}
+                          </Text>
+                        </View>
+                      )}
+                      {payoutTab === 'pending' && (
+                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+                          <Text style={{ color: '#E0E0E0', fontFamily: 'Urbanist-Bold', fontSize: 14 }}>
+                            Pending Amount
+                          </Text>
+                          <Text style={{ color: '#BDBDBD', fontFamily: 'Urbanist-Regular', fontSize: 13 }}>
+                             ${((creatorFinancials.payoutsPendingAmount || 0) / 100).toFixed(2)}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                </View>
+              </View>
+            )}
+            
+            <TouchableOpacity
+              onPress={handleUpdateStripeData}
+              disabled={isLoadingFinancials}
+              style={{
+                backgroundColor: '#333',
+                borderRadius: 12,
+                paddingVertical: 12,
+                marginTop: 1,
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: isLoadingFinancials ? 0.5 : 1,
+              }}
+            >
+              <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>
+                {isLoadingFinancials ? 'Updating...' : 'Update Earnings Data'}
+              </Text>
+            </TouchableOpacity>
             
             {/* Stripe Status Display */}
-            {isLoadingStripeProfile ? (
-              <ActivityIndicator color="#FB2355" style={{ marginVertical: 40 }} />
-            ) : stripeConnectProfile?.stripeConnectSetupComplete ? (
+            {creatorFinancials?.stripeConnectSetupComplete ? (
               <View style={{
                 backgroundColor: '#1A1A1A',
                 borderRadius: 16,
                 padding: 20,
                 width: '100%',
                 borderWidth: 1,
-                borderColor: '#333333'
+                borderColor: '#333333',
+                marginTop: 20
               }}>
                 <Text style={{
                   color: 'white',
@@ -1330,29 +1207,29 @@ export default function Index() {
                 </View>
                 <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Ionicons name={stripeConnectProfile.stripeConnectEnabled ? "card-outline" : "alert-circle-outline"} size={20} color={stripeConnectProfile.stripeConnectEnabled ? '#4CAF50' : '#F44336'} style={{ marginRight: 10 }} />
+                    <Ionicons name={creatorFinancials.stripeConnectEnabled ? "card-outline" : "alert-circle-outline"} size={20} color={creatorFinancials.stripeConnectEnabled ? '#4CAF50' : '#F44336'} style={{ marginRight: 10 }} />
                     <Text style={{ color: '#CCCCCC', fontFamily: 'Urbanist-Regular' }}>Payments Active</Text>
                   </View>
-                  <Text style={{ color: stripeConnectProfile.stripeConnectEnabled ? '#4CAF50' : '#F44336', fontFamily: 'Urbanist-Bold' }}>
-                    {stripeConnectProfile.stripeConnectEnabled ? 'Yes' : 'No'}
+                  <Text style={{ color: creatorFinancials.stripeConnectEnabled ? '#4CAF50' : '#F44336', fontFamily: 'Urbanist-Bold' }}>
+                    {creatorFinancials.stripeConnectEnabled ? 'Yes' : 'No'}
                   </Text>
                 </View>
                 <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Ionicons name={stripeConnectProfile.stripeConnectPayoutsEnabled ? "cash-outline" : "alert-circle-outline"} size={20} color={stripeConnectProfile.stripeConnectPayoutsEnabled ? '#4CAF50' : '#F44336'} style={{ marginRight: 10 }} />
+                    <Ionicons name={creatorFinancials.stripeConnectPayoutsEnabled ? "cash-outline" : "alert-circle-outline"} size={20} color={creatorFinancials.stripeConnectPayoutsEnabled ? '#4CAF50' : '#F44336'} style={{ marginRight: 10 }} />
                     <Text style={{ color: '#CCCCCC', fontFamily: 'Urbanist-Regular' }}>Payouts Active</Text>
                   </View>
-                  <Text style={{ color: stripeConnectProfile.stripeConnectPayoutsEnabled ? '#4CAF50' : '#F44336', fontFamily: 'Urbanist-Bold' }}>
-                    {stripeConnectProfile.stripeConnectPayoutsEnabled ? 'Yes' : 'No'}
+                  <Text style={{ color: creatorFinancials.stripeConnectPayoutsEnabled ? '#4CAF50' : '#F44336', fontFamily: 'Urbanist-Bold' }}>
+                    {creatorFinancials.stripeConnectPayoutsEnabled ? 'Yes' : 'No'}
                   </Text>
                 </View>
                 <View style={{ marginBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Ionicons name={stripeConnectProfile.stripeConnectVerified ? "person-circle-outline" : "alert-circle-outline"} size={20} color={stripeConnectProfile.stripeConnectVerified ? '#4CAF50' : '#FF9800'} style={{ marginRight: 10 }} />
+                    <Ionicons name={creatorFinancials.stripeConnectVerified ? "person-circle-outline" : "alert-circle-outline"} size={20} color={creatorFinancials.stripeConnectVerified ? '#4CAF50' : '#FF9800'} style={{ marginRight: 10 }} />
                     <Text style={{ color: '#CCCCCC', fontFamily: 'Urbanist-Regular' }}>Account Verified</Text>
                   </View>
-                  <Text style={{ color: stripeConnectProfile.stripeConnectVerified ? '#4CAF50' : '#FF9800', fontFamily: 'Urbanist-Bold' }}>
-                    {stripeConnectProfile.stripeConnectVerified ? 'Yes' : 'Pending'}
+                  <Text style={{ color: creatorFinancials.stripeConnectVerified ? '#4CAF50' : '#FF9800', fontFamily: 'Urbanist-Bold' }}>
+                    {creatorFinancials.stripeConnectVerified ? 'Yes' : 'Pending'}
                   </Text>
                 </View>
                 
@@ -1375,10 +1252,10 @@ export default function Index() {
                   </Text>
                 </TouchableOpacity>
 
-                {stripeConnectProfile.stripeConnectSetupDate && (
+                {creatorFinancials.stripeConnectSetupDate && (
                   <View style={{ marginTop: 12, borderTopColor: '#333', borderTopWidth: 1, paddingTop: 12 }}>
                     <Text style={{ color: '#888', fontFamily: 'Urbanist-Regular', fontSize: 12, textAlign: 'center' }}>
-                      Setup completed on: {new Date(stripeConnectProfile.stripeConnectSetupDate).toLocaleDateString()}
+                      Setup completed on: {new Date(creatorFinancials.stripeConnectSetupDate).toLocaleDateString()}
                     </Text>
                   </View>
                 )}
@@ -1392,7 +1269,8 @@ export default function Index() {
                 flexDirection: 'row',
                 alignItems: 'center',
                 borderWidth: 1,
-                borderColor: 'rgba(251, 35, 85, 0.3)'
+                borderColor: 'rgba(251, 35, 85, 0.3)',
+                marginTop: 20
               }}>
                 <Ionicons name="information-circle-outline" size={32} color="#FB2355" style={{ marginRight: 16 }} />
                 <View style={{ flex: 1 }}>
@@ -1417,25 +1295,25 @@ export default function Index() {
             )}
           </View>
           
-          <View style={{ alignItems: 'center', width: '100%', paddingBottom: 10 }}>
+          <View style={{ alignItems: 'center', width: '100%', paddingBottom: 10, marginTop: 20 }}>
             {/* Stripe Connect Express Button */}
             <TouchableOpacity
               style={{
-                backgroundColor: stripeConnectProfile?.stripeConnectSetupComplete ? '#333' : '#FB2355',
+                backgroundColor: creatorFinancials?.stripeConnectSetupComplete ? '#333' : '#FB2355',
                 paddingVertical: 16,
                 borderRadius: 16,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
                 width: '100%',
-                shadowColor: stripeConnectProfile?.stripeConnectSetupComplete ? 'transparent' : '#FB2355',
+                shadowColor: creatorFinancials?.stripeConnectSetupComplete ? 'transparent' : '#FB2355',
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.4,
                 shadowRadius: 10,
-                elevation: stripeConnectProfile?.stripeConnectSetupComplete ? 0 : 8,
+                elevation: creatorFinancials?.stripeConnectSetupComplete ? 0 : 8,
                 opacity: isLoadingStripeConnect ? 0.7 : 1,
               }}
-              disabled={isLoadingStripeConnect || stripeConnectProfile?.stripeConnectSetupComplete}
+              disabled={isLoadingStripeConnect || creatorFinancials?.stripeConnectSetupComplete}
               onPress={handleOnboarding}
             >
               <Ionicons name="card-outline" size={22} color="white" style={{ marginRight: 12 }} />
@@ -1449,7 +1327,7 @@ export default function Index() {
                 }}>
                   {isLoadingStripeConnect 
                     ? 'Connecting...' 
-                    : (stripeConnectProfile?.stripeConnectSetupComplete ? 'Setup Complete' : 'Set Up Payments')}
+                    : (creatorFinancials?.stripeConnectSetupComplete ? 'Setup Complete' : 'Set Up Payments')}
                 </Text>
                 <Text style={{
                   color: 'rgba(255, 255, 255, 0.8)',
@@ -1458,7 +1336,7 @@ export default function Index() {
                   textAlign: 'left',
                   marginTop: 2
                 }}>
-                  {stripeConnectProfile?.stripeConnectSetupComplete ? 'You can now manage payouts from your dashboard' : 'Connect with Stripe to get paid'}
+                  {creatorFinancials?.stripeConnectSetupComplete ? 'You can now manage payouts from your dashboard' : 'Connect with Stripe to get paid'}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -1547,6 +1425,7 @@ export default function Index() {
                     navState.url.includes('dashboard.stripe.com/connect/accounts') ||
                     navState.url.includes('account_updated=true')) {
                   setShowStripeConnect(false);
+                  loadCreatorFinancials(); // Refresh data after completion
                   Alert.alert(
                     "Setup Complete",
                     "Your Stripe Connect account has been set up successfully! You can now receive payments directly.",
@@ -1559,6 +1438,7 @@ export default function Index() {
                     navState.url.includes('cancel') ||
                     navState.url.includes('failure')) {
                   setShowStripeConnect(false);
+                  loadCreatorFinancials(); // Refresh data even on cancellation
                   Alert.alert(
                     "Setup Incomplete",
                     "Stripe Connect setup was not completed. You can try again anytime.",

@@ -891,6 +891,7 @@ export const createPaidContentPaymentIntent = async (
         return {
             clientSecret: actualResponse.clientSecret,
             paymentIntentId: actualResponse.paymentIntentId,
+            stripeAccountId: actualResponse.stripeAccountId, // Add the creator's Stripe account ID
         };
     } catch (error) {
         console.error('💥 Error in createPaidContentPaymentIntent:', {

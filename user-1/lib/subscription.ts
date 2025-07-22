@@ -184,18 +184,19 @@ export async function initiatePaymentIntent(amount: number, interval: 'month' | 
         const actualResponse = JSON.parse(data.responseBody);
         console.log('Actual function response:', actualResponse);
         
-        if (actualResponse.clientSecret) {
-          return actualResponse.clientSecret;
+        if (actualResponse.clientSecret && actualResponse.stripeAccountId) {
+          // Return the full object containing clientSecret and stripeAccountId
+          return actualResponse;
         } else {
-          console.error('No client secret in actual response:', actualResponse);
-          throw new Error('No client secret found in response');
+          console.error('Incomplete data in actual response:', actualResponse);
+          throw new Error('Incomplete payment data received from server');
         }
-      } else if (data.clientSecret) {
+      } else if (data.clientSecret && data.stripeAccountId) {
         // Direct response (not wrapped by Appwrite)
-        return data.clientSecret;
+        return data;
       } else {
-        console.error('No client secret in response:', data);
-        throw new Error('No client secret found in response');
+        console.error('Incomplete payment data in response:', data);
+        throw new Error('Incomplete payment data received from server');
       }
     } catch (parseError) {
       console.error('Failed to parse response:', parseError);

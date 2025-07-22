@@ -1,11 +1,13 @@
 import {
     CardField,
+    StripeProvider,
     useStripe
 } from '@stripe/stripe-react-native';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     Animated,
     Dimensions,
     Modal,
@@ -27,78 +29,97 @@ interface StripePaymentModalProps {
   creatorName: string;
 }
 
-const PaymentForm: React.FC<{
-  onSuccess: () => void;
+// This is the UI-only component. It has no Stripe logic.
+const PaymentFormUI: React.FC<{
   onClose: () => void;
   amount: number;
   interval: 'month' | 'year';
+  isSubmitting: boolean;
+  error: string | null;
+  cardComplete: boolean;
+  onCardChange: (complete: boolean) => void;
+  onSubmit: () => void;
+}> = ({
+  onClose,
+  amount,
+  interval,
+  isSubmitting,
+  error,
+  cardComplete,
+  onCardChange,
+  onSubmit,
+}) => (
+  <View style={styles.sheetContent}>
+    <TouchableOpacity onPress={onClose} style={styles.closeButtonAbsoluteSheet}>
+      <Text style={styles.closeButtonText}>✕</Text>
+    </TouchableOpacity>
+    <View style={styles.headerSection}>
+      <Text style={styles.titleProfessional}>Complete Payment</Text>
+      <Text style={styles.subtitleProfessional}>Enter your payment details to continue</Text>
+    </View>
+    <View style={styles.cardInputSectionProfessional}>
+      <Text style={styles.cardLabelProfessional}>Payment Method</Text>
+      <CardField
+        postalCodeEnabled={false}
+        placeholders={{ number: '1234 1234 1234 1234' }}
+        cardStyle={{ ...styles.cardFieldProfessional, textColor: '#18181b' }}
+        style={styles.cardFieldContainerProfessional}
+        onCardChange={(cardDetails) => onCardChange(cardDetails.complete)}
+      />
+    </View>
+    {error && (
+      <View style={styles.errorContainerProfessional}>
+        <Text style={styles.errorTextProfessional}>{error}</Text>
+      </View>
+    )}
+    <View style={styles.spacer} />
+    <View style={styles.amountSectionProfessional}>
+      <View style={styles.amountRow}>
+        <Text style={styles.amountLabelProfessional}>Subscription</Text>
+        <Text style={styles.amountValueProfessional}>${amount}</Text>
+      </View>
+      <View style={styles.amountRow}>
+        <Text style={styles.amountLabelProfessional}>Billing Cycle</Text>
+        <Text style={styles.amountValueProfessional}>{interval === 'month' ? 'Monthly' : 'Yearly'}</Text>
+      </View>
+    </View>
+    <TouchableOpacity
+      style={[styles.payButtonProfessional, (!cardComplete || isSubmitting) && styles.payButtonDisabledProfessional]}
+      onPress={onSubmit}
+      disabled={!cardComplete || isSubmitting}
+      activeOpacity={0.85}
+    >
+      <Text style={styles.payButtonTextProfessional}>
+        {isSubmitting ? 'Processing...' : `Pay $${amount}`}
+      </Text>
+    </TouchableOpacity>
+    <Text style={styles.securityText}>Your payment is secured by Stripe</Text>
+  </View>
+);
+
+// This component controls the Stripe logic within the new provider context.
+const PaymentController: React.FC<{
+  onSuccess: () => void;
+  onClose: () => void;
+  clientSecret: string;
+  amount: number;
+  interval: 'month' | 'year';
   creatorName: string;
-}> = ({ onSuccess, onClose, amount, interval, creatorName }) => {
+}> = ({ onSuccess, onClose, clientSecret, amount, interval, creatorName }) => {
   const stripe = useStripe();
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cardComplete, setCardComplete] = useState(false);
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
-
-  const bounceAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    createPaymentIntent();
-  }, []);
-
-  useEffect(() => {
-    if (loading && !clientSecret) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(bounceAnim, {
-            toValue: -20,
-            duration: 400,
-            useNativeDriver: true,
-          }),
-          Animated.timing(bounceAnim, {
-            toValue: 0,
-            duration: 400,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
-    } else {
-      bounceAnim.setValue(0);
-    }
-  }, [loading, clientSecret]);
-
-  const createPaymentIntent = async () => {
-    try {
-      setLoading(true);
-      const secret = await initiatePaymentIntent(amount, interval, creatorName);
-      setClientSecret(secret);
-      console.log('Payment intent created successfully with secret:', secret.substring(0, 20) + '...');
-    } catch (error) {
-      console.error('Failed to create payment intent:', error);
-      setError(error instanceof Error ? error.message : 'Failed to initialize payment');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSubmit = async () => {
-    if (!stripe || !cardComplete || !clientSecret) {
-      console.log('Payment submission blocked:', {
-        hasStripe: !!stripe,
-        cardComplete,
-        hasClientSecret: !!clientSecret
-      });
-      return;
-    }
+    if (!stripe || !cardComplete || !clientSecret) return;
 
-    setLoading(true);
+    setIsSubmitting(true);
     setError(null);
 
     try {
-      console.log('Starting payment confirmation with client secret:', clientSecret.substring(0, 20) + '...');
-      
-      // Confirm the payment using the existing client secret
+      console.log('Confirming payment within new Stripe context...');
       const result = await stripe.confirmPayment(clientSecret, {
         paymentMethodType: 'Card',
       });
@@ -110,82 +131,33 @@ const PaymentForm: React.FC<{
         setError(result.error.message || 'Payment failed');
       } else {
         console.log('Payment confirmed successfully!');
-        // Haptic feedback on iOS at the right moment
-        if (Platform.OS === 'ios') {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        }
-        // Close the modal first, then navigate to payment success page
+        if (Platform.OS === 'ios') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         onClose();
-        router.push({
-          pathname: '/payment-success',
-          params: { creatorName }
-        });
+        router.push({ pathname: '/payment-success', params: { creatorName } });
       }
     } catch (err) {
       console.error('Payment confirmation exception:', err);
       setError(err instanceof Error ? err.message : 'Payment failed');
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <View style={styles.sheetContent}>
-      <TouchableOpacity onPress={onClose} style={styles.closeButtonAbsoluteSheet}>
-        <Text style={styles.closeButtonText}>✕</Text>
-      </TouchableOpacity>
-      <View style={styles.headerSection}>
-        <Text style={styles.titleProfessional}>Complete Payment</Text>
-        <Text style={styles.subtitleProfessional}>Enter your payment details to continue</Text>
-      </View>
-      <View style={styles.cardInputSectionProfessional}>
-        <Text style={styles.cardLabelProfessional}>Payment Method</Text>
-        <CardField
-          postalCodeEnabled={false}
-          placeholders={{ number: '1234 1234 1234 1234' }}
-          cardStyle={{
-            ...styles.cardFieldProfessional,
-            textColor: '#18181b',
-          }}
-          style={styles.cardFieldContainerProfessional}
-          onCardChange={(cardDetails) => {
-            setCardComplete(cardDetails.complete);
-          }}
-        />
-      </View>
-      {error && (
-        <View style={styles.errorContainerProfessional}>
-          <Text style={styles.errorTextProfessional}>{error}</Text>
-        </View>
-      )}
-      <View style={styles.spacer} />
-      <View style={styles.amountSectionProfessional}>
-        <View style={styles.amountRow}>
-          <Text style={styles.amountLabelProfessional}>Subscription</Text>
-          <Text style={styles.amountValueProfessional}>${amount}</Text>
-        </View>
-        <View style={styles.amountRow}>
-          <Text style={styles.amountLabelProfessional}>Billing Cycle</Text>
-          <Text style={styles.amountValueProfessional}>{interval === 'month' ? 'Monthly' : 'Yearly'}</Text>
-        </View>
-      </View>
-      <TouchableOpacity
-        style={[styles.payButtonProfessional, (!cardComplete || loading) && styles.payButtonDisabledProfessional]}
-        onPress={handleSubmit}
-        disabled={!cardComplete || loading}
-        activeOpacity={0.85}
-      >
-        <Text style={styles.payButtonTextProfessional}>
-          {loading ? 'Processing...' : `Pay $${amount}`}
-        </Text>
-      </TouchableOpacity>
-      <Text style={styles.securityText}>
-        Your payment is secured by Stripe
-      </Text>
-    </View>
+    <PaymentFormUI
+      onClose={onClose}
+      amount={amount}
+      interval={interval}
+      isSubmitting={isSubmitting}
+      error={error}
+      cardComplete={cardComplete}
+      onCardChange={setCardComplete}
+      onSubmit={handleSubmit}
+    />
   );
 };
 
+// This is the main modal component that orchestrates everything.
 const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
   visible,
   onClose,
@@ -195,63 +167,89 @@ const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
   creatorName,
 }) => {
   const screenHeight = Dimensions.get('window').height;
-  const sheetHeight = Math.round(screenHeight * 0.6); // Increased to 70%
+  const sheetHeight = Math.round(screenHeight * 0.6);
   const slideAnim = React.useRef(new Animated.Value(sheetHeight)).current;
 
-  React.useEffect(() => {
+  const [paymentData, setPaymentData] = useState<{ clientSecret: string; stripeAccountId: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
     if (visible) {
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 350,
-        useNativeDriver: true,
-      }).start();
+      // Fetch payment data when the modal becomes visible
+      setIsLoading(true);
+      setError(null);
+      setPaymentData(null);
+      
+      initiatePaymentIntent(amount, interval, creatorName)
+        .then((data) => {
+          console.log('Fetched payment data:', data);
+          setPaymentData(data);
+        })
+        .catch((err) => {
+          console.error('Failed to initialize payment intent:', err);
+          setError(err.message || 'Could not connect to payment server.');
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+
+      Animated.timing(slideAnim, { toValue: 0, duration: 350, useNativeDriver: true }).start();
     } else {
       slideAnim.setValue(sheetHeight);
     }
   }, [visible]);
 
-  const handleSuccess = () => {
-    onSuccess();
-  };
+  const handleClose = () => onClose();
 
-  const handleClose = () => {
-    onClose();
-  };
-
-  // Log the publishable key for debugging
   const publishableKey = "pk_test_51RQyjPBMxMFyUXHbGzFEIYSTdMdY8rajTo0CRJ32cv0SfdnLmvu0ViWjUqC4WGakM35JvcucUHwyS6TImjSrBYDF00a6PPIT7B";
-  console.log('Stripe publishable key:', publishableKey ? publishableKey.substring(0, 20) + '...' : 'NOT FOUND');
 
   return (
-    <Modal
-      visible={visible}
-      animationType="none"
-      transparent
-      onRequestClose={handleClose}
-    >
+    <Modal visible={visible} animationType="none" transparent onRequestClose={handleClose}>
       <View style={styles.sheetOverlayHalf}>
-        <Animated.View style={[styles.bottomSheet, { height: sheetHeight, transform: [{ translateY: slideAnim }] }]}> 
+        <Animated.View style={[styles.bottomSheet, { height: sheetHeight, transform: [{ translateY: slideAnim }] }]}>
           <View style={styles.sheetHandle} />
-          <ScrollView 
+          <ScrollView
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             bounces={false}
           >
-            <PaymentForm
-              onSuccess={handleSuccess}
-              onClose={handleClose}
-              amount={amount}
-              interval={interval}
-              creatorName={creatorName}
-            />
+            {isLoading && (
+              <View style={styles.loaderContainer}>
+                <ActivityIndicator size="large" color="#FB2355" />
+                <Text style={styles.loaderText}>Initializing Secure Payment...</Text>
+              </View>
+            )}
+            {error && !isLoading && (
+              <View style={styles.loaderContainer}>
+                 <Text style={styles.errorTextProfessional}>{error}</Text>
+                 <TouchableOpacity onPress={handleClose}><Text style={{color: 'white', marginTop: 10}}>Close</Text></TouchableOpacity>
+              </View>
+            )}
+            {!isLoading && !error && paymentData && (
+              <StripeProvider
+                publishableKey={publishableKey}
+                stripeAccountId={paymentData.stripeAccountId}
+              >
+                <PaymentController
+                  onSuccess={onSuccess}
+                  onClose={handleClose}
+                  clientSecret={paymentData.clientSecret}
+                  amount={amount}
+                  interval={interval}
+                  creatorName={creatorName}
+                />
+              </StripeProvider>
+            )}
           </ScrollView>
         </Animated.View>
       </View>
     </Modal>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
@@ -432,6 +430,18 @@ const styles = StyleSheet.create({
   },
   spacer: {
     height: 16,
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40
+  },
+  loaderText: {
+    marginTop: 15,
+    fontSize: 16,
+    color: '#B9B9B9',
+    fontFamily: 'questrial',
   },
 });
 

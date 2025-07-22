@@ -1,7 +1,7 @@
 import { useGlobalContext } from '@/lib/global-provider';
 import { client } from '@/lib/stream-chat';
 import { Ionicons } from '@expo/vector-icons';
-import { CardField, useStripe } from '@stripe/stripe-react-native';
+import { CardField, StripeProvider, useStripe } from '@stripe/stripe-react-native';
 import { ResizeMode, Video } from 'expo-av';
 import { BlurView } from 'expo-blur';
 import * as DocumentPicker from 'expo-document-picker';
@@ -3467,48 +3467,17 @@ const PaidContentPaymentForm: React.FC<{
   creatorName?: string;
   imageUrl?: string;
   contentType?: string;
-}> = ({ onSuccess, onClose, amount, contentTitle, contentId, creatorId, creatorName, imageUrl, contentType }) => {
-  const stripe = useStripe();
-  const { user } = useGlobalContext();
+  clientSecret: string;
+  stripeAccountId: string;
+}> = ({ onSuccess, onClose, amount, contentTitle, contentId, creatorId, creatorName, imageUrl, contentType, clientSecret, stripeAccountId }) => {
+  const { confirmPayment } = useStripe();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cardComplete, setCardComplete] = useState(false);
 
   const handleSubmit = async () => {
-    if (!stripe || !cardComplete) {
-      console.log('Payment blocked - Stripe not ready or card incomplete:', {
-        hasStripe: !!stripe,
-        cardComplete
-      });
-      return;
-    }
-
-    // Debug: Check what values we have for validation
-    console.log('Payment validation check:', {
-      userId: user?.$id,
-      contentId,
-      creatorId,
-      creatorName,
-      amount
-    });
-
-    if (!user?.$id) {
-      setError('User not authenticated. Please log in again.');
-      return;
-    }
-
-    if (!contentId) {
-      setError('Content ID is missing. Please try again.');
-      return;
-    }
-
-    if (!creatorId) {
-      setError('Creator ID is missing. Please try again.');
-      return;
-    }
-
-    if (!creatorName) {
-      setError('Creator name is missing. Please try again.');
+    if (!confirmPayment || !clientSecret) {
+      setError('Payment system not ready');
       return;
     }
 
@@ -3516,47 +3485,23 @@ const PaidContentPaymentForm: React.FC<{
     setError(null);
 
     try {
-      console.log('Creating payment intent...');
-      
-      // Create payment intent on the backend
-      const paymentData = await createPaidContentPaymentIntent(amount, 'usd', {
-        userId: user.$id,
-        creatorId,
-        creatorName,
-        contentId,
-        contentType: contentType || 'image',
-        imageUrl: imageUrl || ''
-      });
-
-      console.log('Payment intent created, confirming payment...');
-
-      // Confirm the payment with Stripe
-      const { error: confirmError } = await stripe.confirmPayment(paymentData.clientSecret, {
+      console.log('Confirming paid content payment within new Stripe context...');
+      const result = await confirmPayment(clientSecret, {
         paymentMethodType: 'Card',
       });
 
-      if (confirmError) {
-        console.error('Payment confirmation error:', confirmError);
-        setError(confirmError.message || 'Payment failed');
-        return;
-      }
-
-      console.log('Payment confirmed! Recording purchase...');
-
-      // The purchase will be automatically recorded by the backend webhook
-      // when it receives the payment_intent.succeeded event
-      console.log('Purchase will be recorded by backend webhook');
-      
-      // Haptic feedback on success
+      if (result.error) {
+        console.error('Payment confirmation error:', result.error);
+        setError(result.error.message || 'Payment failed');
+      } else {
+        console.log('Paid content payment confirmed successfully!');
       if (Platform.OS === 'ios') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
-      
-      // Call success callback
       onSuccess();
-      
+      }
     } catch (err) {
-      console.error('Payment processing error:', err);
+      console.error('Payment confirmation exception:', err);
       setError(err instanceof Error ? err.message : 'Payment failed');
     } finally {
       setLoading(false);
@@ -3636,30 +3581,48 @@ const PaidContentPaymentModal: React.FC<PaidContentPaymentModalProps> = ({
   imageUrl,
   contentType,
 }) => {
+  const { user } = useGlobalContext();
   const screenHeight = Dimensions.get('window').height;
   const sheetHeight = Math.round(screenHeight * 0.6);
   const slideAnim = React.useRef(new Animated.Value(sheetHeight)).current;
 
-  // Debug: Log what props the payment modal receives
-  React.useEffect(() => {
+  const [paymentData, setPaymentData] = useState<{ clientSecret: string; stripeAccountId: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
     if (visible) {
-      console.log('Payment modal props:', {
-        contentId,
+      // Fetch payment data when the modal becomes visible
+      setIsLoading(true);
+      setError(null);
+      setPaymentData(null);
+      
+      if (user?.$id && contentId && creatorId && creatorName) {
+        createPaidContentPaymentIntent(amount, 'usd', {
+          userId: user.$id,
         creatorId,
         creatorName,
-        amount,
-        imageUrl
-      });
-    }
-  }, [visible, contentId, creatorId, creatorName, amount, imageUrl]);
+          contentId,
+          contentType: contentType || 'image',
+          imageUrl: imageUrl || ''
+        })
+          .then((data) => {
+            console.log('Fetched paid content payment data:', data);
+            setPaymentData(data);
+          })
+          .catch((err) => {
+            console.error('Failed to initialize paid content payment intent:', err);
+            setError(err.message || 'Could not connect to payment server.');
+          })
+          .finally(() => {
+            setIsLoading(false);
+          });
+      } else {
+        setError('Missing required payment information');
+        setIsLoading(false);
+      }
 
-  React.useEffect(() => {
-    if (visible) {
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 350,
-        useNativeDriver: true,
-      }).start();
+      Animated.timing(slideAnim, { toValue: 0, duration: 350, useNativeDriver: true }).start();
     } else {
       slideAnim.setValue(sheetHeight);
     }
@@ -3687,17 +3650,40 @@ const PaidContentPaymentModal: React.FC<PaidContentPaymentModalProps> = ({
             keyboardShouldPersistTaps="handled"
             bounces={false}
           >
-            <PaidContentPaymentForm
-              onSuccess={onSuccess}
-              onClose={onClose}
-              amount={amount}
-              contentTitle={contentTitle}
-              contentId={contentId}
-              creatorId={creatorId}
-              creatorName={creatorName}
-              imageUrl={imageUrl}
-              contentType={contentType}
-            />
+            {isLoading && (
+              <View style={paidContentStyles.loaderContainer}>
+                <ActivityIndicator size="large" color="#FB2355" />
+                <Text style={paidContentStyles.loaderText}>Initializing Secure Payment...</Text>
+              </View>
+            )}
+            {error && !isLoading && (
+              <View style={paidContentStyles.loaderContainer}>
+                <Text style={paidContentStyles.errorText}>{error}</Text>
+                <TouchableOpacity onPress={onClose}>
+                  <Text style={{color: 'white', marginTop: 10}}>Close</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            {!isLoading && !error && paymentData && (
+              <StripeProvider
+                publishableKey="pk_test_51RQyjPBMxMFyUXHbGzFEIYSTdMdY8rajTo0CRJ32cv0SfdnLmvu0ViWjUqC4WGakM35JvcucUHwyS6TImjSrBYDF00a6PPIT7B"
+                stripeAccountId={paymentData.stripeAccountId}
+              >
+                <PaidContentPaymentForm
+                  onSuccess={onSuccess}
+                  onClose={onClose}
+                  amount={amount}
+                  contentTitle={contentTitle}
+                  contentId={contentId}
+                  creatorId={creatorId}
+                  creatorName={creatorName}
+                  imageUrl={imageUrl}
+                  contentType={contentType}
+                  clientSecret={paymentData.clientSecret}
+                  stripeAccountId={paymentData.stripeAccountId}
+                />
+              </StripeProvider>
+            )}
           </ScrollView>
         </Animated.View>
       </View>
@@ -3879,6 +3865,19 @@ const paidContentStyles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingBottom: 20,
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loaderText: {
+    color: '#B9B9B9',
+    fontSize: 16,
+    fontFamily: 'questrial',
+    marginTop: 16,
+    textAlign: 'center',
   },
 });
 
