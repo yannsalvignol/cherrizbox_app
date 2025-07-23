@@ -2,9 +2,10 @@ import { getUserProfile } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
 import { client, connectUser } from '@/lib/stream-chat';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Image, Modal, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Image, Modal, RefreshControl, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 
@@ -41,6 +42,8 @@ interface StripeConnectProfile {
   number_of_files?: number;
   number_of_monthly_subscribers?: number;
   number_of_yearly_subscriptions?: number;
+  number_of_cancelled_monthly_sub?: number;
+  number_of_cancelled_yearly_sub?: number;
 }
 
 export default function Index() {
@@ -58,6 +61,14 @@ export default function Index() {
     const [isLoadingFinancials, setIsLoadingFinancials] = useState(false);
     const [payoutTab, setPayoutTab] = useState('history');
     const [isLoadingInsights, setIsLoadingInsights] = useState(false);
+    const [openInfoBubble, setOpenInfoBubble] = useState<null | 'lifetime' | 'available' | 'pending'>(null);
+    const [audience, setAudience] = useState<any[]>([]);
+    const [isLoadingAudience, setIsLoadingAudience] = useState(false);
+    const [audienceSearch, setAudienceSearch] = useState('');
+    const [audienceFilter, setAudienceFilter] = useState<'recent' | 'income_high' | 'income_low'>('recent');
+    const [filteredAudience, setFilteredAudience] = useState<any[]>([]);
+    const [selectedSubscriber, setSelectedSubscriber] = useState<any | null>(null);
+    const [showSubscriberModal, setShowSubscriberModal] = useState(false);
 
     const tabs = [
       { id: 'chats', label: 'Chats' },
@@ -216,7 +227,7 @@ export default function Index() {
     try {
       const { databases, config } = await import('@/lib/appwrite');
       const { Query } = await import('react-native-appwrite');
-
+      
       const creatorResponse = await databases.listDocuments(
         config.databaseId,
         process.env.EXPO_PUBLIC_APPWRITE_USER_COLLECTION_ID!,
@@ -233,11 +244,11 @@ export default function Index() {
         setCreatorFinancials(null);
         return null;
       }
-    } catch (error) {
+        } catch (error) {  
       console.error('Error loading creator financials:', error);
       setCreatorFinancials(null);
       return null;
-    } finally {
+        } finally {
       setIsLoadingFinancials(false);
     }
   };
@@ -576,6 +587,31 @@ export default function Index() {
     );
   };
 
+  const loadAudience = async () => {
+    if (!user?.$id) return;
+    setIsLoadingAudience(true);
+    try {
+      const { databases, config } = await import('@/lib/appwrite');
+      const { Query } = await import('react-native-appwrite');
+      // Use the index on creatorAccountId to fetch all active subscriptions for this creator
+      const response = await databases.listDocuments(
+        config.databaseId,
+        config.activeSubscriptionsCollectionId,
+        [
+          Query.equal('creatorAccountId', user.$id),
+          Query.equal('status', 'active')
+        ]
+      );
+      console.log('[Audience] Subscriptions fetched:', response.documents);
+      setAudience(response.documents);
+    } catch (error) {
+      console.error('[Audience] Error loading audience:', error);
+      setAudience([]);
+    } finally {
+      setIsLoadingAudience(false);
+    }
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
     try {
@@ -584,6 +620,8 @@ export default function Index() {
         await loadProfileImage();
       } else if (selectedTab === 'other') {
         await loadCreatorFinancials();
+      } else if (selectedTab === 'audience') {
+        await loadAudience();
       }
     } catch (error) {
       console.error('Error refreshing data:', error);
@@ -600,6 +638,12 @@ export default function Index() {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (selectedTab === 'audience') {
+      loadAudience();
+    }
+  }, [selectedTab, user]);
+
   useFocusEffect(
     React.useCallback(() => {
       if (user) {
@@ -607,6 +651,28 @@ export default function Index() {
       }
     }, [user])
   );
+
+  // Update filteredAudience when audience, search, or filter changes
+  useEffect(() => {
+    let filtered = audience;
+    // Search filter
+    if (audienceSearch.trim()) {
+      const search = audienceSearch.trim().toLowerCase();
+      filtered = filtered.filter(sub =>
+        (sub.customerEmail && sub.customerEmail.toLowerCase().includes(search)) ||
+        (sub.userName && sub.userName.toLowerCase().includes(search))
+      );
+    }
+    // Sorting
+    if (audienceFilter === 'recent') {
+      filtered = filtered.slice().sort((a, b) => new Date(b.createdAt || b.$createdAt).getTime() - new Date(a.createdAt || a.$createdAt).getTime());
+    } else if (audienceFilter === 'income_high') {
+      filtered = filtered.slice().sort((a, b) => (b.planAmount || 0) - (a.planAmount || 0));
+    } else if (audienceFilter === 'income_low') {
+      filtered = filtered.slice().sort((a, b) => (a.planAmount || 0) - (b.planAmount || 0));
+    }
+    setFilteredAudience(filtered);
+  }, [audience, audienceSearch, audienceFilter]);
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }} edges={['top']}>
@@ -862,90 +928,224 @@ export default function Index() {
             paddingTop: 24
           }}
         >
-          {/* Stats Grid */}
-          <View style={{ width: '100%', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
-            {[
-              {
-                key: 'monthly',
-                icon: <Ionicons name="people" size={24} color="#FFD700" />, label: 'Monthly Subscribers', color: '#FFD700',
-                value: creatorFinancials?.number_of_monthly_subscribers ?? '—',
-                onPress: () => {/* TODO: Show monthly detail */}
-              },
-              {
-                key: 'yearly',
-                icon: <MaterialCommunityIcons name="calendar-star" size={24} color="#4CAF50" />, label: 'Yearly Subscribers', color: '#4CAF50',
-                value: creatorFinancials?.number_of_yearly_subscriptions ?? '—',
-                onPress: () => {/* TODO: Show yearly detail */}
-              },
-              {
-                key: 'total',
-                icon: <Ionicons name="star" size={24} color="#FB2355" />, label: 'Total Subscribers', color: '#FB2355',
-                value: (typeof creatorFinancials?.number_of_monthly_subscribers === 'number' || typeof creatorFinancials?.number_of_yearly_subscriptions === 'number')
-                  ? ((creatorFinancials?.number_of_monthly_subscribers || 0) + (creatorFinancials?.number_of_yearly_subscriptions || 0))
-                  : '—',
-                onPress: () => {/* TODO: Show total detail */}
-              },
-              {
-                key: 'photos',
-                icon: <Ionicons name="image" size={24} color="#00BFFF" />, label: 'Photos Purchased', color: '#00BFFF',
-                value: creatorFinancials?.number_of_photos ?? '—',
-                onPress: () => {/* TODO: Show photos detail */}
-              },
-              {
-                key: 'videos',
-                icon: <Ionicons name="videocam" size={24} color="#4CAF50" />, label: 'Videos Purchased', color: '#4CAF50',
-                value: creatorFinancials?.number_of_videos ?? '—',
-                onPress: () => {/* TODO: Show videos detail */}
-              },
-              {
-                key: 'files',
-                icon: <Ionicons name="document" size={24} color="#FB2355" />, label: 'Files Purchased', color: '#FB2355',
-                value: creatorFinancials?.number_of_files ?? '—',
-                onPress: () => {/* TODO: Show files detail */}
-              },
-            ].map((card, idx) => (
-              <View
-                key={card.key}
-                style={{
-                  backgroundColor: '#18181B',
-                  borderRadius: 16,
-                  marginBottom: 16,
-                  borderWidth: 1,
-                  borderColor: '#23232B',
-                  width: '48%',
-                  minWidth: 140,
-                  paddingVertical: 14,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.12,
-                  shadowRadius: 6,
-                  elevation: 3,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginRight: idx % 2 === 0 ? 8 : 0,
-                }}
-              >
-                <View style={{ alignItems: 'center', marginBottom: 10 }}>
-                  <View style={{ backgroundColor: card.color + '22', borderRadius: 20, padding: 8, marginBottom: 8 }}>{card.icon}</View>
-                  <Text style={{ color: card.color, fontFamily: 'Urbanist-Bold', fontSize: 15, flexShrink: 1, textAlign: 'center' }} numberOfLines={1} ellipsizeMode="tail">{card.label}</Text>
+          {/* Subscriptions Section */}
+          <View style={{ width: '100%', flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+            <View style={{ flex: 1, height: 1, backgroundColor: '#23232B', marginRight: 8 }} />
+            <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 18, letterSpacing: 1, textAlign: 'center' }}>Subscriptions</Text>
+            <View style={{ flex: 1, height: 1, backgroundColor: '#23232B', marginLeft: 8 }} />
+          </View>
+          {/* Big Total Subscribers Card with gradient border */}
+          <LinearGradient
+            colors={["#fff", "#FB2355"]}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={{
+              borderRadius: 22,
+              padding: 2,
+              marginBottom: 18,
+              width: '100%',
+            }}
+          >
+            <View style={{
+              backgroundColor: '#18181B',
+              borderRadius: 18,
+              minHeight: 110,
+              paddingVertical: 18,
+              alignItems: 'center',
+              justifyContent: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.12,
+              shadowRadius: 6,
+              elevation: 3,
+            }}>
+              <View style={{ alignItems: 'center', marginBottom: 6 }}>
+                <View style={{ backgroundColor: '#fff2', borderRadius: 24, padding: 10, marginBottom: 8 }}>
+                  <Ionicons name="star" size={32} color="#fff" />
                 </View>
-                <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 32, marginBottom: 8, flexShrink: 1, textAlign: 'center' }} numberOfLines={1} ellipsizeMode="tail">{card.value}</Text>
-                <TouchableOpacity
-                  style={{
-                    borderWidth: 1,
-                    borderColor: card.color,
-                    borderRadius: 16,
-                    paddingVertical: 5,
-                    paddingHorizontal: 16,
-                    alignSelf: 'center',
-                    marginTop: 2
-                  }}
-                  onPress={card.onPress}
-                >
-                  <Text style={{ color: card.color, fontFamily: 'Urbanist-Bold', fontSize: 13 }}>See Details</Text>
-                </TouchableOpacity>
+                <Text style={{ color: '#fff', fontFamily: 'Urbanist-Bold', fontSize: 16, letterSpacing: 0.5 }}>Total Subscribers</Text>
               </View>
-            ))}
+              <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 40, marginBottom: 0, textAlign: 'center' }}>
+                {(typeof creatorFinancials?.number_of_monthly_subscribers === 'number' || typeof creatorFinancials?.number_of_yearly_subscriptions === 'number')
+                  ? ((creatorFinancials?.number_of_monthly_subscribers || 0) + (creatorFinancials?.number_of_yearly_subscriptions || 0))
+                  : '—'}
+              </Text>
+            </View>
+          </LinearGradient>
+          {/* Monthly/Yearly Row */}
+          <View style={{ width: '100%', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
+            {/* Monthly */}
+            <View style={{
+              backgroundColor: '#18181B',
+              borderRadius: 16,
+              borderWidth: 2,
+              borderColor: '#fff',
+              width: '48%',
+              minHeight: 80,
+              paddingVertical: 14,
+              alignItems: 'center',
+              justifyContent: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.12,
+              shadowRadius: 6,
+              elevation: 3,
+            }}>
+              <View style={{ backgroundColor: '#FFD70022', borderRadius: 20, padding: 8, marginBottom: 6 }}>
+                <Ionicons name="people" size={22} color="#fff" />
+              </View>
+              <Text style={{ color: '#fff', fontFamily: 'Urbanist-Bold', fontSize: 14, marginBottom: 2 }}>Monthly</Text>
+              <Text style={{ color: '#fff', fontFamily: 'Urbanist-Bold', fontSize: 26 }}>{creatorFinancials?.number_of_monthly_subscribers ?? '—'}</Text>
+            </View>
+            {/* Yearly */}
+            <View style={{
+              backgroundColor: '#18181B',
+              borderRadius: 16,
+              borderWidth: 2,
+              borderColor: '#fff',
+              width: '48%',
+              minHeight: 80,
+              paddingVertical: 14,
+              alignItems: 'center',
+              justifyContent: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.12,
+              shadowRadius: 6,
+              elevation: 3,
+            }}>
+              <View style={{ backgroundColor: '#4CAF5022', borderRadius: 20, padding: 8, marginBottom: 6 }}>
+                <MaterialCommunityIcons name="calendar-star" size={22} color="#fff" />
+              </View>
+              <Text style={{ color: '#fff', fontFamily: 'Urbanist-Bold', fontSize: 14, marginBottom: 2 }}>Yearly</Text>
+              <Text style={{ color: '#fff', fontFamily: 'Urbanist-Bold', fontSize: 26 }}>{creatorFinancials?.number_of_yearly_subscriptions ?? '—'}</Text>
+            </View>
+          </View>
+          {/* Cancelled Row */}
+          <View style={{ width: '100%', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 18 }}>
+            {/* Cancelled Monthly */}
+            <View style={{
+              backgroundColor: '#18181B',
+              borderRadius: 16,
+              borderWidth: 2,
+              borderColor: '#FB2355',
+              width: '48%',
+              minHeight: 80,
+              paddingVertical: 14,
+              alignItems: 'center',
+              justifyContent: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.12,
+              shadowRadius: 6,
+              elevation: 3,
+            }}>
+              <View style={{ backgroundColor: '#FF980022', borderRadius: 20, padding: 8, marginBottom: 6 }}>
+                <Ionicons name="close-circle" size={22} color="#FB2355" />
+              </View>
+              <Text style={{ color: '#FB2355', fontFamily: 'Urbanist-Bold', fontSize: 14, marginBottom: 2 }}>Cancelled Monthly</Text>
+              <Text style={{ color: '#FB2355', fontFamily: 'Urbanist-Bold', fontSize: 26 }}>{creatorFinancials?.number_of_cancelled_monthly_sub ?? '—'}</Text>
+            </View>
+            {/* Cancelled Yearly */}
+            <View style={{
+              backgroundColor: '#18181B',
+              borderRadius: 16,
+              borderWidth: 2,
+              borderColor: '#FB2355',
+              width: '48%',
+              minHeight: 80,
+              paddingVertical: 14,
+              alignItems: 'center',
+              justifyContent: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.12,
+              shadowRadius: 6,
+              elevation: 3,
+            }}>
+              <View style={{ backgroundColor: '#F4433622', borderRadius: 20, padding: 8, marginBottom: 6 }}>
+                <Ionicons name="close-circle-outline" size={22} color="#FB2355" />
+              </View>
+              <Text style={{ color: '#FB2355', fontFamily: 'Urbanist-Bold', fontSize: 14, marginBottom: 2 }}>Cancelled Yearly</Text>
+              <Text style={{ color: '#FB2355', fontFamily: 'Urbanist-Bold', fontSize: 26 }}>{creatorFinancials?.number_of_cancelled_yearly_sub ?? '—'}</Text>
+            </View>
+          </View>
+
+          {/* Purchases Section */}
+          <View style={{ width: '100%', flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+            <View style={{ flex: 1, height: 1, backgroundColor: '#23232B', marginRight: 8 }} />
+            <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 18, letterSpacing: 1, textAlign: 'center' }}>Purchases</Text>
+            <View style={{ flex: 1, height: 1, backgroundColor: '#23232B', marginLeft: 8 }} />
+          </View>
+          <View style={{ width: '100%', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 18 }}>
+            {/* Photos */}
+            <View style={{
+              backgroundColor: '#18181B',
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: '#23232B',
+              width: '32%',
+              minHeight: 80,
+              paddingVertical: 14,
+              alignItems: 'center',
+              justifyContent: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.12,
+              shadowRadius: 6,
+              elevation: 3,
+            }}>
+                <View style={{ backgroundColor: '#fff2', borderRadius: 20, padding: 8, marginBottom: 6 }}>
+                  <Ionicons name="image" size={22} color="#fff" />
+                </View>
+                <Text style={{ color: '#fff', fontFamily: 'Urbanist-Bold', fontSize: 14, marginBottom: 2 }}>Photos</Text>
+                <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 26 }}>{creatorFinancials?.number_of_photos ?? '—'}</Text>
+              </View>
+              {/* Videos */}
+              <View style={{
+                backgroundColor: '#18181B',
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: '#23232B',
+                width: '32%',
+                minHeight: 80,
+                paddingVertical: 14,
+                alignItems: 'center',
+                justifyContent: 'center',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.12,
+                shadowRadius: 6,
+                elevation: 3,
+              }}>
+                <View style={{ backgroundColor: '#fff2', borderRadius: 20, padding: 8, marginBottom: 6 }}>
+                  <Ionicons name="videocam" size={22} color="#fff" />
+                </View>
+                <Text style={{ color: '#fff', fontFamily: 'Urbanist-Bold', fontSize: 14, marginBottom: 2 }}>Videos</Text>
+                <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 26 }}>{creatorFinancials?.number_of_videos ?? '—'}</Text>
+              </View>
+              {/* Files */}
+              <View style={{
+                backgroundColor: '#18181B',
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: '#23232B',
+                width: '32%',
+                minHeight: 80,
+                paddingVertical: 14,
+                alignItems: 'center',
+                justifyContent: 'center',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.12,
+                shadowRadius: 6,
+                elevation: 3,
+              }}>
+                <View style={{ backgroundColor: '#fff2', borderRadius: 20, padding: 8, marginBottom: 6 }}>
+                  <Ionicons name="document" size={22} color="#fff" />
+                </View>
+                <Text style={{ color: '#fff', fontFamily: 'Urbanist-Bold', fontSize: 14, marginBottom: 2 }}>Files</Text>
+                <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 26 }}>{creatorFinancials?.number_of_files ?? '—'}</Text>
+              </View>
           </View>
 
           {/* Update Insights Button */}
@@ -977,18 +1177,19 @@ export default function Index() {
       {selectedTab === 'audience' && (
         <ScrollView 
           style={{ 
-          flex: 1, 
-          backgroundColor: 'black',
-          paddingHorizontal: 32
+            flex: 1, 
+            backgroundColor: 'black',
+            paddingHorizontal: 0
           }}
           contentContainerStyle={{
-            flex: 1,
-            alignItems: 'center', 
-            justifyContent: 'center',
+            flexGrow: 1,
+            alignItems: 'stretch',
+            justifyContent: filteredAudience.length === 0 && !isLoadingAudience ? 'center' : 'flex-start',
+            paddingTop: 24
           }}
           refreshControl={
             <RefreshControl
-              refreshing={refreshing}
+              refreshing={refreshing || isLoadingAudience}
               onRefresh={onRefresh}
               tintColor="#FB2355"
               colors={["#FB2355"]}
@@ -996,23 +1197,149 @@ export default function Index() {
             />
           }
         >
-          <Text style={{ 
-            color: 'white', 
-            fontSize: 24, 
-            fontFamily: 'Urbanist-Bold',
-            marginBottom: 16,
-            textAlign: 'center'
-          }}>
-            Audience
-          </Text>
-          <Text style={{ 
-            color: '#888888', 
-            fontSize: 16, 
-            textAlign: 'center',
-            fontFamily: 'Urbanist-Regular'
-          }}>
-            Your audience analytics will appear here
-          </Text>
+          {/* Search Bar */}
+          <View style={{ width: '100%', marginBottom: 12 }}>
+              <View style={{
+              backgroundColor: '#23232B',
+              borderRadius: 12,
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+            }}>
+              <Ionicons name="search" size={20} color="#888" style={{ marginRight: 8 }} />
+              <TextInput
+                style={{
+                  flex: 1,
+                  color: 'white',
+                  fontFamily: 'Urbanist-Regular',
+                  fontSize: 16,
+                  backgroundColor: 'transparent',
+                  padding: 0,
+                }}
+                placeholder="Search by email or username..."
+                placeholderTextColor="#888"
+                value={audienceSearch}
+                onChangeText={setAudienceSearch}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              {audienceSearch.length > 0 && (
+                <TouchableOpacity onPress={() => setAudienceSearch('')}>
+                  <Ionicons name="close-circle" size={18} color="#888" />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+          {/* Filter Tags */}
+          <View style={{ flexDirection: 'row', marginBottom: 16, width: '100%', justifyContent: 'center', gap: 8 }}>
+            {[
+              { key: 'recent', label: 'Most Recent' },
+              { key: 'income_high', label: 'Highest Income' },
+              { key: 'income_low', label: 'Lowest Income' },
+            ].map(tag => (
+              <TouchableOpacity
+                key={tag.key}
+                onPress={() => setAudienceFilter(tag.key as 'recent' | 'income_high' | 'income_low')}
+                style={{
+                  backgroundColor: audienceFilter === tag.key ? '#FB2355' : '#23232B',
+                  borderRadius: 20,
+                  paddingVertical: 7,
+                  paddingHorizontal: 16,
+                  marginHorizontal: 2,
+                  borderWidth: audienceFilter === tag.key ? 1.5 : 1,
+                  borderColor: audienceFilter === tag.key ? '#FB2355' : '#333',
+                }}
+              >
+                <Text style={{
+                  color: audienceFilter === tag.key ? 'white' : '#888',
+                  fontFamily: audienceFilter === tag.key ? 'Urbanist-Bold' : 'Urbanist-Regular',
+                  fontSize: 14,
+                }}>{tag.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          {isLoadingAudience ? (
+            <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 32 }}>
+              <ActivityIndicator size="large" color="#FB2355" />
+              <Text style={{ color: '#FB2355', fontFamily: 'Urbanist-Bold', fontSize: 16, marginTop: 12 }}>Loading subscribers...</Text>
+            </View>
+          ) : filteredAudience.length === 0 ? (
+            <Text style={{ 
+              color: '#888888', 
+              fontSize: 16, 
+              textAlign: 'center',
+                  fontFamily: 'Urbanist-Regular',
+              marginTop: 24
+                }}>
+              No subscribers yet.
+                </Text>
+          ) : (
+            <View style={{ width: '100%', marginTop: 8 }}>
+              {filteredAudience.map((sub, idx) => (
+                <TouchableOpacity
+                  key={sub.$id || idx}
+                  onPress={() => {
+                    setSelectedSubscriber(sub);
+                    setShowSubscriberModal(true);
+                  }}
+                  activeOpacity={0.8}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: '#18181B',
+                    borderRadius: 14,
+                    padding: 14,
+                    marginBottom: 12,
+                    borderWidth: 1,
+                    borderColor: '#23232B',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.10,
+                    shadowRadius: 4,
+                    elevation: 2,
+                    marginLeft: 8,
+                    marginRight: 8,
+                    width: 'auto',
+                  }}
+                >
+                  {/* Icon or Initial */}
+                  <View style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 24,
+                    backgroundColor: '#FB2355',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: 16,
+                    overflow: 'hidden',
+                  }}>
+                    <Text style={{ color: 'white', fontSize: 22, fontWeight: 'bold', fontFamily: 'Urbanist-Bold' }}>
+                      {sub.userName ? sub.userName[0]?.toUpperCase() : (sub.customerEmail ? sub.customerEmail[0]?.toUpperCase() : 'U')}
+                  </Text>
+                </View>
+                  {/* Info */}
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 17 }}>
+                      {sub.userName || sub.customerEmail || 'No name'}
+                    </Text>
+                    <Text style={{ color: '#CCCCCC', fontFamily: 'Urbanist-Regular', fontSize: 14 }}>
+                      {sub.customerEmail && sub.userName ? sub.customerEmail : ''}
+                    </Text>
+                  </View>
+                  {/* Plan info */}
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={{ color: '#FB2355', fontFamily: 'Urbanist-Bold', fontSize: 14 }}>
+                      {sub.planInterval ? sub.planInterval.charAt(0).toUpperCase() + sub.planInterval.slice(1) : ''}
+                    </Text>
+                    <Text style={{ color: '#FFD700', fontFamily: 'Urbanist-Bold', fontSize: 14 }}>
+                      {sub.planAmount ? `$${(sub.planAmount / 100).toFixed(2)}` : ''}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </ScrollView>
       )}
 
@@ -1041,64 +1368,177 @@ export default function Index() {
                 borderWidth: 1,
                 borderColor: '#FB2355'
               }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, position: 'relative' }}>
                 <Text style={{
-                  color: '#CCCCCC',
+                    color: '#CCCCCC',
                   fontSize: 14,
                   fontFamily: 'Urbanist-Regular',
-                  marginBottom: 8
+                    marginRight: 6
                 }}>
-                  Lifetime Volume
+                    Lifetime Volume
                 </Text>
-                <Text style={{
+                  <TouchableOpacity onPress={() => setOpenInfoBubble(openInfoBubble === 'lifetime' ? null : 'lifetime')}>
+                    <Ionicons
+                      name="information-circle-outline"
+                      size={16}
+                      color="#CCCCCC"
+                      style={{ marginTop: 1 }}
+                    />
+                  </TouchableOpacity>
+                  {openInfoBubble === 'lifetime' && (
+              <View style={{
+                      position: 'absolute',
+                      top: 22,
+                      left: 0,
+                      backgroundColor: '#23232B',
+                      borderRadius: 8,
+                      padding: 10,
+                      minWidth: 180,
+                      zIndex: 10,
+                  borderWidth: 1,
+                      borderColor: '#444',
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.18,
+                      shadowRadius: 6,
+                      elevation: 6,
+                    }}>
+                      <Text style={{ color: '#fff', fontSize: 13, fontFamily: 'Urbanist-Regular' }}>
+                        Total gross revenue you have earned on the platform.
+                  </Text>
+                    </View>
+                  )}
+                </View>
+                  <Text style={{
                   color: '#FFD700',
                   fontSize: 28,
-                  fontWeight: 'bold',
-                  fontFamily: 'Urbanist-Bold'
-                }}>
+                    fontWeight: 'bold',
+                    fontFamily: 'Urbanist-Bold'
+                  }}>
                   ${(creatorFinancials.lifetimeVolume / 100).toFixed(2)}
-                </Text>
-                <Text style={{
-                  color: '#888888',
-                  fontSize: 12,
-                  fontFamily: 'Urbanist-Regular',
+                  </Text>
+                  <Text style={{
+                    color: '#888888',
+                    fontSize: 12,
+                    fontFamily: 'Urbanist-Regular',
                   marginTop: 4
                 }}>
                   Last updated: {creatorFinancials.stripeLastBalanceUpdate ? new Date(creatorFinancials.stripeLastBalanceUpdate).toLocaleString() : 'N/A'}
-                </Text>
-              </View>
+                  </Text>
+                </View>
             )}
 
             {/* Balance and Payouts Display */}
             {creatorFinancials && (
-              <View style={{
-                backgroundColor: '#1A1A1A',
-                borderRadius: 16,
-                padding: 20,
-                marginBottom: 20,
-                borderWidth: 1,
-                borderColor: '#333333'
-              }}>
-                <Text style={{
-                  color: 'white',
-                  fontSize: 18,
-                  fontWeight: 'bold',
-                  fontFamily: 'Urbanist-Bold',
-                  marginBottom: 16
+                <View style={{
+                  backgroundColor: '#1A1A1A',
+                  borderRadius: 16,
+                  padding: 20,
+                  marginBottom: 20,
+                  borderWidth: 1,
+                  borderColor: '#333333'
                 }}>
+                  <Text style={{
+                    color: 'white',
+                    fontSize: 18,
+                    fontWeight: 'bold',
+                    fontFamily: 'Urbanist-Bold',
+                    marginBottom: 16
+                  }}>
                    Balance
-                </Text>
+                  </Text>
                 
                 {/* Available Balance */}
-                <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text style={{ color: '#CCCCCC', fontFamily: 'Urbanist-Regular', fontSize: 16 }}>Available</Text>
+                <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                  <Text style={{
+                    color: '#888888',
+                      fontSize: 14,
+                    fontFamily: 'Urbanist-Regular',
+                      marginRight: 6
+                    }}>
+                      Available
+                    </Text>
+                    <TouchableOpacity onPress={() => setOpenInfoBubble(openInfoBubble === 'available' ? null : 'available')}>
+                      <Ionicons
+                        name="information-circle-outline"
+                        size={16}
+                        color="#888888"
+                        style={{ marginTop: 1 }}
+                      />
+                    </TouchableOpacity>
+                    {openInfoBubble === 'available' && (
+                      <View style={{
+                        position: 'absolute',
+                        top: 22,
+                        left: 0,
+                        backgroundColor: '#23232B',
+                        borderRadius: 8,
+                        padding: 10,
+                        minWidth: 180,
+                        zIndex: 10,
+                        borderWidth: 1,
+                        borderColor: '#444',
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.18,
+                        shadowRadius: 6,
+                        elevation: 6,
+                      }}>
+                        <Text style={{ color: '#fff', fontSize: 13, fontFamily: 'Urbanist-Regular' }}>
+                          Funds that are available for payout to your bank account.
+                  </Text>
+                </View>
+              )}
+            </View>
                   <Text style={{ color: '#4CAF50', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>
                     ${((creatorFinancials.stripeBalanceAvailable || 0) / 100).toFixed(2)}
                   </Text>
                 </View>
 
                 {/* Pending Balance */}
-                <View style={{ marginBottom: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text style={{ color: '#CCCCCC', fontFamily: 'Urbanist-Regular', fontSize: 16 }}>Pending</Text>
+                <View style={{ marginBottom: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+          <Text style={{ 
+                      color: '#888888',
+                      fontSize: 14,
+                      fontFamily: 'Urbanist-Regular',
+                      marginRight: 6
+                    }}>
+                      Pending
+          </Text>
+                    <TouchableOpacity onPress={() => setOpenInfoBubble(openInfoBubble === 'pending' ? null : 'pending')}>
+                      <Ionicons
+                        name="information-circle-outline"
+                        size={16}
+                        color="#888888"
+                        style={{ marginTop: 1 }}
+                      />
+                    </TouchableOpacity>
+                    {openInfoBubble === 'pending' && (
+                      <View style={{
+                        position: 'absolute',
+                        top: 22,
+                        left: 0,
+                        backgroundColor: '#23232B',
+                        borderRadius: 8,
+                        padding: 10,
+                        minWidth: 180,
+                        zIndex: 10,
+                        borderWidth: 1,
+                        borderColor: '#444',
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.18,
+                        shadowRadius: 6,
+                        elevation: 6,
+                      }}>
+                        <Text style={{ color: '#fff', fontSize: 13, fontFamily: 'Urbanist-Regular' }}>
+                          Funds that are still being processed and will become available soon.
+          </Text>
+                      </View>
+                    )}
+                  </View>
                   <Text style={{ color: '#FF9800', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>
                     ${((creatorFinancials.stripeBalancePending || 0) / 100).toFixed(2)}
                   </Text>
@@ -1112,22 +1552,22 @@ export default function Index() {
                       <TouchableOpacity
                         key={tab}
                         onPress={() => setPayoutTab(tab)}
-                        style={{
-                          flex: 1,
+          style={{ 
+          flex: 1, 
                           paddingVertical: 8,
                           borderRadius: 6,
                           backgroundColor: payoutTab === tab ? '#FB2355' : 'transparent',
                         }}
-                      >
-                        <Text style={{
-                          color: 'white',
-                          fontFamily: 'Urbanist-Bold',
-                          textAlign: 'center',
+        >
+          <Text style={{ 
+            color: 'white', 
+            fontFamily: 'Urbanist-Bold',
+            textAlign: 'center',
                           fontSize: 13,
                           textTransform: 'capitalize'
-                        }}>
+          }}>
                           {tab === 'inTransit' ? 'In Transit' : tab}
-                        </Text>
+          </Text>
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -1162,7 +1602,7 @@ export default function Index() {
             <TouchableOpacity
               onPress={handleUpdateStripeData}
               disabled={isLoadingFinancials}
-              style={{
+          style={{ 
                 backgroundColor: '#333',
                 borderRadius: 12,
                 paddingVertical: 12,
@@ -1480,6 +1920,52 @@ export default function Index() {
       )}
         </SafeAreaView>
       </Modal>
+        {/* Overlay to close info bubble when open */}
+      {openInfoBubble && (
+        <TouchableOpacity
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 5 }}
+          activeOpacity={1}
+          onPress={() => setOpenInfoBubble(null)}
+        />
+      )}
+        {/* Subscriber Info Modal (always mounted, controlled by state) */}
+        <Modal
+          visible={showSubscriberModal}
+          animationType="slide"
+          transparent
+          onRequestClose={() => setShowSubscriberModal(false)}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' }}>
+            <View style={{ backgroundColor: '#18181B', borderRadius: 18, padding: 28, width: '85%', maxWidth: 400, alignItems: 'center', borderWidth: 1, borderColor: '#FB2355' }}>
+              <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 22, marginBottom: 10, textAlign: 'center' }}>
+                {selectedSubscriber?.userName || selectedSubscriber?.customerEmail || 'Subscriber'}
+              </Text>
+              <Text style={{ color: '#CCCCCC', fontFamily: 'Urbanist-Regular', fontSize: 15, marginBottom: 18, textAlign: 'center' }}>
+                {selectedSubscriber?.customerEmail && selectedSubscriber?.userName ? selectedSubscriber.customerEmail : ''}
+              </Text>
+              <View style={{ width: '100%', marginBottom: 10 }}>
+                <Text style={{ color: '#FB2355', fontFamily: 'Urbanist-Bold', fontSize: 15, marginBottom: 2 }}>Subscription Created</Text>
+                <Text style={{ color: 'white', fontFamily: 'Urbanist-Regular', fontSize: 15, marginBottom: 8 }}>
+                  {selectedSubscriber?.createdAt ? new Date(selectedSubscriber.createdAt).toLocaleString() : (selectedSubscriber?.$createdAt ? new Date(selectedSubscriber.$createdAt).toLocaleString() : 'N/A')}
+                </Text>
+                <Text style={{ color: '#FB2355', fontFamily: 'Urbanist-Bold', fontSize: 15, marginBottom: 2 }}>Renewal Date</Text>
+                <Text style={{ color: 'white', fontFamily: 'Urbanist-Regular', fontSize: 15, marginBottom: 8 }}>
+                  {selectedSubscriber?.renewalDate ? new Date(selectedSubscriber.renewalDate).toLocaleString() : 'N/A'}
+                </Text>
+                <Text style={{ color: '#FB2355', fontFamily: 'Urbanist-Bold', fontSize: 15, marginBottom: 2 }}>Payment Status</Text>
+                <Text style={{ color: 'white', fontFamily: 'Urbanist-Regular', fontSize: 15, marginBottom: 8 }}>
+                  {selectedSubscriber?.paymentStatus || 'N/A'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowSubscriberModal(false)}
+                style={{ marginTop: 10, backgroundColor: '#FB2355', borderRadius: 10, paddingVertical: 10, paddingHorizontal: 32 }}
+              >
+                <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
         </SafeAreaView>
     );
 } 
