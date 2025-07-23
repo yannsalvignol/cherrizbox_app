@@ -79,6 +79,8 @@ async function getCreatorId(creatorName: string): Promise<string> {
 
 export async function cancelSubscription(subscriptionId: string) {
   try {
+    console.log('Cancelling subscription:', subscriptionId);
+    
     const currentUser = await getCurrentUser();
     if (!currentUser) {
       throw new Error('No active user found');
@@ -93,7 +95,9 @@ export async function cancelSubscription(subscriptionId: string) {
       email: currentUser.email
     };
 
-    await fetch(FUNCTION_ENDPOINT, {
+    console.log('Sending cancellation request to:', FUNCTION_ENDPOINT);
+    
+    const response = await fetch(FUNCTION_ENDPOINT, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -103,6 +107,33 @@ export async function cancelSubscription(subscriptionId: string) {
       body: JSON.stringify(requestBody)
     });
 
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Cancellation failed:', errorText);
+      throw new Error(`Failed to cancel subscription: ${response.status} ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    console.log('Cancellation response:', result);
+
+    // Parse the actual response from Appwrite Function's responseBody
+    let actualResponse;
+    if (result.responseBody) {
+      try {
+        actualResponse = JSON.parse(result.responseBody);
+      } catch (parseError) {
+        console.error('Failed to parse response body:', parseError);
+        throw new Error('Invalid response format from backend');
+      }
+    } else {
+      actualResponse = result;
+    }
+
+    if (!actualResponse.success) {
+      throw new Error(actualResponse.error || 'Failed to cancel subscription');
+    }
+
+    console.log('Subscription cancelled successfully');
     return { success: true };
   } catch (error) {
     console.error('Error in cancelSubscription:', error);

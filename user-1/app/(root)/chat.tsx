@@ -3668,20 +3668,20 @@ const PaidContentPaymentModal: React.FC<PaidContentPaymentModalProps> = ({
               <StripeProvider
                 publishableKey="pk_test_51RQyjPBMxMFyUXHbGzFEIYSTdMdY8rajTo0CRJ32cv0SfdnLmvu0ViWjUqC4WGakM35JvcucUHwyS6TImjSrBYDF00a6PPIT7B"
                 stripeAccountId={paymentData.stripeAccountId}
-              >
-                <PaidContentPaymentForm
-                  onSuccess={onSuccess}
-                  onClose={onClose}
-                  amount={amount}
-                  contentTitle={contentTitle}
-                  contentId={contentId}
-                  creatorId={creatorId}
-                  creatorName={creatorName}
-                  imageUrl={imageUrl}
-                  contentType={contentType}
+          >
+            <PaidContentPaymentForm
+              onSuccess={onSuccess}
+              onClose={onClose}
+              amount={amount}
+              contentTitle={contentTitle}
+              contentId={contentId}
+              creatorId={creatorId}
+              creatorName={creatorName}
+              imageUrl={imageUrl}
+              contentType={contentType}
                   clientSecret={paymentData.clientSecret}
                   stripeAccountId={paymentData.stripeAccountId}
-                />
+            />
               </StripeProvider>
             )}
           </ScrollView>

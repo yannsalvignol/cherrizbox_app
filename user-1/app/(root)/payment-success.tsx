@@ -4,7 +4,7 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, BackHandler, Dimensions, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, BackHandler, Dimensions, Platform, StyleSheet, Text, View } from 'react-native';
 import { getCreatorIdByName, getCurrentUser } from '../../lib/appwrite';
 import { useGlobalContext } from '../../lib/global-provider';
 import { createDirectMessageChannel } from '../../lib/stream-chat';
@@ -117,8 +117,12 @@ export default function PaymentSuccess() {
         console.log('🔄 Refreshing posts and creators during animation...');
         Promise.all([refreshPosts(), refreshCreators()]).then(() => {
           console.log('✅ Data refresh completed during animation');
+          // Automatically navigate to app tabs after refresh
+          router.replace('/(root)/(tabs)');
         }).catch((error) => {
           console.error('❌ Error refreshing data during animation:', error);
+          // Still navigate away even if refresh fails
+          router.replace('/(root)/(tabs)');
         });
       });
     });
@@ -316,23 +320,7 @@ export default function PaymentSuccess() {
             <Text style={styles.detailText}>Confirmation sent to your email</Text>
           </View>
         </View>
-        {/* Continue button */}
-        <TouchableOpacity
-          style={styles.button}
-          onPress={handleContinue}
-          activeOpacity={0.8}
-          disabled={creatingChannel}
-        >
-          <LinearGradient
-            colors={['#FB2355', '#FFD700']}
-            style={styles.buttonGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-          >
-            <Ionicons name="arrow-forward" size={20} color="white" style={styles.buttonIcon} />
-            <Text style={styles.buttonText}>Continue to App</Text>
-          </LinearGradient>
-        </TouchableOpacity>
+        {/* Continue button removed */}
       </Animated.View>
     </View>
   );
