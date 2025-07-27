@@ -1,9 +1,10 @@
 import { useGlobalContext } from '@/lib/global-provider';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { SignIn, login } from '../lib/appwrite';
+import { SignIn, login, loginWithApple } from '../lib/appwrite';
 import FormField from './components/FormField';
 
 const LoginScreen = () => {
@@ -24,6 +25,16 @@ const LoginScreen = () => {
             router.replace('/(root)/(tabs)');
         } else{
             console.log('Login Failed');
+        }
+    };
+
+    const handleAppleLogin = async () => {
+        const result = await loginWithApple();
+        if(result){
+            await refetch();
+            router.replace('/(root)/(tabs)');
+        } else {
+            console.log('Apple Login Failed');
         }
     };
 
@@ -115,34 +126,32 @@ const LoginScreen = () => {
                         <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }} />
                     </View>
 
-                    <View className="flex-row items-center mt-4 px-4">
-                        <View className="w-24 mr-10">
-                            <TouchableOpacity>
-                                <Image 
-                                    source={require('../assets/images/facebook.png')}
-                                    className="w-32 h-32"
-                                    resizeMode="contain"
-                                />
-                            </TouchableOpacity>
-                        </View>
-                        <View className="w-24 mr-10">
-                            <TouchableOpacity onPress={handleLogin}>
-                                <Image 
-                                    source={require('../assets/images/google.png')}
-                                    className="w-32 h-32"
-                                    resizeMode="contain"
-                                />
-                            </TouchableOpacity>
-                        </View>
-                        <View className="w-24">
-                            <TouchableOpacity>
-                                <Image 
-                                    source={require('../assets/images/apple.png')}
-                                    className="w-32 h-32"
-                                    resizeMode="contain"
-                                />
-                            </TouchableOpacity>
-                        </View>
+                    {/* Social Login Buttons */}
+                    <View className="mt-4 px-2 w-full">
+                        {/* Google */}
+                        <TouchableOpacity 
+                            onPress={handleLogin}
+                            activeOpacity={0.8}
+                            className="flex-row items-center justify-center bg-white py-4 rounded-3xl w-full mb-4 px-6 border border-gray-300"
+                        >
+                            <Ionicons name="logo-google" size={24} color="#000" style={{ marginRight: 12 }} />
+                            <Text style={{ color: '#000', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>
+                                Continue with Google
+                            </Text>
+                        </TouchableOpacity>
+
+                        {/* Apple */}
+                        <TouchableOpacity 
+                            onPress={handleAppleLogin}
+                            activeOpacity={0.8}
+                            className="flex-row items-center justify-center py-4 rounded-3xl w-full px-6 border border-black"
+                            style={{ backgroundColor: '#000' }}
+                        >
+                            <Ionicons name="logo-apple" size={24} color="#FFF" style={{ marginRight: 12 }} />
+                            <Text style={{ color: '#FFF', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>
+                                Continue with Apple
+                            </Text>
+                        </TouchableOpacity>
                     </View>
 
                     <View className="flex-row justify-center items-center mt-1">

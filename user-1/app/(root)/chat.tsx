@@ -1,7 +1,7 @@
 import { useGlobalContext } from '@/lib/global-provider';
 import { client } from '@/lib/stream-chat';
 import { Ionicons } from '@expo/vector-icons';
-import { CardField, StripeProvider, useStripe } from '@stripe/stripe-react-native';
+import { CardField, useStripe } from '@stripe/stripe-react-native';
 import { ResizeMode, Video } from 'expo-av';
 import { BlurView } from 'expo-blur';
 import * as DocumentPicker from 'expo-document-picker';
@@ -19,7 +19,8 @@ import { Client, Databases, Query } from 'react-native-appwrite';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Channel, Chat, DeepPartial, MessageAvatar, MessageInput, MessageList, MessageSimple, OverlayProvider, ReactionData, Theme, Thread, useMessageContext, useMessagesContext, useThreadContext } from 'stream-chat-react-native';
 import loadingIcon from '../../assets/icon/loading-icon.png';
-import { checkPaidContentPurchase, config, createPaidContentPaymentIntent } from '../../lib/appwrite';
+import { checkPaidContentPurchase, config, createPaidContentPaymentIntent, getCurrentUser } from '../../lib/appwrite';
+import StripePaymentSheet from '../components/StripePaymentSheet';
 
 // Cache for profile images to avoid repeated database calls
 const profileImageCache = new Map<string, string>();
@@ -3581,113 +3582,32 @@ const PaidContentPaymentModal: React.FC<PaidContentPaymentModalProps> = ({
   imageUrl,
   contentType,
 }) => {
-  const { user } = useGlobalContext();
-  const screenHeight = Dimensions.get('window').height;
-  const sheetHeight = Math.round(screenHeight * 0.6);
-  const slideAnim = React.useRef(new Animated.Value(sheetHeight)).current;
-
-  const [paymentData, setPaymentData] = useState<{ clientSecret: string; stripeAccountId: string } | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (visible) {
-      // Fetch payment data when the modal becomes visible
-      setIsLoading(true);
-      setError(null);
-      setPaymentData(null);
-      
-      if (user?.$id && contentId && creatorId && creatorName) {
-        createPaidContentPaymentIntent(amount, 'usd', {
-          userId: user.$id,
-        creatorId,
-        creatorName,
-          contentId,
-          contentType: contentType || 'image',
-          imageUrl: imageUrl || ''
-        })
-          .then((data) => {
-            console.log('Fetched paid content payment data:', data);
-            setPaymentData(data);
-          })
-          .catch((err) => {
-            console.error('Failed to initialize paid content payment intent:', err);
-            setError(err.message || 'Could not connect to payment server.');
-          })
-          .finally(() => {
-            setIsLoading(false);
-          });
-      } else {
-        setError('Missing required payment information');
-        setIsLoading(false);
-      }
-
-      Animated.timing(slideAnim, { toValue: 0, duration: 350, useNativeDriver: true }).start();
-    } else {
-      slideAnim.setValue(sheetHeight);
-    }
-  }, [visible]);
+  // wrap StripePaymentSheet with custom intent function
+  const intentFunc = async () => {
+    const user = await getCurrentUser();
+    const metadata:any = {
+      userId: user?.$id || 'anonymous',
+      creatorId,
+      creatorName,
+      contentId,
+      contentType,
+      imageUrl,
+      paymentType: 'paid_content',
+    };
+    return await createPaidContentPaymentIntent(amount, 'usd', metadata);
+  };
 
   return (
-    <Modal
+    <StripePaymentSheet
       visible={visible}
-      animationType="none"
-      transparent
-      onRequestClose={onClose}
-    >
-      <View style={paidContentStyles.overlay}>
-        <Animated.View 
-          style={[
-            paidContentStyles.bottomSheet, 
-            { height: sheetHeight, transform: [{ translateY: slideAnim }] }
-          ]}
-        > 
-          <View style={paidContentStyles.sheetHandle} />
-          <ScrollView 
-            style={paidContentStyles.scrollView}
-            contentContainerStyle={paidContentStyles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            bounces={false}
-          >
-            {isLoading && (
-              <View style={paidContentStyles.loaderContainer}>
-                <ActivityIndicator size="large" color="#FB2355" />
-                <Text style={paidContentStyles.loaderText}>Initializing Secure Payment...</Text>
-              </View>
-            )}
-            {error && !isLoading && (
-              <View style={paidContentStyles.loaderContainer}>
-                <Text style={paidContentStyles.errorText}>{error}</Text>
-                <TouchableOpacity onPress={onClose}>
-                  <Text style={{color: 'white', marginTop: 10}}>Close</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-            {!isLoading && !error && paymentData && (
-              <StripeProvider
-                publishableKey="pk_test_51RQyjPBMxMFyUXHbGzFEIYSTdMdY8rajTo0CRJ32cv0SfdnLmvu0ViWjUqC4WGakM35JvcucUHwyS6TImjSrBYDF00a6PPIT7B"
-                stripeAccountId={paymentData.stripeAccountId}
-          >
-            <PaidContentPaymentForm
-              onSuccess={onSuccess}
-              onClose={onClose}
-              amount={amount}
-              contentTitle={contentTitle}
-              contentId={contentId}
-              creatorId={creatorId}
-              creatorName={creatorName}
-              imageUrl={imageUrl}
-              contentType={contentType}
-                  clientSecret={paymentData.clientSecret}
-                  stripeAccountId={paymentData.stripeAccountId}
-            />
-              </StripeProvider>
-            )}
-          </ScrollView>
-        </Animated.View>
-      </View>
-    </Modal>
+      onClose={onClose}
+      onSuccess={onSuccess}
+      amount={amount}
+      interval={'month'}
+      creatorName={creatorName || ''}
+      navigateOnSuccess={false}
+      createIntentFunc={async () => intentFunc()}
+    />
   );
 };
 

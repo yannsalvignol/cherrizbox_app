@@ -3,7 +3,7 @@ import { useGlobalContext } from '@/lib/global-provider';
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FormField from './components/FormField';
 import OtpInput from './components/OtpInput';
@@ -188,8 +188,8 @@ const App = () => {
 
     return (
         <SafeAreaView className="flex-1 bg-white">
-            <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}>
-                <View className="flex-1 px-4 py-8">
+            <ScrollView contentContainerStyle={{ paddingTop: 12, paddingBottom: 24 }}>
+                <View className="px-2 pt-4 pb-8">
                     <TouchableOpacity onPress={() => verificationSent && setVerificationSent(false)} className="absolute top-4 left-4 z-10">
                         {verificationSent && <Ionicons name="arrow-back" size={24} color="black" />}
                     </TouchableOpacity>
@@ -238,7 +238,7 @@ const App = () => {
                         </View>
                     ) : (
                         <>
-                    <Text className="text-black font-['Urbanist-Bold'] text-4xl mt-[50px]">    
+                    <Text className="text-black font-['Urbanist-Bold'] text-4xl mt-6">    
                         Hello! Register to get in the Cherrizbox.
                     </Text>
                     <FormField 
@@ -291,27 +291,31 @@ const App = () => {
                         <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }} />
                     </View>
 
-                    <View className="flex-row items-center justify-between mt-4 px-4">
-                        <TouchableOpacity>
-                            <Image 
-                                source={require('../assets/images/facebook.png')}
-                                    className="w-32 h-32"
-                                resizeMode="contain"
-                            />
+                    {/* Social Sign-Up Buttons */}
+                    <View className="mt-4 px-2 w-full">
+                        {/* Google */}
+                        <TouchableOpacity 
+                            onPress={handleLogin}
+                            activeOpacity={0.8}
+                            className="flex-row items-center justify-center bg-white py-4 rounded-3xl w-full mb-4 px-6 border border-gray-300"
+                        >
+                            <Ionicons name="logo-google" size={24} color="#000" style={{ marginRight: 12 }} />
+                            <Text style={{ color: '#000', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>
+                                Continue with Google
+                            </Text>
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={handleLogin}>
-                            <Image 
-                                source={require('../assets/images/google.png')}
-                                    className="w-32 h-32"
-                                resizeMode="contain"
-                            />
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={handleAppleLogin}>
-                            <Image 
-                                source={require('../assets/images/apple.png')}
-                                    className="w-32 h-32"
-                                resizeMode="contain"
-                            />
+
+                        {/* Apple */}
+                        <TouchableOpacity 
+                            onPress={handleAppleLogin}
+                            activeOpacity={0.8}
+                            className="flex-row items-center justify-center py-4 rounded-3xl w-full px-6 border border-black"
+                            style={{ backgroundColor: '#000' }}
+                        >
+                            <Ionicons name="logo-apple" size={24} color="#FFF" style={{ marginRight: 12 }} />
+                            <Text style={{ color: '#FFF', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>
+                                Continue with Apple
+                            </Text>
                         </TouchableOpacity>
                     </View>
 

@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "com.yannsalvignol.cherrizboxuser",
+    "scheme": "com.yannsalvignol.cherrizboxbetatest",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "extra": {
@@ -13,13 +13,13 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yannsalvignol.cherrizboxuser",
+      "bundleIdentifier": "com.yannsalvignol.cherrizboxbetatest",
       "associatedDomains": ["applinks:cherrybox.app"],
       "infoPlist": {
         "CFBundleURLTypes": [
           {
             "CFBundleURLName": "OAuth Callback",
-            "CFBundleURLSchemes": ["com.yannsalvignol.cherrizboxuser"]
+            "CFBundleURLSchemes": ["com.yannsalvignol.cherrizboxbetatest"]
           }
         ]
       }
@@ -36,7 +36,7 @@
           "autoVerify": true,
           "data": [
             {
-              "scheme": "com.yannsalvignol.cherrizboxuser"
+              "scheme": "com.yannsalvignol.cherrizboxbetatest"
             }
           ],
           "category": [
@@ -53,6 +53,12 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.cherrizboxtest" // TODO: replace with your real Apple Pay merchant ID
+        }
+      ],
       [
         "expo-splash-screen",
         {

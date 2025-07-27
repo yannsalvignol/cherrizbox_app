@@ -1,5 +1,4 @@
 import * as ImageManipulator from 'expo-image-manipulator';
-import * as Linking from "expo-linking";
 import { openAuthSessionAsync } from "expo-web-browser";
 import {
     Account,
@@ -107,61 +106,141 @@ export const getAllPosts = async () => {
     }
 };
 
+// Helper to build redirect URI that follows Appwrite mobile guideline
+const getAppwriteRedirectUri = () => {
+    const scheme = `appwrite-callback-${config.projectId}`;
+    return `${scheme}://`;
+};
+
 export async function login() {
     try {
-        const redirectUri = Linking.createURL("/(root)/(tabs)");
-  
-        const response = await account.createOAuth2Token(
+        const redirectUri = getAppwriteRedirectUri();
+        const scheme = `appwrite-callback-${config.projectId}://`;
+        console.log("[Google OAuth] redirectUri:", redirectUri);
+
+        const loginUrl = await account.createOAuth2Token(
             OAuthProvider.Google,
+            redirectUri,
             redirectUri
         );
-        if (!response) throw new Error("Create OAuth2 token failed");
-  
-        const browserResult = await openAuthSessionAsync(
-            response.toString(),
-            redirectUri
-        );
-        if (browserResult.type !== "success")
-            throw new Error("Create OAuth2 token failed");
-  
+        const loginUrlObj = loginUrl as URL;
+        console.log("[Google OAuth] loginUrl:", loginUrlObj.toString());
+        if (!loginUrl) throw new Error("Failed to create Google OAuth2 token");
+
+        const browserResult = await openAuthSessionAsync(loginUrlObj.toString(), scheme);
+        console.log("[Google OAuth] browserResult:", browserResult);
+        if (browserResult.type !== "success") throw new Error("Google OAuth flow was cancelled or failed");
+
         const url = new URL(browserResult.url);
         const secret = url.searchParams.get("secret")?.toString();
         const userId = url.searchParams.get("userId")?.toString();
-        if (!secret || !userId) throw new Error("Create OAuth2 token failed");
-  
-        const session = await account.createSession(userId, secret);
-        if (!session) throw new Error("Failed to create session");
+        console.log("[Google OAuth] Parsed secret present:", !!secret, "userId present:", !!userId);
+        if (!secret || !userId) throw new Error("Missing OAuth credentials in redirect URL");
 
-        // Get user details after successful login
-        const user = await account.get();
-        if (!user) throw new Error("Failed to get user details");
+        await account.createSession(userId, secret);
+        console.log("[Google OAuth] Session created successfully for user", userId);
 
-        // Check if user already exists in the collection
-        const existingUser = await databases.listDocuments(
-            config.databaseId,
-            config.userCollectionId,
-            [Query.equal('creatoraccountid', user.$id)]
-        );
-
-        // If user doesn't exist in collection, create new user document
-        if (existingUser.documents.length === 0) {
-            const avatarUrl = avatars.getInitials(user.name);
-            await databases.createDocument(
+        // Ensure a corresponding user document exists in Appwrite collection
+        try {
+            const user = await account.get();
+            const existingUser = await databases.listDocuments(
                 config.databaseId,
                 config.userCollectionId,
-                ID.unique(),
-                {
-                    creatoraccountid: user.$id,
-                    creatoremail: user.email,
-                    creatorusername: user.name,
-                    creatoravatar: avatarUrl
-                }
+                [Query.equal('creatoraccountid', user.$id)]
             );
+
+            if (existingUser.documents.length === 0) {
+                const avatarUrl = avatars.getInitials(user.name);
+                await databases.createDocument(
+                    config.databaseId,
+                    config.userCollectionId,
+                    ID.unique(),
+                    {
+                        creatoraccountid: user.$id,
+                        creatoremail: user.email,
+                        creatorusername: user.name,
+                        creatoravatar: avatarUrl,
+                        $permissions: [
+                            `read(\"user:${user.$id}\")`,
+                            `write(\"user:${user.$id}\")`
+                        ]
+                    }
+                );
+                console.log('[Google OAuth] Created new user document for', user.$id);
+            }
+        } catch (userDocErr) {
+            console.error('[Google OAuth] Error ensuring user doc exists:', userDocErr);
         }
-  
         return true;
     } catch (error) {
-        console.error(error);
+        console.error("Google OAuth error:", error);
+        return false;
+    }
+}
+
+export async function loginWithApple() {
+    try {
+        const redirectUri = getAppwriteRedirectUri();
+        const scheme = `appwrite-callback-${config.projectId}://`;
+        console.log("[Apple OAuth] redirectUri:", redirectUri);
+
+        const loginUrl = await account.createOAuth2Session(
+            OAuthProvider.Apple,
+            redirectUri,
+            redirectUri,
+            ["name", "email"]
+        );
+        const loginUrlObjApple = loginUrl as URL;
+        console.log("[Apple OAuth] loginUrl:", loginUrlObjApple.toString());
+        if (!loginUrl) throw new Error("Failed to create Apple OAuth2 token");
+
+        const browserResult = await openAuthSessionAsync(loginUrlObjApple.toString(), scheme);
+        console.log("[Apple OAuth] browserResult:", browserResult);
+        if (browserResult.type !== "success") throw new Error("Apple OAuth flow was cancelled or failed");
+
+        const url = new URL(browserResult.url);
+        const secret = url.searchParams.get("secret")?.toString();
+        const userId = url.searchParams.get("userId")?.toString();
+        console.log("[Apple OAuth] Parsed secret present:", !!secret, "userId present:", !!userId);
+        if (!secret || !userId) throw new Error("Missing Apple OAuth credentials in redirect URL");
+
+        await account.createSession(userId, secret);
+        console.log("[Apple OAuth] Session created successfully for user", userId);
+
+        // Ensure a corresponding user document exists in Appwrite collection
+        try {
+            const user = await account.get();
+            const existingUser = await databases.listDocuments(
+                config.databaseId,
+                config.userCollectionId,
+                [Query.equal('creatoraccountid', user.$id)]
+            );
+
+            if (existingUser.documents.length === 0) {
+                const avatarUrl = avatars.getInitials(user.name);
+                await databases.createDocument(
+                    config.databaseId,
+                    config.userCollectionId,
+                    ID.unique(),
+                    {
+                        creatoraccountid: user.$id,
+                        creatoremail: user.email,
+                        creatorusername: user.name,
+                        creatoravatar: avatarUrl,
+                        $permissions: [
+                            `read(\"user:${user.$id}\")`,
+                            `write(\"user:${user.$id}\")`
+                        ]
+                    }
+                );
+                console.log('[Apple OAuth] Created new user document for', user.$id);
+            }
+        } catch (userDocErr) {
+            console.error('[Apple OAuth] Error ensuring user doc exists:', userDocErr);
+        }
+        return true;
+    } catch (error) {
+        console.error("Apple OAuth error:", error);
         return false;
     }
 }
@@ -279,6 +358,29 @@ export const updateUserProfile = async (userId: string, data: any): Promise<any>
                     ]
                 }
             );
+
+            // NEW: Sync public creator name to users collection
+            if (data.creatorsname) {
+                try {
+                    const userDocs = await databases.listDocuments(
+                        config.databaseId,
+                        config.userCollectionId,
+                        [Query.equal('creatoraccountid', userId)]
+                    );
+                    if (userDocs.documents.length > 0) {
+                        const userDocId = userDocs.documents[0].$id;
+                        await databases.updateDocument(
+                            config.databaseId,
+                            config.userCollectionId,
+                            userDocId,
+                            { creators_public_name: data.creatorsname }
+                        );
+                    }
+                } catch (syncErr) {
+                    console.error('Error syncing creators_public_name to user collection:', syncErr);
+                }
+            }
+
             console.log("Profile updated successfully:", updatedProfile);
             return updatedProfile;
         } else {
@@ -299,6 +401,29 @@ export const updateUserProfile = async (userId: string, data: any): Promise<any>
                     ]
                 }
             );
+
+            // NEW: Sync public creator name to users collection when creating profile
+            if (data.creatorsname) {
+                try {
+                    const userDocs = await databases.listDocuments(
+                        config.databaseId,
+                        config.userCollectionId,
+                        [Query.equal('creatoraccountid', userId)]
+                    );
+                    if (userDocs.documents.length > 0) {
+                        const userDocId = userDocs.documents[0].$id;
+                        await databases.updateDocument(
+                            config.databaseId,
+                            config.userCollectionId,
+                            userDocId,
+                            { creators_public_name: data.creatorsname }
+                        );
+                    }
+                } catch (syncErr) {
+                    console.error('Error syncing creators_public_name to user collection:', syncErr);
+                }
+            }
+
             console.log("New profile created:", newProfile);
             return newProfile;
         }

@@ -3,7 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, Image, ImageBackground, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { getSubscriptionCount, isUserSubscribed } from '../../../lib/appwrite';
-import StripePaymentModal from '../../components/StripePaymentModal';
+import StripePaymentSheet from '../../components/StripePaymentSheet';
 
 const Property = () => {
   const { id } = useLocalSearchParams();
@@ -150,19 +150,8 @@ const Property = () => {
 
   const handlePaymentSuccess = () => {
     setShowPaymentModal(false);
-    Alert.alert(
-      'Success!',
-      'Your subscription has been activated successfully.',
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            // Optionally refresh subscription status
-            setIsSubscribed(true);
-          }
-        }
-      ]
-    );
+    // Mark user as subscribed locally
+    setIsSubscribed(true);
   };
 
   const handlePaymentClose = () => {
@@ -587,7 +576,7 @@ const Property = () => {
       </Animated.View>
 
       {/* Stripe Payment Modal */}
-      <StripePaymentModal
+      <StripePaymentSheet
         visible={showPaymentModal}
         onClose={handlePaymentClose}
         onSuccess={handlePaymentSuccess}

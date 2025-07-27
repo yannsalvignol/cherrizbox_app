@@ -2433,12 +2433,12 @@ const CustomMessageSimple = (props: any) => {
             : isDMChannel 
               ? (isLastMessage() ? 10 : 5) // DM channels
               : (isLastMessage() ? 12 : 6), // Group channels
-          paddingHorizontal: 12, // Consistent horizontal padding
+          paddingHorizontal: 5, // Consistent horizontal padding
           marginTop: isInThread 
             ? (isLastMessage() ? -22 : 4) // Threads - very tight to bubble
             : isDMChannel 
-              ? (isLastMessage() ? -30 : -1) // DM channels - moderate spacing
-              : (isLastMessage() ? -16 : -2), // Group channels - original spacing
+              ? (isLastMessage() ? -25 : -1) // DM channels - moderate spacing
+              : (isLastMessage() ? -30 :2), // Group channels - original spacing,in group cahnnel, normal message 
           marginBottom: isInThread 
             ? (isLastMessage() ? 1 : 0) // Threads
             : isDMChannel 

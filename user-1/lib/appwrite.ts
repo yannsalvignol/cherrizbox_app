@@ -12,6 +12,12 @@ import {
     Query,
     Storage
 } from "react-native-appwrite";
+
+// Helper to build redirect URI that follows Appwrite mobile guideline
+const getAppwriteRedirectUri = () => {
+    const scheme = `appwrite-callback-${config.projectId}`;
+    return `${scheme}://`;
+};
   
 export const config = {
     platform: process.env.EXPO_PUBLIC_PLATFORM,
@@ -22,6 +28,10 @@ export const config = {
     profileCollectionId: process.env.EXPO_PUBLIC_PROFILE_COLLECTION_ID,
     videoCollectionId: process.env.EXPO_PUBLIC_VIDEO_COLLECTION_ID,
     photoCollectionId: process.env.EXPO_PUBLIC_PHOTO_COLLECTION_ID,
+    /**
+     * Collection that stores aggregated statistics for each creator (e.g. subscriber counters).
+     */
+    creatorCollectionId: process.env.EXPO_PUBLIC_CREATOR_COLLECTION_ID,
     storageId: process.env.EXPO_PUBLIC_STORAGE_ID,
     activeSubscriptionsCollectionId: process.env.EXPO_PUBLIC_ACTIVE_SUBSCRIPTIONS_COLLECTION_ID,
     cancelledSubscriptionsCollectionId: process.env.EXPO_PUBLIC_CANCELLED_SUBSCRIPTIONS_COLLECTION_ID,
@@ -127,31 +137,32 @@ export const getAllPosts = async () => {
 
 export async function login() {
     try {
-        // Use custom URI scheme for mobile OAuth
-        const redirectUri = "com.yannsalvignol.cherrizboxuser://oauth-callback";
-        console.log("Google OAuth redirect URI:", redirectUri);
-  
-        const response = await account.createOAuth2Token(
+        const redirectUri = getAppwriteRedirectUri();
+        const scheme = `appwrite-callback-${config.projectId}://`;
+        console.log("[Google OAuth] redirectUri:", redirectUri);
+
+        const loginUrl = await account.createOAuth2Token(
             OAuthProvider.Google,
+            redirectUri,
             redirectUri
         );
-        if (!response) throw new Error("Create OAuth2 token failed");
-  
-        const browserResult = await openAuthSessionAsync(
-            response.toString(),
-            redirectUri
-        );
-        if (browserResult.type !== "success")
-            throw new Error("Create OAuth2 token failed");
-  
+
+        const loginUrlObj = loginUrl as URL;
+        console.log("[Google OAuth] loginUrl:", loginUrlObj.toString());
+        if (!loginUrl) throw new Error("Failed to create Google OAuth2 token");
+
+        const browserResult = await openAuthSessionAsync(loginUrlObj.toString(), scheme);
+        console.log("[Google OAuth] browserResult:", browserResult);
+        if (browserResult.type !== "success") throw new Error("Google OAuth flow was cancelled or failed");
+
         const url = new URL(browserResult.url);
         const secret = url.searchParams.get("secret")?.toString();
         const userId = url.searchParams.get("userId")?.toString();
-        if (!secret || !userId) throw new Error("Create OAuth2 token failed");
-  
-        const session = await account.createSession(userId, secret);
-        if (!session) throw new Error("Failed to create session");
-  
+        console.log("[Google OAuth] Parsed secret present:", !!secret, "userId present:", !!userId);
+        if (!secret || !userId) throw new Error("Missing OAuth credentials in redirect URL");
+
+        await account.createSession(userId, secret);
+        console.log("[Google OAuth] Session created successfully for user", userId);
         return true;
     } catch (error) {
         console.error("Google OAuth error:", error);
@@ -161,31 +172,33 @@ export async function login() {
 
 export async function loginWithApple() {
     try {
-        // Use custom URI scheme for mobile OAuth
-        const redirectUri = "com.yannsalvignol.cherrizboxuser://oauth-callback";
-        console.log("Apple OAuth redirect URI:", redirectUri);
-  
-        const response = await account.createOAuth2Token(
+        const redirectUri = getAppwriteRedirectUri();
+        const scheme = `appwrite-callback-${config.projectId}://`;
+        console.log("[Apple OAuth] redirectUri:", redirectUri);
+
+        const loginUrl = await account.createOAuth2Session(
             OAuthProvider.Apple,
-            redirectUri
+            redirectUri,
+            redirectUri,
+            ["name", "email"]
         );
-        if (!response) throw new Error("Create Apple OAuth2 token failed");
-  
-        const browserResult = await openAuthSessionAsync(
-            response.toString(),
-            redirectUri
-        );
-        if (browserResult.type !== "success")
-            throw new Error("Create Apple OAuth2 token failed");
-  
+
+        const loginUrlObjApple = loginUrl as URL;
+        console.log("[Apple OAuth] loginUrl:", loginUrlObjApple.toString());
+        if (!loginUrl) throw new Error("Failed to create Apple OAuth2 token");
+
+        const browserResult = await openAuthSessionAsync(loginUrlObjApple.toString(), scheme);
+        console.log("[Apple OAuth] browserResult:", browserResult);
+        if (browserResult.type !== "success") throw new Error("Apple OAuth flow was cancelled or failed");
+
         const url = new URL(browserResult.url);
         const secret = url.searchParams.get("secret")?.toString();
         const userId = url.searchParams.get("userId")?.toString();
-        if (!secret || !userId) throw new Error("Create Apple OAuth2 token failed");
-  
-        const session = await account.createSession(userId, secret);
-        if (!session) throw new Error("Failed to create Apple session");
-  
+        console.log("[Apple OAuth] Parsed secret present:", !!secret, "userId present:", !!userId);
+        if (!secret || !userId) throw new Error("Missing Apple OAuth credentials in redirect URL");
+
+        await account.createSession(userId, secret);
+        console.log("[Apple OAuth] Session created successfully for user", userId);
         return true;
     } catch (error) {
         console.error("Apple OAuth error:", error);
@@ -240,14 +253,15 @@ export async function getCurrentUser() {
   
 export const getUserProfile = async (userId: string) => {
     try {
-        const profile = await databases.listDocuments(
+        // Fetch from the USERS collection via accountId
+        const users = await databases.listDocuments(
             config.databaseId!,
-            config.profileCollectionId!,
-            [Query.equal('userId', userId)]
+            config.userCollectionId!,
+            [Query.equal('accountId', userId), Query.limit(1)]
         );
-        
-        if (profile.documents.length > 0) {
-            return profile.documents[0];
+
+        if (users.documents.length > 0) {
+            return users.documents[0];
         }
         return null;
     } catch (error) {
@@ -267,88 +281,47 @@ interface FileData {
     name?: string;
 }
 
-// Update user profile
+// Update user profile (now writes directly to the Users collection)
 export const updateUserProfile = async (userId: string, data: ProfileData): Promise<any> => {
     try {
         console.log("Updating profile for user:", userId);
         console.log("Update data:", data);
 
-        // First verify the current user
+        // Verify current user is authenticated
         const currentUser = await getCurrentUser();
         if (!currentUser) {
             throw new Error("User not authenticated");
         }
 
-        // Check if profile exists
-        const existingProfile = await databases.listDocuments(
+        // Find the user document in the USERS collection via accountId
+        const existingUserDocs = await databases.listDocuments(
             config.databaseId!,
-            config.profileCollectionId!,
-            [Query.equal('userId', userId)]
+            config.userCollectionId!,
+            [Query.equal('accountId', userId), Query.limit(1)]
         );
 
-        console.log("Existing profile:", existingProfile);
-
-        // If there's a profile image URL, also update the user's avatar in the user collection
-        if (data.profileImageUri) {
-            try {
-                // Find the user document in the user collection
-                const userDocuments = await databases.listDocuments(
-                    config.databaseId!,
-                    config.userCollectionId!,
-                    [Query.equal('accountId', currentUser.$id)]
-                );
-
-                if (userDocuments.documents.length > 0) {
-                    // Update the avatar field in the user collection
-                    await databases.updateDocument(
-                        config.databaseId!,
-                        config.userCollectionId!,
-                        userDocuments.documents[0].$id,
-                        {
-                            avatar: data.profileImageUri
-                        }
-                    );
-                    console.log("User avatar updated in user collection:", data.profileImageUri);
-                }
-            } catch (avatarError) {
-                console.error("Error updating user avatar:", avatarError);
-                // Don't throw error for avatar update, continue with profile update
-            }
+        if (existingUserDocs.documents.length === 0) {
+            throw new Error("User document not found in users collection");
         }
 
-        if (existingProfile.documents.length > 0) {
-            // Update existing profile
-            const updatedProfile = await databases.updateDocument(
-                config.databaseId!,
-                config.profileCollectionId!,
-                existingProfile.documents[0].$id,
-                {
-                    ...data,
-                    $permissions: [
-                        `read("user:${userId}")`,
-                        `write("user:${userId}")`
-                    ]
-                }
-            );
-            console.log("Profile updated successfully:", updatedProfile);
-            return updatedProfile;
-        } else {
-            // Create new profile
-            const newProfile = await databases.createDocument(
-                config.databaseId!,
-                config.profileCollectionId!,
-                ID.unique(),
-                {
-                    ...data,
-                    $permissions: [
-                        `read("user:${userId}")`,
-                        `write("user:${userId}")`
-                    ]
-                }
-            );
-            console.log("New profile created:", newProfile);
-            return newProfile;
-        }
+        const userDocId = existingUserDocs.documents[0].$id;
+
+        // Prepare the fields to update (only include those present in data)
+        const fieldsToUpdate: any = {};
+        if (data.dateOfBirth !== undefined) fieldsToUpdate.dateOfBirth = data.dateOfBirth;
+        if (data.gender !== undefined) fieldsToUpdate.gender = data.gender;
+        if (data.phoneNumber !== undefined) fieldsToUpdate.phoneNumber = data.phoneNumber;
+        if (data.profileImageUri !== undefined) fieldsToUpdate.profileImageUri = data.profileImageUri;
+
+        const updatedUser = await databases.updateDocument(
+            config.databaseId!,
+            config.userCollectionId!,
+            userDocId,
+            fieldsToUpdate
+        );
+
+        console.log("User document updated successfully:", updatedUser);
+        return updatedUser;
     } catch (error: unknown) {
         console.error("Error updating user profile:", error);
         if (error instanceof Error) {
@@ -581,15 +554,29 @@ export const getProfilePictureUrl = (photoIdOrUri: string | null): string | null
 
 export const getSubscriptionCount = async (creatorName: string): Promise<number> => {
     try {
-        const subscriptions = await databases.listDocuments(
+        if (!config.creatorCollectionId) {
+            console.warn('creatorCollectionId is not configured; falling back to 0 followers');
+            return 0;
+        }
+
+        const creators = await databases.listDocuments(
             config.databaseId!,
-            config.activeSubscriptionsCollectionId!,
-            [Query.equal('creatorName', creatorName)]
+            config.creatorCollectionId!,
+            [
+                Query.equal('creators_public_name', creatorName),
+                Query.limit(1)
+            ]
         );
-        
-        // Count unique userIds
-        const uniqueSubscribers = new Set(subscriptions.documents.map(sub => sub.userId));
-        return uniqueSubscribers.size;
+
+        if (creators.documents.length === 0) {
+            return 0; // creator not found
+        }
+
+        const doc = creators.documents[0] as any;
+        const monthly = typeof doc.number_of_monthly_subscribers === 'number' ? doc.number_of_monthly_subscribers : 0;
+        const yearly  = typeof doc.number_of_yearly_subscriptions === 'number' ? doc.number_of_yearly_subscriptions : 0;
+
+        return monthly + yearly;
     } catch (error) {
         console.error("Error getting subscription count:", error);
         return 0;

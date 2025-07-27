@@ -69,6 +69,7 @@ export default function Index() {
     const [filteredAudience, setFilteredAudience] = useState<any[]>([]);
     const [selectedSubscriber, setSelectedSubscriber] = useState<any | null>(null);
     const [showSubscriberModal, setShowSubscriberModal] = useState(false);
+    const [channelsLoaded, setChannelsLoaded] = useState(false);
 
     const tabs = [
       { id: 'chats', label: 'Chats' },
@@ -137,8 +138,8 @@ export default function Index() {
                 if (userResponse.documents.length > 0) {
                   const userData = userResponse.documents[0];
                   memberNames[memberId] = userData.username || memberId;
-                  memberAvatars[memberId] = userData.avatar || '';
-                  console.log(`✅ Found user data for ${memberId}: ${userData.username} with avatar: ${userData.avatar}`);
+                  memberAvatars[memberId] = userData.profileImageUri || userData.avatar || ''; // Prefer uploaded pic
+                  console.log(`✅ Found user data for ${memberId}: ${userData.username} with avatar: ${userData.profileImageUri || userData.avatar}`);
             } else {
                   memberNames[memberId] = memberId; // Fallback to ID if user not found
                   memberAvatars[memberId] = ''; // No avatar
@@ -351,10 +352,10 @@ export default function Index() {
       } else {
         throw new Error(response.error || 'Failed to create dashboard link.');
       }
-    } catch (error) {
+        } catch (error) {  
       console.error('❌ Error opening Stripe dashboard:', error);
       Alert.alert("Error", (error as Error).message || "An unexpected error occurred. Please try again.");
-    } finally {
+        } finally {
       setIsLoadingStripeConnect(false);
     }
   };
@@ -631,26 +632,20 @@ export default function Index() {
   };
 
   useEffect(() => {
-    loadChannels();
+    if (!channelsLoaded) {
+        loadChannels().then(() => setChannelsLoaded(true));
+    }
     loadProfileImage();
     if (user?.$id) {
         loadCreatorFinancials();
     }
-  }, [user]);
+  }, [user, channelsLoaded]);
 
   useEffect(() => {
     if (selectedTab === 'audience') {
       loadAudience();
     }
   }, [selectedTab, user]);
-
-  useFocusEffect(
-    React.useCallback(() => {
-      if (user) {
-        loadChannels();
-      }
-    }, [user])
-  );
 
   // Update filteredAudience when audience, search, or filter changes
   useEffect(() => {
@@ -917,7 +912,7 @@ export default function Index() {
       {selectedTab === 'insights' && (
         <ScrollView 
           style={{ 
-          flex: 1, 
+              flex: 1, 
           backgroundColor: 'black',
           paddingHorizontal: 4
           }}
@@ -950,7 +945,7 @@ export default function Index() {
               borderRadius: 18,
               minHeight: 110,
               paddingVertical: 18,
-              alignItems: 'center',
+              alignItems: 'center', 
               justifyContent: 'center',
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 2 },
@@ -1078,10 +1073,10 @@ export default function Index() {
           </View>
           <View style={{ width: '100%', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 18 }}>
             {/* Photos */}
-            <View style={{
+              <View style={{
               backgroundColor: '#18181B',
-              borderRadius: 16,
-              borderWidth: 1,
+                borderRadius: 16,
+                borderWidth: 1,
               borderColor: '#23232B',
               width: '32%',
               minHeight: 80,
@@ -1316,8 +1311,8 @@ export default function Index() {
                   }}>
                     <Text style={{ color: 'white', fontSize: 22, fontWeight: 'bold', fontFamily: 'Urbanist-Bold' }}>
                       {sub.userName ? sub.userName[0]?.toUpperCase() : (sub.customerEmail ? sub.customerEmail[0]?.toUpperCase() : 'U')}
-                  </Text>
-                </View>
+                </Text>
+              </View>
                   {/* Info */}
                   <View style={{ flex: 1 }}>
                     <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 17 }}>
@@ -1409,23 +1404,23 @@ export default function Index() {
                     </View>
                   )}
                 </View>
-                  <Text style={{
+                <Text style={{
                   color: '#FFD700',
                   fontSize: 28,
-                    fontWeight: 'bold',
-                    fontFamily: 'Urbanist-Bold'
-                  }}>
+                  fontWeight: 'bold',
+                  fontFamily: 'Urbanist-Bold'
+                }}>
                   ${(creatorFinancials.lifetimeVolume / 100).toFixed(2)}
-                  </Text>
-                  <Text style={{
+                </Text>
+                <Text style={{
                     color: '#888888',
-                    fontSize: 12,
-                    fontFamily: 'Urbanist-Regular',
+                  fontSize: 12,
+                  fontFamily: 'Urbanist-Regular',
                   marginTop: 4
                 }}>
                   Last updated: {creatorFinancials.stripeLastBalanceUpdate ? new Date(creatorFinancials.stripeLastBalanceUpdate).toLocaleString() : 'N/A'}
-                  </Text>
-                </View>
+                </Text>
+              </View>
             )}
 
             {/* Balance and Payouts Display */}
@@ -1458,7 +1453,7 @@ export default function Index() {
                       marginRight: 6
                     }}>
                       Available
-                    </Text>
+                  </Text>
                     <TouchableOpacity onPress={() => setOpenInfoBubble(openInfoBubble === 'available' ? null : 'available')}>
                       <Ionicons
                         name="information-circle-outline"
@@ -1468,7 +1463,7 @@ export default function Index() {
                       />
                     </TouchableOpacity>
                     {openInfoBubble === 'available' && (
-                      <View style={{
+                <View style={{
                         position: 'absolute',
                         top: 22,
                         left: 0,
@@ -1477,7 +1472,7 @@ export default function Index() {
                         padding: 10,
                         minWidth: 180,
                         zIndex: 10,
-                        borderWidth: 1,
+                  borderWidth: 1,
                         borderColor: '#444',
                         shadowColor: '#000',
                         shadowOffset: { width: 0, height: 2 },
@@ -1499,14 +1494,14 @@ export default function Index() {
                 {/* Pending Balance */}
                 <View style={{ marginBottom: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-          <Text style={{ 
-                      color: '#888888',
+                  <Text style={{
+                    color: '#888888',
                       fontSize: 14,
-                      fontFamily: 'Urbanist-Regular',
+                    fontFamily: 'Urbanist-Regular',
                       marginRight: 6
-                    }}>
+                  }}>
                       Pending
-          </Text>
+                  </Text>
                     <TouchableOpacity onPress={() => setOpenInfoBubble(openInfoBubble === 'pending' ? null : 'pending')}>
                       <Ionicons
                         name="information-circle-outline"
@@ -1559,7 +1554,7 @@ export default function Index() {
                           backgroundColor: payoutTab === tab ? '#FB2355' : 'transparent',
                         }}
         >
-          <Text style={{ 
+                  <Text style={{
             color: 'white', 
             fontFamily: 'Urbanist-Bold',
             textAlign: 'center',
@@ -1567,10 +1562,10 @@ export default function Index() {
                           textTransform: 'capitalize'
           }}>
                           {tab === 'inTransit' ? 'In Transit' : tab}
-          </Text>
+                  </Text>
                       </TouchableOpacity>
                     ))}
-                  </View>
+                </View>
                   
                   {/* Payout Amounts */}
                    <View style={{ marginBottom: 6, paddingVertical: 4 }}>
@@ -1582,7 +1577,7 @@ export default function Index() {
                           <Text style={{ color: '#BDBDBD', fontFamily: 'Urbanist-Regular', fontSize: 13 }}>
                              ${((creatorFinancials.payoutsInTransitAmount || 0) / 100).toFixed(2)}
                           </Text>
-                        </View>
+              </View>
                       )}
                       {payoutTab === 'pending' && (
                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
@@ -1619,24 +1614,24 @@ export default function Index() {
             
             {/* Stripe Status Display */}
             {creatorFinancials?.stripeConnectSetupComplete ? (
-              <View style={{
-                backgroundColor: '#1A1A1A',
-                borderRadius: 16,
-                padding: 20,
+                <View style={{
+                  backgroundColor: '#1A1A1A',
+                  borderRadius: 16,
+                  padding: 20,
                 width: '100%',
-                borderWidth: 1,
+                  borderWidth: 1,
                 borderColor: '#333333',
                 marginTop: 20
-              }}>
-                <Text style={{
-                  color: 'white',
-                  fontSize: 18,
-                  fontWeight: 'bold',
-                  fontFamily: 'Urbanist-Bold',
-                  marginBottom: 16
                 }}>
+                  <Text style={{
+                    color: 'white',
+                    fontSize: 18,
+                    fontWeight: 'bold',
+                    fontFamily: 'Urbanist-Bold',
+                    marginBottom: 16
+                  }}>
                   Payment Status
-                </Text>
+                  </Text>
                 {/* Status Items */}
                 <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -1676,7 +1671,7 @@ export default function Index() {
                 {/* View Dashboard Button */}
                 <TouchableOpacity
                   onPress={handleOpenDashboard}
-                  style={{
+                    style={{
                     backgroundColor: '#333',
                     borderRadius: 12,
                     paddingVertical: 12,
@@ -1697,21 +1692,21 @@ export default function Index() {
                     <Text style={{ color: '#888', fontFamily: 'Urbanist-Regular', fontSize: 12, textAlign: 'center' }}>
                       Setup completed on: {new Date(creatorFinancials.stripeConnectSetupDate).toLocaleDateString()}
                     </Text>
-                  </View>
-                )}
+                </View>
+              )}
               </View>
             ) : (
-              <View style={{
+                <View style={{
                 backgroundColor: 'rgba(251, 35, 85, 0.1)',
-                borderRadius: 16,
+                  borderRadius: 16,
                 padding: 20,
                 width: '100%',
                 flexDirection: 'row',
-                alignItems: 'center',
-                borderWidth: 1,
+                  alignItems: 'center',
+                  borderWidth: 1,
                 borderColor: 'rgba(251, 35, 85, 0.3)',
                 marginTop: 20
-              }}>
+                }}>
                 <Ionicons name="information-circle-outline" size={32} color="#FB2355" style={{ marginRight: 16 }} />
                 <View style={{ flex: 1 }}>
                   <Text style={{
@@ -1731,8 +1726,8 @@ export default function Index() {
                     Connect a Stripe account to start accepting payments and earning from your content.
                   </Text>
                 </View>
-              </View>
-            )}
+            </View>
+          )}
           </View>
           
           <View style={{ alignItems: 'center', width: '100%', paddingBottom: 10, marginTop: 20 }}>
@@ -1743,8 +1738,8 @@ export default function Index() {
                 paddingVertical: 16,
                 borderRadius: 16,
                 flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
+          alignItems: 'center', 
+          justifyContent: 'center',
                 width: '100%',
                 shadowColor: creatorFinancials?.stripeConnectSetupComplete ? 'transparent' : '#FB2355',
                 shadowOffset: { width: 0, height: 4 },
@@ -1758,18 +1753,18 @@ export default function Index() {
             >
               <Ionicons name="card-outline" size={22} color="white" style={{ marginRight: 12 }} />
               <View>
-                <Text style={{ 
-                  color: 'white',
+          <Text style={{ 
+            color: 'white', 
                   fontSize: 18, 
                   fontWeight: 'bold',
-                  fontFamily: 'Urbanist-Bold',
+            fontFamily: 'Urbanist-Bold',
                   textAlign: 'left'
-                }}>
+          }}>
                   {isLoadingStripeConnect 
                     ? 'Connecting...' 
                     : (creatorFinancials?.stripeConnectSetupComplete ? 'Setup Complete' : 'Set Up Payments')}
-                </Text>
-                <Text style={{
+          </Text>
+          <Text style={{ 
                   color: 'rgba(255, 255, 255, 0.8)',
                   fontSize: 13,
                   fontFamily: 'Urbanist-Regular',
@@ -1777,8 +1772,8 @@ export default function Index() {
                   marginTop: 2
                 }}>
                   {creatorFinancials?.stripeConnectSetupComplete ? 'You can now manage payouts from your dashboard' : 'Connect with Stripe to get paid'}
-                </Text>
-              </View>
+          </Text>
+        </View>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -1793,24 +1788,24 @@ export default function Index() {
       >
         <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }}>
           {/* Header */}
-          <View style={{
+        <View style={{ 
             flexDirection: 'row',
-            alignItems: 'center',
+          alignItems: 'center', 
             justifyContent: 'space-between',
             paddingHorizontal: 16,
             paddingVertical: 12,
-            backgroundColor: 'black',
+          backgroundColor: 'black',
             borderBottomWidth: 1,
             borderBottomColor: '#333333'
-          }}>
-            <Text style={{
-              color: 'white',
+        }}>
+          <Text style={{ 
+            color: 'white', 
               fontSize: 18,
               fontWeight: 'bold',
               fontFamily: 'Urbanist-Bold'
             }}>
               Stripe Connect Setup
-            </Text>
+          </Text>
             <TouchableOpacity
               onPress={() => setShowStripeConnect(false)}
               style={{
@@ -1819,16 +1814,16 @@ export default function Index() {
                 borderRadius: 8
               }}
             >
-              <Text style={{
+          <Text style={{ 
                 color: 'white',
-                fontSize: 16,
+            fontSize: 16, 
                 fontWeight: 'bold',
                 fontFamily: 'Urbanist-Bold'
-              }}>
+          }}>
                 ✕
-              </Text>
+          </Text>
             </TouchableOpacity>
-          </View>
+        </View>
 
           {/* WebView */}
           {stripeConnectUrl ? (
@@ -1837,21 +1832,21 @@ export default function Index() {
               style={{ flex: 1, backgroundColor: 'white' }}
               startInLoadingState={true}
               renderLoading={() => (
-                <View style={{
-                  flex: 1,
-                  justifyContent: 'center',
+        <View style={{ 
+          flex: 1, 
+          justifyContent: 'center',
                   alignItems: 'center',
                   backgroundColor: 'white'
-                }}>
+        }}>
                   <ActivityIndicator size="large" color="#FB2355" />
-                  <Text style={{
+          <Text style={{ 
                     color: '#666666',
                     fontSize: 16,
                     fontFamily: 'Urbanist-Regular',
                     marginTop: 16
                   }}>
                     Loading Stripe Connect...
-                  </Text>
+          </Text>
                 </View>
               )}
               onNavigationStateChange={(navState) => {
@@ -1908,12 +1903,12 @@ export default function Index() {
               backgroundColor: 'white'
             }}>
               <ActivityIndicator size="large" color="#FB2355" />
-              <Text style={{
+          <Text style={{ 
                 color: '#666666',
-                fontSize: 16,
+            fontSize: 16, 
                 fontFamily: 'Urbanist-Regular',
                 marginTop: 16
-              }}>
+          }}>
                 Preparing Stripe Connect...
           </Text>
         </View>
