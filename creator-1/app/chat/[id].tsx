@@ -5502,6 +5502,10 @@ export default function ChatScreen() {
     const statusCheckRef = useRef<any>(null);
     const timeoutRef = useRef<any>(null);
     
+    // Get message context for long press functionality
+    const messageContext = useMessageContext();
+    const message = messageContext?.message;
+    
     // Animation values for sound bars
     const animValues = useRef([
       new Animated.Value(0.3),
@@ -5732,6 +5736,16 @@ export default function ChatScreen() {
       playAudio();
     };
 
+    const handleLongPress = (event: any) => {
+      // Prevent event bubbling
+      event.stopPropagation();
+      
+      if (message) {
+        setSelectedMessage(message);
+        setShowCustomModal(true);
+      }
+    };
+
     // Sound Bars Component
     const SoundBars = () => (
       <View style={{
@@ -5763,6 +5777,8 @@ export default function ChatScreen() {
     return (
       <TouchableOpacity 
         onPress={handlePress}
+        onLongPress={handleLongPress}
+        delayLongPress={500}
         style={{
           backgroundColor: 'transparent',
           margin: -8,
@@ -5782,7 +5798,10 @@ export default function ChatScreen() {
         }}>
           {/* Play/Pause Button */}
           <TouchableOpacity
-            onPress={handlePress}
+            onPress={(e) => {
+              e.stopPropagation();
+              playAudio();
+            }}
             style={{
               width: 48,
               height: 48,
