@@ -1,9 +1,8 @@
 import { useGlobalContext } from '@/lib/global-provider';
 import { client, connectUser } from '@/lib/stream-chat';
 import { Ionicons } from '@expo/vector-icons';
-import { CardField, useStripe } from '@stripe/stripe-react-native';
 import { ID } from 'appwrite';
-import { ResizeMode, Video } from 'expo-av';
+import { Audio, ResizeMode, Video } from 'expo-av';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
@@ -12,7 +11,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Dimensions, Image, KeyboardAvoidingView, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Image, KeyboardAvoidingView, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { Client, Databases, Query } from 'react-native-appwrite';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
@@ -35,7 +34,6 @@ import {
 import {
   checkPaidContentPurchase,
   config,
-  createPaidContentPaymentIntent,
   getUserProfile,
   storage
 } from '../../lib/appwrite';
@@ -81,16 +79,13 @@ const PaidContentAttachment = (props: any) => {
   const handleUnlock = async () => {
     if (isUnlocking) return;
     
-    // Debug: Log essential data for payment modal
-    console.log('Opening payment modal with data:', {
-      contentId: attachment?.paid_content_id,
-      creatorId: messageSender?.id,
-      creatorName: messageSender?.name,
-      price: attachment?.price
-    });
+    console.log('Unlocking paid photo directly');
+    setIsUnlocked(true);
     
-    // Show Stripe payment modal
-    setShowPaymentModal(true);
+    // Haptic feedback
+    if (Platform.OS === 'ios') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
   };
 
   const handlePaymentSuccess = async () => {
@@ -222,18 +217,8 @@ const PaidContentAttachment = (props: any) => {
           )}
         </View>
 
-        {/* Stripe Payment Modal */}
-        <PaidContentPaymentModal
-          visible={showPaymentModal}
-          onClose={handlePaymentClose}
-          onSuccess={handlePaymentSuccess}
-          amount={parseFloat(attachment?.price || '5.00')}
-          contentTitle="Exclusive Content"
-          contentId={attachment?.paid_content_id}
-          creatorId={messageSender?.id}
-          creatorName={messageSender?.name}
-          imageUrl={attachment?.image_url}
-        />
+  
+ 
       </>
     );
   }
@@ -1185,37 +1170,54 @@ const PaidVideoAttachment = (props: any) => {
               onError={(error) => console.log('Video error:', error)}
             />
           ) : (
-            /* Pink gradient background with title when locked */
+            /* Blurry video preview when locked */
             <View style={{
               width: '100%',
               height: '100%',
-              position: 'absolute',
+              position: 'relative',
             }}>
-                            {/* Darker pink gradient background */}
-              <LinearGradient
-                colors={['#C2185B', '#E91E63', '#AD1457']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+              {/* Video preview (blurred) */}
+              <Video
+                source={{ uri: attachment?.local_video_uri || attachment?.video_url }}
                 style={{
                   width: '100%',
                   height: '100%',
+                }}
+                shouldPlay={false}
+                isLooping={false}
+                resizeMode={ResizeMode.COVER}
+                onLoad={handleVideoLoad}
+              />
+              
+              {/* Blur overlay */}
+              <BlurView
+                intensity={25}
+                style={{
                   position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
                 }}
               />
               
-              {/* Subtle overlay for better text readability */}
+              {/* Dark overlay for better text visibility */}
               <View style={{
                 position: 'absolute',
                 top: 0,
                 left: 0,
                 right: 0,
                 bottom: 0,
-                backgroundColor: 'rgba(0, 0, 0, 0.15)',
+                backgroundColor: 'rgba(0, 0, 0, 0.4)',
               }} />
               
-              {/* Content */}
+              {/* Content overlay */}
               <View style={{
-                flex: 1,
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
                 justifyContent: 'center',
                 alignItems: 'center',
                 padding: 16,
@@ -1238,12 +1240,12 @@ const PaidVideoAttachment = (props: any) => {
                   shadowRadius: 6,
                   elevation: 6,
                 }}>
-                  <Ionicons name="play" size={32} color="#C2185B" />
+                  <Ionicons name="play" size={32} color="#FB2355" />
                   <View style={{
                     position: 'absolute',
                     bottom: -3,
                     right: -3,
-                    backgroundColor: '#AD1457',
+                    backgroundColor: '#FB2355',
                     borderRadius: 12,
                     width: 26,
                     height: 26,
@@ -1257,6 +1259,7 @@ const PaidVideoAttachment = (props: any) => {
                 </View>
                 
                 {/* Video title */}
+                {attachment?.title && (
                 <Text style={{
                   color: '#FFFFFF',
                   fontSize: 18,
@@ -1264,50 +1267,36 @@ const PaidVideoAttachment = (props: any) => {
                   textAlign: 'center',
                   marginBottom: 4,
                   fontFamily: 'Urbanist-Bold',
-                  textShadowColor: 'rgba(0, 0, 0, 0.4)',
+                    textShadowColor: 'rgba(0, 0, 0, 0.8)',
                   textShadowOffset: { width: 0, height: 1 },
                   textShadowRadius: 3,
                 }}>
-                  {attachment?.title || 'Premium Video'}
+                    {attachment.title}
                 </Text>
-                
-                <Text style={{
-                  color: '#FFFFFF',
-                  fontSize: 14,
-                  textAlign: 'center',
-                  marginBottom: 16,
-                  fontFamily: 'Urbanist-Medium',
-                  opacity: 0.9,
-                  textShadowColor: 'rgba(0, 0, 0, 0.4)',
-                  textShadowOffset: { width: 0, height: 1 },
-                  textShadowRadius: 3,
-                }}>
-                  Premium Video Content
-                </Text>
+                )}
                 
                 <TouchableOpacity
                   onPress={handleUnlock}
                   disabled={isUnlocking}
                   style={{
-                    backgroundColor: '#FFFFFF',
+                    backgroundColor: '#FB2355',
                     paddingHorizontal: 24,
-                    paddingVertical: 10,
+                    paddingVertical: 12,
                     borderRadius: 25,
                     shadowColor: '#000000',
                     shadowOffset: { width: 0, height: 4 },
                     shadowOpacity: 0.3,
                     shadowRadius: 8,
                     elevation: 8,
-                    borderWidth: 2,
-                    borderColor: '#C2185B',
+                    marginTop: 8,
                   }}
                   activeOpacity={0.8}
                 >
                   {isUnlocking ? (
-                    <ActivityIndicator size="small" color="#AD1457" />
+                    <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
                     <Text style={{
-                      color: '#AD1457',
+                      color: '#FFFFFF',
                       fontSize: 16,
                       fontWeight: '700',
                       fontFamily: 'Urbanist-Bold',
@@ -1325,23 +1314,18 @@ const PaidVideoAttachment = (props: any) => {
                    position: 'absolute',
                    top: 8,
                    right: 8,
-                   backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                   backgroundColor: 'rgba(0, 0, 0, 0.7)',
                    borderRadius: 20,
                    width: 40,
                    height: 40,
                    justifyContent: 'center',
                    alignItems: 'center',
-                   shadowColor: '#000000',
-                   shadowOffset: { width: 0, height: 3 },
-                   shadowOpacity: 0.3,
-                   shadowRadius: 6,
-                   elevation: 6,
                  }}
                >
                  <Ionicons 
                    name={isPortraitMode ? "phone-portrait" : "phone-landscape"} 
                    size={20} 
-                   color="#C2185B" 
+                   color="#FFFFFF" 
                  />
                </TouchableOpacity>
              </View>
@@ -1423,18 +1407,7 @@ const PaidVideoAttachment = (props: any) => {
 
         </View>
 
-        {/* Payment Modal - Will be implemented with proper payment flow */}
-        <PaidContentPaymentModal
-          visible={false}
-          onClose={() => {}}
-          onSuccess={() => {}}
-          amount={parseFloat(attachment?.price || '5.00')}
-          contentTitle="Premium Video"
-          contentId={attachment?.paid_content_id}
-          creatorId={messageSender?.id}
-          creatorName={messageSender?.name}
-          imageUrl={undefined}
-        />
+        
       </>
     );
   }
@@ -2154,37 +2127,47 @@ const CustomMessageSimple = (props: any) => {
               : isDMChannel 
                 ? (isLastMessage() ? 10 : 5) // DM channels
                 : (isLastMessage() ? 12 : 6), // Group channels
-            paddingHorizontal: 12, // Consistent horizontal padding
+            paddingHorizontal: 5, // Consistent horizontal padding
             marginTop: isInThread 
               ? (isLastMessage() ? -22 : 4) // Threads - very tight to bubble
               : isDMChannel 
-                ? (isLastMessage() ? -30 : -1) // DM channels - moderate spacing
-                : (isLastMessage() ? -16 : -2), // Group channels - original spacing
+                ? (isLastMessage() ? -25 : -1) // DM channels - moderate spacing
+                : (isLastMessage() ? -30 : -6), // Group channels - original spacing
             marginBottom: isInThread 
               ? (isLastMessage() ? 1 : 0) // Threads
               : isDMChannel 
                 ? (isLastMessage() ? 3 : 1) // DM channels
                 : (isLastMessage() ? 4 : 2), // Group channels
-            alignItems: 'flex-end', // Align right for paid content (always from creator)
+            alignItems: 'flex-end', // Align right for paid content (always from sender)
             backgroundColor: 'transparent',
           }}>
             <View style={{
               flexDirection: 'row',
               alignItems: 'center',
-              backgroundColor: 'rgba(0, 0, 0, 0.3)',
-              borderRadius: 8,
-              paddingHorizontal: 8,
-              paddingVertical: 3,
+              gap: 6, // Slightly more space between checkmark and time
+              paddingHorizontal: 8, // Internal padding for the timestamp container
+              paddingVertical: 3, // Vertical padding for better touch target
+              borderRadius: 8, // Rounded background for timestamp
+              backgroundColor: 'rgba(0, 0, 0, 0.1)', // Subtle background
             }}>
+              <Ionicons 
+                name="checkmark" 
+                size={13} // Slightly larger checkmark
+                color="#00C851" // Green color
+                style={{ opacity: 0.9 }}
+              />
               <Text style={{
-                color: '#BBB',
-                fontSize: 11,
-                fontFamily: 'Urbanist-Regular',
+                color: '#FFFFFF',
+                fontSize: 12, // Slightly larger timestamp text
+                fontWeight: '600', // Medium weight for better readability
+                fontFamily: 'questrial',
+                opacity: 0.8, // Slightly more visible
+                letterSpacing: 0.3, // Better letter spacing
               }}>
-                {new Date(message.created_at).toLocaleTimeString('en-US', {
-                  hour: 'numeric',
+                {new Date(message.created_at).toLocaleTimeString([], { 
+                  hour: '2-digit', 
                   minute: '2-digit',
-                  hour12: true,
+                  hour12: true 
                 })}
               </Text>
             </View>
@@ -2221,37 +2204,47 @@ const CustomMessageSimple = (props: any) => {
               : isDMChannel 
                 ? (isLastMessage() ? 10 : 5) // DM channels
                 : (isLastMessage() ? 12 : 6), // Group channels
-            paddingHorizontal: 12, // Consistent horizontal padding
+            paddingHorizontal: 5, // Consistent horizontal padding
             marginTop: isInThread 
               ? (isLastMessage() ? -22 : 4) // Threads - very tight to bubble
               : isDMChannel 
-                ? (isLastMessage() ? -30 : -1) // DM channels - moderate spacing
-                : (isLastMessage() ? -16 : -2), // Group channels - original spacing
+                ? (isLastMessage() ? -25 : -1) // DM channels - moderate spacing
+                : (isLastMessage() ? -30 : 2), // Group channels - original spacing
             marginBottom: isInThread 
               ? (isLastMessage() ? 1 : 0) // Threads
               : isDMChannel 
                 ? (isLastMessage() ? 3 : 1) // DM channels
                 : (isLastMessage() ? 4 : 2), // Group channels
-            alignItems: 'flex-end', // Align right for paid videos (always from creator)
+            alignItems: 'flex-end', // Align right for paid videos (always from sender)
             backgroundColor: 'transparent',
           }}>
             <View style={{
               flexDirection: 'row',
               alignItems: 'center',
-              backgroundColor: 'rgba(0, 0, 0, 0.3)',
-              borderRadius: 8,
-              paddingHorizontal: 8,
-              paddingVertical: 3,
+              gap: 6, // Slightly more space between checkmark and time
+              paddingHorizontal: 8, // Internal padding for the timestamp container
+              paddingVertical: 3, // Vertical padding for better touch target
+              borderRadius: 8, // Rounded background for timestamp
+              backgroundColor: 'rgba(0, 0, 0, 0.1)', // Subtle background
             }}>
+              <Ionicons 
+                name="checkmark" 
+                size={13} // Slightly larger checkmark
+                color="#00C851" // Green color
+                style={{ opacity: 0.9 }}
+              />
               <Text style={{
-                color: '#BBB',
-                fontSize: 11,
-                fontFamily: 'Urbanist-Regular',
+                color: '#FFFFFF',
+                fontSize: 12, // Slightly larger timestamp text
+                fontWeight: '600', // Medium weight for better readability
+                fontFamily: 'questrial',
+                opacity: 0.8, // Slightly more visible
+                letterSpacing: 0.3, // Better letter spacing
               }}>
-                {new Date(message.created_at).toLocaleTimeString('en-US', {
-                  hour: 'numeric',
+                {new Date(message.created_at).toLocaleTimeString([], { 
+                  hour: '2-digit', 
                   minute: '2-digit',
-                  hour12: true,
+                  hour12: true 
                 })}
               </Text>
             </View>
@@ -2275,7 +2268,7 @@ const CustomMessageSimple = (props: any) => {
           ) : null
         ))}
         
-        {/* Add timestamp for blurry file messages */}
+        {/* Add timestamp for blurry pdf file messages and else  */} 
         {shouldShowTimestamp() && (
           <View style={{ 
             paddingTop: isInThread 
@@ -2288,12 +2281,12 @@ const CustomMessageSimple = (props: any) => {
               : isDMChannel 
                 ? (isLastMessage() ? 10 : 5) // DM channels
                 : (isLastMessage() ? 12 : 6), // Group channels
-            paddingHorizontal: 12, // Consistent horizontal padding
+            paddingHorizontal: 5, // Consistent horizontal padding
             marginTop: isInThread 
               ? (isLastMessage() ? -22 : 4) // Threads - very tight to bubble
               : isDMChannel 
-                ? (isLastMessage() ? -30 : -1) // DM channels - moderate spacing
-                : (isLastMessage() ? -16 : -2), // Group channels - original spacing
+                ? (isLastMessage() ? -25 : -1) // DM channels - moderate spacing
+                : (isLastMessage() ? -15 : -11), // Group channels - original spacing
             marginBottom: isInThread 
               ? (isLastMessage() ? 1 : 0) // Threads
               : isDMChannel 
@@ -2309,12 +2302,12 @@ const CustomMessageSimple = (props: any) => {
               paddingHorizontal: 8, // Internal padding for the timestamp container
               paddingVertical: 3, // Vertical padding for better touch target
               borderRadius: 8, // Rounded background for timestamp
-              backgroundColor: 'rgba(76, 175, 80, 0.1)', // Green background for files
+              backgroundColor: 'rgba(0, 0, 0, 0.1)', // Subtle background
             }}>
               <Ionicons 
                 name="checkmark" 
                 size={13} // Slightly larger checkmark
-                color="#4CAF50" // Green color for files
+                color="#00C851" // Green color
                 style={{ opacity: 0.9 }}
               />
               <Text style={{
@@ -2365,12 +2358,12 @@ const CustomMessageSimple = (props: any) => {
               : isDMChannel 
                 ? (isLastMessage() ? 10 : 5) // DM channels
                 : (isLastMessage() ? 12 : 6), // Group channels
-            paddingHorizontal: 12, // Consistent horizontal padding
+            paddingHorizontal: 5, // Consistent horizontal padding
             marginTop: isInThread 
               ? (isLastMessage() ? -22 : 4) // Threads - very tight to bubble
               : isDMChannel 
-                ? (isLastMessage() ? -30 : -1) // DM channels - moderate spacing
-                : (isLastMessage() ? -16 : -2), // Group channels - original spacing
+                ? (isLastMessage() ? -25 : -1) // DM channels - moderate spacing
+                : (isLastMessage() ? -30 : 2), // Group channels - original spacing
             marginBottom: isInThread 
               ? (isLastMessage() ? 1 : 0) // Threads
               : isDMChannel 
@@ -2438,7 +2431,7 @@ const CustomMessageSimple = (props: any) => {
             ? (isLastMessage() ? -22 : 4) // Threads - very tight to bubble
             : isDMChannel 
               ? (isLastMessage() ? -25 : -1) // DM channels - moderate spacing
-              : (isLastMessage() ? -30 :2), // Group channels - original spacing,in group cahnnel, normal message 
+              : (isLastMessage() ? -30 : 2), // Group channels - original spacing
           marginBottom: isInThread 
             ? (isLastMessage() ? 1 : 0) // Threads
             : isDMChannel 
@@ -2624,6 +2617,54 @@ const CustomMessageModal = ({ visible, onClose, message, onThreadReply }: {
     }
   };
 
+  // Handle message deletion
+  const handleDeleteMessage = async () => {
+    if (!message || !user) return;
+    
+    // Check if user owns the message
+    if (message.user?.id !== user.$id) {
+      Alert.alert('Error', 'You can only delete your own messages');
+      return;
+    }
+    
+    Alert.alert(
+      'Delete Message',
+      'Are you sure you want to delete this message? This action cannot be undone.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              handleClose();
+              
+              // Extract channel ID from message.cid (remove the "messaging:" prefix)
+              const channelId = message.cid.replace('messaging:', '');
+              const channel = client.channel('messaging', channelId);
+              
+              // Delete the message
+              await client.deleteMessage(message.id);
+              
+              // Haptic feedback
+              if (Platform.OS === 'ios') {
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              }
+              
+              console.log('Message deleted successfully');
+            } catch (error) {
+              console.error('Error deleting message:', error);
+              Alert.alert('Error', 'Failed to delete message. Please try again.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   if (!visible) return null;
 
   return (
@@ -2729,6 +2770,47 @@ const CustomMessageModal = ({ visible, onClose, message, onThreadReply }: {
                 </Text>
                 <Ionicons name="chevron-forward" size={14} color="#666666" />
               </TouchableOpacity>
+
+              {/* Delete Message Button - only show for user's own messages */}
+              {message?.user?.id === user?.$id && (
+                <TouchableOpacity
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingVertical: 12,
+                    paddingHorizontal: 12,
+                    marginBottom: 12,
+                    backgroundColor: '#2A2A2A',
+                    borderRadius: 14,
+                    borderWidth: 1,
+                    borderColor: '#FF4444',
+                  }}
+                  onPress={handleDeleteMessage}
+                  activeOpacity={0.8}
+                >
+                  <View style={{
+                    backgroundColor: '#FF4444',
+                    borderRadius: 16,
+                    width: 32,
+                    height: 32,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    marginRight: 12,
+                  }}>
+                    <Ionicons name="trash-outline" size={16} color="#FFFFFF" />
+                  </View>
+                  <Text style={{
+                    color: '#FF4444',
+                    fontSize: 14,
+                    fontWeight: '600',
+                    fontFamily: 'questrial',
+                    flex: 1,
+                  }}>
+                    Delete Message
+                  </Text>
+                  <Ionicons name="chevron-forward" size={14} color="#666666" />
+                </TouchableOpacity>
+              )}
 
               {/* Reactions Grid */}
               <View style={{
@@ -2836,442 +2918,8 @@ const customReactions: ReactionData[] = [
   { type: "skull", Icon: () => <Text style={{ fontSize: 18 }}>💀</Text> },
 ];
 
-// Stripe Payment Modal for Paid Content
-interface PaidContentPaymentModalProps {
-  visible: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
-  amount: number;
-  contentTitle: string;
-  contentId?: string;
-  creatorId?: string;
-  creatorName?: string;
-  imageUrl?: string;
-}
 
-const PaidContentPaymentForm: React.FC<{
-  onSuccess: () => void;
-  onClose: () => void;
-  amount: number;
-  contentTitle: string;
-  contentId?: string;
-  creatorId?: string;
-  creatorName?: string;
-  imageUrl?: string;
-}> = ({ onSuccess, onClose, amount, contentTitle, contentId, creatorId, creatorName, imageUrl }) => {
-  const stripe = useStripe();
-  const { user } = useGlobalContext();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [cardComplete, setCardComplete] = useState(false);
 
-  const handleSubmit = async () => {
-    if (!stripe || !cardComplete) {
-      console.log('Payment blocked - Stripe not ready or card incomplete:', {
-        hasStripe: !!stripe,
-        cardComplete
-      });
-      return;
-    }
-
-    // Debug: Check what values we have for validation
-    console.log('Payment validation check:', {
-      userId: user?.$id,
-      contentId,
-      creatorId,
-      creatorName,
-      amount
-    });
-
-    if (!user?.$id) {
-      setError('User not authenticated. Please log in again.');
-      return;
-    }
-
-    if (!contentId) {
-      setError('Content ID is missing. Please try again.');
-      return;
-    }
-
-    if (!creatorId) {
-      setError('Creator ID is missing. Please try again.');
-      return;
-    }
-
-    if (!creatorName) {
-      setError('Creator name is missing. Please try again.');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      console.log('Creating payment intent...');
-      
-      // Create payment intent on the backend
-      const paymentData = await createPaidContentPaymentIntent(amount, 'usd', {
-        userId: user.$id,
-        creatorId,
-        creatorName,
-        contentId,
-        contentType: 'image',
-        imageUrl: imageUrl || ''
-      });
-
-      console.log('Payment intent created, confirming payment...');
-
-      // Confirm the payment with Stripe
-      const { error: confirmError } = await stripe.confirmPayment(paymentData.clientSecret, {
-        paymentMethodType: 'Card',
-      });
-
-      if (confirmError) {
-        console.error('Payment confirmation error:', confirmError);
-        setError(confirmError.message || 'Payment failed');
-        return;
-      }
-
-      console.log('Payment confirmed! Recording purchase...');
-
-      // The purchase will be automatically recorded by the backend webhook
-      // when it receives the payment_intent.succeeded event
-      console.log('Purchase will be recorded by backend webhook');
-      
-      // Haptic feedback on success
-      if (Platform.OS === 'ios') {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
-      
-      // Call success callback
-      onSuccess();
-      
-    } catch (err) {
-      console.error('Payment processing error:', err);
-      setError(err instanceof Error ? err.message : 'Payment failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <View style={paidContentStyles.sheetContent}>
-      <TouchableOpacity onPress={onClose} style={paidContentStyles.closeButton}>
-        <Text style={paidContentStyles.closeButtonText}>✕</Text>
-      </TouchableOpacity>
-      
-      <View style={paidContentStyles.headerSection}>
-        <Text style={paidContentStyles.title}>Unlock Content</Text>
-        <Text style={paidContentStyles.subtitle}>{contentTitle}</Text>
-      </View>
-      
-      <View style={paidContentStyles.cardInputSection}>
-        <Text style={paidContentStyles.cardLabel}>Payment Method</Text>
-        <CardField
-          postalCodeEnabled={false}
-          placeholders={{ number: '1234 1234 1234 1234' }}
-          cardStyle={{
-            ...paidContentStyles.cardField,
-            textColor: '#18181b',
-          }}
-          style={paidContentStyles.cardFieldContainer}
-          onCardChange={(cardDetails) => {
-            setCardComplete(cardDetails.complete);
-          }}
-        />
-      </View>
-      
-      {error && (
-        <View style={paidContentStyles.errorContainer}>
-          <Text style={paidContentStyles.errorText}>{error}</Text>
-        </View>
-      )}
-      
-      <View style={paidContentStyles.amountSection}>
-        <View style={paidContentStyles.amountRow}>
-          <Text style={paidContentStyles.amountLabel}>Content Price</Text>
-          <Text style={paidContentStyles.amountValue}>${amount}</Text>
-        </View>
-      </View>
-      
-      <TouchableOpacity
-        style={[
-          paidContentStyles.payButton,
-          (!cardComplete || loading) && paidContentStyles.payButtonDisabled
-        ]}
-        onPress={handleSubmit}
-        disabled={!cardComplete || loading}
-        activeOpacity={0.85}
-      >
-        <Text style={paidContentStyles.payButtonText}>
-          {loading ? 'Processing...' : `Pay $${amount}`}
-        </Text>
-      </TouchableOpacity>
-      
-      <Text style={paidContentStyles.securityText}>
-        Your payment is secured by Stripe
-      </Text>
-    </View>
-  );
-};
-
-const PaidContentPaymentModal: React.FC<PaidContentPaymentModalProps> = ({
-  visible,
-  onClose,
-  onSuccess,
-  amount,
-  contentTitle,
-  contentId,
-  creatorId,
-  creatorName,
-  imageUrl,
-}) => {
-  const screenHeight = Dimensions.get('window').height;
-  const sheetHeight = Math.round(screenHeight * 0.6);
-  const slideAnim = React.useRef(new Animated.Value(sheetHeight)).current;
-
-  // Debug: Log what props the payment modal receives
-  React.useEffect(() => {
-    if (visible) {
-      console.log('Payment modal props:', {
-        contentId,
-        creatorId,
-        creatorName,
-        amount,
-        imageUrl
-      });
-    }
-  }, [visible, contentId, creatorId, creatorName, amount, imageUrl]);
-
-  React.useEffect(() => {
-    if (visible) {
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 350,
-        useNativeDriver: true,
-      }).start();
-    } else {
-      slideAnim.setValue(sheetHeight);
-    }
-  }, [visible]);
-
-  return (
-    <Modal
-      visible={visible}
-      animationType="none"
-      transparent
-      onRequestClose={onClose}
-    >
-      <View style={paidContentStyles.overlay}>
-        <Animated.View 
-          style={[
-            paidContentStyles.bottomSheet, 
-            { height: sheetHeight, transform: [{ translateY: slideAnim }] }
-          ]}
-        > 
-          <View style={paidContentStyles.sheetHandle} />
-          <ScrollView 
-            style={paidContentStyles.scrollView}
-            contentContainerStyle={paidContentStyles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            bounces={false}
-          >
-            <PaidContentPaymentForm
-              onSuccess={onSuccess}
-              onClose={onClose}
-              amount={amount}
-              contentTitle={contentTitle}
-              contentId={contentId}
-              creatorId={creatorId}
-              creatorName={creatorName}
-              imageUrl={imageUrl}
-            />
-          </ScrollView>
-        </Animated.View>
-      </View>
-    </Modal>
-  );
-};
-
-// Styles for the payment modal
-const paidContentStyles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(20,20,20,0.45)',
-    justifyContent: 'flex-end',
-  },
-  bottomSheet: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#191A1D',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 16,
-    elevation: 8,
-    overflow: 'hidden',
-  },
-  sheetHandle: {
-    width: 48,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#333',
-    alignSelf: 'center',
-    marginTop: 10,
-    marginBottom: 12,
-    opacity: 0.25,
-  },
-  sheetContent: {
-    flex: 1,
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingBottom: 16,
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    zIndex: 10,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 16,
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closeButtonText: {
-    color: '#888',
-    fontSize: 22,
-    fontWeight: 'bold',
-  },
-  headerSection: {
-    width: '100%',
-    alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 24,
-  },
-  title: {
-    color: 'white',
-    fontSize: 22,
-    fontWeight: '700',
-    fontFamily: 'Urbanist-Bold',
-    marginBottom: 10,
-    textAlign: 'center',
-    letterSpacing: 0.2,
-  },
-  subtitle: {
-    color: '#B9B9B9',
-    fontSize: 15,
-    fontFamily: 'questrial',
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  amountSection: {
-    width: '100%',
-    backgroundColor: '#232326',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 18,
-  },
-  amountRow: {
-    width: '100%',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  amountLabel: {
-    color: '#B9B9B9',
-    fontSize: 15,
-    fontFamily: 'questrial',
-    fontWeight: '500',
-  },
-  amountValue: {
-    color: '#FB2355',
-    fontSize: 20,
-    fontWeight: 'bold',
-    fontFamily: 'Urbanist-Bold',
-  },
-  cardInputSection: {
-    width: '100%',
-    backgroundColor: '#232326',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 18,
-  },
-  cardLabel: {
-    color: '#B9B9B9',
-    fontSize: 14,
-    fontFamily: 'questrial',
-    marginBottom: 8,
-    fontWeight: '500',
-  },
-  cardFieldContainer: {
-    height: 50,
-    marginVertical: 8,
-  },
-  cardField: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-  },
-  errorContainer: {
-    backgroundColor: '#FF4444',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-    width: '100%',
-  },
-  errorText: {
-    color: 'white',
-    fontSize: 14,
-    fontFamily: 'questrial',
-    textAlign: 'center',
-  },
-  payButton: {
-    width: '100%',
-    marginTop: 8,
-    borderRadius: 12,
-    backgroundColor: '#FB2355',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    shadowColor: '#FB2355',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  payButtonDisabled: {
-    opacity: 0.5,
-  },
-  payButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-    fontFamily: 'Urbanist-Bold',
-  },
-  securityText: {
-    color: '#B9B9B9',
-    fontSize: 12,
-    fontFamily: 'questrial',
-    textAlign: 'center',
-    marginTop: 16,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 20,
-  },
-});
-
-// Price Modal Styles
 const priceModalStyles = StyleSheet.create({
   overlay: {
     flex: 1,
@@ -4084,6 +3732,182 @@ const VideoPriceInputModal = ({ visible, onClose, onSubmit, videoUri }: {
   );
 };
 
+const AudioRecordingModal = ({ visible, onClose, onSend }: {
+  visible: boolean;
+  onClose: () => void;
+  onSend: (audioUri: string, duration: number) => void;
+}) => {
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  const timerRef = useRef<any>(null);
+
+  const startRecording = async () => {
+    try {
+      // Request permissions
+      const { status } = await Audio.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission required', 'We need microphone access to record voice messages.');
+        return;
+      }
+
+      // Configure audio mode
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      // Start recording
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      
+      recordingRef.current = recording;
+      setIsRecording(true);
+      setRecordingTime(0);
+      
+      // Start timer
+      timerRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+      
+      console.log('🎤 Recording started');
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      Alert.alert('Error', 'Failed to start recording');
+    }
+  };
+
+  const stopRecording = async () => {
+    try {
+      if (!recordingRef.current) return;
+      
+      await recordingRef.current.stopAndUnloadAsync();
+      const uri = recordingRef.current.getURI();
+      const status = await recordingRef.current.getStatusAsync();
+      
+      // Clean up
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      const finalDuration = recordingTime;
+      recordingRef.current = null;
+      setIsRecording(false);
+      setRecordingTime(0);
+      
+      if (uri) {
+        // Pass both URI and duration
+        onSend(uri, finalDuration);
+      }
+      onClose();
+    } catch (error) {
+      console.error('Error stopping recording:', error);
+      Alert.alert('Error', 'Failed to stop recording');
+    }
+  };
+
+  const cancelRecording = async () => {
+    try {
+      if (recordingRef.current) {
+        await recordingRef.current.stopAndUnloadAsync();
+      }
+      
+      // Clean up
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      recordingRef.current = null;
+      setIsRecording(false);
+      setRecordingTime(0);
+      onClose();
+    } catch (error) {
+      console.error('Error cancelling recording:', error);
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="fade">
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' }}>
+        <View style={{ 
+          backgroundColor: '#2A2A2A', 
+          padding: 30, 
+          borderRadius: 20, 
+          alignItems: 'center',
+          width: 280
+        }}>
+          <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', marginBottom: 20 }}>
+            Voice Message
+          </Text>
+          
+          <View style={{
+            width: 80,
+            height: 80,
+            borderRadius: 40,
+            backgroundColor: isRecording ? '#FF4444' : '#FB2355',
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginBottom: 20
+          }}>
+            <Ionicons name="mic" size={30} color="white" />
+          </View>
+          
+          <Text style={{ color: 'white', fontSize: 24, fontWeight: 'bold', marginBottom: 30 }}>
+            {formatTime(recordingTime)}
+          </Text>
+          
+          {!isRecording ? (
+            <View style={{ flexDirection: 'row', gap: 20 }}>
+              <TouchableOpacity
+                onPress={cancelRecording}
+                style={{
+                  backgroundColor: '#666',
+                  paddingHorizontal: 20,
+                  paddingVertical: 12,
+                  borderRadius: 25
+                }}
+              >
+                <Text style={{ color: 'white', fontWeight: 'bold' }}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                onPress={startRecording}
+                style={{
+                  backgroundColor: '#FB2355',
+                  paddingHorizontal: 20,
+                  paddingVertical: 12,
+                  borderRadius: 25
+                }}
+              >
+                <Text style={{ color: 'white', fontWeight: 'bold' }}>Start Recording</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              onPress={stopRecording}
+              style={{
+                backgroundColor: '#4CAF50',
+                paddingHorizontal: 30,
+                paddingVertical: 12,
+                borderRadius: 25
+              }}
+            >
+              <Text style={{ color: 'white', fontWeight: 'bold' }}>Stop & Send</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
 const UploadProgressModal = ({ visible, progress, uploadType = 'video' }: {
   visible: boolean;
   progress: string;
@@ -4297,6 +4121,11 @@ export default function ChatScreen() {
   
   // Profile image state
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  
+  // Audio recording state
+  const [showRecordingModal, setShowRecordingModal] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const recordingRef = useRef<Audio.Recording | null>(null);
 
   useEffect(() => {
     setTheme(getTheme());
@@ -5187,6 +5016,46 @@ export default function ChatScreen() {
   };
 
   // Function to send paid video
+  const handleSendAudio = async (audioUri: string, duration: number) => {
+    try {
+      if (channel) {
+        // Format duration as MM:SS
+        const mins = Math.floor(duration / 60);
+        const secs = duration % 60;
+        const formattedDuration = `${mins}:${secs.toString().padStart(2, '0')}`;
+        
+        // Try to get actual file size
+        let fileSize = Math.round(duration * 16000); // Default estimate
+        try {
+          // Try to get file info (this might not work on all platforms)
+          const response = await fetch(audioUri);
+          const blob = await response.blob();
+          fileSize = blob.size;
+          console.log('📏 Actual file size:', fileSize, 'bytes');
+        } catch (fileSizeError) {
+          console.log('📏 Using estimated file size:', fileSize, 'bytes');
+        }
+        
+        await channel.sendMessage({
+          text: '',
+          attachments: [{
+            type: 'custom_audio',
+            asset_url: audioUri,
+            file_size: fileSize,
+            mime_type: 'audio/m4a',
+            title: 'Voice Message',
+            duration: formattedDuration,
+            fallback: 'Voice Message',
+          }],
+        });
+        console.log('✅ Voice message sent successfully with duration:', formattedDuration);
+      }
+    } catch (error) {
+      console.error('Error sending voice message:', error);
+      Alert.alert('Error', 'Failed to send voice message');
+    }
+  };
+
   const sendPaidVideo = async (videoUri: string, price: number, title: string) => {
     try {
       console.log('🔧 sendPaidVideo called with:', { videoUri, price, title });
@@ -5587,6 +5456,490 @@ export default function ChatScreen() {
     );
   }
 
+  // Custom Photo Attachment Component
+  const CustomPhotoAttachment = ({ attachment }: { attachment: any }) => {
+    if (attachment?.type !== 'custom_photo') return null;
+
+    return (
+      <View style={{
+        backgroundColor: 'transparent',
+        margin: -8, // Negative margin to override parent container
+        padding: 0,
+        borderRadius: 0,
+        overflow: 'visible',
+      }}>
+        <Image
+          source={{ uri: attachment.image_url }}
+          style={{
+            width: 250,
+            height: 200,
+            borderRadius: 12,
+            backgroundColor: 'transparent',
+          }}
+          resizeMode="cover"
+        />
+        {attachment.caption && (
+          <Text style={{
+            color: '#FFFFFF',
+            fontSize: 14,
+            fontFamily: 'questrial',
+            marginTop: 8,
+            backgroundColor: 'transparent',
+          }}>
+            {attachment.caption}
+          </Text>
+        )}
+      </View>
+    );
+  };
+
+  // Custom Audio Attachment Component
+  const CustomAudioAttachment = ({ attachment }: { attachment: any }) => {
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [sound, setSound] = useState<Audio.Sound | null>(null);
+    const [currentTime, setCurrentTime] = useState(0);
+    const [totalDuration, setTotalDuration] = useState(0);
+    const statusCheckRef = useRef<any>(null);
+    const timeoutRef = useRef<any>(null);
+    
+    // Animation values for sound bars
+    const animValues = useRef([
+      new Animated.Value(0.3),
+      new Animated.Value(0.5),
+      new Animated.Value(0.8),
+      new Animated.Value(0.4),
+      new Animated.Value(0.7),
+      new Animated.Value(0.2),
+      new Animated.Value(0.6),
+      new Animated.Value(0.9),
+      new Animated.Value(0.3),
+      new Animated.Value(0.5),
+    ]).current;
+    
+    if (attachment?.type !== 'custom_audio') return null;
+
+    // Audio status checking
+    const startStatusCheck = (audioSound: Audio.Sound) => {
+      if (statusCheckRef.current) {
+        clearInterval(statusCheckRef.current);
+      }
+      
+      statusCheckRef.current = setInterval(async () => {
+        try {
+          const status = await audioSound.getStatusAsync();
+          if (status.isLoaded) {
+            setCurrentTime(status.positionMillis || 0);
+            
+            console.log('📊 Audio status:', {
+              position: status.positionMillis,
+              duration: status.durationMillis,
+              didJustFinish: status.didJustFinish,
+              isPlaying: status.isPlaying
+            });
+            
+            // Check if audio has finished - multiple conditions for reliability
+            const hasFinished = status.didJustFinish || 
+                               !status.isPlaying || 
+                               (status.positionMillis && status.durationMillis && 
+                                status.positionMillis >= status.durationMillis - 100); // 100ms buffer
+            
+            if (hasFinished && isPlaying) {
+              console.log('🎵 Audio finished, resetting UI completely');
+              resetAudioState(audioSound);
+            }
+          }
+        } catch (error) {
+          console.error('Status check error:', error);
+          stopStatusCheck();
+        }
+      }, 100); // Check more frequently - every 100ms
+    };
+
+    const resetAudioState = async (audioSound: Audio.Sound) => {
+      console.log('🔄 Resetting all audio state and UI');
+      setIsPlaying(false);
+      setCurrentTime(0);
+      stopSoundBarAnimation();
+      stopStatusCheck();
+      
+      // Clear timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      
+      try {
+        await audioSound.setPositionAsync(0);
+      } catch (error) {
+        console.error('Error resetting position:', error);
+      }
+    };
+
+    const stopStatusCheck = () => {
+      if (statusCheckRef.current) {
+        clearInterval(statusCheckRef.current);
+        statusCheckRef.current = null;
+      }
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+
+    // Sound bar animation
+    const startSoundBarAnimation = () => {
+      const animations = animValues.map((animValue, index) =>
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(animValue, {
+              toValue: Math.random() * 0.8 + 0.2,
+              duration: 300 + Math.random() * 200,
+              useNativeDriver: false,
+            }),
+            Animated.timing(animValue, {
+              toValue: Math.random() * 0.8 + 0.2,
+              duration: 300 + Math.random() * 200,
+              useNativeDriver: false,
+            }),
+          ])
+        )
+      );
+      
+      Animated.stagger(50, animations).start();
+    };
+
+    const stopSoundBarAnimation = () => {
+      console.log('🎵 Stopping sound bar animation');
+      animValues.forEach((animValue, index) => {
+        animValue.stopAnimation();
+        // Reset to varied original heights for a more natural look
+        const originalHeight = [0.3, 0.5, 0.8, 0.4, 0.7, 0.2, 0.6, 0.9, 0.3, 0.5][index];
+        Animated.timing(animValue, {
+          toValue: originalHeight,
+          duration: 300,
+          useNativeDriver: false,
+        }).start();
+      });
+    };
+
+    const playAudio = async () => {
+      try {
+        if (sound) {
+          // If audio is already loaded, check its status
+          const status = await sound.getStatusAsync();
+          if (status.isLoaded) {
+            if (isPlaying) {
+              await sound.pauseAsync();
+              setIsPlaying(false);
+              stopSoundBarAnimation();
+              stopStatusCheck();
+            } else {
+              // If audio finished, restart from beginning
+              if (status.didJustFinish) {
+                await sound.setPositionAsync(0);
+              }
+              await sound.playAsync();
+              setIsPlaying(true);
+              startSoundBarAnimation();
+              startStatusCheck(sound);
+            }
+            return;
+          }
+        }
+
+        // Configure audio mode for playback
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: false,
+          shouldDuckAndroid: true,
+        });
+
+        // Load and play new audio
+        console.log('🎵 Loading audio:', attachment.asset_url);
+        const { sound: newSound } = await Audio.Sound.createAsync(
+          { uri: attachment.asset_url },
+          { shouldPlay: true },
+          (status) => {
+            if (status.isLoaded) {
+              setTotalDuration(status.durationMillis || 0);
+              
+              // Also check for finish in the callback as backup
+              if (status.didJustFinish) {
+                console.log('🎵 Audio finished (callback), resetting UI');
+                resetAudioState(newSound);
+              }
+            }
+          }
+        );
+        
+        setSound(newSound);
+        setIsPlaying(true);
+        startSoundBarAnimation();
+        startStatusCheck(newSound);
+        
+        // Set a timeout as final fallback based on duration
+        if (totalDuration > 0) {
+          timeoutRef.current = setTimeout(() => {
+            console.log('🎵 Audio timeout reached, forcing reset');
+            resetAudioState(newSound);
+          }, totalDuration + 1000); // Add 1 second buffer
+        }
+        
+        console.log('🎵 Audio playing');
+      } catch (error) {
+        console.error('Error playing audio:', error);
+        Alert.alert('Error', 'Could not play voice message');
+      }
+    };
+
+    const stopAudio = async () => {
+      if (sound) {
+        await sound.stopAsync();
+        await sound.unloadAsync();
+        setSound(null);
+        setIsPlaying(false);
+        setCurrentTime(0);
+        stopSoundBarAnimation();
+        stopStatusCheck();
+      }
+    };
+
+    // Cleanup when component unmounts
+    React.useEffect(() => {
+      return () => {
+        if (sound) {
+          sound.unloadAsync();
+        }
+        stopSoundBarAnimation();
+        stopStatusCheck();
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+      };
+    }, [sound]);
+
+    const formatTime = (milliseconds: number) => {
+      const totalSeconds = Math.floor(milliseconds / 1000);
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    };
+
+    const handlePress = (event: any) => {
+      // Prevent event bubbling to avoid opening thread
+      event.stopPropagation();
+      playAudio();
+    };
+
+    // Sound Bars Component
+    const SoundBars = () => (
+      <View style={{
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        height: 40,
+        justifyContent: 'space-between',
+        flex: 1,
+        paddingHorizontal: 4,
+      }}>
+        {animValues.map((animValue, index) => (
+          <Animated.View
+            key={index}
+            style={{
+              flex: 1,
+              backgroundColor: isPlaying ? '#FB2355' : '#666',
+              marginHorizontal: 1,
+              borderRadius: 2,
+              height: animValue.interpolate({
+                inputRange: [0, 1],
+                outputRange: [4, 32],
+              }),
+            }}
+          />
+        ))}
+      </View>
+    );
+
+    return (
+      <TouchableOpacity 
+        onPress={handlePress}
+        style={{
+          backgroundColor: 'transparent',
+          margin: -8,
+          padding: 0,
+          borderRadius: 0,
+          overflow: 'visible',
+        }}
+      >
+        <View style={{
+          backgroundColor: '#2A2A2A',
+          borderRadius: 16,
+          padding: 16,
+          flexDirection: 'row',
+          alignItems: 'center',
+          width: 320,
+          minHeight: 80,
+        }}>
+          {/* Play/Pause Button */}
+          <TouchableOpacity
+            onPress={handlePress}
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 24,
+              backgroundColor: '#FB2355',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginRight: 16,
+            }}
+          >
+            <Ionicons 
+              name={isPlaying ? "pause" : "play"} 
+              size={24} 
+              color="white"
+              style={{ marginLeft: isPlaying ? 0 : 2 }} // Center play icon
+            />
+          </TouchableOpacity>
+
+          {/* Content Area */}
+          <View style={{ flex: 1, flexDirection: 'column' }}>
+            {/* Title and Duration */}
+            <View style={{ 
+              flexDirection: 'row', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              marginBottom: 8 
+            }}>
+              <Text style={{
+                color: '#FFFFFF',
+                fontSize: 16,
+                fontFamily: 'questrial',
+                fontWeight: '600',
+              }}>
+                Voice Message
+              </Text>
+              
+              <Text style={{
+                color: '#FB2355',
+                fontSize: 14,
+                fontFamily: 'questrial',
+                fontWeight: '500',
+              }}>
+                {isPlaying && totalDuration > 0 
+                  ? `${formatTime(currentTime)} / ${formatTime(totalDuration)}`
+                  : attachment.duration || '0:00'
+                }
+              </Text>
+            </View>
+
+            {/* Sound Bars */}
+            <SoundBars />
+          </View>
+          
+          {/* Stop Button when playing */}
+          {isPlaying && (
+            <TouchableOpacity 
+              onPress={(e) => {
+                e.stopPropagation();
+                stopAudio();
+              }}
+              style={{ 
+                marginLeft: 12,
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                backgroundColor: '#444',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}
+            >
+              <Ionicons name="stop" size={16} color="#FB2355" />
+            </TouchableOpacity>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  // Custom Input Buttons with Image Picker and Audio Recorder
+  const CustomInputButtons = () => {
+    const handleImagePick = async () => {
+      try {
+        console.log('📸 Opening custom image picker...');
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          aspect: [4, 3],
+          quality: 0.8,
+        });
+
+        if (!result.canceled && result.assets[0]) {
+          const asset = result.assets[0];
+          console.log('📸 Selected image:', asset.uri);
+          
+          if (!channel) {
+            console.error('No channel available');
+            return;
+          }
+
+          // Send as custom photo attachment
+          await channel.sendMessage({
+            text: '',
+            attachments: [{
+              type: 'custom_photo',
+              image_url: asset.uri,
+              fallback: 'Photo',
+              caption: '', // Could add caption functionality later
+            }],
+          });
+          
+          console.log('✅ Custom photo sent successfully');
+        }
+      } catch (error) {
+        console.error('Error picking image:', error);
+        Alert.alert('Error', 'Failed to pick image');
+      }
+    };
+
+    const handleAudioRecord = async () => {
+      setShowRecordingModal(true);
+    };
+
+    return (
+      <View style={{ flexDirection: 'row' }}>
+        <TouchableOpacity
+          onPress={handleImagePick}
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 16,
+            backgroundColor: '#FB2355',
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginRight: 8,
+          }}
+        >
+          <Ionicons name="camera" size={18} color="white" />
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          onPress={handleAudioRecord}
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 16,
+            backgroundColor: '#FB2355',
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginRight: 8,
+          }}
+        >
+          <Ionicons name="mic" size={18} color="white" />
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#1A1A1A' }} edges={['top']}>
       {/* Header */}
@@ -5664,6 +6017,9 @@ export default function ChatScreen() {
               keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
               thread={thread}
               threadList={!!thread}
+              hasCommands={false}
+              audioRecordingEnabled={false}
+              InputButtons={CustomInputButtons}
               onPressMessage={({ message }) => {
                 // Open thread when clicking on any message
                 setThread(message);
@@ -5676,12 +6032,22 @@ export default function ChatScreen() {
               supportedReactions={customReactions}
               messageActions={() => []} // Disable default message actions
               Card={(props: any) => {
-                const { attachment } = props;
                 console.log('🔍 Card component received props:', JSON.stringify(props, null, 2));
-                console.log('🔍 Attachment type:', attachment?.type);
-                console.log('🔍 Full attachment:', JSON.stringify(attachment, null, 2));
+                console.log('🔍 Attachment type:', props?.type);
+                console.log('🔍 Full props:', JSON.stringify(props, null, 2));
                 
-                if (attachment?.type === 'blurry_file') {
+                // The props ARE the attachment, not nested under 'attachment'
+                if (props?.type === 'custom_photo') {
+                  console.log('✅ Rendering CustomPhotoAttachment');
+                  return <CustomPhotoAttachment attachment={props} />;
+                }
+                
+                if (props?.type === 'custom_audio') {
+                  console.log('✅ Rendering CustomAudioAttachment');
+                  return <CustomAudioAttachment attachment={props} />;
+                }
+                
+                if (props?.type === 'blurry_file') {
                   console.log('✅ Rendering BlurryFileAttachment');
                   return <BlurryFileAttachment {...props} />;
                 }
@@ -5787,6 +6153,13 @@ export default function ChatScreen() {
                 visible={showUploadModal}
                 progress={uploadProgress}
                 uploadType={isVideoUploading ? 'video' : isFileUploading ? 'file' : 'video'}
+              />
+              
+              {/* Audio Recording Modal */}
+              <AudioRecordingModal
+                visible={showRecordingModal}
+                onClose={() => setShowRecordingModal(false)}
+                onSend={handleSendAudio}
               />
             </Channel>
           </Chat>
