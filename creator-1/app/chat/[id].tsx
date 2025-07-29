@@ -3757,10 +3757,35 @@ const AudioRecordingModal = ({ visible, onClose, onSend }: {
         playsInSilentModeIOS: true,
       });
 
-      // Start recording
-      const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
+      // Start recording with custom options for better compatibility
+      const recordingOptions = {
+        isMeteringEnabled: true,
+        android: {
+          extension: '.m4a',
+          outputFormat: Audio.AndroidOutputFormat.MPEG_4,
+          audioEncoder: Audio.AndroidAudioEncoder.AAC,
+          sampleRate: 44100,
+          numberOfChannels: 2,
+          bitRate: 128000,
+        },
+        ios: {
+          extension: '.m4a',
+          outputFormat: Audio.IOSOutputFormat.MPEG4AAC,
+          audioQuality: Audio.IOSAudioQuality.MAX,
+          sampleRate: 44100,
+          numberOfChannels: 2,
+          bitRate: 128000,
+          linearPCMBitDepth: 16,
+          linearPCMIsBigEndian: false,
+          linearPCMIsFloat: false,
+        },
+        web: {
+          mimeType: 'audio/webm',
+          bitsPerSecond: 128000,
+        },
+      };
+
+      const { recording } = await Audio.Recording.createAsync(recordingOptions);
       
       recordingRef.current = recording;
       setIsRecording(true);
@@ -5024,25 +5049,66 @@ export default function ChatScreen() {
         const secs = duration % 60;
         const formattedDuration = `${mins}:${secs.toString().padStart(2, '0')}`;
         
-        // Try to get actual file size
+        console.log('🎤 Starting audio upload to Appwrite storage...');
+        
+        // Upload audio to Appwrite storage
+        let appwriteAudioUrl = audioUri; // fallback to local URI
         let fileSize = Math.round(duration * 16000); // Default estimate
+        
         try {
-          // Try to get file info (this might not work on all platforms)
-          const response = await fetch(audioUri);
-          const blob = await response.blob();
-          fileSize = blob.size;
-          console.log('📏 Actual file size:', fileSize, 'bytes');
-        } catch (fileSizeError) {
-          console.log('📏 Using estimated file size:', fileSize, 'bytes');
+          // Get file info to determine size
+          const fileInfo = await fetch(audioUri);
+          const fileBlob = await fileInfo.blob();
+          fileSize = fileBlob.size;
+          
+          console.log('📏 Audio file size:', fileSize, 'bytes');
+          
+          // Create unique filename
+          const audioId = `audio_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          
+          // Create file object for upload with proper headers
+          const fileToUpload = {
+            uri: audioUri,
+            type: 'audio/mp4', // Use audio/mp4 MIME type for better compatibility
+            name: `voice_message_${audioId}.m4a`,
+            size: fileSize,
+          };
+
+          console.log('📤 Uploading audio file:', fileToUpload);
+
+          // Upload to Appwrite storage
+          const uploadedFile = await storage.createFile(
+            config.storageId,
+            ID.unique(),
+            fileToUpload
+          );
+
+          // Get the file URL from Appwrite - try download URL for better media compatibility
+          try {
+            appwriteAudioUrl = storage.getFileDownload(config.storageId, uploadedFile.$id).toString();
+            console.log('🎤 Using download URL:', appwriteAudioUrl);
+          } catch (downloadError) {
+            // Fallback to view URL
+            appwriteAudioUrl = storage.getFileView(config.storageId, uploadedFile.$id).toString();
+            console.log('🎤 Using view URL as fallback:', appwriteAudioUrl);
+          }
+          
+          console.log('🎤 Audio uploaded successfully to Appwrite:', uploadedFile.$id);
+          console.log('🎤 Appwrite audio URL:', appwriteAudioUrl);
+          
+        } catch (uploadError) {
+          console.error('Error uploading audio to Appwrite storage:', uploadError);
+          // Continue with local URI as fallback
+          console.log('Falling back to local URI for audio');
         }
         
         await channel.sendMessage({
           text: '',
           attachments: [{
             type: 'custom_audio',
-            asset_url: audioUri,
+            asset_url: appwriteAudioUrl, // Use Appwrite URL if available, otherwise local
             file_size: fileSize,
-            mime_type: 'audio/m4a',
+            mime_type: 'audio/mp4', // Use audio/mp4 for better compatibility
             title: 'Voice Message',
             duration: formattedDuration,
             fallback: 'Voice Message',
@@ -5701,8 +5767,22 @@ export default function ChatScreen() {
 
         // Load and play new audio
         console.log('🎵 Loading audio:', attachment.asset_url);
+        
+        // Try to load audio with headers if it's from Appwrite
+        const audioSource = attachment.asset_url.includes('appwrite') 
+          ? {
+              uri: attachment.asset_url,
+              headers: {
+                'Accept': 'audio/mp4,audio/m4a,audio/*',
+                'Content-Type': 'audio/mp4'
+              }
+            }
+          : { uri: attachment.asset_url };
+            
+        console.log('🎵 Audio source:', audioSource);
+        
         const { sound: newSound } = await Audio.Sound.createAsync(
-          { uri: attachment.asset_url },
+          audioSource,
           { shouldPlay: true },
           (status) => {
             if (status.isLoaded) {
