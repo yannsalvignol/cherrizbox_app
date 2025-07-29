@@ -5499,6 +5499,7 @@ export default function ChatScreen() {
     const [sound, setSound] = useState<Audio.Sound | null>(null);
     const [currentTime, setCurrentTime] = useState(0);
     const [totalDuration, setTotalDuration] = useState(0);
+    const [forceUpdate, setForceUpdate] = useState(0);
     const statusCheckRef = useRef<any>(null);
     const timeoutRef = useRef<any>(null);
     
@@ -5528,35 +5529,49 @@ export default function ChatScreen() {
         clearInterval(statusCheckRef.current);
       }
       
-      statusCheckRef.current = setInterval(async () => {
-        try {
-          const status = await audioSound.getStatusAsync();
-          if (status.isLoaded) {
-            setCurrentTime(status.positionMillis || 0);
-            
-            console.log('📊 Audio status:', {
-              position: status.positionMillis,
-              duration: status.durationMillis,
-              didJustFinish: status.didJustFinish,
-              isPlaying: status.isPlaying
-            });
-            
-            // Check if audio has finished - multiple conditions for reliability
-            const hasFinished = status.didJustFinish || 
-                               !status.isPlaying || 
-                               (status.positionMillis && status.durationMillis && 
-                                status.positionMillis >= status.durationMillis - 100); // 100ms buffer
-            
-            if (hasFinished && isPlaying) {
-              console.log('🎵 Audio finished, resetting UI completely');
-              resetAudioState(audioSound);
+      // Add a small delay before starting to check, to let audio start properly
+      setTimeout(() => {
+        statusCheckRef.current = setInterval(async () => {
+          try {
+            const status = await audioSound.getStatusAsync();
+            if (status.isLoaded) {
+              setCurrentTime(status.positionMillis || 0);
+              // Force component re-render for color updates
+              setForceUpdate(prev => prev + 1);
+              
+              // Update sound bar progress in real-time
+              updateSoundBarProgress();
+              
+              // Log less frequently to avoid console spam
+              if (status.positionMillis && status.durationMillis && Math.floor(status.positionMillis / 1000) % 2 === 0) {
+                console.log('📊 Audio progress:', {
+                  progress: `${Math.floor(status.positionMillis / 1000)}s / ${Math.floor(status.durationMillis / 1000)}s`,
+                  percentage: `${Math.round((status.positionMillis / status.durationMillis) * 100)}%`
+                });
+              }
+              
+              // Check if audio has finished - be more careful about false positives
+              const hasFinished = status.didJustFinish || 
+                                 (status.positionMillis && status.durationMillis && 
+                                  status.positionMillis >= status.durationMillis - 100); // 100ms buffer
+              
+              // Don't use !status.isPlaying as it can be false during loading
+              // Only reset if we're sure it's actually finished
+              if (hasFinished && isPlaying) {
+                console.log('🎵 Audio finished, resetting UI completely');
+                resetAudioState(audioSound);
+              } else if (!status.isPlaying && status.positionMillis > 1000 && isPlaying) {
+                // Only consider it stopped if it was playing for more than 1 second
+                console.log('🎵 Audio stopped after playing, resetting UI');
+                resetAudioState(audioSound);
+              }
             }
+          } catch (error) {
+            console.error('Status check error:', error);
+            stopStatusCheck();
           }
-        } catch (error) {
-          console.error('Status check error:', error);
-          stopStatusCheck();
-        }
-      }, 100); // Check more frequently - every 100ms
+        }, 100); // Check more frequently - every 100ms
+      }, 300); // Wait 300ms before starting status checks
     };
 
     const resetAudioState = async (audioSound: Audio.Sound) => {
@@ -5590,26 +5605,51 @@ export default function ChatScreen() {
       }
     };
 
-    // Sound bar animation
-    const startSoundBarAnimation = () => {
-      const animations = animValues.map((animValue, index) =>
-        Animated.loop(
-          Animated.sequence([
-            Animated.timing(animValue, {
-              toValue: Math.random() * 0.8 + 0.2,
-              duration: 300 + Math.random() * 200,
-              useNativeDriver: false,
-            }),
-            Animated.timing(animValue, {
-              toValue: Math.random() * 0.8 + 0.2,
-              duration: 300 + Math.random() * 200,
-              useNativeDriver: false,
-            }),
-          ])
-        )
-      );
+    // Progress-based sound bar animation
+    const updateSoundBarProgress = () => {
+      if (!isPlaying || totalDuration === 0) return;
       
-      Animated.stagger(50, animations).start();
+      const progress = currentTime / totalDuration; // 0 to 1
+      const totalBars = animValues.length;
+      const activeBars = Math.floor(progress * totalBars);
+      
+      // Debug logging (less frequent)
+      if (Math.floor(currentTime / 1000) % 3 === 0) {
+        console.log('🔍 Progress debug:', {
+          currentTime: Math.round(currentTime / 1000),
+          totalDuration: Math.round(totalDuration / 1000),
+          progress: Math.round(progress * 100) + '%',
+          totalBars,
+          activeBars
+        });
+      }
+      
+      animValues.forEach((animValue, index) => {
+        let targetHeight;
+        
+        if (index < activeBars) {
+          // Bars that represent played audio - keep them active
+          targetHeight = 0.7 + Math.sin(Date.now() / 200 + index) * 0.2; // Subtle animation
+        } else if (index === activeBars && progress > 0) {
+          // Current playing bar - make it most prominent
+          targetHeight = 0.9 + Math.sin(Date.now() / 100) * 0.1; // More animation
+        } else {
+          // Future bars - keep them low
+          targetHeight = 0.2 + Math.sin(Date.now() / 300 + index) * 0.1; // Very subtle
+        }
+        
+        Animated.timing(animValue, {
+          toValue: targetHeight,
+          duration: 150,
+          useNativeDriver: false,
+        }).start();
+      });
+    };
+
+    const startSoundBarAnimation = () => {
+      console.log('🎵 Starting progress-based sound bar animation');
+      // The animation will be driven by updateSoundBarProgress
+      // which is called from the status check interval
     };
 
     const stopSoundBarAnimation = () => {
@@ -5746,33 +5786,71 @@ export default function ChatScreen() {
       }
     };
 
-    // Sound Bars Component
-    const SoundBars = () => (
-      <View style={{
-        flexDirection: 'row',
-        alignItems: 'flex-end',
-        height: 40,
-        justifyContent: 'space-between',
-        flex: 1,
-        paddingHorizontal: 4,
-      }}>
-        {animValues.map((animValue, index) => (
-          <Animated.View
-            key={index}
-            style={{
-              flex: 1,
-              backgroundColor: isPlaying ? '#FB2355' : '#666',
-              marginHorizontal: 1,
-              borderRadius: 2,
-              height: animValue.interpolate({
-                inputRange: [0, 1],
-                outputRange: [4, 32],
-              }),
-            }}
-          />
-        ))}
-      </View>
-    );
+    // Sound Bars Component with Progress
+    const SoundBars = () => {
+      const progress = totalDuration > 0 ? currentTime / totalDuration : 0;
+      const totalBars = animValues.length;
+      const activeBars = Math.floor(progress * totalBars);
+
+      // Debug the actual values being used for colors (less frequent)
+      if (Math.floor(currentTime / 1000) % 3 === 0) {
+        console.log('🎨 Color debug:', {
+          isPlaying,
+          progress: Math.round(progress * 100) + '%',
+          activeBars,
+          currentTime: Math.round(currentTime / 1000),
+          totalDuration: Math.round(totalDuration / 1000)
+        });
+      }
+
+      return (
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'flex-end',
+          height: 40,
+          justifyContent: 'space-between',
+          flex: 1,
+          paddingHorizontal: 4,
+        }}>
+          {animValues.map((animValue, index) => {
+            let barColor;
+            
+            if (!isPlaying) {
+              // Not playing - all bars gray
+              barColor = '#666';
+            } else {
+              // During playback, use progress to determine colors
+              if (index < activeBars) {
+                // Played section - bright pink
+                barColor = '#FB2355';
+              } else if (index === activeBars && activeBars < totalBars) {
+                // Currently playing bar - lighter pink
+                barColor = '#FF6B8A';
+              } else {
+                // Unplayed section - darker gray
+                barColor = '#444';
+              }
+            }
+            
+            return (
+              <Animated.View
+                key={index}
+                style={{
+                  flex: 1,
+                  backgroundColor: barColor,
+                  marginHorizontal: 1,
+                  borderRadius: 2,
+                  height: animValue.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [4, 32],
+                  }),
+                }}
+              />
+            );
+          })}
+        </View>
+      );
+    };
 
     return (
       <TouchableOpacity 
