@@ -554,8 +554,22 @@ export const getProfilePictureUrl = (photoIdOrUri: string | null): string | null
 
 export const getSubscriptionCount = async (creatorName: string): Promise<number> => {
     try {
+        console.log(`👥 [FollowerCount] Getting count for creator: ${creatorName}`);
+        
+        // Import dataCache dynamically to avoid circular dependency
+        const { dataCache } = await import('./data-cache');
+        
+        // Check cache first
+        const cachedCount = dataCache.getFollowerCount(creatorName);
+        if (cachedCount !== null) {
+            console.log(`✅ [FollowerCount] Cache HIT - ${cachedCount} followers`);
+            return cachedCount;
+        }
+
+        console.log(`❌ [FollowerCount] Cache MISS - querying database...`);
+
         if (!config.creatorCollectionId) {
-            console.warn('creatorCollectionId is not configured; falling back to 0 followers');
+            console.warn('⚠️ [FollowerCount] creatorCollectionId is not configured; falling back to 0 followers');
             return 0;
         }
 
@@ -569,16 +583,25 @@ export const getSubscriptionCount = async (creatorName: string): Promise<number>
         );
 
         if (creators.documents.length === 0) {
+            console.log(`📊 [FollowerCount] Creator not found in database`);
+            dataCache.setFollowerCount(creatorName, 0);
             return 0; // creator not found
         }
 
         const doc = creators.documents[0] as any;
         const monthly = typeof doc.number_of_monthly_subscribers === 'number' ? doc.number_of_monthly_subscribers : 0;
         const yearly  = typeof doc.number_of_yearly_subscriptions === 'number' ? doc.number_of_yearly_subscriptions : 0;
+        const totalCount = monthly + yearly;
 
-        return monthly + yearly;
+        console.log(`📊 [FollowerCount] Database result: ${monthly} monthly + ${yearly} yearly = ${totalCount} total`);
+
+        // Cache the result for 5 minutes
+        dataCache.setFollowerCount(creatorName, totalCount);
+        console.log(`💾 [FollowerCount] Cached result for 5 minutes`);
+        
+        return totalCount;
     } catch (error) {
-        console.error("Error getting subscription count:", error);
+        console.error("❌ [FollowerCount] Error getting subscription count:", error);
         return 0;
     }
 };
@@ -920,6 +943,17 @@ export const recordPaidContentPurchase = async (
             }
         );
 
+        console.log('💾 [RecordPurchase] Purchase recorded successfully');
+        
+        // Immediately invalidate the cache for this purchase to ensure fresh data
+        try {
+            const { dataCache } = await import('./data-cache');
+            dataCache.delete(`purchase_${userId}_${contentId}`);
+            console.log('✅ [RecordPurchase] Cache invalidated for future checks');
+        } catch (cacheError) {
+            console.warn('⚠️ [RecordPurchase] Failed to invalidate cache:', cacheError);
+        }
+
         return purchaseRecord;
     } catch (error) {
         console.error('Error recording paid content purchase:', error);
@@ -927,11 +961,26 @@ export const recordPaidContentPurchase = async (
     }
 };
 
-// Check if user has purchased specific content
+// Check if user has purchased specific content (with caching)
 export const checkPaidContentPurchase = async (userId: string, contentId: string): Promise<boolean> => {
     try {
+        console.log(`🛒 [PurchaseCheck] Checking purchase: userId=${userId.substring(0, 8)}..., contentId=${contentId}`);
+        
+        // Import dataCache dynamically to avoid circular dependency
+        const { dataCache } = await import('./data-cache');
+        
+        // Check cache first
+        const cacheKey = `purchase_${userId}_${contentId}`;
+        const cachedResult = dataCache.getPurchaseStatus(userId, contentId);
+        if (cachedResult !== null) {
+            console.log(`✅ [PurchaseCheck] Cache HIT - user ${cachedResult ? 'HAS' : 'has NOT'} purchased content`);
+            return cachedResult;
+        }
+
+        console.log(`❌ [PurchaseCheck] Cache MISS - querying database...`);
+
         if (!config.paidContentPurchasesCollectionId) {
-            console.log("Paid content purchases collection ID not configured");
+            console.log("⚠️ [PurchaseCheck] Paid content purchases collection ID not configured");
             return false;
         }
 
@@ -944,9 +993,16 @@ export const checkPaidContentPurchase = async (userId: string, contentId: string
             ]
         );
 
-        return response.documents.length > 0;
+        const hasPurchased = response.documents.length > 0;
+        console.log(`📊 [PurchaseCheck] Database result: ${hasPurchased ? 'PURCHASED' : 'NOT PURCHASED'} (${response.documents.length} records)`);
+        
+        // Cache the result for 2 minutes
+        dataCache.setPurchaseStatus(userId, contentId, hasPurchased);
+        console.log(`💾 [PurchaseCheck] Cached result for 2 minutes`);
+        
+        return hasPurchased;
     } catch (error) {
-        console.error('Error checking paid content purchase:', error);
+        console.error('❌ [PurchaseCheck] Error checking paid content purchase:', error);
         return false;
     }
 };

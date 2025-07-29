@@ -5526,6 +5526,10 @@ export default function ChatScreen() {
   const CustomPhotoAttachment = ({ attachment }: { attachment: any }) => {
     if (attachment?.type !== 'custom_photo') return null;
 
+    const [isLoading, setIsLoading] = useState(true);
+    const [hasError, setHasError] = useState(false);
+    const isUploading = attachment?.uploading === true;
+
     return (
       <View style={{
         backgroundColor: 'transparent',
@@ -5533,17 +5537,104 @@ export default function ChatScreen() {
         padding: 0,
         borderRadius: 0,
         overflow: 'visible',
+        position: 'relative',
       }}>
-        <Image
-          source={{ uri: attachment.image_url }}
-          style={{
-            width: 250,
-            height: 200,
+        <View style={{
+          width: 250,
+          height: 200,
+          borderRadius: 12,
+          backgroundColor: '#2A2A2A', // Background while loading
+          justifyContent: 'center',
+          alignItems: 'center',
+          position: 'relative',
+        }}>
+          {/* Loading indicator while image loads */}
+          {isLoading && !hasError && (
+            <View style={{
+              position: 'absolute',
+              justifyContent: 'center',
+              alignItems: 'center',
+              width: '100%',
+              height: '100%',
+              backgroundColor: 'rgba(42, 42, 42, 0.8)',
+              borderRadius: 12,
+              zIndex: 1,
+            }}>
+              <ActivityIndicator size="large" color="#FFFFFF" />
+              <Text style={{
+                color: '#FFFFFF',
+                fontSize: 12,
+                fontFamily: 'questrial',
+                marginTop: 8,
+                opacity: 0.7,
+              }}>
+                Loading...
+              </Text>
+            </View>
+          )}
+          
+          {/* Error indicator if image fails to load */}
+          {hasError && (
+            <View style={{
+              justifyContent: 'center',
+              alignItems: 'center',
+              width: '100%',
+              height: '100%',
+            }}>
+              <Text style={{
+                color: '#999',
+                fontSize: 14,
+                fontFamily: 'questrial',
+                textAlign: 'center',
+              }}>
+                Failed to load image
+              </Text>
+            </View>
+          )}
+
+          <Image
+            source={{ uri: attachment.image_url }}
+            style={{
+              width: 250,
+              height: 200,
+              borderRadius: 12,
+              backgroundColor: 'transparent',
+              opacity: isUploading ? 0.7 : 1, // Slight transparency when uploading
+            }}
+            resizeMode="cover"
+            onLoad={() => setIsLoading(false)}
+            onError={() => {
+              setIsLoading(false);
+              setHasError(true);
+            }}
+          />
+        </View>
+        
+        {/* Discrete upload indicator - WhatsApp/Telegram style */}
+        {isUploading && (
+          <View style={{
+            position: 'absolute',
+            bottom: 8,
+            right: 8,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
             borderRadius: 12,
-            backgroundColor: 'transparent',
-          }}
-          resizeMode="cover"
-        />
+            paddingHorizontal: 8,
+            paddingVertical: 4,
+            flexDirection: 'row',
+            alignItems: 'center',
+          }}>
+            <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 4 }} />
+            <Text style={{
+              color: '#FFFFFF',
+              fontSize: 11,
+              fontFamily: 'questrial',
+              fontWeight: '500',
+            }}>
+              Uploading...
+            </Text>
+          </View>
+        )}
+        
         {attachment.caption && (
           <Text style={{
             color: '#FFFFFF',
@@ -6059,17 +6150,75 @@ export default function ChatScreen() {
             return;
           }
 
-          // Send as custom photo attachment
-          await channel.sendMessage({
-            text: '',
-            attachments: [{
-              type: 'custom_photo',
-              image_url: asset.uri,
-              fallback: 'Photo',
-              caption: '', // Could add caption functionality later
-            }],
-          });
-          
+          // Upload image to Appwrite storage first, then send message
+          try {
+            console.log('📸 Starting image upload to Appwrite storage...');
+            
+            // Get file info to determine size
+            const fileInfo = await fetch(asset.uri);
+            const fileBlob = await fileInfo.blob();
+            
+            console.log('📏 Image file size:', fileBlob.size, 'bytes');
+            
+            // Create unique filename
+            const imageId = `photo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            
+            // Create file object for upload
+            const fileToUpload = {
+              uri: asset.uri,
+              type: 'image/jpeg',
+              name: `photo_${imageId}.jpg`,
+              size: fileBlob.size,
+            };
+
+            console.log('📤 Uploading image file:', fileToUpload);
+
+            // Upload to Appwrite storage
+            const uploadedFile = await storage.createFile(
+              config.storageId,
+              ID.unique(),
+              fileToUpload
+            );
+
+            // Get the file URL from Appwrite
+            const appwriteImageUrl = storage.getFileView(config.storageId, uploadedFile.$id).toString();
+            
+            console.log('📸 Image uploaded successfully to Appwrite:', uploadedFile.$id);
+            console.log('📸 Appwrite image URL:', appwriteImageUrl);
+            
+            // Send message with the uploaded cloud URL
+            await channel.sendMessage({
+              text: '',
+              attachments: [{
+                type: 'custom_photo',
+                image_url: appwriteImageUrl,
+                fallback: 'Photo',
+                caption: '',
+                uploading: false,
+              }],
+            });
+            
+            console.log('✅ Custom photo sent successfully with cloud URL');
+            
+          } catch (uploadError) {
+            console.error('Error uploading image to Appwrite storage:', uploadError);
+            console.log('Sending with local URI as fallback');
+            
+            // Send message with local URI as fallback
+            await channel.sendMessage({
+              text: '',
+              attachments: [{
+                type: 'custom_photo',
+                image_url: asset.uri,
+                fallback: 'Photo',
+                caption: '',
+                uploading: false,
+              }],
+            });
+            
+            console.log('✅ Custom photo sent with local URI fallback');
+          }
+
           console.log('✅ Custom photo sent successfully');
         }
       } catch (error) {
@@ -6120,12 +6269,12 @@ export default function ChatScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#1A1A1A' }} edges={['top']}>
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-2 bg-black">
+      <View className="flex-row items-center justify-between px-5 py-3 bg-black" style={{ minHeight: 85 }}>
         {/* Cherrizbox Logo */}
         <TouchableOpacity onPress={() => router.back()}>
           <Image 
             source={require('../../assets/images/cherry-icon.png')}
-            className="w-14 h-14 rounded-lg"
+            className="w-16 h-16 rounded-lg"
             resizeMode="contain"
           />
         </TouchableOpacity>
@@ -6134,7 +6283,7 @@ export default function ChatScreen() {
         <View className="flex-row items-center">
           <View style={{ alignItems: 'center', justifyContent: 'center' }}>
             <Text style={{
-              fontSize: 38,
+              fontSize: 42,
               fontWeight: 'bold',
               color: 'white',
               fontFamily: 'questrial',
@@ -6143,7 +6292,7 @@ export default function ChatScreen() {
               Cherrizbox
               <Text style={{
                 color: '#FB2355',
-                fontSize: 38,
+                fontSize: 42,
                 fontWeight: 'bold',
                 fontFamily: 'questrial',
               }}>
@@ -6152,11 +6301,11 @@ export default function ChatScreen() {
             </Text>
             <Text style={{
               color: '#FB2355',
-              fontSize: 18,
+              fontSize: 20,
               fontFamily: 'questrial',
               textAlign: 'center',
-              marginTop: -5,
-              letterSpacing: 2,
+              marginTop: -6,
+              letterSpacing: 2.5,
             }}>
               creator
             </Text>
@@ -6165,7 +6314,7 @@ export default function ChatScreen() {
         
         {/* Profile Picture */}
         <TouchableOpacity onPress={() => router.push('/edit-profile')}>
-          <View className="w-14 h-14 rounded-full bg-[#1A1A1A] items-center justify-center overflow-hidden">
+          <View className="w-16 h-16 rounded-full bg-[#1A1A1A] items-center justify-center overflow-hidden">
             {profileImage ? (
               <Image
                 source={{ uri: profileImage }}

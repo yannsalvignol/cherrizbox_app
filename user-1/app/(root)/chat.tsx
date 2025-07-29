@@ -1,4 +1,6 @@
+import { dataCache } from '@/lib/data-cache';
 import { useGlobalContext } from '@/lib/global-provider';
+import { imageCache } from '@/lib/image-cache';
 import { client } from '@/lib/stream-chat';
 import { Ionicons } from '@expo/vector-icons';
 import { CardField, useStripe } from '@stripe/stripe-react-native';
@@ -84,14 +86,19 @@ const CustomMessageAvatar = (props: any) => {
       
       const userId = message.user.id;
       
-      // Check cache first
-      if (profileImageCache.has(userId)) {
-        const cachedImage = profileImageCache.get(userId);
-        if (cachedImage) {
-          setProfileImage(cachedImage);
-          return;
-        }
+      console.log(`👤 [CustomMessageAvatar] Loading avatar for user: ${userId.substring(0, 8)}...`);
+      
+      // Check dataCache first
+      const cachedProfileData = dataCache.get(`profile_${userId}`) as {profileImageUri: string} | null;
+      if (cachedProfileData && cachedProfileData.profileImageUri) {
+        console.log(`✅ [CustomMessageAvatar] Profile data cache HIT`);
+        const cachedImageUri = await imageCache.getCachedImageUri(cachedProfileData.profileImageUri);
+        setProfileImage(cachedImageUri);
+        console.log(`✅ [CustomMessageAvatar] Avatar loaded from cache`);
+        return;
       }
+      
+      console.log(`❌ [CustomMessageAvatar] Profile data cache MISS - querying database...`);
       
       try {
         if (!config.endpoint || !config.projectId || !config.databaseId || !config.profileCollectionId) {
@@ -114,10 +121,21 @@ const CustomMessageAvatar = (props: any) => {
         if (profiles.documents.length > 0) {
           const profileImageUri = profiles.documents[0].compressed_thumbnail;
           if (profileImageUri) {
-            // Cache the result
-            profileImageCache.set(userId, profileImageUri);
-            setProfileImage(profileImageUri);
+            console.log(`📊 [CustomMessageAvatar] Database result: Found profile image`);
+            
+            // Cache the profile data
+            dataCache.set(`profile_${userId}`, { profileImageUri }, 10 * 60 * 1000); // 10 minutes
+            console.log(`💾 [CustomMessageAvatar] Cached profile data for 10 minutes`);
+            
+            // Get cached image URI and set it
+            const cachedImageUri = await imageCache.getCachedImageUri(profileImageUri);
+            setProfileImage(cachedImageUri);
+            console.log(`✅ [CustomMessageAvatar] Avatar loaded from database and cached`);
+          } else {
+            console.log(`⚠️ [CustomMessageAvatar] No profile image found for user`);
           }
+        } else {
+          console.log(`⚠️ [CustomMessageAvatar] No profile document found for user`);
         }
       } catch (error) {
         console.error('Error fetching user profile image:', error);
@@ -261,16 +279,44 @@ const CustomMessageInput = ({
           mimeType: asset.mimeType
         });
         
-        const attachmentData = {
-          uri: asset.uri,
-          type: 'document',
-          fileName: asset.name || 'document',
-          fileSize: asset.size || 0,
-        };
+        // Copy file to permanent location to prevent it from being cleaned up
+        const fileName = asset.name || `document_${Date.now()}`;
+        const permanentUri = `${FileSystem.documentDirectory}${fileName}`;
         
-        console.log('💾 Setting selected document:', attachmentData);
-        setSelectedAttachment(attachmentData);
-        console.log('📱 Showing preview in same modal');
+        console.log('📁 Copying file to permanent location...');
+        console.log('📁 From:', asset.uri);
+        console.log('📁 To:', permanentUri);
+        
+        try {
+          await FileSystem.copyAsync({
+            from: asset.uri,
+            to: permanentUri
+          });
+          
+          console.log('✅ File copied successfully to permanent location');
+          
+          const attachmentData = {
+            uri: permanentUri, // Use permanent URI instead of temporary one
+            type: 'document',
+            fileName: fileName,
+            fileSize: asset.size || 0,
+            originalUri: asset.uri, // Keep original for reference
+          };
+          
+          console.log('💾 Setting selected document with permanent URI:', attachmentData);
+          setSelectedAttachment(attachmentData);
+          console.log('📱 Showing preview in same modal');
+        } catch (copyError) {
+          console.error('❌ Failed to copy file to permanent location:', copyError);
+          // Fallback to original URI if copy fails
+          const attachmentData = {
+            uri: asset.uri,
+            type: 'document',
+            fileName: asset.name || 'document',
+            fileSize: asset.size || 0,
+          };
+          setSelectedAttachment(attachmentData);
+        }
       } else {
         console.log('❌ No document selected or picker canceled');
       }
@@ -1610,6 +1656,153 @@ const CustomAudioAttachment = (props: any) => {
   );
 };
 
+// Custom Photo Attachment Component
+const CustomPhotoAttachment = (props: any) => {
+  const { attachment } = props;
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [cachedImageUri, setCachedImageUri] = useState<string>(attachment.image_url);
+  
+  // Get message context to access message actions
+  const messageContext = useMessageContext();
+  const message = messageContext?.message;
+  
+  if (attachment?.type !== 'custom_photo') return null;
+
+  const isUploading = attachment?.uploading === true;
+
+  // Load cached image on mount
+  useEffect(() => {
+    const loadCachedImage = async () => {
+      try {
+        if (attachment.image_url) {
+          console.log(`📷 [CustomPhotoAttachment] Loading image for attachment: ${attachment.image_url.substring(0, 50)}...`);
+          const cached = await imageCache.getCachedImageUri(attachment.image_url);
+          setCachedImageUri(cached);
+          console.log(`✅ [CustomPhotoAttachment] Image loaded successfully`);
+        }
+      } catch (error) {
+        console.error('❌ [CustomPhotoAttachment] Failed to load cached image:', error);
+      }
+    };
+
+    loadCachedImage();
+  }, [attachment.image_url]);
+
+  const handlePress = (event: any) => {
+    // Prevent event bubbling to avoid opening thread
+    event.stopPropagation();
+    // TODO: Add full-screen image view functionality
+    console.log('Photo pressed:', attachment.image_url);
+  };
+
+  const handleLongPress = (event: any) => {
+    // Prevent event bubbling
+    event.stopPropagation();
+    
+    if (message) {
+      // Need to access the modal functions from parent context
+      // This will depend on your existing message modal implementation
+      console.log('Long press on photo message');
+    }
+  };
+
+  return (
+    <TouchableOpacity 
+      onPress={handlePress}
+      onLongPress={handleLongPress}
+      delayLongPress={500}
+      style={{
+        backgroundColor: 'transparent',
+        marginVertical: 4,
+        marginHorizontal: 8,
+      }}
+    >
+      <View style={{
+        width: 250,
+        height: 200,
+        borderRadius: 12,
+        backgroundColor: '#1A1A1A',
+        justifyContent: 'center',
+        alignItems: 'center',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        {/* Loading indicator while image loads */}
+        {isLoading && !hasError && (
+          <View style={{
+            position: 'absolute',
+            justifyContent: 'center',
+            alignItems: 'center',
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(26, 26, 26, 0.9)',
+            borderRadius: 12,
+            zIndex: 2,
+          }}>
+            <ActivityIndicator size="large" color="#FB2355" />
+          </View>
+        )}
+        
+        {/* Error indicator if image fails to load */}
+        {hasError && (
+          <View style={{
+            justifyContent: 'center',
+            alignItems: 'center',
+            width: '100%',
+            height: '100%',
+            backgroundColor: '#1A1A1A',
+          }}>
+            <Ionicons name="image-outline" size={40} color="#666" />
+          </View>
+        )}
+
+        {/* The actual image */}
+        <Image
+          source={{ uri: cachedImageUri }}
+          style={{
+            width: 250,
+            height: 200,
+            borderRadius: 12,
+            backgroundColor: 'transparent',
+            opacity: isUploading ? 0.7 : 1,
+          }}
+          resizeMode="cover"
+          onLoad={() => setIsLoading(false)}
+          onError={() => {
+            setIsLoading(false);
+            setHasError(true);
+          }}
+        />
+
+        {/* Caption if available */}
+        {attachment.caption && attachment.caption.trim() !== '' && (
+          <View style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            borderBottomLeftRadius: 12,
+            borderBottomRightRadius: 12,
+          }}>
+            <Text style={{
+              color: '#FFFFFF',
+              fontSize: 14,
+              fontFamily: 'questrial',
+              lineHeight: 18,
+            }}>
+              {attachment.caption}
+            </Text>
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+};
+
 // Custom Paid Content Attachment Component
 const PaidContentAttachment = (props: any) => {
   const { attachment, onPressIn } = props;
@@ -1662,7 +1855,15 @@ const PaidContentAttachment = (props: any) => {
   };
 
   const handlePaymentSuccess = async () => {
-    console.log('Payment successful for paid content');
+    console.log('💳 [PaidContent] Payment successful for paid content');
+    console.log('💳 [PaidContent] Invalidating cache for contentId:', attachment?.paid_content_id);
+    
+    // Clear the purchase status from cache to force refresh
+    if (user?.$id && attachment?.paid_content_id) {
+      dataCache.delete(`purchase_${user.$id}_${attachment.paid_content_id}`);
+      console.log('✅ [PaidContent] Cache invalidated - next check will query database');
+    }
+    
     setIsUnlocked(true);
     setShowPaymentModal(false);
     
@@ -2305,10 +2506,11 @@ const CustomMessageSimple = (props: any) => {
   // Check if message has blurry file attachments
   const hasBlurryFile = message?.attachments?.some((attachment: any) => attachment?.type === 'blurry_file');
 
-  // Check if message has custom audio attachments
-  const hasCustomAudio = message?.attachments?.some((attachment: any) => attachment?.type === 'custom_audio');
+      // Check if message has custom audio or photo attachments
+    const hasCustomAudio = message?.attachments?.some((attachment: any) => attachment?.type === 'custom_audio');
+    const hasCustomPhoto = message?.attachments?.some((attachment: any) => attachment?.type === 'custom_photo');
 
-  if (hasCustomAudio) {
+    if (hasCustomAudio || hasCustomPhoto) {
     return (
       <View style={{ 
         flexDirection: 'row', 
@@ -2330,16 +2532,26 @@ const CustomMessageSimple = (props: any) => {
           maxWidth: '80%',
           marginLeft: -4,
         }}>
-          {message.attachments?.map((attachment: any, index: number) => (
-            attachment?.type === 'custom_audio' ? (
-              <CustomAudioAttachment 
-                key={`custom-audio-${index}`}
-                attachment={attachment}
-              />
-            ) : null
-          ))}
+          {message.attachments?.map((attachment: any, index: number) => {
+            if (attachment?.type === 'custom_audio') {
+              return (
+                <CustomAudioAttachment 
+                  key={`custom-audio-${index}`}
+                  attachment={attachment}
+                />
+              );
+            } else if (attachment?.type === 'custom_photo') {
+              return (
+                <CustomPhotoAttachment 
+                  key={`custom-photo-${index}`}
+                  attachment={attachment}
+                />
+              );
+            }
+            return null;
+          })}
           
-          {/* Add timestamp for custom audio messages */}
+          {/* Add timestamp for custom audio and photo messages */}
           {shouldShowTimestamp() && (
             <View style={{ 
               paddingTop: 0,
@@ -4482,7 +4694,15 @@ const PaidVideoAttachment = (props: any) => {
   };
 
   const handlePaymentSuccess = async () => {
-    console.log('Payment successful for paid video');
+    console.log('💳 [PaidVideo] Payment successful for paid video');
+    console.log('💳 [PaidVideo] Invalidating cache for contentId:', attachment?.paid_content_id);
+    
+    // Clear the purchase status from cache to force refresh
+    if (user?.$id && attachment?.paid_content_id) {
+      dataCache.delete(`purchase_${user.$id}_${attachment.paid_content_id}`);
+      console.log('✅ [PaidVideo] Cache invalidated - next check will query database');
+    }
+    
     setIsUnlocked(true);
     setShowPaymentModal(false);
     
@@ -4758,7 +4978,18 @@ const BlurryFileAttachment = (props: any) => {
   };
 
   const handlePaymentSuccess = async () => {
-    console.log('Payment successful for paid file');
+    console.log('💳 [PaidFile] Payment successful for paid file');
+    
+    // Check multiple possible field names for the content ID
+    const contentId = attachment?.paid_content_id || attachment?.file_id || attachment?.content_id;
+    console.log('💳 [PaidFile] Invalidating cache for contentId:', contentId);
+    
+    // Clear the purchase status from cache to force refresh
+    if (user?.$id && contentId) {
+      dataCache.delete(`purchase_${user.$id}_${contentId}`);
+      console.log('✅ [PaidFile] Cache invalidated - next check will query database');
+    }
+    
     setIsUnlocked(true);
     setShowPaymentModal(false);
     
@@ -5072,37 +5303,10 @@ const BlurryFileAttachment = (props: any) => {
                   alignItems: 'center',
                   padding: 20,
                 }}>
-                  <View style={{
-                    backgroundColor: '#FF6B6B',
-                    borderRadius: 20,
-                    width: 60,
-                    height: 60,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    marginBottom: 16,
-                    shadowColor: '#FF6B6B',
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.3,
-                    shadowRadius: 8,
-                    elevation: 6,
-                  }}>
-                    <Ionicons name="document-text" size={32} color="#FFFFFF" />
-                  </View>
-                  
                   <Text style={{
                     color: '#2C3E50',
                     fontSize: 16,
                     fontWeight: 'bold',
-                    textAlign: 'center',
-                    marginBottom: 8,
-                    fontFamily: 'questrial',
-                  }}>
-                    PDF Document
-                  </Text>
-                  
-                  <Text style={{
-                    color: '#7F8C8D',
-                    fontSize: 14,
                     textAlign: 'center',
                     marginBottom: 20,
                     fontFamily: 'questrial',
@@ -5110,85 +5314,53 @@ const BlurryFileAttachment = (props: any) => {
                     {title}
                   </Text>
                   
-                  {/* PDF Action Buttons */}
+                  {/* PDF Access Information */}
                   <View style={{
-                    flexDirection: 'row',
-                    gap: 12,
+                    backgroundColor: 'rgba(251, 35, 85, 0.1)',
+                    borderRadius: 8,
+                    padding: 12,
+                    marginTop: 12,
+                    borderWidth: 1,
+                    borderColor: 'rgba(251, 35, 85, 0.2)',
+                    maxWidth: '100%',
+                    alignSelf: 'stretch',
                   }}>
-                    <TouchableOpacity
-                      onPress={async () => {
-                        try {
-                          console.log('Opening PDF with system viewer:', fileUri);
-                          const isAvailable = await Sharing.isAvailableAsync();
-                          if (isAvailable) {
-                            await Sharing.shareAsync(fileUri, {
-                              dialogTitle: 'Open PDF with...',
-                              UTI: 'com.adobe.pdf',
-                            });
-                          }
-                        } catch (error) {
-                          console.error('Error opening PDF:', error);
-                        }
-                      }}
-                      style={{
-                        backgroundColor: '#3498DB',
-                        paddingHorizontal: 20,
-                        paddingVertical: 12,
-                        borderRadius: 8,
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        shadowColor: '#3498DB',
-                        shadowOffset: { width: 0, height: 2 },
-                        shadowOpacity: 0.3,
-                        shadowRadius: 4,
-                        elevation: 4,
-                      }}
-                    >
-                      <Ionicons name="eye" size={18} color="#FFFFFF" />
+                    <View style={{
+                      flexDirection: 'row',
+                      alignItems: 'flex-start',
+                      marginBottom: 6,
+                    }}>
                       <Text style={{
-                        color: '#FFFFFF',
-                        fontSize: 14,
-                        fontWeight: 'bold',
-                        marginLeft: 8,
-                        fontFamily: 'questrial',
+                        fontSize: 16,
+                        marginRight: 6,
                       }}>
-                        View PDF
+                        💡
                       </Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity
-                      onPress={handleDownload}
-                      disabled={isDownloading}
-                      style={{
-                        backgroundColor: '#2ECC71',
-                        paddingHorizontal: 20,
-                        paddingVertical: 12,
-                        borderRadius: 8,
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        opacity: isDownloading ? 0.7 : 1,
-                        shadowColor: '#2ECC71',
-                        shadowOffset: { width: 0, height: 2 },
-                        shadowOpacity: 0.3,
-                        shadowRadius: 4,
-                        elevation: 4,
-                      }}
-                    >
-                      {isDownloading ? (
-                        <ActivityIndicator size="small" color="#FFFFFF" />
-                      ) : (
-                        <Ionicons name="download" size={18} color="#FFFFFF" />
-                      )}
-                      <Text style={{
-                        color: '#FFFFFF',
-                        fontSize: 14,
-                        fontWeight: 'bold',
-                        marginLeft: 8,
-                        fontFamily: 'questrial',
-                      }}>
-                        {isDownloading ? 'Saving...' : 'Save'}
-                      </Text>
-                    </TouchableOpacity>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{
+                          color: '#2C3E50',
+                          fontSize: 13,
+                          fontWeight: '600',
+                          fontFamily: 'questrial',
+                          marginBottom: 4,
+                        }}>
+                          Hey! Your file is safely stored 📁
+                        </Text>
+                        
+                        <Text style={{
+                          color: '#4A5568',
+                          fontSize: 12,
+                          lineHeight: 16,
+                          fontFamily: 'questrial',
+                        }}>
+                          Check out your{' '}
+                          <Text style={{ fontWeight: '600', color: '#FB2355' }}>
+                            Profile → Paid Content
+                          </Text>
+                          {' '}to find this PDF and all your other purchased files! 😊
+                        </Text>
+                      </View>
+                    </View>
                   </View>
                   
                   
@@ -5678,48 +5850,62 @@ const FullScreenProfileModal = ({
     fetchCreatorData();
   }, [visible, creatorName, user]);
 
-  // Generate video thumbnail
+  // Generate video thumbnail with caching
   const generateVideoThumbnail = async (item: any): Promise<string | null> => {
     try {
       if (item.contentType !== 'video') return null;
       
+      console.log(`🎬 [VideoThumbnail] Generating thumbnail for video: ${item.$id}`);
+      
       const thumbnailKey = `thumbnail_${item.$id}`;
+      
+      // Check memory cache first
       if (videoThumbnails.has(thumbnailKey)) {
+        console.log(`✅ [VideoThumbnail] Memory cache HIT`);
         return videoThumbnails.get(thumbnailKey) || null;
       }
 
+      // Check persistent cache
+      const cachedThumbnail = dataCache.get(`video_thumbnail_${item.$id}`) as string | null;
+      if (cachedThumbnail) {
+        console.log(`✅ [VideoThumbnail] Persistent cache HIT - loading to memory`);
+        setVideoThumbnails(prev => new Map(prev.set(thumbnailKey, cachedThumbnail)));
+        return cachedThumbnail;
+      }
+
+      console.log(`❌ [VideoThumbnail] Cache MISS - generating new thumbnail...`);
+      
       const { uri } = await VideoThumbnails.getThumbnailAsync(item.imageUri, {
         time: 1000,
         quality: 0.8,
       });
 
+      // Cache in memory and persistent storage
       setVideoThumbnails(prev => new Map(prev.set(thumbnailKey, uri)));
+      dataCache.set(`video_thumbnail_${item.$id}`, uri, 24 * 60 * 60 * 1000); // 24 hours
+      
+      console.log(`✅ [VideoThumbnail] Generated and cached thumbnail (24h TTL)`);
+      
       return uri;
     } catch (error) {
-      console.warn('Failed to generate video thumbnail:', error);
+      console.warn('❌ [VideoThumbnail] Failed to generate video thumbnail:', error);
       return null;
     }
   };
 
-  // Generate thumbnails for videos
-  useEffect(() => {
-    const generateThumbnailsForVideos = async () => {
-      for (const item of purchasedContent) {
-        if (item.contentType === 'video') {
-          const thumbnailKey = `thumbnail_${item.$id}`;
-          if (!videoThumbnails.has(thumbnailKey)) {
-            generateVideoThumbnail(item).catch(error => {
-              console.warn(`Failed to generate thumbnail for video ${item.$id}:`, error);
-            });
-          }
+  // Lazy loading for video thumbnails - only generate when visible
+  const generateThumbnailOnDemand = async (item: any) => {
+    if (item.contentType === 'video') {
+      const thumbnailKey = `thumbnail_${item.$id}`;
+      if (!videoThumbnails.has(thumbnailKey)) {
+        try {
+          await generateVideoThumbnail(item);
+        } catch (error) {
+          console.warn(`Failed to generate thumbnail for video ${item.$id}:`, error);
         }
       }
-    };
-
-    if (purchasedContent.length > 0) {
-      generateThumbnailsForVideos();
     }
-  }, [purchasedContent]);
+  };
 
   // Get display URL (thumbnail for videos, regular URL for images)
   const getDisplayUrl = (item: any): string => {
@@ -6452,6 +6638,26 @@ export default function ChatScreen() {
   const [fullScreenImageUri, setFullScreenImageUri] = useState<string | null>(null);
 
   const colorScheme = useColorScheme();
+
+  // Cleanup function for memory management
+  useEffect(() => {
+    return () => {
+      console.log(`🧹 [ChatScreen] Cleaning up on unmount...`);
+      
+      // Clean up data cache periodically when leaving chat
+      dataCache.cleanup();
+      
+      // Preload images for better performance on return
+      if (creatorThumbnail) {
+        console.log(`🚀 [ChatScreen] Preloading creator thumbnail for next visit`);
+        imageCache.getCachedImageUri(creatorThumbnail).catch(() => {
+          // Silently fail, not critical
+        });
+      }
+      
+      console.log(`✅ [ChatScreen] Cleanup completed`);
+    };
+  }, [creatorThumbnail]);
   const [theme, setTheme] = useState(getTheme());
   const router = useRouter();
   const bounceAnim = useRef(new Animated.Value(0)).current;
