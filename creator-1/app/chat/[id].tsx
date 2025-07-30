@@ -1501,25 +1501,25 @@ const CustomMessageAvatar = (props: any) => {
           async () => {
             console.log(`🔄 [MessageAvatar] Fetching profile for user: ${userId}`);
             
-            if (!config.endpoint || !config.projectId || !config.databaseId || !config.profileCollectionId) {
+        if (!config.endpoint || !config.projectId || !config.databaseId || !config.profileCollectionId) {
               return '';
-            }
+        }
 
-            const appwriteClient = new Client()
-              .setEndpoint(config.endpoint)
-              .setProject(config.projectId);
-            
-            const databases = new Databases(appwriteClient);
-            
-            // Query profiles collection for the user's profile image
-            const profiles = await databases.listDocuments(
-              config.databaseId,
-              config.profileCollectionId,
-              [Query.equal('userId', userId)]
-            );
-            
-            if (profiles.documents.length > 0) {
-              const profileImageUri = profiles.documents[0].profileImageUri;
+        const appwriteClient = new Client()
+          .setEndpoint(config.endpoint)
+          .setProject(config.projectId);
+        
+        const databases = new Databases(appwriteClient);
+        
+        // Query profiles collection for the user's profile image
+        const profiles = await databases.listDocuments(
+          config.databaseId,
+          config.profileCollectionId,
+          [Query.equal('userId', userId)]
+        );
+        
+        if (profiles.documents.length > 0) {
+          const profileImageUri = profiles.documents[0].profileImageUri;
               return profileImageUri || '';
             }
             
@@ -2450,11 +2450,11 @@ const CustomMessageSimple = (props: any) => {
             : isDMChannel 
               ? (isLastMessage() ? 10 : 5) // DM channels
               : (isLastMessage() ? 12 : 6), // Group channels
-          paddingHorizontal: 5, // Consistent horizontal padding
+          paddingHorizontal: 0, // Consistent horizontal padding
           marginTop: isInThread 
             ? (isLastMessage() ? -22 : 4) // Threads - very tight to bubble
             : isDMChannel 
-              ? (isLastMessage() ? -25 : -1) // DM channels - moderate spacing
+              ? (isLastMessage() ? -30 : -1) // DM channels - moderate spacing
               : (isLastMessage() ? -30 : 2), // Group channels - original spacing
           marginBottom: isInThread 
             ? (isLastMessage() ? 1 : 0) // Threads
@@ -4225,7 +4225,7 @@ export default function ChatScreen() {
           user.$id,
           async () => {
             console.log(`🔄 [ProfileImage] Fetching profile for user: ${user.$id}`);
-            const profile = await getUserProfile(user.$id);
+        const profile = await getUserProfile(user.$id);
             return profile?.profileImageUri || '';
           }
         );

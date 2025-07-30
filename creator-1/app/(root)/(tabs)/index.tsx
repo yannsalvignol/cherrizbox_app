@@ -3,8 +3,8 @@ import { useGlobalContext } from '@/lib/global-provider';
 import { client, connectUser } from '@/lib/stream-chat';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Image, Modal, RefreshControl, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
@@ -70,6 +70,19 @@ export default function Index() {
     const [selectedSubscriber, setSelectedSubscriber] = useState<any | null>(null);
     const [showSubscriberModal, setShowSubscriberModal] = useState(false);
     const [channelsLoaded, setChannelsLoaded] = useState(false);
+    
+    // Pagination and performance states
+    const [channelOffset, setChannelOffset] = useState(0);
+    const [hasMoreChannels, setHasMoreChannels] = useState(true);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [showSearch, setShowSearch] = useState(false);
+    const [filteredChannels, setFilteredChannels] = useState<Channel[]>([]);
+    
+    // Cache for user profiles to avoid redundant API calls
+    const userProfileCache = useRef<Map<string, { name: string; avatar: string; timestamp: number }>>(new Map());
+    const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+    const CHANNELS_PER_PAGE = 30; // Load 30 channels at a time
 
     const tabs = [
       { id: 'chats', label: 'Chats' },
@@ -78,23 +91,41 @@ export default function Index() {
       { id: 'audience', label: 'Audience' }
     ];
 
-  const loadChannels = async () => {
+  const loadChannels = async (loadMore = false) => {
     if (!user?.$id) return;
 
     try {
-      setIsLoading(true);
+      if (!loadMore) {
+        console.log('🔄 [Channels] Starting initial load...');
+        setIsLoading(true);
+      } else {
+        console.log(`🔄 [Channels] Loading more channels (offset: ${channelOffset})...`);
+        setIsLoadingMore(true);
+      }
       
-      // Connect user to Stream Chat
-      await connectUser(user.$id);
+      // Connect user to Stream Chat if not already connected
+      if (!client.user) {
+        console.log('🔗 [Channels] Connecting user to Stream Chat...');
+        await connectUser(user.$id);
+      }
       
       // Query channels where the current user is a member
       const filter = { members: { $in: [user.$id] } };
       const sort = [{ last_message_at: -1 }];
       
+      console.log(`📡 [Channels] Querying channels with limit: ${CHANNELS_PER_PAGE}, offset: ${loadMore ? channelOffset : 0}`);
       const response = await client.queryChannels(filter, sort, {
-        limit: 50,
-        offset: 0,
+        limit: CHANNELS_PER_PAGE,
+        offset: loadMore ? channelOffset : 0,
       });
+      
+      console.log(`📋 [Channels] Received ${response.length} channels from Stream Chat`);
+      
+      // Check if we have more channels to load
+      if (response.length < CHANNELS_PER_PAGE) {
+        console.log('✅ [Channels] No more channels to load');
+        setHasMoreChannels(false);
+      }
 
       // Transform channels to our format
       const transformedChannels = response.map(channel => ({
@@ -110,53 +141,44 @@ export default function Index() {
         memberAvatars: (channel.data as any)?.memberAvatars || {},
         unreadCount: channel.countUnread(),
       }));
+      
+      console.log(`🔄 [Channels] Transformed ${transformedChannels.length} channels`);
+      
+      // Batch user profile fetching for DM channels
+      const dmChannelsNeedingProfiles = transformedChannels.filter(channel => 
+        channel.id.startsWith('dm-') && channel.members.length > 0
+      );
+      
+      if (dmChannelsNeedingProfiles.length > 0) {
+        console.log(`👥 [Channels] Batch fetching profiles for ${dmChannelsNeedingProfiles.length} DM channels`);
+        await batchFetchUserProfiles(dmChannelsNeedingProfiles);
+      }
 
-      // Fetch user names for DM channels
-      const channelsWithNames = await Promise.all(
-        transformedChannels.map(async (channel) => {
+      // Add cached user profile data to channels
+      const channelsWithNames = transformedChannels.map(channel => {
           if (channel.id.startsWith('dm-')) {
             const memberNames: { [userId: string]: string } = {};
             const memberAvatars: { [userId: string]: string } = {};
             
-            // For DM channels, we want to get the OTHER person's name, not the current user
+          // Get cached data for other members
             const otherMembers = channel.members.filter(memberId => memberId !== user?.$id);
             
-            // Fetch names for the other members in the DM (not the current user)
             for (const memberId of otherMembers) {
-              try {
-                // Import the databases and config from appwrite
-                const { databases, config } = await import('@/lib/appwrite');
-                const { Query } = await import('react-native-appwrite');
-                
-                // Fetch user data from the user collection using accountId
-                const userResponse = await databases.listDocuments(
-                  config.databaseId,
-                  process.env.EXPO_PUBLIC_APPWRITE_USER_USER_COLLECTION_ID!,
-                  [Query.equal('accountId', memberId)]
-                );
-                
-                if (userResponse.documents.length > 0) {
-                  const userData = userResponse.documents[0];
-                  memberNames[memberId] = userData.username || memberId;
-                  memberAvatars[memberId] = userData.profileImageUri || userData.avatar || ''; // Prefer uploaded pic
-                  console.log(`✅ Found user data for ${memberId}: ${userData.username} with avatar: ${userData.profileImageUri || userData.avatar}`);
+            const cachedProfile = userProfileCache.current.get(memberId);
+            if (cachedProfile) {
+              memberNames[memberId] = cachedProfile.name;
+              memberAvatars[memberId] = cachedProfile.avatar;
             } else {
-                  memberNames[memberId] = memberId; // Fallback to ID if user not found
-                  memberAvatars[memberId] = ''; // No avatar
-                  console.log(`❌ No user data found for ${memberId}`);
-                }
-              } catch (error) {
-                console.error('Error fetching user name for:', memberId, error);
-                memberNames[memberId] = memberId; // Fallback to ID
-                memberAvatars[memberId] = ''; // No avatar
+              // Fallback if not in cache (shouldn't happen after batch fetch)
+              memberNames[memberId] = memberId;
+              memberAvatars[memberId] = '';
               }
             }
             
             return { ...channel, memberNames, memberAvatars };
           }
           return channel;
-        })
-      );
+      });
 
       // Sort channels: group chat first, then by last message time
       const sortedChannels = channelsWithNames.sort((a, b) => {
@@ -191,19 +213,165 @@ export default function Index() {
       const groupChats = uniqueChannels.filter(channel => channel.id.startsWith('creator-'));
       const dmChannels = uniqueChannels.filter(channel => channel.id.startsWith('dm-'));
 
-      setChannels(uniqueChannels);
-      console.log(`📋 Loaded ${uniqueChannels.length} unique channels`);
-      console.log(`👥 Group chats: ${groupChats.length}`);
-      console.log(`💬 DM channels: ${dmChannels.length}`);
-      uniqueChannels.forEach(channel => {
-        console.log(`📝 Channel: ${channel.id} (${channel.memberCount} members)`);
-      });
+      console.log(`📊 [Channels] Final breakdown: ${groupChats.length} group chats, ${dmChannels.length} DM channels`);
+
+      if (loadMore) {
+        setChannels(prev => [...prev, ...uniqueChannels]);
+        setChannelOffset(prev => prev + uniqueChannels.length);
+        console.log(`📈 [Channels] Added ${uniqueChannels.length} more channels. Total: ${channels.length + uniqueChannels.length}`);
+      } else {
+        setChannels(uniqueChannels);
+        setChannelOffset(uniqueChannels.length);
+        console.log(`📈 [Channels] Set ${uniqueChannels.length} channels as initial load`);
+      }
+      
+      // Update filtered channels for search
+      if (searchQuery) {
+        filterChannels(loadMore ? [...channels, ...uniqueChannels] : uniqueChannels, searchQuery);
+      } else {
+        setFilteredChannels(loadMore ? [...channels, ...uniqueChannels] : uniqueChannels);
+      }
+      
+      console.log(`✅ [Channels] Load complete: ${uniqueChannels.length} channels (Total: ${loadMore ? channels.length + uniqueChannels.length : uniqueChannels.length})`);
         } catch (error) {
-      console.error('Error loading channels:', error);
+      console.error('❌ [Channels] Error loading channels:', error);
         } finally {
             setIsLoading(false);
+            setIsLoadingMore(false);
         }
     };
+  
+  // Batch fetch user profiles for better performance
+  const batchFetchUserProfiles = async (dmChannels: Channel[]) => {
+    const now = Date.now();
+    const memberIdsToFetch = new Set<string>();
+    
+    console.log(`🔍 [Profiles] Analyzing ${dmChannels.length} DM channels for profile fetching...`);
+    
+    // Collect all unique member IDs that need fetching
+    for (const channel of dmChannels) {
+      const otherMembers = channel.members.filter(memberId => memberId !== user?.$id);
+      for (const memberId of otherMembers) {
+        const cachedProfile = userProfileCache.current.get(memberId);
+        if (!cachedProfile || (now - cachedProfile.timestamp) > CACHE_DURATION) {
+          memberIdsToFetch.add(memberId);
+        }
+      }
+    }
+    
+    console.log(`👥 [Profiles] Need to fetch ${memberIdsToFetch.size} profiles (${userProfileCache.current.size} already cached)`);
+    
+    if (memberIdsToFetch.size === 0) {
+      console.log('✅ [Profiles] All profiles already cached, skipping fetch');
+      return;
+    }
+    
+    try {
+      const { databases, config } = await import('@/lib/appwrite');
+      const { Query } = await import('react-native-appwrite');
+      
+      // Fetch profiles in batches of 100 (Appwrite limit)
+      const memberIdArray = Array.from(memberIdsToFetch);
+      const batchSize = 100;
+      
+      console.log(`📡 [Profiles] Fetching profiles in batches of ${batchSize}...`);
+      
+      for (let i = 0; i < memberIdArray.length; i += batchSize) {
+        const batch = memberIdArray.slice(i, i + batchSize);
+        
+        console.log(`📦 [Profiles] Fetching batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(memberIdArray.length/batchSize)} (${batch.length} profiles)`);
+        
+        const userResponse = await databases.listDocuments(
+          config.databaseId,
+          process.env.EXPO_PUBLIC_APPWRITE_USER_USER_COLLECTION_ID!,
+          [Query.equal('accountId', batch), Query.limit(batchSize)]
+        );
+        
+        console.log(`✅ [Profiles] Batch ${Math.floor(i/batchSize) + 1} returned ${userResponse.documents.length} profiles`);
+        
+        // Update cache with fetched profiles
+        for (const userData of userResponse.documents) {
+          userProfileCache.current.set(userData.accountId, {
+            name: userData.username || userData.accountId,
+            avatar: userData.profileImageUri || userData.avatar || '',
+            timestamp: now
+          });
+        }
+        
+        // Add entries for users not found
+        for (const memberId of batch) {
+          if (!userResponse.documents.some(doc => doc.accountId === memberId)) {
+            userProfileCache.current.set(memberId, {
+              name: memberId,
+              avatar: '',
+              timestamp: now
+            });
+          }
+        }
+      }
+      
+      console.log(`✅ [Profiles] Batch fetch complete. Cache size: ${userProfileCache.current.size} profiles`);
+    } catch (error) {
+      console.error('❌ [Profiles] Error batch fetching user profiles:', error);
+    }
+  };
+  
+  // Filter channels based on search query
+  const filterChannels = (channelList: Channel[], query: string) => {
+    console.log(`🔍 [Search] Filtering ${channelList.length} channels with query: "${query}"`);
+    
+    if (!query.trim()) {
+      setFilteredChannels(channelList);
+      console.log('✅ [Search] Empty query, showing all channels');
+      return;
+    }
+    
+    const lowercaseQuery = query.toLowerCase().trim();
+    const filtered = channelList.filter(channel => {
+      // Search in channel name
+      if (channel.name && channel.name.toLowerCase().includes(lowercaseQuery)) {
+        return true;
+      }
+      
+      // Search in member names for DM channels
+      if (channel.id.startsWith('dm-')) {
+        const otherMembers = channel.members.filter(memberId => memberId !== user?.$id);
+        for (const memberId of otherMembers) {
+          const memberName = channel.memberNames?.[memberId];
+          if (memberName && memberName.toLowerCase().includes(lowercaseQuery)) {
+            return true;
+          }
+        }
+      }
+      
+      // Search in last message
+      if (channel.lastMessage && channel.lastMessage.toLowerCase().includes(lowercaseQuery)) {
+        return true;
+      }
+      
+      return false;
+    });
+    
+    console.log(`✅ [Search] Found ${filtered.length} matching channels`);
+    setFilteredChannels(filtered);
+  };
+  
+  // Handle search input changes
+  const handleSearchChange = (text: string) => {
+    console.log(`🔍 [Search] Search query changed: "${text}"`);
+    setSearchQuery(text);
+    filterChannels(channels, text);
+  };
+  
+  // Load more channels when reaching the end of the list
+  const handleLoadMore = () => {
+    if (!isLoadingMore && hasMoreChannels && !searchQuery) {
+      console.log('📈 [LoadMore] Triggering load more...');
+      loadChannels(true);
+    } else {
+      console.log(`📈 [LoadMore] Load more blocked - isLoadingMore: ${isLoadingMore}, hasMoreChannels: ${hasMoreChannels}, searchQuery: "${searchQuery}"`);
+    }
+  };
 
   const loadProfileImage = async () => {
     if (!user?.$id) return;
@@ -422,7 +590,7 @@ export default function Index() {
     return date.toLocaleDateString();
   };
 
-  const renderChannelItem = ({ item }: { item: Channel }) => {
+  const renderChannelItem = useCallback(({ item }: { item: Channel }) => {
     const displayName = getChannelDisplayName(item);
     const avatar = getChannelAvatar(item);
     const isDM = item.id.startsWith('dm-');
@@ -586,10 +754,11 @@ export default function Index() {
         )}
       </TouchableOpacity>
     );
-  };
+  }, [user, profileImage, router]);
 
   const loadAudience = async () => {
     if (!user?.$id) return;
+    console.log('👥 [Audience] Starting audience load...');
     setIsLoadingAudience(true);
     try {
       const { databases, config } = await import('@/lib/appwrite');
@@ -603,10 +772,10 @@ export default function Index() {
           Query.equal('status', 'active')
         ]
       );
-      console.log('[Audience] Subscriptions fetched:', response.documents);
+      console.log(`✅ [Audience] Loaded ${response.documents.length} subscribers`);
       setAudience(response.documents);
     } catch (error) {
-      console.error('[Audience] Error loading audience:', error);
+      console.error('❌ [Audience] Error loading audience:', error);
       setAudience([]);
     } finally {
       setIsLoadingAudience(false);
@@ -614,26 +783,41 @@ export default function Index() {
   };
 
   const onRefresh = async () => {
+    console.log('🔄 [Refresh] Starting refresh...');
     setRefreshing(true);
     try {
       if (selectedTab === 'chats') {
-        await loadChannels();
+        console.log('🔄 [Refresh] Refreshing chats tab...');
+        // Reset pagination state
+        setChannelOffset(0);
+        setHasMoreChannels(true);
+        setSearchQuery('');
+        setShowSearch(false);
+        await loadChannels(false);
         await loadProfileImage();
       } else if (selectedTab === 'other') {
+        console.log('🔄 [Refresh] Refreshing other tab...');
         await loadCreatorFinancials();
       } else if (selectedTab === 'audience') {
+        console.log('🔄 [Refresh] Refreshing audience tab...');
         await loadAudience();
       }
     } catch (error) {
-      console.error('Error refreshing data:', error);
+      console.error('❌ [Refresh] Error refreshing data:', error);
     } finally {
       setRefreshing(false);
     }
   };
 
   useEffect(() => {
-    if (!channelsLoaded) {
-        loadChannels().then(() => setChannelsLoaded(true));
+    if (!channelsLoaded && user?.$id) {
+      console.log('🚀 [Init] Initial load triggered');
+      loadChannels(false).then(() => {
+        setChannelsLoaded(true);
+        // Initialize filtered channels after loading
+        setFilteredChannels(channels);
+        console.log('✅ [Init] Initial load complete');
+      });
     }
     loadProfileImage();
     if (user?.$id) {
@@ -643,12 +827,14 @@ export default function Index() {
 
   useEffect(() => {
     if (selectedTab === 'audience') {
+      console.log('👥 [Audience] Tab selected, loading audience...');
       loadAudience();
     }
   }, [selectedTab, user]);
 
   // Update filteredAudience when audience, search, or filter changes
   useEffect(() => {
+    console.log(`🔍 [Audience] Filtering ${audience.length} subscribers with search: "${audienceSearch}", filter: ${audienceFilter}`);
     let filtered = audience;
     // Search filter
     if (audienceSearch.trim()) {
@@ -666,6 +852,7 @@ export default function Index() {
     } else if (audienceFilter === 'income_low') {
       filtered = filtered.slice().sort((a, b) => (a.planAmount || 0) - (b.planAmount || 0));
     }
+    console.log(`✅ [Audience] Filtered to ${filtered.length} subscribers`);
     setFilteredAudience(filtered);
   }, [audience, audienceSearch, audienceFilter]);
 
@@ -773,6 +960,82 @@ export default function Index() {
       {/* Content based on selected tab */}
       {selectedTab === 'chats' && (
         <View style={{ flex: 1, backgroundColor: 'black' }}>
+          {/* Search Bar - Only show when there are channels */}
+          {(channels.length > 0 || showSearch) && (
+            <View style={{
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              backgroundColor: 'black',
+              borderBottomWidth: showSearch ? 1 : 0,
+              borderBottomColor: '#333333',
+            }}>
+              {showSearch ? (
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: '#1A1A1A',
+                  borderRadius: 10,
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  borderWidth: 1,
+                  borderColor: '#333333',
+                }}>
+                  <Ionicons name="search" size={20} color="#888888" style={{ marginRight: 8 }} />
+                  <TextInput
+                    style={{
+                      flex: 1,
+                      color: 'white',
+                      fontSize: 16,
+                      fontFamily: 'Urbanist-Regular',
+                      padding: 0,
+                    }}
+                    placeholder="Search chats..."
+                    placeholderTextColor="#888888"
+                    value={searchQuery}
+                    onChangeText={handleSearchChange}
+                    autoFocus
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  {searchQuery.length > 0 && (
+                    <TouchableOpacity onPress={() => setSearchQuery('')}>
+                      <Ionicons name="close-circle" size={20} color="#888888" style={{ marginLeft: 8 }} />
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowSearch(false);
+                      setSearchQuery('');
+                      setFilteredChannels(channels);
+                    }}
+                    style={{ marginLeft: 12 }}
+                  >
+                    <Text style={{ color: '#FB2355', fontFamily: 'Urbanist-Bold', fontSize: 14 }}>Cancel</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  onPress={() => setShowSearch(true)}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: '#1A1A1A',
+                    borderRadius: 10,
+                    paddingVertical: 10,
+                    borderWidth: 1,
+                    borderColor: '#333333',
+                  }}
+                >
+                  <Ionicons name="search" size={20} color="#888888" style={{ marginRight: 8 }} />
+                  <Text style={{ color: '#888888', fontSize: 16, fontFamily: 'Urbanist-Regular' }}>
+                    Search chats...
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+          
                     {isLoading ? (
             <View style={{ 
               flex: 1, 
@@ -796,7 +1059,7 @@ export default function Index() {
                         </View>
           ) : channels.length > 0 ? (
             <FlatList
-              data={channels}
+              data={searchQuery ? filteredChannels : channels}
               refreshControl={
                 <RefreshControl
                   refreshing={refreshing}
@@ -808,12 +1071,13 @@ export default function Index() {
               }
               renderItem={({ item, index }) => {
                 const isGroupChat = item.id.startsWith('creator-');
-                const isFirstDM = !isGroupChat && index > 0 && channels[index - 1].id.startsWith('creator-');
+                const currentData = searchQuery ? filteredChannels : channels;
+                const isFirstDM = !isGroupChat && index > 0 && currentData[index - 1].id.startsWith('creator-');
                 
                 return (
                   <View>
                     {/* Section header for first DM */}
-                    {isFirstDM && (
+                    {isFirstDM && !searchQuery && (
                                             <View style={{
                         paddingHorizontal: 20,
                         paddingVertical: 12,
@@ -833,7 +1097,7 @@ export default function Index() {
                     )}
                     
                     {/* Group chat section header */}
-                    {isGroupChat && index === 0 && (
+                    {isGroupChat && index === 0 && !searchQuery && (
                                             <View style={{
                         paddingHorizontal: 20,
                         paddingVertical: 12,
@@ -863,6 +1127,58 @@ export default function Index() {
                 backgroundColor: 'black'
               }}
               style={{ backgroundColor: 'black' }}
+              // Performance optimizations
+              removeClippedSubviews={true}
+              maxToRenderPerBatch={10}
+              updateCellsBatchingPeriod={50}
+              windowSize={10}
+              initialNumToRender={15}
+              getItemLayout={(data, index) => ({
+                length: 80, // Approximate height of each item
+                offset: 80 * index,
+                index
+              })}
+              // Load more functionality
+              onEndReached={handleLoadMore}
+              onEndReachedThreshold={0.5}
+              ListFooterComponent={() => {
+                if (isLoadingMore) {
+                  return (
+                    <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+                      <ActivityIndicator size="small" color="#FB2355" />
+                      <Text style={{ color: '#888888', fontFamily: 'Urbanist-Regular', fontSize: 14, marginTop: 8 }}>
+                        Loading more chats...
+                      </Text>
+                    </View>
+                  );
+                }
+                if (!hasMoreChannels && channels.length >= CHANNELS_PER_PAGE && !searchQuery) {
+                  return (
+                    <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+                      <Text style={{ color: '#888888', fontFamily: 'Urbanist-Regular', fontSize: 14 }}>
+                        All chats loaded
+                      </Text>
+                    </View>
+                  );
+                }
+                return null;
+              }}
+              ListEmptyComponent={() => {
+                if (searchQuery) {
+                  return (
+                    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 100 }}>
+                      <Ionicons name="search" size={60} color="#333333" style={{ marginBottom: 16 }} />
+                      <Text style={{ color: '#888888', fontSize: 18, fontFamily: 'Urbanist-Bold', marginBottom: 8 }}>
+                        No results found
+                      </Text>
+                      <Text style={{ color: '#666666', fontSize: 14, fontFamily: 'Urbanist-Regular' }}>
+                        Try searching with a different term
+                      </Text>
+                    </View>
+                  );
+                }
+                return null;
+              }}
             />
           ) : (
             <ScrollView
@@ -1254,6 +1570,8 @@ export default function Index() {
               </TouchableOpacity>
             ))}
           </View>
+          
+          {/* Loading indicator moved below search and filters */}
           {isLoadingAudience ? (
             <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 32 }}>
               <ActivityIndicator size="large" color="#FB2355" />
