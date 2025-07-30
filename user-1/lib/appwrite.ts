@@ -163,6 +163,7 @@ export async function login() {
 
         await account.createSession(userId, secret);
         console.log("[Google OAuth] Session created successfully for user", userId);
+        await ensureUserDocument();
         return true;
     } catch (error) {
         console.error("Google OAuth error:", error);
@@ -199,6 +200,7 @@ export async function loginWithApple() {
 
         await account.createSession(userId, secret);
         console.log("[Apple OAuth] Session created successfully for user", userId);
+        await ensureUserDocument();
         return true;
     } catch (error) {
         console.error("Apple OAuth error:", error);
@@ -1038,3 +1040,31 @@ export const getPurchasedContent = async (
         return [];
     }
 };
+
+export async function ensureUserDocument() {
+  const user = await account.get();
+  const userId = user.$id;
+  const email = user.email;
+  const username = user.name || user.email?.split('@')[0] || 'User';
+
+  // Check if user document exists
+  const existing = await databases.listDocuments(
+    config.databaseId!,
+    config.userCollectionId!,
+    [Query.equal('accountId', userId)]
+  );
+  if (existing.documents.length > 0) return existing.documents[0];
+
+  // Create user document
+  return await databases.createDocument(
+    config.databaseId!,
+    config.userCollectionId!,
+    ID.unique(),
+    {
+      accountId: userId,
+      email,
+      username,
+      avatar: avatars.getInitials(username),
+    }
+  );
+}

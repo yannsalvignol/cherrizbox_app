@@ -1,4 +1,4 @@
-import { createUser, login, loginWithApple, sendVerificationEmailViaFunction, SignIn } from '@/lib/appwrite';
+import { createUser, ensureUserDocument, login, loginWithApple, sendVerificationEmailViaFunction, SignIn } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, useRouter } from 'expo-router';
@@ -161,6 +161,7 @@ const App = () => {
     const handleLogin = async () => {
         const result = await login();
         if(result){
+            await ensureUserDocument();
             refetch();
         } else{
             console.log('Login Failed');
@@ -170,6 +171,7 @@ const App = () => {
     const handleAppleLogin = async () => {
         const result = await loginWithApple();
         if(result){
+            await ensureUserDocument();
             refetch();
         } else{
             console.log('Apple Login Failed');

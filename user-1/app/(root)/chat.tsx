@@ -25,6 +25,15 @@ import loadingIcon from '../../assets/icon/loading-icon.png';
 import { checkPaidContentPurchase, config, createPaidContentPaymentIntent, getCurrentUser } from '../../lib/appwrite';
 import StripePaymentSheet from '../components/StripePaymentSheet';
 
+// Declare global interface for chat screen handlers
+declare global {
+  var chatScreenHandlers: {
+    handleLongPressMessage: (payload: any) => void;
+    setSelectedMessage: (message: any) => void;
+    setShowCustomModal: (show: boolean) => void;
+  } | null;
+}
+
 // Cache for profile images to avoid repeated database calls
 const profileImageCache = new Map<string, string>();
 
@@ -1474,13 +1483,26 @@ const CustomAudioAttachment = (props: any) => {
   };
 
   const handleLongPress = (event: any) => {
-    // Prevent event bubbling
+    console.log('🎵 [CustomAudioAttachment] Long press detected on audio');
     event.stopPropagation();
     
     if (message) {
-      // Need to access the modal functions from parent context
-      // This will depend on your existing message modal implementation
-      console.log('Long press on audio message');
+      console.log('✅ [CustomAudioAttachment] Setting selected message for modal');
+      
+      // Use a more direct approach - find the ChatScreen's state setters
+      // We'll use the message context's client to access the app state
+      try {
+        // Access the global app state through a custom event system
+        // Since we can't easily pass props down, we'll use a global reference
+        if (global.chatScreenHandlers && global.chatScreenHandlers.handleLongPressMessage) {
+          global.chatScreenHandlers.handleLongPressMessage({ message });
+          console.log('✅ [CustomAudioAttachment] Called global handler');
+        } else {
+          console.log('⚠️ [CustomAudioAttachment] Global handlers not available');
+        }
+      } catch (error) {
+        console.log('⚠️ [CustomAudioAttachment] Error calling global handler:', error);
+      }
     }
   };
 
@@ -1697,13 +1719,23 @@ const CustomPhotoAttachment = (props: any) => {
   };
 
   const handleLongPress = (event: any) => {
-    // Prevent event bubbling
+    console.log('📷 [CustomPhotoAttachment] Long press detected on photo');
     event.stopPropagation();
     
     if (message) {
-      // Need to access the modal functions from parent context
-      // This will depend on your existing message modal implementation
-      console.log('Long press on photo message');
+      console.log('✅ [CustomPhotoAttachment] Setting selected message for modal');
+      
+      // Use the global handlers approach
+      try {
+        if (global.chatScreenHandlers && global.chatScreenHandlers.handleLongPressMessage) {
+          global.chatScreenHandlers.handleLongPressMessage({ message });
+          console.log('✅ [CustomPhotoAttachment] Called global handler');
+        } else {
+          console.log('⚠️ [CustomPhotoAttachment] Global handlers not available');
+        }
+      } catch (error) {
+        console.log('⚠️ [CustomPhotoAttachment] Error calling global handler:', error);
+      }
     }
   };
 
@@ -6672,6 +6704,19 @@ export default function ChatScreen() {
       setShowCustomModal(true);
     }
   };
+
+  // Expose handlers globally for custom attachments
+  useEffect(() => {
+    global.chatScreenHandlers = {
+      handleLongPressMessage,
+      setSelectedMessage,
+      setShowCustomModal
+    };
+    
+    return () => {
+      global.chatScreenHandlers = null;
+    };
+  }, []);
 
   // Handle thread reply
   const handleThreadReply = (message: any) => {
