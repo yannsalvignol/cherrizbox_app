@@ -38,8 +38,8 @@ import {
   storage
 } from '../../lib/appwrite';
 
-// Cache for profile images to avoid repeated database calls
-const profileImageCache = new Map<string, string>();
+// Enhanced profile image caching using our data cache system
+import { chatDataCache } from '../../lib/data-cache';
 
 // Custom Paid Content Attachment Component
 const PaidContentAttachment = (props: any) => {
@@ -59,16 +59,26 @@ const PaidContentAttachment = (props: any) => {
     return null;
   }
 
-  // Check if user has purchased this content
+  // Check if user has purchased this content with caching
   useEffect(() => {
     const checkPurchaseStatus = async () => {
       if (!user?.$id || !attachment?.paid_content_id) return;
       
       try {
-        const hasPurchased = await checkPaidContentPurchase(user.$id, attachment.paid_content_id);
+        // Use cached purchase status or fetch if not available
+        const hasPurchased = await chatDataCache.getOrFetchPurchaseStatus(
+          user.$id,
+          attachment.paid_content_id,
+          async () => {
+            console.log(`🔄 [PurchaseStatus] Checking purchase for content: ${attachment.paid_content_id}`);
+            return await checkPaidContentPurchase(user.$id, attachment.paid_content_id);
+          }
+        );
+        
         setIsUnlocked(hasPurchased);
+        console.log(`✅ [PurchaseStatus] Content ${attachment.paid_content_id}: ${hasPurchased ? 'UNLOCKED' : 'LOCKED'} (cached)`);
       } catch (error) {
-        console.error('Error checking purchase status:', error);
+        console.error('❌ [PurchaseStatus] Error checking purchase status:', error);
         setIsUnlocked(false);
       }
     };
@@ -82,6 +92,12 @@ const PaidContentAttachment = (props: any) => {
     console.log('Unlocking paid photo directly');
     setIsUnlocked(true);
     
+    // Update cache with new unlocked status
+    if (user?.$id && attachment?.paid_content_id) {
+      chatDataCache.setCachedPurchaseStatus(user.$id, attachment.paid_content_id, true);
+      console.log(`✅ [PurchaseStatus] Cache updated: content ${attachment.paid_content_id} now UNLOCKED`);
+    }
+    
     // Haptic feedback
     if (Platform.OS === 'ios') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -92,6 +108,12 @@ const PaidContentAttachment = (props: any) => {
     console.log('Payment successful for paid content');
     setIsUnlocked(true);
     setShowPaymentModal(false);
+    
+    // Update cache with new unlocked status
+    if (user?.$id && attachment?.paid_content_id) {
+      chatDataCache.setCachedPurchaseStatus(user.$id, attachment.paid_content_id, true);
+      console.log(`✅ [PurchaseStatus] Cache updated: content ${attachment.paid_content_id} now UNLOCKED`);
+    }
     
     // Haptic feedback
     if (Platform.OS === 'ios') {
@@ -1472,43 +1494,45 @@ const CustomMessageAvatar = (props: any) => {
       
       const userId = message.user.id;
       
-      // Check cache first
-      if (profileImageCache.has(userId)) {
-        const cachedImage = profileImageCache.get(userId);
-        if (cachedImage) {
-          setProfileImage(cachedImage);
-          return;
-        }
-      }
-      
       try {
-        if (!config.endpoint || !config.projectId || !config.databaseId || !config.profileCollectionId) {
-          return;
-        }
+        // Use enhanced data cache for profile images
+        const profileImageUrl = await chatDataCache.getOrFetchProfileImage(
+          userId,
+          async () => {
+            console.log(`🔄 [MessageAvatar] Fetching profile for user: ${userId}`);
+            
+            if (!config.endpoint || !config.projectId || !config.databaseId || !config.profileCollectionId) {
+              return '';
+            }
 
-        const appwriteClient = new Client()
-          .setEndpoint(config.endpoint)
-          .setProject(config.projectId);
-        
-        const databases = new Databases(appwriteClient);
-        
-        // Query profiles collection for the user's profile image
-        const profiles = await databases.listDocuments(
-          config.databaseId,
-          config.profileCollectionId,
-          [Query.equal('userId', userId)]
-        );
-        
-        if (profiles.documents.length > 0) {
-          const profileImageUri = profiles.documents[0].profileImageUri;
-          if (profileImageUri) {
-            // Cache the result
-            profileImageCache.set(userId, profileImageUri);
-            setProfileImage(profileImageUri);
+            const appwriteClient = new Client()
+              .setEndpoint(config.endpoint)
+              .setProject(config.projectId);
+            
+            const databases = new Databases(appwriteClient);
+            
+            // Query profiles collection for the user's profile image
+            const profiles = await databases.listDocuments(
+              config.databaseId,
+              config.profileCollectionId,
+              [Query.equal('userId', userId)]
+            );
+            
+            if (profiles.documents.length > 0) {
+              const profileImageUri = profiles.documents[0].profileImageUri;
+              return profileImageUri || '';
+            }
+            
+            return '';
           }
+        );
+
+        if (profileImageUrl) {
+          setProfileImage(profileImageUrl);
+          console.log(`✅ [MessageAvatar] Profile image loaded (cached) for user: ${userId}`);
         }
       } catch (error) {
-        console.error('Error fetching user profile image:', error);
+        console.error('❌ [MessageAvatar] Error fetching user profile image:', error);
       }
     };
     
@@ -2132,7 +2156,7 @@ const CustomMessageSimple = (props: any) => {
               ? (isLastMessage() ? -22 : 4) // Threads - very tight to bubble
               : isDMChannel 
                 ? (isLastMessage() ? -25 : -1) // DM channels - moderate spacing
-                : (isLastMessage() ? -30 : -6), // Group channels - original spacing
+                : (isLastMessage() ? -10 : -6), // Group channels - original spacing
             marginBottom: isInThread 
               ? (isLastMessage() ? 1 : 0) // Threads
               : isDMChannel 
@@ -2209,7 +2233,7 @@ const CustomMessageSimple = (props: any) => {
               ? (isLastMessage() ? -22 : 4) // Threads - very tight to bubble
               : isDMChannel 
                 ? (isLastMessage() ? -25 : -1) // DM channels - moderate spacing
-                : (isLastMessage() ? -30 : 2), // Group channels - original spacing
+                : (isLastMessage() ? -13 : -5), // Group channels - original spacing
             marginBottom: isInThread 
               ? (isLastMessage() ? 1 : 0) // Threads
               : isDMChannel 
@@ -3936,7 +3960,7 @@ const AudioRecordingModal = ({ visible, onClose, onSend }: {
 const UploadProgressModal = ({ visible, progress, uploadType = 'video' }: {
   visible: boolean;
   progress: string;
-  uploadType?: 'video' | 'file';
+  uploadType?: 'video' | 'file' | 'photo';
 }) => {
   const spinValue = useRef(new Animated.Value(0)).current;
   const scaleValue = useRef(new Animated.Value(0)).current;
@@ -4062,11 +4086,11 @@ const UploadProgressModal = ({ visible, progress, uploadType = 'video' }: {
             marginBottom: 8,
             textAlign: 'center',
           }}>
-            {uploadType === 'video' ? 'Uploading Video' : 'Uploading File'}
+            {uploadType === 'video' ? 'Uploading Video' : uploadType === 'photo' ? 'Uploading Photo' : 'Uploading File'}
           </Text>
           
           <Text style={{
-            color: uploadType === 'video' ? '#9C27B0' : '#4CAF50',
+            color: uploadType === 'video' ? '#9C27B0' : uploadType === 'photo' ? '#FF4081' : '#4CAF50',
             fontSize: 16,
             fontFamily: 'Urbanist-SemiBold',
             textAlign: 'center',
@@ -4141,6 +4165,9 @@ export default function ChatScreen() {
   const [selectedVideoUri, setSelectedVideoUri] = useState<string | null>(null);
   const [isVideoUploading, setIsVideoUploading] = useState(false);
   
+  // Paid Photo states
+  const [isPhotoUploading, setIsPhotoUploading] = useState(false);
+  
   // File upload states
   const [isFileUploading, setIsFileUploading] = useState(false);
   
@@ -4187,26 +4214,77 @@ export default function ChatScreen() {
     initializeChat();
   }, [user, channelId]);
 
-  // Load profile image
+  // Load profile image with caching
   useEffect(() => {
     const loadProfileImage = async () => {
       if (!user?.$id) return;
 
       try {
-        const profile = await getUserProfile(user.$id);
-        if (profile && profile.profileImageUri) {
-          setProfileImage(profile.profileImageUri);
-          console.log('✅ Loaded profile image:', profile.profileImageUri);
+        // Use cached profile image or fetch if not available
+        const profileImageUrl = await chatDataCache.getOrFetchProfileImage(
+          user.$id,
+          async () => {
+            console.log(`🔄 [ProfileImage] Fetching profile for user: ${user.$id}`);
+            const profile = await getUserProfile(user.$id);
+            return profile?.profileImageUri || '';
+          }
+        );
+
+        if (profileImageUrl) {
+          setProfileImage(profileImageUrl);
+          console.log('✅ [ProfileImage] Loaded profile image (cached):', profileImageUrl.substring(0, 60) + '...');
         } else {
-          console.log('❌ No profile image found');
+          console.log('❌ [ProfileImage] No profile image found');
         }
       } catch (error) {
-        console.error('Error loading profile image:', error);
+        console.error('❌ [ProfileImage] Error loading profile image:', error);
       }
     };
 
     loadProfileImage();
   }, [user]);
+
+  // Preload images from visible messages for better performance
+  useEffect(() => {
+    const preloadVisibleImages = async () => {
+      if (!channel) return;
+
+      try {
+        // Get the latest messages from the channel
+        const messages = channel.state.messages || [];
+        
+        // Extract image URLs from custom_photo attachments
+        const imageUrls: string[] = [];
+        
+        messages.slice(-50).forEach((message: any) => { // Only preload last 50 messages
+          if (message.attachments) {
+            message.attachments.forEach((attachment: any) => {
+              if (attachment.type === 'custom_photo' && attachment.image_url) {
+                imageUrls.push(attachment.image_url);
+              }
+            });
+          }
+        });
+
+        if (imageUrls.length > 0) {
+          console.log(`🚀 [ImagePreload] Starting preload of ${imageUrls.length} images...`);
+          
+          // Import and use the image cache for preloading
+          const { chatImageCache } = await import('../../lib/image-cache');
+          await chatImageCache.preloadImages(imageUrls);
+          
+          console.log(`✅ [ImagePreload] Completed preloading ${imageUrls.length} images`);
+        }
+      } catch (error) {
+        console.error('⚠️ [ImagePreload] Failed to preload images:', error);
+      }
+    };
+
+    // Preload with a delay to not block initial render
+    const preloadTimer = setTimeout(preloadVisibleImages, 2000);
+    
+    return () => clearTimeout(preloadTimer);
+  }, [channel]);
 
   // Handle long press on message
   const handleLongPressMessage = (payload: any) => {
@@ -4749,6 +4827,7 @@ export default function ChatScreen() {
       }
 
       // Show custom upload modal
+      setIsPhotoUploading(true);
       setUploadProgress('Uploading your content...');
       setShowUploadModal(true);
 
@@ -4815,11 +4894,13 @@ export default function ChatScreen() {
       console.log('Paid content sent successfully with image URL:', appwriteImageUrl);
       
       // Hide upload modal
+      setIsPhotoUploading(false);
       setShowUploadModal(false);
       setUploadProgress('');
 
     } catch (error) {
       console.error('Error sending paid content:', error);
+      setIsPhotoUploading(false);
       setShowUploadModal(false);
       setUploadProgress('');
       Alert.alert('Error', 'Failed to send paid content. Please try again.');
@@ -5522,13 +5603,53 @@ export default function ChatScreen() {
     );
   }
 
-  // Custom Photo Attachment Component
+  // Custom Photo Attachment Component with Caching
   const CustomPhotoAttachment = ({ attachment }: { attachment: any }) => {
     if (attachment?.type !== 'custom_photo') return null;
 
     const [isLoading, setIsLoading] = useState(true);
     const [hasError, setHasError] = useState(false);
+    const [cachedImageUri, setCachedImageUri] = useState<string | null>(null);
     const isUploading = attachment?.uploading === true;
+
+    // Load cached image on mount
+    useEffect(() => {
+      let isMounted = true;
+
+      const loadCachedImage = async () => {
+        if (!attachment?.image_url) {
+          if (isMounted) {
+            setHasError(true);
+            setIsLoading(false);
+          }
+          return;
+        }
+
+        try {
+          console.log(`🖼️ [CustomPhotoAttachment] Loading image: ${attachment.image_url.substring(0, 60)}...`);
+          
+          // Get cached image path
+          const { chatImageCache } = await import('../../lib/image-cache');
+          const cachedPath = await chatImageCache.getCachedImagePath(attachment.image_url);
+          
+          if (isMounted) {
+            setCachedImageUri(cachedPath);
+            console.log(`✅ [CustomPhotoAttachment] Image ready: ${cachedPath === attachment.image_url ? 'original' : 'cached'}`);
+          }
+        } catch (error) {
+          console.error('❌ [CustomPhotoAttachment] Failed to load cached image:', error);
+          if (isMounted) {
+            setCachedImageUri(attachment.image_url); // Fallback to original
+          }
+        }
+      };
+
+      loadCachedImage();
+
+      return () => {
+        isMounted = false;
+      };
+    }, [attachment?.image_url]);
 
     return (
       <View style={{
@@ -5549,7 +5670,7 @@ export default function ChatScreen() {
           position: 'relative',
         }}>
           {/* Loading indicator while image loads */}
-          {isLoading && !hasError && (
+          {(isLoading || !cachedImageUri) && !hasError && (
             <View style={{
               position: 'absolute',
               justifyContent: 'center',
@@ -5568,7 +5689,7 @@ export default function ChatScreen() {
                 marginTop: 8,
                 opacity: 0.7,
               }}>
-                Loading...
+                {cachedImageUri ? 'Loading...' : 'Caching...'}
               </Text>
             </View>
           )}
@@ -5581,34 +5702,45 @@ export default function ChatScreen() {
               width: '100%',
               height: '100%',
             }}>
+              <Ionicons name="image-outline" size={32} color="#666" />
               <Text style={{
                 color: '#999',
                 fontSize: 14,
                 fontFamily: 'questrial',
                 textAlign: 'center',
+                marginTop: 8,
               }}>
                 Failed to load image
               </Text>
             </View>
           )}
 
-          <Image
-            source={{ uri: attachment.image_url }}
-            style={{
-              width: 250,
-              height: 200,
-              borderRadius: 12,
-              backgroundColor: 'transparent',
-              opacity: isUploading ? 0.7 : 1, // Slight transparency when uploading
-            }}
-            resizeMode="cover"
-            onLoad={() => setIsLoading(false)}
-            onError={() => {
-              setIsLoading(false);
-              setHasError(true);
-            }}
-          />
+          {/* Render image only when cached URI is available */}
+          {cachedImageUri && (
+            <Image
+              source={{ uri: cachedImageUri }}
+              style={{
+                width: 250,
+                height: 200,
+                borderRadius: 12,
+                backgroundColor: 'transparent',
+                opacity: isUploading ? 0.7 : 1, // Slight transparency when uploading
+              }}
+              resizeMode="cover"
+              onLoad={() => {
+                setIsLoading(false);
+                console.log(`✅ [CustomPhotoAttachment] Image rendered successfully`);
+              }}
+              onError={(error) => {
+                console.error(`❌ [CustomPhotoAttachment] Image render failed:`, error.nativeEvent);
+                setIsLoading(false);
+                setHasError(true);
+              }}
+            />
+          )}
         </View>
+        
+
         
         {/* Discrete upload indicator - WhatsApp/Telegram style */}
         {isUploading && (
@@ -6478,7 +6610,7 @@ export default function ChatScreen() {
               <UploadProgressModal
                 visible={showUploadModal}
                 progress={uploadProgress}
-                uploadType={isVideoUploading ? 'video' : isFileUploading ? 'file' : 'video'}
+                uploadType={isVideoUploading ? 'video' : isPhotoUploading ? 'photo' : isFileUploading ? 'file' : 'video'}
               />
               
               {/* Audio Recording Modal */}
