@@ -616,13 +616,13 @@ export default function Profile() {
           />
         </TouchableOpacity>
         
-        <Text style={{ color: 'white', fontSize: 38, fontWeight: 'bold', textAlign: 'center', flex: 1, fontFamily: 'questrial' }}>
-          Cherrybox<Text style={{ color: '#FB2355', fontFamily: 'questrial' }}>.</Text>
+        <Text style={{ color: 'white', fontSize: 38, fontWeight: 'bold', textAlign: 'center', flex: 1, fontFamily: 'MuseoModerno-Regular', letterSpacing: 1, marginTop: 8 }}>
+          cherrizbox
         </Text>
       </View>
 
       {/* Profile Picture Section - Fixed */}
-      <View className="items-center mb-6">
+      <View className="items-center mb-5">
         <View className="w-32 h-32 rounded-full bg-[#1A1A1A] items-center justify-center mb-3 overflow-hidden">
           {profileImage ? (
             <ExpoImage

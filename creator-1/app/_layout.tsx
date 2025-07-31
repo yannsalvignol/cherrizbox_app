@@ -20,6 +20,7 @@ export default function RootLayout() {
     "Urbanist-Light": require("../assets/fonts/Urbanist-Light.ttf"),
     "Urbanist-ExtraLight": require("../assets/fonts/Urbanist-ExtraLight.ttf"),
     "Urbanist-Black": require("../assets/fonts/Urbanist-Black.ttf"),
+    "MuseoModerno-Regular": require("../assets/fonts/MuseoModerno-Regular.ttf"),
   });
 
   useEffect(() => {

@@ -40,7 +40,7 @@ export const databases = new Databases(client);
 export const storage = new Storage(client);
 export const functions = new Functions(client);
 
-export const createUser = async (email: string, password: string, username: string) => {
+export const createUser = async (email: string, password: string, username: string, socialMedia?: string, socialMediaUsername?: string, socialMediaNumber?: string) => {
     try {
         const newAccount = await account.create(ID.unique(), email, password, username);
 
@@ -48,16 +48,29 @@ export const createUser = async (email: string, password: string, username: stri
         const avatarUrl = avatars.getInitials(username);
         await SignIn(email, password);
 
+        const userData: any = {
+            creatoraccountid: newAccount.$id,
+            creatoremail: email,
+            creatorusername: username,
+            creatoravatar: avatarUrl
+        };
+
+        // Add social media data if provided
+        if (socialMedia && socialMediaUsername) {
+            userData.social_media = socialMedia;
+            userData.social_media_username = socialMediaUsername;
+        }
+        
+        // Add social media number if provided
+        if (socialMediaNumber) {
+            userData.social_media_number = socialMediaNumber;
+        }
+
         const newUser = await databases.createDocument(
             config.databaseId,
             config.userCollectionId,
             ID.unique(),
-            {
-                creatoraccountid: newAccount.$id,
-                creatoremail: email,
-                creatorusername: username,
-                creatoravatar: avatarUrl
-            }
+            userData
         );
         
         return newUser;
@@ -112,7 +125,7 @@ const getAppwriteRedirectUri = () => {
     return `${scheme}://`;
 };
 
-export async function login() {
+export async function login(socialMedia?: string, socialMediaUsername?: string, socialMediaNumber?: string) {
     try {
         const redirectUri = getAppwriteRedirectUri();
         const scheme = `appwrite-callback-${config.projectId}://`;
@@ -160,6 +173,10 @@ export async function login() {
                         creatoremail: user.email,
                         creatorusername: user.name,
                         creatoravatar: avatarUrl,
+                        // Use social media info passed from landing page, or fallback to Google
+                        social_media: socialMedia || 'Google',
+                        social_media_username: socialMediaUsername || user.email,
+                        social_media_number: socialMediaNumber || Math.floor(100000 + Math.random() * 900000).toString(),
                         $permissions: [
                             `read(\"user:${user.$id}\")`,
                             `write(\"user:${user.$id}\")`
@@ -178,7 +195,7 @@ export async function login() {
     }
 }
 
-export async function loginWithApple() {
+export async function loginWithApple(socialMedia?: string, socialMediaUsername?: string, socialMediaNumber?: string) {
     try {
         const redirectUri = getAppwriteRedirectUri();
         const scheme = `appwrite-callback-${config.projectId}://`;
@@ -227,6 +244,10 @@ export async function loginWithApple() {
                         creatoremail: user.email,
                         creatorusername: user.name,
                         creatoravatar: avatarUrl,
+                        // Use social media info passed from landing page, or fallback to Apple
+                        social_media: socialMedia || 'Apple',
+                        social_media_username: socialMediaUsername || user.email,
+                        social_media_number: socialMediaNumber || Math.floor(100000 + Math.random() * 900000).toString(),
                         $permissions: [
                             `read(\"user:${user.$id}\")`,
                             `write(\"user:${user.$id}\")`

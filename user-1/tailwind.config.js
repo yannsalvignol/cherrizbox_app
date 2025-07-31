@@ -15,11 +15,13 @@ module.exports = {
     },
     fontFamily: {
       questrial: ["Questrial", "sans-serif"],
+      museomoderno: ["MuseoModerno-Regular", "sans-serif"],
     },
     extend: {
       fontFamily: {
         urbanist: ["Urbanist", "sans-serif"],
         questrial: ["Questrial", "sans-serif"],
+        museomoderno: ["MuseoModerno-Regular", "sans-serif"],
         "urbanist-bold": ["Urbanist-Bold", "sans-serif"],
         "urbanist-medium": ["Urbanist-Medium", "sans-serif"],
         "urbanist-regular": ["Urbanist-Regular", "sans-serif"],

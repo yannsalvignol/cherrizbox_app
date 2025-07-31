@@ -7028,20 +7028,10 @@ export default function ChatScreen() {
                   fontSize: thread ? 18 : 40,
                   fontWeight: 'bold',
                   color: 'white', 
-                  fontFamily: 'questrial'
+                  fontFamily: 'MuseoModerno-Regular'
                 }}>
-                  {thread ? 'Thread Reply' : 'Cherrizbox'}
+                  {thread ? 'Thread Reply' : 'cherrizbox'}
                 </Text>
-                {!thread && (
-                  <Text style={{ 
-                    fontSize: 40,
-                    fontWeight: 'bold',
-                    color: '#FB2355',
-                    fontFamily: 'questrial'
-                  }}>
-                    .
-                  </Text>
-                )}
               </View>
               
               {/* Creator's photo - Positioned absolutely on the right */}

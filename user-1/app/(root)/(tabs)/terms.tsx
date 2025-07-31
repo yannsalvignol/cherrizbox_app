@@ -29,7 +29,7 @@ export default function Terms() {
               1. Acceptance of Terms
             </Text>
             <Text style={{ color: 'white', fontFamily: 'questrial', fontSize: 16, lineHeight: 24 }}>
-              By accessing and using Cherrybox, you agree to be bound by these Terms and Conditions. If you do not agree to these terms, please do not use our service.
+              By accessing and using Cherrizbox, you agree to be bound by these Terms and Conditions. If you do not agree to these terms, please do not use our service.
             </Text>
           </View>
 
@@ -56,7 +56,7 @@ export default function Terms() {
               4. Intellectual Property
             </Text>
             <Text style={{ color: 'white', fontFamily: 'questrial', fontSize: 16, lineHeight: 24 }}>
-              All content on Cherrybox, including but not limited to text, graphics, logos, and software, is the property of Cherrybox or its content suppliers and is protected by international copyright laws.
+              All content on Cherrizbox, including but not limited to text, graphics, logos, and software, is the property of Cherrizbox or its content suppliers and is protected by international copyright laws.
             </Text>
           </View>
 

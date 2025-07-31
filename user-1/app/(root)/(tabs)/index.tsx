@@ -141,17 +141,10 @@ export default function Index() {
                         fontSize: 40,
                         fontWeight: 'bold',
                         color: 'white',
-                        fontFamily: 'questrial'
+                        fontFamily: 'MuseoModerno-Regular',
+                        letterSpacing: 1
                     }}>
-                        Cherrizbox
-                    </Text>
-                    <Text style={{ 
-                        fontSize: 40,
-                        fontWeight: 'bold',
-                        color: '#FB2355',
-                        fontFamily: 'questrial'
-                    }}>
-                        .
+                        cherrizbox
                     </Text>
                 </View>
                 

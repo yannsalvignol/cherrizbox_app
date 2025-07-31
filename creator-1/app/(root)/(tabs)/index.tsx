@@ -880,7 +880,7 @@ export default function Index() {
                                 color: '#FB2355',
                                 fontSize: 38,
                                 fontWeight: 'bold',
-                                fontFamily: 'questrial',
+                                fontFamily: 'MuseoModerno-Regular',
                             }}>
                                 .
                             </Text>

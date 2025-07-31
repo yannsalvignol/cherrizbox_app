@@ -24,13 +24,13 @@ export default function Settings() {
       await logout();
       // Update global state
       refetch();
-      // Navigate to sign-up
-      router.replace('/sign-up');
+      // Navigate to login
+      router.replace('/log-in');
     } catch (error) {
       console.error('Logout error:', error);
       // Even if there's an error, try to update state and navigate
       refetch();
-      router.replace('/sign-up');
+      router.replace('/log-in');
     }
   };
 

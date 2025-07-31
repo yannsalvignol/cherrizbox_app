@@ -15,7 +15,7 @@ const LoadingScreen = () => {
       if (user) {
       router.replace('/(root)/(tabs)');
       } else {
-        router.replace('/sign-up');
+        router.replace('/landing');
       }
     }, 1000); // shorter splash for better UX
     return () => clearTimeout(timer);

@@ -1,12 +1,18 @@
 import { useGlobalContext } from '@/lib/global-provider';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { ImageBackground, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, ImageBackground, StyleSheet, Text, View } from 'react-native';
 
 const LoadingScreen = () => {
   const router = useRouter();
   const { user, isStreamConnected, posts, imagesPreloaded, postsLoaded, loading, creators } = useGlobalContext();
   const [loadingText, setLoadingText] = useState('Initializing...');
+  const dotAnimations = useRef([
+    new Animated.Value(0),
+    new Animated.Value(0),
+    new Animated.Value(0)
+  ]).current;
+  const logoAnimation = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     // Wait until user is loaded, posts are loaded, and images are preloaded
@@ -22,25 +28,70 @@ const LoadingScreen = () => {
     return () => clearTimeout(timer);
   }, [router, user, postsLoaded, imagesPreloaded, loading]);
 
-  // Update loading text based on connection status and preloading
+  // Elegant logo bouncing animation
   useEffect(() => {
-    if (user && imagesPreloaded && postsLoaded) {
-      setLoadingText('Ready!');
-    } else if (user && postsLoaded && !imagesPreloaded) {
-      setLoadingText('Preloading images...');
-    } else if (user && isStreamConnected && !postsLoaded) {
-      setLoadingText('Loading posts...');
-    } else if (user && isStreamConnected) {
-      setLoadingText('Loading content...');
-    } else if (user) {
-      setLoadingText('Connecting...');
-    } else {
-      setLoadingText('Loading...');
-    }
-  }, [user, isStreamConnected, postsLoaded, imagesPreloaded]);
+    const animateLogo = () => {
+      Animated.sequence([
+        Animated.timing(logoAnimation, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(logoAnimation, {
+          toValue: 0,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        // Restart animation after a short delay
+        setTimeout(animateLogo, 1000);
+      });
+    };
+
+    animateLogo();
+  }, []);
+
+  // Netflix-like loading animation
+  useEffect(() => {
+    const animateDots = () => {
+      const animations = dotAnimations.map((anim, index) => {
+        return Animated.sequence([
+          Animated.delay(index * 200),
+          Animated.timing(anim, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+          Animated.timing(anim, {
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+        ]);
+      });
+
+      Animated.stagger(200, animations).start(() => {
+        // Restart animation after a short delay
+        setTimeout(animateDots, 500);
+      });
+    };
+
+    animateDots();
+  }, []);
 
   // Get active creators count for channel setup status
   const activeCreatorsCount = creators.filter(c => c.status === 'active').length;
+
+  // Interpolate logo animation values
+  const logoScale = logoAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.05],
+  });
+
+  const logoTranslateY = logoAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -5],
+  });
 
   return (
     <ImageBackground
@@ -50,10 +101,27 @@ const LoadingScreen = () => {
     >
       <View style={styles.overlay}>
         <View style={styles.textRow}>
-          <Text style={styles.cherrizbox}>Cherrizbox</Text>
-          <Text style={styles.dot}>.</Text>
+          <Animated.Text 
+            style={[
+              styles.cherrizbox,
+              {
+                transform: [
+                  { scale: logoScale },
+                  { translateY: logoTranslateY }
+                ]
+              }
+            ]}
+          >
+            cherrizbox
+          </Animated.Text>
         </View>
-        <Text style={styles.loadingText}>{loadingText}</Text>
+        
+        {/* Netflix-like loading animation */}
+        <View style={styles.loadingContainer}>
+          <Animated.View style={[styles.dot, { opacity: dotAnimations[0] }]} />
+          <Animated.View style={[styles.dot, { opacity: dotAnimations[1] }]} />
+          <Animated.View style={[styles.dot, { opacity: dotAnimations[2] }]} />
+        </View>
         
         {/* Show channel setup status if user is connected and has active creators */}
         {user && isStreamConnected && activeCreatorsCount > 0 && (
@@ -88,22 +156,19 @@ const styles = StyleSheet.create({
     fontSize: 50,
     fontWeight: 'bold',
     color: 'white',
-    fontFamily: 'questrial',
+    fontFamily: 'MuseoModerno-Regular',
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 20,
   },
   dot: {
-    fontSize: 50,
-    fontWeight: 'bold',
-    color: 'white', // purple dot
-    fontFamily: 'questrial',
-    marginLeft: 2,
-    marginBottom: 2,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: 'white',
-    fontFamily: 'questrial',
-    marginTop: 10,
-    opacity: 0.8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FB2355',
+    marginHorizontal: 4,
   },
   channelText: {
     fontSize: 14,

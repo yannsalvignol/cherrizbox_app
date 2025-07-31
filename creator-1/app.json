@@ -61,7 +61,8 @@
             "./assets/fonts/Urbanist-Light.ttf",
             "./assets/fonts/Urbanist-ExtraLight.ttf",
             "./assets/fonts/Urbanist-Black.ttf",
-            "./assets/fonts/Urbanist-Thin.ttf"
+            "./assets/fonts/Urbanist-Thin.ttf",
+            "./assets/fonts/MuseoModerno-Regular.ttf"
           ]
         }
       ],

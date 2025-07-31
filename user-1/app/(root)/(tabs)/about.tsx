@@ -29,8 +29,8 @@ export default function About() {
             className="w-24 h-24 mb-4"
             resizeMode="contain"
           />
-          <Text style={{ color: 'white', fontSize: 24, fontFamily: 'questrial', marginBottom: 8 }}>
-            Cherrybox<Text style={{ color: '#FB2355' }}>.</Text>
+          <Text style={{ color: 'white', fontSize: 24, fontFamily: 'MuseoModerno-Regular', marginBottom: 8, letterSpacing: 1 }}>
+            cherrizbox
           </Text>
           <Text style={{ color: '#666666', fontFamily: 'questrial', fontSize: 16, textAlign: 'center' }}>
             Version 1.0.0
@@ -43,7 +43,7 @@ export default function About() {
               Our Mission
             </Text>
             <Text style={{ color: 'white', fontFamily: 'questrial', fontSize: 16, lineHeight: 24 }}>
-              Cherrybox is dedicated to creating a safe and engaging platform for content creators and their audiences. We strive to provide innovative tools and features that enhance the connection between creators and their community.
+              Cherrizbox is redefining creator–audience engagement. We empower creators with massive followings to engage every subscriber meaningfully, ensuring that every message gets a thoughtful response.
             </Text>
           </View>
 
@@ -52,7 +52,25 @@ export default function About() {
               What We Do
             </Text>
             <Text style={{ color: 'white', fontFamily: 'questrial', fontSize: 16, lineHeight: 24 }}>
-              We provide a platform where creators can share exclusive content with their subscribers, manage their content effectively, and build meaningful relationships with their audience. Our focus is on delivering a seamless, user-friendly experience while maintaining the highest standards of privacy and security.
+              Our platform ensures that creators can always respond to their audience, no matter how large their following grows. We make it possible for every subscriber to feel heard and valued, creating authentic connections at scale.
+            </Text>
+          </View>
+
+          <View>
+            <Text style={{ color: '#FB2355', fontFamily: 'questrial', fontSize: 18, marginBottom: 8 }}>
+              The Problem We Solve
+            </Text>
+            <Text style={{ color: 'white', fontFamily: 'questrial', fontSize: 16, lineHeight: 24 }}>
+              High-profile creators are drowning in messages. Existing platforms don't allow them to respond to everyone without sacrificing authenticity. We close this gap by ensuring every message gets an answer.
+            </Text>
+          </View>
+
+          <View>
+            <Text style={{ color: '#FB2355', fontFamily: 'questrial', fontSize: 18, marginBottom: 8 }}>
+              Our Team
+            </Text>
+            <Text style={{ color: 'white', fontFamily: 'questrial', fontSize: 16, lineHeight: 24 }}>
+              Founded by engineering students passionate about the creator economy, our team combines technical expertise with deep understanding of what creators and their audiences need. We've been working on this project for over a year, gathering feedback that reinforces our vision.
             </Text>
           </View>
 
@@ -61,7 +79,7 @@ export default function About() {
               Contact Us
             </Text>
             <Text style={{ color: 'white', fontFamily: 'questrial', fontSize: 16, lineHeight: 24 }}>
-              Have questions or suggestions? We'd love to hear from you. Reach out to our support team at support@cherrybox.com
+              Have questions or suggestions? We'd love to hear from you. Reach out to our support team at support@cherrizbox.com
             </Text>
           </View>
         </View>

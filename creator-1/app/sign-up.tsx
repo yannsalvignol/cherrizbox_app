@@ -1,7 +1,7 @@
 import { createUser, login, loginWithApple, sendVerificationEmail, SignIn } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
 import { Ionicons } from '@expo/vector-icons';
-import { Redirect, useRouter } from 'expo-router';
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -39,6 +39,7 @@ const PasswordCriteria = ({ password, isFocused }: { password: string; isFocused
 const App = () => {
     const router = useRouter();
     const { refetch, loading, isLogged } = useGlobalContext();
+    const { socialMedia, socialMediaUsername, socialMediaNumber } = useLocalSearchParams();
     const [form, setForm] = useState({
         username: '',
         email: '',
@@ -87,6 +88,13 @@ const App = () => {
             return;
         }
 
+        // Check if social media information is present
+        if (!socialMedia || !socialMediaUsername || !socialMediaNumber) {
+            Alert.alert('Error', 'Social media information is required. Please start from the beginning.');
+            router.replace('/landing');
+            return;
+        }
+
         setIsSubmitting(true);
         const code = Math.floor(100000 + Math.random() * 900000).toString();
         setGeneratedCode(code);
@@ -111,7 +119,14 @@ const App = () => {
         setVerificationError(''); // Clear error on successful check
         setIsSubmitting(true);
         try {
-            await createUser(form.email, form.password, form.username);
+            await createUser(
+                form.email, 
+                form.password, 
+                form.username, 
+                socialMedia as string, 
+                socialMediaUsername as string,
+                socialMediaNumber as string
+            );
             await SignIn(form.email, form.password);
             refetch();
             router.replace('/(root)/(tabs)');
@@ -127,7 +142,14 @@ const App = () => {
     };
     
     const handleLogin = async () => {
-        const result = await login();
+        // Check if social media information is present
+        if (!socialMedia || !socialMediaUsername || !socialMediaNumber) {
+            Alert.alert('Error', 'Social media information is required. Please start from the beginning.');
+            router.replace('/landing');
+            return;
+        }
+
+        const result = await login(socialMedia as string, socialMediaUsername as string, socialMediaNumber as string);
         if(result){
             refetch();
         } else{
@@ -136,7 +158,14 @@ const App = () => {
     };
 
     const handleAppleLogin = async () => {
-        const result = await loginWithApple();
+        // Check if social media information is present
+        if (!socialMedia || !socialMediaUsername || !socialMediaNumber) {
+            Alert.alert('Error', 'Social media information is required. Please start from the beginning.');
+            router.replace('/landing');
+            return;
+        }
+
+        const result = await loginWithApple(socialMedia as string, socialMediaUsername as string, socialMediaNumber as string);
         if(result){
             refetch();
         } else {
@@ -152,15 +181,12 @@ const App = () => {
         );
     }
     
-    if (!loading && isLogged) return <Redirect href="/" />;
+    if (!loading && isLogged) return <Redirect href="/(root)/(tabs)" />;
 
     return (
         <SafeAreaView className="flex-1 bg-white">
-            <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}>
-                <View className="flex-1 px-4 py-8">
-                    <TouchableOpacity onPress={() => verificationSent && setVerificationSent(false)} className="absolute top-4 left-4 z-10">
-                        {verificationSent && <Ionicons name="arrow-back" size={24} color="black" />}
-                    </TouchableOpacity>
+            <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-start' }}>
+                <View className="flex-1 px-4 pt-8">
                     
                     {verificationSent ? (
                         <View className="items-center">
@@ -206,7 +232,7 @@ const App = () => {
                         </View>
                     ) : (
                         <>
-                            <Text className="text-black font-['Urbanist-Bold'] text-4xl mt-[50px]">    
+                            <Text className="text-black font-['Urbanist-Bold'] text-4xl mt-4">    
                                 Hello! Register to Cherrizbox <Text style={{ color: '#FB2355' }}>Creator</Text>.
                             </Text>
                             <FormField 
@@ -233,6 +259,8 @@ const App = () => {
                                     secureTextEntry={!showPassword}
                                     onFocus={() => setIsPasswordFocused(true)}
                                     onBlur={() => setIsPasswordFocused(false)}
+                                    textContentType="none"
+                                    autoComplete="off"
                                 />
                                 <TouchableOpacity
                                     className="px-4"
@@ -255,6 +283,8 @@ const App = () => {
                                     className="flex-1 px-5 py-6 font-['Urbanist-Regular']"
                                     placeholderTextColor="#9CA3AF"
                                     secureTextEntry={!showConfirmPassword}
+                                    textContentType="none"
+                                    autoComplete="off"
                                 />
                                 <TouchableOpacity
                                     className="px-4"
@@ -313,16 +343,7 @@ const App = () => {
                                 </TouchableOpacity>
                             </View>
 
-                            <View className="flex-row justify-center items-center mt-1">
-                                <Text className="text-black font-['Urbanist-Bold']">
-                                    Already have an account?{' '}
-                                </Text>
-                                <TouchableOpacity onPress={() => router.push('/log-in')}>
-                                    <Text className="text-[#FB2355] font-['Urbanist-Bold']">
-                                        Login Now
-                                    </Text>
-                                </TouchableOpacity>
-                            </View>
+
                         </>
                     )}
                 </View>

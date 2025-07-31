@@ -36,6 +36,29 @@ const countries = [
   { name: 'Russia', code: '+7', flag: '🇷🇺', format: 'XXX XXX-XX-XX' },
 ];
 
+const otherRelevantCountries = [
+  { name: 'Singapore', code: '+65', flag: '🇸🇬', format: 'XXXX XXXX' },
+  { name: 'United Arab Emirates', code: '+971', flag: '🇦🇪', format: 'XX XXX XXXX' },
+  { name: 'Turkey', code: '+90', flag: '🇹🇷', format: 'XXX XXX XXXX' },
+  { name: 'South Africa', code: '+27', flag: '🇿🇦', format: 'XX XXX XXXX' },
+  { name: 'Indonesia', code: '+62', flag: '🇮🇩', format: 'XXX-XXXX-XXXX' },
+  { name: 'Saudi Arabia', code: '+966', flag: '🇸🇦', format: 'X XXX XXXX' },
+  { name: 'Argentina', code: '+54', flag: '🇦🇷', format: 'XX XXXX-XXXX' },
+  { name: 'Egypt', code: '+20', flag: '🇪🇬', format: 'XXXX XXX XXX' },
+  { name: 'Thailand', code: '+66', flag: '🇹🇭', format: 'XX XXX XXXX' },
+  { name: 'Vietnam', code: '+84', flag: '🇻🇳', format: 'XXX XXXX XXX' },
+  { name: 'Israel', code: '+972', flag: '🇮🇱', format: 'X-XXX-XXXX' },
+  { name: 'Switzerland', code: '+41', flag: '🇨🇭', format: 'XX XXX XX XX' },
+  { name: 'Sweden', code: '+46', flag: '🇸🇪', format: 'XX-XXX XX XX' },
+  { name: 'Norway', code: '+47', flag: '🇳🇴', format: 'XXX XX XXX' },
+  { name: 'Denmark', code: '+45', flag: '🇩🇰', format: 'XX XX XX XX' },
+  { name: 'Netherlands', code: '+31', flag: '🇳🇱', format: 'XX XXX XXXX' },
+  { name: 'Belgium', code: '+32', flag: '🇧🇪', format: 'XXX XX XX XX' },
+  { name: 'Portugal', code: '+351', flag: '🇵🇹', format: 'XXX XXX XXX' },
+  { name: 'Greece', code: '+30', flag: '🇬🇷', format: 'XXX XXX XXXX' },
+  { name: 'New Zealand', code: '+64', flag: '🇳🇿', format: 'XXX XXX XXX' },
+];
+
 const genders = [
   { value: 'male', label: 'Male', icon: '👨' },
   { value: 'female', label: 'Female', icon: '👩' },
@@ -61,6 +84,7 @@ export default function EditProfile() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [showOtherCountries, setShowOtherCountries] = useState(false);
 
   const months = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
   const currentYear = new Date().getFullYear();
@@ -533,29 +557,19 @@ export default function EditProfile() {
               <View className="flex-row justify-between items-center p-6 border-b border-gray-800">
                 <Text className="text-white text-2xl font-bold font-questrial">Select Country</Text>
                 <TouchableOpacity 
-                  onPress={() => setShowCountryPicker(false)}
+                  onPress={() => {
+                    setShowCountryPicker(false);
+                    setShowOtherCountries(false);
+                  }}
                   className="w-10 h-10 bg-[#FB2355] rounded-full items-center justify-center"
                 >
                   <Ionicons name="close" size={20} color="white" />
                 </TouchableOpacity>
               </View>
 
-              {/* Search Bar */}
-              <View className="p-4">
-                <View className="flex-row items-center bg-[#2A2A2A] rounded-xl px-4 py-3">
-                  <Ionicons name="search" size={20} color="#666" style={{ marginRight: 12 }} />
-                  <TextInput
-                    placeholder="Search countries..."
-                    placeholderTextColor="#666"
-                    className="flex-1 text-white font-questrial text-base"
-                    style={{ color: 'white' }}
-                  />
-                </View>
-              </View>
-
               {/* Countries List */}
               <FlatList
-                data={countries}
+                data={showOtherCountries ? otherRelevantCountries : countries}
                 keyExtractor={(item) => item.code + item.name}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: 20 }}
@@ -565,6 +579,7 @@ export default function EditProfile() {
                     onPress={() => {
                       setSelectedCountry(item);
                       setShowCountryPicker(false);
+                      setShowOtherCountries(false);
                     }}
                     activeOpacity={0.7}
                   >
@@ -580,6 +595,27 @@ export default function EditProfile() {
                     </View>
                   </TouchableOpacity>
                 )}
+                ListFooterComponent={
+                  !showOtherCountries ? (
+                    <TouchableOpacity
+                      className="flex-row items-center justify-center py-4 mx-4 mb-4 rounded-xl bg-[#FB2355]"
+                      onPress={() => setShowOtherCountries(true)}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="earth" size={20} color="white" style={{ marginRight: 8 }} />
+                      <Text className="text-white text-lg font-questrial font-semibold">Other</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity
+                      className="flex-row items-center justify-center py-4 mx-4 mb-4 rounded-xl bg-[#444]"
+                      onPress={() => setShowOtherCountries(false)}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="arrow-back" size={20} color="white" style={{ marginRight: 8 }} />
+                      <Text className="text-white text-lg font-questrial font-semibold">Back to Main List</Text>
+                    </TouchableOpacity>
+                  )
+                }
               />
             </View>
           </View>
