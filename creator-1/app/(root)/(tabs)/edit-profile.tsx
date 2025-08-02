@@ -58,7 +58,7 @@ const trendingTopics = [
 
 export default function EditProfile() {
   const router = useRouter();
-  const { user: globalUser } = useGlobalContext();
+  const { user: globalUser, refreshChannelConditions } = useGlobalContext();
   const scrollViewRef = useRef<ScrollView>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
@@ -486,6 +486,9 @@ export default function EditProfile() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Vibration.vibrate(100); // Short vibration for success
       
+      // Refresh channel conditions to update the missing info modal on index.tsx
+      await refreshChannelConditions();
+      
       // Scroll back to preview
       setIsEditMode(false);
       scrollViewRef.current?.scrollTo({ y: 0, animated: true });
@@ -592,6 +595,33 @@ export default function EditProfile() {
       }
 
       // All fields are complete, proceed with going live
+      // First, update the user document in EXPO_PUBLIC_APPWRITE_USER_COLLECTION_ID
+      try {
+        const userDocs = await databases.listDocuments(
+          config.databaseId,
+          config.userCollectionId,
+          [Query.equal('creatoraccountid', globalUser.$id)]
+        );
+        
+        if (userDocs.documents.length > 0) {
+          const userDocId = userDocs.documents[0].$id;
+          await databases.updateDocument(
+            config.databaseId,
+            config.userCollectionId,
+            userDocId,
+            {
+              account_state: 'required'
+            }
+          );
+          console.log('✅ User account_state set to required');
+        }
+      } catch (error) {
+        console.error('❌ Error updating user account_state:', error);
+        Alert.alert('Error', 'Failed to update account state. Please try again.');
+        return;
+      }
+
+      // Update photo document state
       const userPhoto = await getUserPhoto(globalUser.$id);
       if (userPhoto) {
         await databases.updateDocument(
@@ -626,14 +656,39 @@ export default function EditProfile() {
         );
       }
       
-      // Create the creator's group chat
+      // Check if all conditions are met for creating the channel
       try {
-        const creatorDisplayName = creatorName || name || globalUser.name || 'Creator';
-        await createCreatorChannel(globalUser.$id, creatorDisplayName);
-        console.log('✅ Creator group chat created successfully');
+        const userDocs = await databases.listDocuments(
+          config.databaseId,
+          config.userCollectionId,
+          [Query.equal('creatoraccountid', globalUser.$id)]
+        );
+        
+        if (userDocs.documents.length > 0) {
+          const userDoc = userDocs.documents[0];
+          const accountState = userDoc.account_state;
+          const socialMediaNumberCorrect = userDoc.social_media_number_correct;
+          const stripeConnectSetupComplete = userDoc.stripeConnectSetupComplete;
+          
+          // Only create channel if all conditions are met
+          if (accountState === 'ok' && socialMediaNumberCorrect === true && stripeConnectSetupComplete === true) {
+            try {
+              const creatorDisplayName = creatorName || name || globalUser.name || 'Creator';
+              await createCreatorChannel(globalUser.$id, creatorDisplayName);
+              console.log('✅ Creator group chat created successfully - all conditions met');
+            } catch (error) {
+              console.error('❌ Error creating creator group chat:', error);
+            }
+          } else {
+            console.log('⏳ Channel creation skipped - conditions not met:', {
+              accountState,
+              socialMediaNumberCorrect,
+              stripeConnectSetupComplete
+            });
+          }
+        }
       } catch (error) {
-        console.error('❌ Error creating creator group chat:', error);
-        // Don't throw error here - group chat creation failure shouldn't prevent going live
+        console.error('❌ Error checking user conditions for channel creation:', error);
       }
       
       // Update local state
@@ -660,6 +715,9 @@ export default function EditProfile() {
         console.error('❌ Error sending creator verification notification:', error);
         // Don't fail the entire process if email fails
       }
+      
+      // Refresh channel conditions to update the missing info modal on index.tsx
+      await refreshChannelConditions();
       
       // Show verification message
       setShowVerificationModal(true);
@@ -1478,6 +1536,9 @@ export default function EditProfile() {
                           monthlyPrice: monthly,
                           yearlyPrice: yearly
                         });
+                        
+                        // Refresh channel conditions to update the missing info modal on index.tsx
+                        await refreshChannelConditions();
                         
                         // Show success message
                         setSuccessMessage('Prices saved successfully!');

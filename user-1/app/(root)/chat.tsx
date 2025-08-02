@@ -104,7 +104,7 @@ const CustomMessageAvatar = (props: any) => {
         const cachedImageUri = await imageCache.getCachedImageUri(cachedProfileData.profileImageUri);
         setProfileImage(cachedImageUri);
         console.log(`✅ [CustomMessageAvatar] Avatar loaded from cache`);
-        return;
+          return;
       }
       
       console.log(`❌ [CustomMessageAvatar] Profile data cache MISS - querying database...`);
@@ -4394,8 +4394,8 @@ const PaidContentPaymentModal: React.FC<PaidContentPaymentModalProps> = ({
     const user = await getCurrentUser();
     const metadata:any = {
       userId: user?.$id || 'anonymous',
-      creatorId,
-      creatorName,
+        creatorId,
+        creatorName,
       contentId,
       contentType,
       imageUrl,
@@ -4407,9 +4407,9 @@ const PaidContentPaymentModal: React.FC<PaidContentPaymentModalProps> = ({
   return (
     <StripePaymentSheet
       visible={visible}
-      onClose={onClose}
+              onClose={onClose}
       onSuccess={onSuccess}
-      amount={amount}
+              amount={amount}
       interval={'month'}
       creatorName={creatorName || ''}
       navigateOnSuccess={false}
@@ -5349,7 +5349,7 @@ const BlurryFileAttachment = (props: any) => {
                   {/* PDF Access Information */}
                   <View style={{
                     backgroundColor: 'rgba(251, 35, 85, 0.1)',
-                    borderRadius: 8,
+                        borderRadius: 8,
                     padding: 12,
                     marginTop: 12,
                     borderWidth: 1,
@@ -5358,7 +5358,7 @@ const BlurryFileAttachment = (props: any) => {
                     alignSelf: 'stretch',
                   }}>
                     <View style={{
-                      flexDirection: 'row',
+                        flexDirection: 'row',
                       alignItems: 'flex-start',
                       marginBottom: 6,
                     }}>
@@ -5373,22 +5373,22 @@ const BlurryFileAttachment = (props: any) => {
                           color: '#2C3E50',
                           fontSize: 13,
                           fontWeight: '600',
-                          fontFamily: 'questrial',
+                        fontFamily: 'questrial',
                           marginBottom: 4,
-                        }}>
+                      }}>
                           Hey! Your file is safely stored 📁
-                        </Text>
+                      </Text>
                         
-                        <Text style={{
+                      <Text style={{
                           color: '#4A5568',
                           fontSize: 12,
                           lineHeight: 16,
-                          fontFamily: 'questrial',
-                        }}>
+                        fontFamily: 'questrial',
+                      }}>
                           Check out your{' '}
                           <Text style={{ fontWeight: '600', color: '#FB2355' }}>
                             Profile → Paid Content
-                          </Text>
+                      </Text>
                           {' '}to find this PDF and all your other purchased files! 😊
                         </Text>
                       </View>

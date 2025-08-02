@@ -5,7 +5,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Image, Modal, RefreshControl, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Image, Keyboard, KeyboardAvoidingView, Modal, Platform, RefreshControl, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 
@@ -48,8 +48,19 @@ interface StripeConnectProfile {
 
 export default function Index() {
     const router = useRouter();
-    const { user } = useGlobalContext();
-  const [channels, setChannels] = useState<Channel[]>([]);
+    const { 
+      user, 
+      missingChannelConditions, 
+      setMissingChannelConditions, 
+      refreshChannelConditions,
+      showInlineVerification,
+      setShowInlineVerification,
+      socialMediaPlatform,
+      setSocialMediaPlatform,
+      socialMediaUsername,
+      setSocialMediaUsername
+    } = useGlobalContext();
+    const [channels, setChannels] = useState<Channel[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [profileImage, setProfileImage] = useState<string | null>(null);
     const [selectedTab, setSelectedTab] = useState('chats');
@@ -70,6 +81,21 @@ export default function Index() {
     const [selectedSubscriber, setSelectedSubscriber] = useState<any | null>(null);
     const [showSubscriberModal, setShowSubscriberModal] = useState(false);
     const [channelsLoaded, setChannelsLoaded] = useState(false);
+  const [isCheckingConditions, setIsCheckingConditions] = useState(false);
+  const [socialMediaCode, setSocialMediaCode] = useState('');
+  const [isVerifyingCode, setIsVerifyingCode] = useState(false);
+  const [verificationError, setVerificationError] = useState('');
+  const [channelCreated, setChannelCreated] = useState(false);
+
+  // Social media platform icons mapping (same as landing.tsx)
+  const networks = [
+    { name: 'LinkedIn', icon: 'logo-linkedin', color: '#0077B5', type: 'ionicon' },
+    { name: 'TikTok', icon: 'musical-notes', color: '#000000', type: 'ionicon' },
+    { name: 'YouTube', icon: 'logo-youtube', color: '#FF0000', type: 'ionicon' },
+    { name: 'Instagram', icon: 'logo-instagram', color: '#E4405F', type: 'ionicon' },
+    { name: 'Twitch', icon: 'logo-twitch', color: '#9146FF', type: 'ionicon' },
+    { name: 'X', icon: require('../../../assets/images/X.png'), color: '#000000', type: 'image' },
+  ];
     
     // Pagination and performance states
     const [channelOffset, setChannelOffset] = useState(0);
@@ -91,6 +117,19 @@ export default function Index() {
       { id: 'audience', label: 'Audience' }
     ];
 
+  const checkChannelConditions = async () => {
+    if (!user?.$id) return;
+    
+    setIsCheckingConditions(true);
+    try {
+      await refreshChannelConditions();
+    } catch (error) {
+      console.error('❌ [Conditions] Error checking channel conditions:', error);
+    } finally {
+      setIsCheckingConditions(false);
+    }
+  };
+
   const loadChannels = async (loadMore = false) => {
     if (!user?.$id) return;
 
@@ -103,16 +142,258 @@ export default function Index() {
         setIsLoadingMore(true);
       }
       
+      // First check user document to see if conditions are already met
+      const { databases, config } = await import('@/lib/appwrite');
+      const { Query } = await import('react-native-appwrite');
+      
+      const userDocs = await databases.listDocuments(
+        config.databaseId,
+        config.userCollectionId,
+        [Query.equal('creatoraccountid', user.$id)]
+      );
+      
+      if (userDocs.documents.length === 0) {
+        console.log('⏳ [Channels] No user document found, skipping channel load');
+        setMissingChannelConditions(['Account setup incomplete']);
+        setChannels([]);
+        return;
+      }
+      
+      const userDoc = userDocs.documents[0];
+      
+      // Get profile data (needed for both paths)
+      const { getUserProfile, getUserPhoto } = await import('@/lib/appwrite');
+      const profile = await getUserProfile(user.$id);
+      
+      // If account_state is 'ok', conditions are already met, skip detailed checks
+      if (userDoc.account_state === 'ok') {
+        console.log('✅ [Channels] Account state is ok, conditions already met, proceeding with channel load');
+        setChannelCreated(true);
+      } else {
+        // Only do detailed condition checks if account_state is not 'ok'
+        console.log('🔍 [Channels] Account state not ok, checking conditions...');
+        
+        // Check if all profile fields are filled (same as handleGoLive validation)
+        
+        if (!profile) {
+          console.log('⏳ [Channels] No profile found, skipping channel load');
+          setMissingChannelConditions(['Profile setup incomplete']);
+          setChannels([]);
+          return;
+        }
+
+        // Check if all profile fields are filled
+        const missingProfileFields: string[] = [];
+        
+        if (!profile.profileImageUri) {
+          missingProfileFields.push('Profile Picture');
+        }
+        
+        if (!profile.creatorsname || profile.creatorsname.trim() === '') {
+          missingProfileFields.push('Creator Name');
+        }
+        
+        if (!profile.ProfilesBio || profile.ProfilesBio.trim() === '') {
+          missingProfileFields.push('Bio');
+        }
+        
+        if (!profile.Location || profile.Location.trim() === '') {
+          missingProfileFields.push('Location');
+        }
+        
+        if (!profile.topics || profile.topics.trim() === '') {
+          missingProfileFields.push('Topics');
+        }
+        
+        if (!profile.phoneNumber || profile.phoneNumber.trim() === '') {
+          missingProfileFields.push('Phone Number');
+        }
+        
+        if (!profile.gender || profile.gender.trim() === '') {
+          missingProfileFields.push('Gender');
+        }
+        
+        if (!profile.dateOfBirth || profile.dateOfBirth.trim() === '') {
+          missingProfileFields.push('Date of Birth');
+        }
+
+        // Check if user has set up pricing
+        const userPhoto = await getUserPhoto(user.$id);
+        if (!userPhoto || !userPhoto.payment) {
+          missingProfileFields.push('Subscription Pricing');
+        } else {
+          try {
+            const paymentData = JSON.parse((userPhoto as any).payment);
+            if (!paymentData.monthlyPrice || !paymentData.yearlyPrice || 
+                parseFloat(paymentData.monthlyPrice) <= 0 || parseFloat(paymentData.yearlyPrice) <= 0) {
+              missingProfileFields.push('Subscription Pricing');
+            }
+          } catch (error) {
+            missingProfileFields.push('Subscription Pricing');
+          }
+        }
+
+        // If profile is incomplete, show missing profile fields
+        if (missingProfileFields.length > 0) {
+          console.log('⏳ [Channels] Profile incomplete, skipping channel load');
+          setMissingChannelConditions(missingProfileFields);
+          setChannels([]);
+          return;
+        }
+
+        // Profile is complete, now check verification conditions
+        const conditionsMet = userDoc.social_media_number_correct === true && 
+                             userDoc.stripeConnectSetupComplete === true;
+        
+        if (!conditionsMet) {
+          console.log('⏳ [Channels] Verification conditions not met, skipping channel load');
+          // Update missing conditions for UI display
+          const missingConditions: string[] = [];
+          
+          // If Stripe is complete but social media is not, show the inline verification
+          if (userDoc.stripeConnectSetupComplete === true && userDoc.social_media_number_correct !== true) {
+            setSocialMediaPlatform(userDoc.social_media || '');
+            setSocialMediaUsername(userDoc.social_media_username || '');
+            setShowInlineVerification(true);
+            setMissingChannelConditions([]);
+            setChannels([]);
+            return;
+          }
+          
+          if (userDoc.social_media_number_correct !== true) {
+            // Note: Social media verification is handled separately via modal, not shown in missing conditions
+          }
+          if (userDoc.stripeConnectSetupComplete !== true) {
+            missingConditions.push('Payment setup incomplete');
+          }
+          setMissingChannelConditions(missingConditions);
+          setChannels([]);
+          return;
+        }
+      }
+      
+      // Check if channel has already been created by checking account_state
+      const channelAlreadyCreated = userDoc.account_state === 'required' || userDoc.account_state === 'ok';
+      
+      if (channelAlreadyCreated) {
+        console.log('✅ [Channels] Channel already created (account_state: ' + userDoc.account_state + '), proceeding with normal load');
+        setChannelCreated(true);
+      } else {
+        // First time all conditions are met, create channel and upload photo document
+        console.log('✅ [Channels] First time all conditions met, creating channel and uploading photo document');
+        
+        // Upload photo document (same as handleGoLive functionality)
+        try {
+          const { getUserProfile, getUserPhoto } = await import('@/lib/appwrite');
+          const { ID } = await import('react-native-appwrite');
+          
+          const profile = await getUserProfile(user.$id);
+          const userPhoto = await getUserPhoto(user.$id);
+          
+          if (userPhoto) {
+            // Update existing photo document
+            await databases.updateDocument(
+              config.databaseId,
+              config.photoCollectionId,
+              userPhoto.$id,
+              {
+                state: 'required'
+              }
+            );
+            console.log('✅ [Channels] Updated existing photo document state to required');
+          } else {
+            // Create new photo document with 'required' state
+            await databases.createDocument(
+              config.databaseId,
+              config.photoCollectionId,
+              ID.unique(),
+              {
+                thumbnail: profile?.profileImageUri || '',
+                compressed_thumbnail: profile?.compressed_thumbnail || '',
+                title: profile?.creatorsname || user.name || '',
+                prompte: profile?.creatorsname || user.name || '',
+                IdCreator: user.$id,
+                PhotosLocation: profile?.Location || '',
+                payment: JSON.stringify({
+                  monthlyPrice: userPhoto && (userPhoto as any).payment ? JSON.parse((userPhoto as any).payment).monthlyPrice : '0',
+                  yearlyPrice: userPhoto && (userPhoto as any).payment ? JSON.parse((userPhoto as any).payment).yearlyPrice : '0'
+                }),
+                PhotoTopics: profile?.topics || '',
+                Bio: profile?.ProfilesBio || '',
+                state: 'required'
+              }
+            );
+            console.log('✅ [Channels] Created new photo document with required state');
+          }
+          
+          // Send verification notification email
+          try {
+            const { sendCreatorVerificationNotification } = await import('@/lib/appwrite');
+            await sendCreatorVerificationNotification({
+              userId: user.$id,
+              creatorName: profile?.creatorsname || user.name,
+              location: profile?.Location,
+              topics: profile?.topics,
+              bio: profile?.ProfilesBio,
+              phoneNumber: profile?.phoneNumber,
+              gender: profile?.gender,
+              dateOfBirth: profile?.dateOfBirth,
+              monthlyPrice: userPhoto && (userPhoto as any).payment ? JSON.parse((userPhoto as any).payment).monthlyPrice : '0',
+              yearlyPrice: userPhoto && (userPhoto as any).payment ? JSON.parse((userPhoto as any).payment).yearlyPrice : '0',
+              profileImageUri: profile?.profileImageUri || '',
+              compressedThumbnail: profile?.compressed_thumbnail || ''
+            });
+            console.log('✅ [Channels] Creator verification notification sent successfully');
+          } catch (error) {
+            console.error('❌ [Channels] Error sending creator verification notification:', error);
+            // Don't fail the entire process if email fails
+          }
+          
+        } catch (error) {
+          console.error('❌ [Channels] Error uploading photo document:', error);
+          // Continue with channel creation even if photo upload fails
+        }
+        
+        // Create the creator's group chat
+        try {
+          const { createCreatorChannel } = await import('@/lib/stream-chat');
+          const creatorDisplayName = profile?.creatorsname || user.name || 'Creator';
+          console.log('🚀 [Channels] Creating creator channel for:', creatorDisplayName);
+          const channel = await createCreatorChannel(user.$id, creatorDisplayName);
+          console.log('✅ [Channels] Creator group chat created successfully:', channel.id);
+          
+          // Add a small delay to ensure channel is fully created
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Show success notification
+          Alert.alert(
+            'Channel Created! 🎉',
+            'Your creator channel has been successfully created and is now under review. You\'ll be notified once it\'s approved!',
+            [{ text: 'OK', style: 'default' }]
+          );
+          
+          // Mark channel as created
+          setChannelCreated(true);
+        } catch (error) {
+          console.error('❌ [Channels] Error creating creator group chat:', error);
+          // Don't throw error here - group chat creation failure shouldn't prevent going live
+        }
+      }
+      
       // Connect user to Stream Chat if not already connected
       if (!client.user) {
         console.log('🔗 [Channels] Connecting user to Stream Chat...');
         await connectUser(user.$id);
       }
       
+      console.log('🔍 [Channels] Current client user:', client.user?.id);
+      console.log('🔍 [Channels] Client connected:', !!client.user);
+      
       // Query channels where the current user is a member
       const filter = { members: { $in: [user.$id] } };
       const sort = [{ last_message_at: -1 }];
       
+      console.log(`📡 [Channels] Querying channels with filter:`, filter);
       console.log(`📡 [Channels] Querying channels with limit: ${CHANNELS_PER_PAGE}, offset: ${loadMore ? channelOffset : 0}`);
       const response = await client.queryChannels(filter, sort, {
         limit: CHANNELS_PER_PAGE,
@@ -120,6 +401,30 @@ export default function Index() {
       });
       
       console.log(`📋 [Channels] Received ${response.length} channels from Stream Chat`);
+      
+      // Debug: Check if creator channel exists specifically
+      try {
+        const creatorChannelId = `creator-${user.$id}`;
+        console.log(`🔍 [Channels] Checking for creator channel: ${creatorChannelId}`);
+        const creatorChannel = client.channel('messaging', creatorChannelId);
+        const channelState = await creatorChannel.watch();
+        console.log(`✅ [Channels] Creator channel found:`, channelState);
+        
+        // If channel exists but user is not a member, add them
+        if (channelState.members && channelState.members.length === 0) {
+          console.log(`🔧 [Channels] Channel exists but no members, adding user as member`);
+          try {
+            await creatorChannel.addMembers([user.$id]);
+            console.log(`✅ [Channels] Successfully added user as member to existing channel`);
+          } catch (addMemberError) {
+            console.log(`❌ [Channels] Error adding user as member:`, addMemberError);
+          }
+        } else {
+          console.log(`✅ [Channels] Channel has ${channelState.members?.length || 0} members`);
+        }
+      } catch (error) {
+        console.log(`❌ [Channels] Creator channel not found or error:`, error);
+      }
       
       // Check if we have more channels to load
       if (response.length < CHANNELS_PER_PAGE) {
@@ -370,6 +675,61 @@ export default function Index() {
       loadChannels(true);
     } else {
       console.log(`📈 [LoadMore] Load more blocked - isLoadingMore: ${isLoadingMore}, hasMoreChannels: ${hasMoreChannels}, searchQuery: "${searchQuery}"`);
+    }
+  };
+
+  const handleVerifySocialMediaCode = async () => {
+    if (!user?.$id || !socialMediaCode.trim()) return;
+    
+    setIsVerifyingCode(true);
+    setVerificationError('');
+    
+    try {
+      const { databases, config } = await import('@/lib/appwrite');
+      const { Query } = await import('react-native-appwrite');
+      
+      // Get user document to check the social_media_number
+      const userDocs = await databases.listDocuments(
+        config.databaseId,
+        config.userCollectionId,
+        [Query.equal('creatoraccountid', user.$id)]
+      );
+      
+      if (userDocs.documents.length > 0) {
+        const userDoc = userDocs.documents[0];
+        const storedCode = userDoc.social_media_number;
+        
+                  if (storedCode === socialMediaCode.trim()) {
+            // Code matches, update both social_media_number_correct and account_state
+            await databases.updateDocument(
+              config.databaseId,
+              config.userCollectionId,
+              userDoc.$id,
+              {
+                social_media_number_correct: true,
+                account_state: 'ok'
+              }
+            );
+            
+            console.log('✅ [SocialMedia] Code verified successfully, account_state set to ok');
+            setShowInlineVerification(false);
+            setSocialMediaCode('');
+            
+            // Reload channels to check if all conditions are now met
+            await loadChannels(false);
+        } else {
+          // Code doesn't match
+          setVerificationError('Invalid code. Please try again.');
+          console.log('❌ [SocialMedia] Code verification failed');
+        }
+      } else {
+        setVerificationError('User document not found.');
+      }
+    } catch (error) {
+      console.error('❌ [SocialMedia] Error verifying code:', error);
+      setVerificationError('An error occurred. Please try again.');
+    } finally {
+      setIsVerifyingCode(false);
     }
   };
 
@@ -872,29 +1232,12 @@ export default function Index() {
                             fontSize: 38,
                             fontWeight: 'bold',
                             color: 'white',
-                            fontFamily: 'questrial',
+                            fontFamily: 'MuseoModerno-Regular',
                             textAlign: 'center',
                         }}>
                             Cherrizbox
-                            <Text style={{
-                                color: '#FB2355',
-                                fontSize: 38,
-                                fontWeight: 'bold',
-                                fontFamily: 'MuseoModerno-Regular',
-                            }}>
-                                .
-                            </Text>
                         </Text>
-                        <Text style={{
-                            color: '#FB2355',
-                            fontSize: 18,
-                            fontFamily: 'questrial',
-                            textAlign: 'center',
-                            marginTop: -5,
-                            letterSpacing: 2,
-                        }}>
-                            creator
-                        </Text>
+
                     </View>
                 </View>
                 
@@ -959,7 +1302,11 @@ export default function Index() {
                     
       {/* Content based on selected tab */}
       {selectedTab === 'chats' && (
-        <View style={{ flex: 1, backgroundColor: 'black' }}>
+        <KeyboardAvoidingView 
+          style={{ flex: 1, backgroundColor: 'black' }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        >
           {/* Search Bar - Only show when there are channels */}
           {(channels.length > 0 || showSearch) && (
             <View style={{
@@ -1199,30 +1546,398 @@ export default function Index() {
                 />
               }
             >
-                            <Image 
-                                source={require('../../../assets/icon/loading-icon.png')} 
-                                style={{ width: 80, height: 80, marginBottom: 16 }} 
-                            />
-                            <Text style={{ 
-                                color: 'white', 
-                                fontSize: 24, 
-                                fontFamily: 'Urbanist-Bold',
-                                marginBottom: 16,
-                                textAlign: 'center'
+              {isCheckingConditions ? (
+                <>
+                  <Image 
+                    source={require('../../../assets/icon/loading-icon.png')} 
+                    style={{ width: 80, height: 80, marginBottom: 16 }} 
+                  />
+                  <Text style={{ 
+                    color: '#FB2355', 
+                    fontSize: 18, 
+                    fontFamily: 'Urbanist-Bold',
+                    marginBottom: 12,
+                    textAlign: 'center'
+                  }}>
+                    Checking requirements...
+                  </Text>
+                  <ActivityIndicator size="large" color="#FB2355" />
+                </>
+              ) : showInlineVerification ? (
+                <>
+                  <View style={{
+                    backgroundColor: 'rgba(251, 35, 85, 0.05)',
+                    borderRadius: 20,
+                    padding: 28,
+                    marginBottom: 24,
+                    borderWidth: 2,
+                    borderColor: 'rgba(251, 35, 85, 0.2)',
+                    width: '100%',
+                    alignItems: 'center'
+                  }}>
+                    {/* Compact Header */}
+                    <View style={{ 
+                      flexDirection: 'row', 
+                      alignItems: 'center', 
+                      marginBottom: 16,
+                      width: '100%'
+                    }}>
+                      <View style={{
+                        backgroundColor: 'rgba(251, 35, 85, 0.15)',
+                        borderRadius: 8,
+                        padding: 6,
+                        marginRight: 10
+                      }}>
+                        <Ionicons name="shield-checkmark" size={16} color="#FB2355" />
+                      </View>
+                      <Text style={{ 
+                        color: 'white', 
+                        fontSize: 16, 
+                        fontFamily: 'Urbanist-Bold',
+                        flex: 1
+                      }}>Verify Account</Text>
+                    </View>
+
+                    {/* Social Media Info */}
+                    <View style={{
+                      backgroundColor: 'rgba(251, 35, 85, 0.08)',
+                      borderRadius: 12,
+                      padding: 12,
+                      marginBottom: 16,
+                      borderWidth: 1,
+                      borderColor: 'rgba(251, 35, 85, 0.2)',
+                      alignItems: 'center',
+                      width: '100%'
+                    }}>
+                      {(() => {
+                        const network = networks.find(n => n.name === socialMediaPlatform);
+                        return (
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                            {network?.type === 'image' ? (
+                              <Image source={network.icon} style={{ width: 20, height: 20, marginRight: 8 }} />
+                            ) : (
+                              <Ionicons 
+                                name={network?.icon as any} 
+                                size={20} 
+                                color={network?.color || '#FB2355'} 
+                                style={{ marginRight: 8 }}
+                              />
+                            )}
+                            <Text style={{
+                              color: '#FB2355',
+                              fontSize: 16,
+                              fontFamily: 'Urbanist-Bold'
                             }}>
-                No channels yet 😢
+                              @{socialMediaUsername}
                             </Text>
-                            <Text style={{ 
-                                color: 'white', 
-                                fontSize: 18, 
-                                textAlign: 'center',
-                fontFamily: 'Urbanist-Regular'
-              }}>
-                Start a conversation or create your group chat to get started!
-                            </Text>
-                        </ScrollView>
-                    )}
-        </View>
+                          </View>
+                        );
+                      })()}
+                      <Text style={{
+                        color: 'rgba(255,255,255,0.7)',
+                        fontSize: 12,
+                        fontFamily: 'Urbanist-Regular'
+                      }}>
+                        Enter the 6-digit code sent to your {socialMediaPlatform}
+                      </Text>
+                    </View>
+
+                    {/* OTP Style Input */}
+                    <View style={{ 
+                      width: '100%',
+                      marginBottom: 20
+                    }}>
+                      <TextInput
+                        style={{
+                          backgroundColor: 'rgba(255,255,255,0.08)',
+                          borderRadius: 12,
+                          padding: 16,
+                          color: 'white',
+                          fontSize: 20,
+                          fontFamily: 'Urbanist-Bold',
+                          textAlign: 'center',
+                          letterSpacing: 4,
+                          borderWidth: 1,
+                          borderColor: verificationError ? '#FB2355' : 'rgba(255,255,255,0.2)',
+                          width: '100%'
+                        }}
+                        placeholder="000000"
+                        placeholderTextColor="rgba(255,255,255,0.4)"
+                        value={socialMediaCode}
+                        onChangeText={(text) => {
+                          // Only allow numbers and limit to 6 digits
+                          const numericText = text.replace(/[^0-9]/g, '');
+                          setSocialMediaCode(numericText.slice(0, 6));
+                          setVerificationError('');
+                        }}
+                        keyboardType="numeric"
+                        maxLength={6}
+                        autoFocus
+                        returnKeyType="done"
+                        onSubmitEditing={() => {
+                          if (socialMediaCode.length === 6) {
+                            handleVerifySocialMediaCode();
+                          } else {
+                            Keyboard.dismiss();
+                          }
+                        }}
+                      />
+                      {verificationError ? (
+                        <Text style={{ 
+                          color: '#FB2355', 
+                          fontSize: 12, 
+                          marginTop: 4,
+                          fontFamily: 'Urbanist-Regular',
+                          textAlign: 'center'
+                        }}>
+                          {verificationError}
+                        </Text>
+                      ) : null}
+                    </View>
+
+                    {/* Single Action Button */}
+                    <TouchableOpacity 
+                      style={{ 
+                        backgroundColor: socialMediaCode.length === 6 ? '#FB2355' : 'rgba(251, 35, 85, 0.4)', 
+                        borderRadius: 12, 
+                        paddingVertical: 14, 
+                        paddingHorizontal: 32,
+                        width: '100%',
+                        alignItems: 'center',
+                        shadowColor: socialMediaCode.length === 6 ? '#FB2355' : 'transparent',
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: socialMediaCode.length === 6 ? 0.3 : 0,
+                        shadowRadius: 8,
+                        elevation: socialMediaCode.length === 6 ? 8 : 0,
+                        marginBottom: 16
+                      }}
+                      onPress={() => {
+                        Keyboard.dismiss();
+                        handleVerifySocialMediaCode();
+                      }}
+                      disabled={socialMediaCode.length !== 6 || isVerifyingCode}
+                    >
+                      <Text style={{ 
+                        color: 'white', 
+                        fontSize: 16, 
+                        fontFamily: 'Urbanist-Bold'
+                      }}>
+                        {isVerifyingCode ? 'Verifying...' : 'Verify Code'}
+                      </Text>
+                    </TouchableOpacity>
+
+                    {/* Change Username Link */}
+                    <TouchableOpacity 
+                      onPress={() => {
+                        setShowInlineVerification(false);
+                        router.push('/change-username');
+                      }}
+                      style={{
+                        paddingVertical: 8,
+                        paddingHorizontal: 12,
+                        borderRadius: 8,
+                        backgroundColor: 'rgba(251, 35, 85, 0.1)',
+                        borderWidth: 1,
+                        borderColor: 'rgba(251, 35, 85, 0.3)',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <Text style={{
+                        color: '#FB2355',
+                        fontSize: 12,
+                        fontFamily: 'Urbanist-Medium',
+                        textDecorationLine: 'underline'
+                      }}>
+                        Wrong username? Change it
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Code Delivery Time Info */}
+                  <Text style={{
+                    color: 'rgba(255, 255, 255, 0.6)',
+                    fontSize: 11,
+                    fontFamily: 'Urbanist-Regular',
+                    textAlign: 'center',
+                    fontStyle: 'italic',
+                    marginTop: 8
+                  }}>
+                    The code can take up to 6 hours to be sent
+                  </Text>
+                </>
+              ) : missingChannelConditions.length > 0 ? (
+                <>
+                  <View style={{
+                    backgroundColor: 'rgba(251, 35, 85, 0.05)',
+                    borderRadius: 20,
+                    padding: 28,
+                    marginBottom: 24,
+                    borderWidth: 2,
+                    borderColor: 'rgba(251, 35, 85, 0.2)',
+                    width: '100%',
+                    alignItems: 'center'
+                  }}>
+                    {/* Loading Icon */}
+                    <View style={{
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginBottom: 16
+                    }}>
+                      <Image 
+                        source={require('../../../assets/icon/loading-icon.png')} 
+                        style={{ width: 72, height: 72 }} 
+                      />
+                    </View>
+                    
+                    <Text style={{ 
+                      color: '#FB2355', 
+                      fontSize: 22, 
+                      fontFamily: 'Urbanist-Bold',
+                      marginBottom: 8,
+                      textAlign: 'center'
+                    }}>
+                      Almost Ready! 🚀
+                    </Text>
+                    
+                    <Text style={{ 
+                      color: 'rgba(255, 255, 255, 0.9)', 
+                      fontSize: 16, 
+                      textAlign: 'center',
+                      fontFamily: 'Urbanist-Regular',
+                      marginBottom: 24,
+                      lineHeight: 22
+                    }}>
+                      You're just a few steps away from launching your creator channel! Complete these requirements to get started:
+                    </Text>
+                    
+                    {missingChannelConditions.map((condition, index) => {
+                      // Determine icon and colors based on condition
+                      let iconName = 'checkmark-outline';
+                      let iconColor = '#FB2355';
+                      let backgroundColor = 'rgba(251, 35, 85, 0.2)';
+                      let borderColor = 'rgba(251, 35, 85, 0.3)';
+                      
+                      if (condition === 'Payment setup incomplete') {
+                        iconName = 'card-outline';
+                        iconColor = '#4CAF50';
+                        backgroundColor = 'rgba(76, 175, 80, 0.2)';
+                        borderColor = 'rgba(76, 175, 80, 0.3)';
+                      }
+                      
+                      return (
+                        <View key={index} style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          marginBottom: 16,
+                          paddingHorizontal: 20,
+                          paddingVertical: 12,
+                          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                          borderRadius: 12,
+                          borderWidth: 1,
+                          borderColor: borderColor,
+                          width: '100%'
+                        }}>
+                          <View style={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: 12,
+                            backgroundColor: backgroundColor,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginRight: 12
+                          }}>
+                            <Ionicons name={iconName as any} size={14} color={iconColor} />
+                          </View>
+                          <Text style={{ 
+                            color: 'rgba(255, 255, 255, 0.9)', 
+                            fontSize: 15, 
+                            fontFamily: 'Urbanist-Medium',
+                            flex: 1
+                          }}>
+                            {condition}
+                          </Text>
+                        </View>
+                      );
+                    })}
+                    
+                    <TouchableOpacity
+                      onPress={() => {
+                        // If only payment setup is missing, go to earnings page
+                        if (missingChannelConditions.length === 1 && missingChannelConditions[0] === 'Payment setup incomplete') {
+                          setSelectedTab('other');
+                        } else {
+                          // Otherwise go to edit-profile page
+                          router.push('/edit-profile');
+                        }
+                      }}
+                      style={{
+                        backgroundColor: missingChannelConditions.length === 1 && missingChannelConditions[0] === 'Payment setup incomplete' ? '#4CAF50' : '#FB2355',
+                        borderRadius: 16,
+                        paddingVertical: 16,
+                        paddingHorizontal: 32,
+                        alignItems: 'center',
+                        marginTop: 8,
+                        width: '100%',
+                        shadowColor: missingChannelConditions.length === 1 && missingChannelConditions[0] === 'Payment setup incomplete' ? '#4CAF50' : '#FB2355',
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.3,
+                        shadowRadius: 8,
+                        elevation: 8
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        {missingChannelConditions.length === 1 && missingChannelConditions[0] === 'Payment setup incomplete' && (
+                          <Ionicons name="cash-outline" size={20} color="white" style={{ marginRight: 8 }} />
+                        )}
+                        <Text style={{ 
+                          color: 'white', 
+                          fontSize: 17, 
+                          fontFamily: 'Urbanist-Bold'
+                        }}>
+                          Complete Setup {missingChannelConditions.length === 1 && missingChannelConditions[0] === 'Payment setup incomplete' ? '' : '✨'}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+                  
+                  <Text style={{ 
+                    color: 'rgba(255, 255, 255, 0.7)', 
+                    fontSize: 14, 
+                    textAlign: 'center',
+                    fontFamily: 'Urbanist-Regular',
+                    lineHeight: 20
+                  }}>
+                    Don't worry, this will only take a few minutes! 
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Image 
+                    source={require('../../../assets/icon/loading-icon.png')} 
+                    style={{ width: 80, height: 80, marginBottom: 16 }} 
+                  />
+                  <Text style={{ 
+                    color: 'white', 
+                    fontSize: 24, 
+                    fontFamily: 'Urbanist-Bold',
+                    marginBottom: 16,
+                    textAlign: 'center'
+                  }}>
+                    No channels yet 😢
+                  </Text>
+                  <Text style={{ 
+                    color: 'white', 
+                    fontSize: 18, 
+                    textAlign: 'center',
+                    fontFamily: 'Urbanist-Regular'
+                  }}>
+                    Start a conversation or create your group chat to get started!
+                  </Text>
+                </>
+              )}
+            </ScrollView>
+          )}
+        </KeyboardAvoidingView>
       )}
 
       {selectedTab === 'insights' && (
@@ -1486,108 +2201,114 @@ export default function Index() {
       )}
 
       {selectedTab === 'audience' && (
-        <ScrollView 
-          style={{ 
-            flex: 1, 
-            backgroundColor: 'black',
-            paddingHorizontal: 0
-          }}
-          contentContainerStyle={{
-            flexGrow: 1,
-            alignItems: 'stretch',
-            justifyContent: filteredAudience.length === 0 && !isLoadingAudience ? 'center' : 'flex-start',
-            paddingTop: 24
-          }}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing || isLoadingAudience}
-              onRefresh={onRefresh}
-              tintColor="#FB2355"
-              colors={["#FB2355"]}
-              progressBackgroundColor="black"
-            />
-          }
-        >
-          {/* Search Bar */}
-          <View style={{ width: '100%', marginBottom: 12 }}>
-              <View style={{
-              backgroundColor: '#23232B',
-              borderRadius: 12,
-              flexDirection: 'row',
-              alignItems: 'center',
-              paddingHorizontal: 12,
-              paddingVertical: 8,
-            }}>
-              <Ionicons name="search" size={20} color="#888" style={{ marginRight: 8 }} />
-              <TextInput
-                style={{
-                  flex: 1,
-                  color: 'white',
-                  fontFamily: 'Urbanist-Regular',
-                  fontSize: 16,
-                  backgroundColor: 'transparent',
-                  padding: 0,
-                }}
-                placeholder="Search by email or username..."
-                placeholderTextColor="#888"
-                value={audienceSearch}
-                onChangeText={setAudienceSearch}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              {audienceSearch.length > 0 && (
-                <TouchableOpacity onPress={() => setAudienceSearch('')}>
-                  <Ionicons name="close-circle" size={18} color="#888" />
+        <View style={{ flex: 1, backgroundColor: 'black' }}>
+          {/* Fixed Header with Search and Filters */}
+          <View style={{ paddingHorizontal: 16, paddingTop: 24, paddingBottom: 16 }}>
+            {/* Search Bar */}
+            <View style={{ width: '100%', marginBottom: 12 }}>
+                <View style={{
+                backgroundColor: '#23232B',
+                borderRadius: 12,
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+              }}>
+                <Ionicons name="search" size={20} color="#888" style={{ marginRight: 8 }} />
+                <TextInput
+                  style={{
+                    flex: 1,
+                    color: 'white',
+                    fontFamily: 'Urbanist-Regular',
+                    fontSize: 16,
+                    backgroundColor: 'transparent',
+                    padding: 0,
+                    letterSpacing: 0.2,
+                  }}
+                  placeholder="Search by email or username..."
+                  placeholderTextColor="#888"
+                  value={audienceSearch}
+                  onChangeText={setAudienceSearch}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                {audienceSearch.length > 0 && (
+                  <TouchableOpacity onPress={() => setAudienceSearch('')}>
+                    <Ionicons name="close-circle" size={18} color="#888" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+            {/* Filter Tags */}
+            <View style={{ flexDirection: 'row', marginBottom: 16, width: '100%', justifyContent: 'center', gap: 8 }}>
+              {[
+                { key: 'recent', label: 'Most Recent' },
+                { key: 'income_high', label: 'Highest Income' },
+                { key: 'income_low', label: 'Lowest Income' },
+              ].map(tag => (
+                <TouchableOpacity
+                  key={tag.key}
+                  onPress={() => setAudienceFilter(tag.key as 'recent' | 'income_high' | 'income_low')}
+                  style={{
+                    backgroundColor: audienceFilter === tag.key ? '#FB2355' : '#23232B',
+                    borderRadius: 20,
+                    paddingVertical: 7,
+                    paddingHorizontal: 16,
+                    marginHorizontal: 2,
+                    borderWidth: audienceFilter === tag.key ? 1.5 : 1,
+                    borderColor: audienceFilter === tag.key ? '#FB2355' : '#333',
+                  }}
+                >
+                  <Text style={{
+                    color: audienceFilter === tag.key ? 'white' : '#888',
+                    fontFamily: audienceFilter === tag.key ? 'Urbanist-Bold' : 'Urbanist-Regular',
+                    fontSize: 14,
+                  }}>{tag.label}</Text>
                 </TouchableOpacity>
-              )}
+              ))}
             </View>
           </View>
-          {/* Filter Tags */}
-          <View style={{ flexDirection: 'row', marginBottom: 16, width: '100%', justifyContent: 'center', gap: 8 }}>
-            {[
-              { key: 'recent', label: 'Most Recent' },
-              { key: 'income_high', label: 'Highest Income' },
-              { key: 'income_low', label: 'Lowest Income' },
-            ].map(tag => (
-              <TouchableOpacity
-                key={tag.key}
-                onPress={() => setAudienceFilter(tag.key as 'recent' | 'income_high' | 'income_low')}
-                style={{
-                  backgroundColor: audienceFilter === tag.key ? '#FB2355' : '#23232B',
-                  borderRadius: 20,
-                  paddingVertical: 7,
-                  paddingHorizontal: 16,
-                  marginHorizontal: 2,
-                  borderWidth: audienceFilter === tag.key ? 1.5 : 1,
-                  borderColor: audienceFilter === tag.key ? '#FB2355' : '#333',
-                }}
-              >
-                <Text style={{
-                  color: audienceFilter === tag.key ? 'white' : '#888',
-                  fontFamily: audienceFilter === tag.key ? 'Urbanist-Bold' : 'Urbanist-Regular',
-                  fontSize: 14,
-                }}>{tag.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          
-          {/* Loading indicator moved below search and filters */}
-          {isLoadingAudience ? (
-            <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 32 }}>
-              <ActivityIndicator size="large" color="#FB2355" />
-              <Text style={{ color: '#FB2355', fontFamily: 'Urbanist-Bold', fontSize: 16, marginTop: 12 }}>Loading subscribers...</Text>
-            </View>
-          ) : filteredAudience.length === 0 ? (
-            <Text style={{ 
-              color: '#888888', 
-              fontSize: 16, 
-              textAlign: 'center',
-                  fontFamily: 'Urbanist-Regular',
-              marginTop: 24
-                }}>
-              No subscribers yet.
-                </Text>
-          ) : (
+
+          {/* Scrollable Content */}
+          <ScrollView 
+            style={{ 
+              flex: 1, 
+              backgroundColor: 'black',
+              paddingHorizontal: 0
+            }}
+            contentContainerStyle={{
+              flexGrow: 1,
+              alignItems: 'stretch',
+              justifyContent: filteredAudience.length === 0 && !isLoadingAudience ? 'center' : 'flex-start',
+              paddingHorizontal: 16
+            }}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing || isLoadingAudience}
+                onRefresh={onRefresh}
+                tintColor="#FB2355"
+                colors={["#FB2355"]}
+                progressBackgroundColor="black"
+              />
+            }
+          >
+            {/* Loading indicator moved below search and filters */}
+            {isLoadingAudience ? (
+              <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 32 }}>
+                <ActivityIndicator size="large" color="#FB2355" />
+                <Text style={{ color: '#FB2355', fontFamily: 'Urbanist-Bold', fontSize: 16, marginTop: 12 }}>Loading subscribers...</Text>
+              </View>
+            ) : filteredAudience.length === 0 ? (
+              <Text style={{ 
+                color: '#888888', 
+                fontSize: 16, 
+                textAlign: 'center',
+                    fontFamily: 'Urbanist-Regular',
+                marginTop: 24
+                  }}>
+                No subscribers yet.
+                  </Text>
+            ) : (
             <View style={{ width: '100%', marginTop: 8 }}>
               {filteredAudience.map((sub, idx) => (
                 <TouchableOpacity
@@ -1654,6 +2375,7 @@ export default function Index() {
             </View>
           )}
         </ScrollView>
+        </View>
       )}
 
       {selectedTab === 'other' && (
@@ -2279,6 +3001,8 @@ export default function Index() {
             </View>
           </View>
         </Modal>
+
+
         </SafeAreaView>
     );
 } 

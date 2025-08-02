@@ -85,6 +85,8 @@ export async function createCreatorChannel(creatorId: string, creatorName: strin
     // Create a unique channel ID for this creator
     const channelId = `creator-${creatorId}`;
     
+    console.log(`🚀 [createCreatorChannel] Creating channel: ${channelId} for user: ${creatorId}`);
+    
     // Create the channel for the creator's group chat
     const channel = client.channel('messaging', channelId, {
       members: [creatorId],
@@ -92,6 +94,15 @@ export async function createCreatorChannel(creatorId: string, creatorName: strin
     });
 
     await channel.create();
+    console.log(`✅ [createCreatorChannel] Channel created: ${channelId}`);
+    
+    // Explicitly add the creator as a member to ensure they're in the channel
+    try {
+      await channel.addMembers([creatorId]);
+      console.log(`✅ [createCreatorChannel] Added creator as member: ${creatorId}`);
+    } catch (memberError) {
+      console.log(`⚠️ [createCreatorChannel] Member might already be added:`, memberError);
+    }
     
     // Create an initial welcome message that will serve as the main thread
     const welcomeMessage = await channel.sendMessage({
@@ -100,10 +111,11 @@ export async function createCreatorChannel(creatorId: string, creatorName: strin
       show_in_channel: true
     });
 
-    console.log('Creator channel created with thread support:', channelId);
+    console.log(`✅ [createCreatorChannel] Welcome message sent successfully`);
+    console.log(`✅ [createCreatorChannel] Channel creation complete: ${channelId}`);
     return channel;
   } catch (error) {
-    console.error('Error creating creator channel:', error);
+    console.error('❌ [createCreatorChannel] Error creating creator channel:', error);
     throw error;
   }
 }
