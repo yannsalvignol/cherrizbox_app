@@ -6418,29 +6418,12 @@ export default function ChatScreen() {
               fontSize: 42,
               fontWeight: 'bold',
               color: 'white',
-              fontFamily: 'questrial',
+              fontFamily: 'MuseoModerno-Regular',
               textAlign: 'center',
             }}>
-              Cherrizbox
-              <Text style={{
-                color: '#FB2355',
-                fontSize: 42,
-                fontWeight: 'bold',
-                fontFamily: 'questrial',
-              }}>
-                .
-              </Text>
+              cherrizbox
             </Text>
-            <Text style={{
-              color: '#FB2355',
-              fontSize: 20,
-              fontFamily: 'questrial',
-              textAlign: 'center',
-              marginTop: -6,
-              letterSpacing: 2.5,
-            }}>
-              creator
-            </Text>
+
           </View>
         </View>
         
@@ -6531,9 +6514,9 @@ export default function ChatScreen() {
                           source={
                             channelId?.startsWith('dm-')
                               ? require('../../assets/icon/loading-icon.png')
-                              : require('../../assets/images/cherry-icon.png')
+                              : require('../../assets/icon/loading-icon.png')
                           }
-                          style={{ width: 60, height: 60, marginBottom: 18, opacity: 0.8 }}
+                          style={{ width: 72, height: 72, marginBottom: 18, opacity: 0.8 }}
                           resizeMode="contain"
                         />
                         <Text style={{ 

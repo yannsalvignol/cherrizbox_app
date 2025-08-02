@@ -86,6 +86,9 @@ export default function Index() {
   const [isVerifyingCode, setIsVerifyingCode] = useState(false);
   const [verificationError, setVerificationError] = useState('');
   const [channelCreated, setChannelCreated] = useState(false);
+  const [showNotification, setShowNotification] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState('');
+  const [notificationType, setNotificationType] = useState<'success' | 'error'>('success');
 
   // Social media platform icons mapping (same as landing.tsx)
   const networks = [
@@ -733,6 +736,87 @@ export default function Index() {
     }
   };
 
+  const showCustomNotification = (message: string, type: 'success' | 'error') => {
+    setNotificationMessage(message);
+    setNotificationType(type);
+    setShowNotification(true);
+    
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+      setShowNotification(false);
+    }, 3000);
+  };
+
+  const handleResendCode = async () => {
+    if (!user?.$id) return;
+    
+    try {
+      console.log('🚀 Starting resend code process...');
+      console.log('🔧 Environment variables:');
+      console.log('  - EXPO_PUBLIC_APPWRITE_ENDPOINT:', process.env.EXPO_PUBLIC_APPWRITE_ENDPOINT);
+      console.log('  - EXPO_PUBLIC_APPWRITE_PROJECT_ID:', process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID);
+      console.log('  - EXPO_PUBLIC_SEND_SOCIAL_MEDIA_CODE_ID:', process.env.EXPO_PUBLIC_SEND_SOCIAL_MEDIA_CODE_ID);
+      
+      const { databases, config } = await import('@/lib/appwrite');
+      const { Query, Functions } = await import('react-native-appwrite');
+      
+      // Get user document to get social media info
+      const userDocs = await databases.listDocuments(
+        config.databaseId,
+        config.userCollectionId,
+        [Query.equal('creatoraccountid', user.$id)]
+      );
+      
+      if (userDocs.documents.length > 0) {
+        const userDoc = userDocs.documents[0];
+        console.log('✅ User document found:', userDoc);
+        
+        // Setup Appwrite client for functions
+        const { Client } = await import('react-native-appwrite');
+        const client = new Client()
+          .setEndpoint(process.env.EXPO_PUBLIC_APPWRITE_ENDPOINT!)
+          .setProject(process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID!);
+        
+        const functions = new Functions(client);
+        
+        // Call the SEND_SOCIAL_MEDIA_CODE_ID function using Appwrite SDK
+        const functionId = process.env.EXPO_PUBLIC_SEND_SOCIAL_MEDIA_CODE_ID;
+        console.log('🔧 Function ID:', functionId);
+        
+        if (!functionId) {
+          throw new Error('SEND_SOCIAL_MEDIA_CODE_ID environment variable is not defined');
+        }
+        
+        const requestData = {
+          userId: user.$id,
+          socialMedia: userDoc.social_media,
+          socialMediaUsername: userDoc.social_media_username,
+          userEmail: user.email
+        };
+        
+        console.log('📤 Sending request data:', requestData);
+        
+        // Show success message immediately
+        showCustomNotification('A new verification code has been sent to your social media account.', 'success');
+        
+        // Call the function in the background (fire and forget)
+        functions.createExecution(
+          functionId,
+          JSON.stringify(requestData)
+        ).then(response => {
+          console.log('✅ Function execution response:', response);
+        }).catch(error => {
+          console.error('❌ Function execution error:', error);
+        });
+      } else {
+        showCustomNotification('User information not found.', 'error');
+      }
+    } catch (error) {
+      console.error('❌ [SocialMedia] Error resending code:', error);
+      showCustomNotification('An error occurred while sending the code. Please try again.', 'error');
+    }
+  };
+
   const loadProfileImage = async () => {
     if (!user?.$id) return;
 
@@ -1218,6 +1302,70 @@ export default function Index() {
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }} edges={['top']}>
+            {/* Custom Notification */}
+            {showNotification && (
+              <View style={{
+                position: 'absolute',
+                top: 60,
+                left: 16,
+                right: 16,
+                zIndex: 1000,
+                backgroundColor: notificationType === 'success' ? '#4CAF50' : '#F44336',
+                borderRadius: 12,
+                padding: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                shadowColor: '#000',
+                shadowOffset: {
+                  width: 0,
+                  height: 2,
+                },
+                shadowOpacity: 0.25,
+                shadowRadius: 3.84,
+                elevation: 5,
+              }}>
+                <View style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 12,
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 12,
+                }}>
+                  <Text style={{
+                    color: 'white',
+                    fontSize: 16,
+                    fontWeight: 'bold',
+                  }}>
+                    {notificationType === 'success' ? '✓' : '✕'}
+                  </Text>
+                </View>
+                <Text style={{
+                  color: 'white',
+                  fontSize: 14,
+                  fontFamily: 'Urbanist-Regular',
+                  flex: 1,
+                }}>
+                  {notificationMessage}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setShowNotification(false)}
+                  style={{
+                    padding: 4,
+                  }}
+                >
+                  <Text style={{
+                    color: 'white',
+                    fontSize: 18,
+                    fontWeight: 'bold',
+                  }}>
+                    ×
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            
             {/* Header */}
             <View className="flex-row items-center justify-between px-4 py-2 bg-black">
                 <Image 
@@ -1229,13 +1377,13 @@ export default function Index() {
                 <View className="flex-row items-center">
                     <View style={{ alignItems: 'center', justifyContent: 'center' }}>
                         <Text style={{
-                            fontSize: 38,
+                            fontSize: 39,
                             fontWeight: 'bold',
                             color: 'white',
                             fontFamily: 'MuseoModerno-Regular',
                             textAlign: 'center',
                         }}>
-                            Cherrizbox
+                            cherrizbox
                         </Text>
 
                     </View>
@@ -1764,6 +1912,30 @@ export default function Index() {
                   }}>
                     The code can take up to 6 hours to be sent
                   </Text>
+                  
+                  {/* Resend Code Link */}
+                  <TouchableOpacity 
+                    onPress={handleResendCode}
+                    style={{
+                      marginTop: 12,
+                      paddingVertical: 8,
+                      paddingHorizontal: 16,
+                      borderRadius: 20,
+                      backgroundColor: 'rgba(251, 35, 85, 0.1)',
+                      borderWidth: 1,
+                      borderColor: 'rgba(251, 35, 85, 0.3)',
+                      alignSelf: 'center'
+                    }}
+                  >
+                    <Text style={{
+                      color: '#FB2355',
+                      fontSize: 12,
+                      fontFamily: 'Urbanist-Regular',
+                      textAlign: 'center'
+                    }}>
+                      I did not receive any code, ask to send it again
+                    </Text>
+                  </TouchableOpacity>
                 </>
               ) : missingChannelConditions.length > 0 ? (
                 <>

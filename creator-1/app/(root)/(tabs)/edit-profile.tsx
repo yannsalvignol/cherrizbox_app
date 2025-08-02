@@ -43,6 +43,25 @@ const countries = [
   { name: 'Russia', code: '+7', flag: '🇷🇺' },
 ];
 
+const currencies = [
+  { code: 'USD', symbol: '$', name: 'US Dollar', flag: '🇺🇸' },
+  { code: 'EUR', symbol: '€', name: 'Euro', flag: '🇪🇺' },
+  { code: 'GBP', symbol: '£', name: 'British Pound', flag: '🇬🇧' },
+  { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar', flag: '🇨🇦' },
+  { code: 'AUD', symbol: 'A$', name: 'Australian Dollar', flag: '🇦🇺' },
+  { code: 'JPY', symbol: '¥', name: 'Japanese Yen', flag: '🇯🇵' },
+  { code: 'CHF', symbol: 'CHF', name: 'Swiss Franc', flag: '🇨🇭' },
+  { code: 'CNY', symbol: '¥', name: 'Chinese Yuan', flag: '🇨🇳' },
+  { code: 'INR', symbol: '₹', name: 'Indian Rupee', flag: '🇮🇳' },
+  { code: 'BRL', symbol: 'R$', name: 'Brazilian Real', flag: '🇧🇷' },
+  { code: 'MXN', symbol: '$', name: 'Mexican Peso', flag: '🇲🇽' },
+  { code: 'SGD', symbol: 'S$', name: 'Singapore Dollar', flag: '🇸🇬' },
+  { code: 'NZD', symbol: 'NZ$', name: 'New Zealand Dollar', flag: '🇳🇿' },
+  { code: 'SEK', symbol: 'kr', name: 'Swedish Krona', flag: '🇸🇪' },
+  { code: 'NOK', symbol: 'kr', name: 'Norwegian Krone', flag: '🇳🇴' },
+  { code: 'DKK', symbol: 'kr', name: 'Danish Krone', flag: '🇩🇰' },
+];
+
 const genders = [
   { value: 'male', label: 'Male', icon: '👨' },
   { value: 'female', label: 'Female', icon: '👩' },
@@ -95,6 +114,11 @@ export default function EditProfile() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [showCreatorNameModal, setShowCreatorNameModal] = useState(false);
   const [tempCreatorName, setTempCreatorName] = useState('');
+  const [creatorNameError, setCreatorNameError] = useState<string | null>(null);
+  const [checkingCreatorName, setCheckingCreatorName] = useState(false);
+  const [showCreatorNameWarning, setShowCreatorNameWarning] = useState(false);
+  const [selectedCurrency, setSelectedCurrency] = useState('USD');
+  const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
   const [userPhotoThumbnail, setUserPhotoThumbnail] = useState<string | null>(null);
   const [compressedThumbnail, setCompressedThumbnail] = useState<string | null>(null);
   const [photoTitle, setPhotoTitle] = useState<string>('');
@@ -109,6 +133,36 @@ export default function EditProfile() {
 
   const getDaysInMonth = (month: number, year: number) => {
     return new Date(year, month, 0).getDate();
+  };
+
+  // Function to check if creator name is already taken
+  const checkCreatorNameAvailability = async (name: string): Promise<boolean> => {
+    if (!name || name.trim() === '') return false;
+    
+    try {
+      setCheckingCreatorName(true);
+      setCreatorNameError(null);
+      
+      const { databases, config } = await import('../../../lib/appwrite');
+      const { Query } = await import('react-native-appwrite');
+      
+      // Check if any other user has this creator name
+      const existingUsers = await databases.listDocuments(
+        config.databaseId,
+        config.profileCollectionId,
+        [
+          Query.equal('creatorsname', name.trim()),
+          Query.notEqual('userId', globalUser?.$id || '') // Exclude current user
+        ]
+      );
+      
+      return existingUsers.documents.length === 0;
+    } catch (error) {
+      console.error('Error checking creator name availability:', error);
+      return false;
+    } finally {
+      setCheckingCreatorName(false);
+    }
   };
 
   const days = Array.from(
@@ -167,6 +221,26 @@ export default function EditProfile() {
             // Set creator's name if exists
             if (profile.creatorsname) {
               setCreatorName(profile.creatorsname);
+            }
+
+            // Check if channel is already created (account_state is 'ok')
+            if (globalUser?.$id) {
+              try {
+                const userDocs = await databases.listDocuments(
+                  config.databaseId,
+                  config.userCollectionId,
+                  [Query.equal('creatoraccountid', globalUser.$id)]
+                );
+                
+                if (userDocs.documents.length > 0) {
+                  const userDoc = userDocs.documents[0];
+                  if (userDoc.account_state === 'ok') {
+                    setShowCreatorNameWarning(true);
+                  }
+                }
+              } catch (error) {
+                console.error('Error checking channel status:', error);
+              }
             }
 
             // Set topics if exists
@@ -527,13 +601,21 @@ export default function EditProfile() {
             [Query.equal('userId', globalUser.$id)]
         );
 
-        if (existingProfile.documents.length > 0 && existingProfile.documents[0].creatorpayment) {
-            try {
-                const paymentData = JSON.parse(existingProfile.documents[0].creatorpayment);
-                setMonthlyPrice(paymentData.monthlyPrice.toString());
-                setYearlyPrice(paymentData.yearlyPrice.toString());
-            } catch (e) {
-                console.error('Error parsing payment data:', e);
+        if (existingProfile.documents.length > 0) {
+            // Load currency from profile
+            if (existingProfile.documents[0].currency) {
+                setSelectedCurrency(existingProfile.documents[0].currency);
+            }
+            
+            // Load payment data
+            if (existingProfile.documents[0].creatorpayment) {
+                try {
+                    const paymentData = JSON.parse(existingProfile.documents[0].creatorpayment);
+                    setMonthlyPrice(paymentData.monthlyPrice.toString());
+                    setYearlyPrice(paymentData.yearlyPrice.toString());
+                } catch (e) {
+                    console.error('Error parsing payment data:', e);
+                }
             }
         }
     } catch (error) {
@@ -1019,13 +1101,56 @@ export default function EditProfile() {
                 setTempCreatorName(creatorName);
                 setShowCreatorNameModal(true);
               }}
+              disabled={showCreatorNameWarning}
             >
-              <Ionicons name="person-circle-outline" size={22} color="#666" style={{ marginRight: 10 }} />
-              <Text className="text-white font-questrial text-lg flex-1">
+              <Ionicons name="person-circle-outline" size={22} color={showCreatorNameWarning ? "#444" : "#666"} style={{ marginRight: 10 }} />
+              <Text className={`font-questrial text-lg flex-1 ${showCreatorNameWarning ? 'text-gray-500' : 'text-white'}`}>
                 {creatorName ? creatorName : 'Enter your creator name'}
               </Text>
-              <Ionicons name="chevron-forward" size={20} color="#666" />
+              {showCreatorNameWarning ? (
+                <View style={{ 
+                  backgroundColor: '#FFA500', 
+                  borderRadius: 8, 
+                  paddingHorizontal: 8, 
+                  paddingVertical: 4 
+                }}>
+                  <Text style={{ 
+                    color: 'white', 
+                    fontSize: 12, 
+                    fontFamily: 'questrial',
+                    fontWeight: '600'
+                  }}>
+                    LOCKED
+                  </Text>
+                </View>
+              ) : (
+                <Ionicons name="chevron-forward" size={20} color="#666" />
+              )}
             </TouchableOpacity>
+            
+            {/* Warning Message */}
+            {showCreatorNameWarning && (
+              <View style={{ 
+                backgroundColor: 'rgba(255, 165, 0, 0.1)', 
+                borderRadius: 12, 
+                padding: 12, 
+                marginTop: 8,
+                borderWidth: 1,
+                borderColor: 'rgba(255, 165, 0, 0.3)'
+              }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 16, marginRight: 8 }}>🔒</Text>
+                  <Text style={{ 
+                    color: '#FFA500', 
+                    fontSize: 14, 
+                    fontFamily: 'questrial',
+                    flex: 1
+                  }}>
+                    Creator name cannot be changed once your channel is live. Contact support if needed.
+                  </Text>
+                </View>
+              </View>
+            )}
           </View>
 
           {/* Bio - Modal Style */}
@@ -1460,44 +1585,103 @@ export default function EditProfile() {
               </View>
 
               <ScrollView>
+                {/* Currency Picker */}
+                <View className="mb-4">
+                  <Text style={{ color: 'white', fontSize: 18, marginBottom: 8 }}>Currency</Text>
+                  <View className="relative">
+                    <TouchableOpacity
+                      className="bg-[#222] rounded-lg px-4 py-3 flex-row items-center justify-between"
+                      onPress={() => setShowCurrencyDropdown(!showCurrencyDropdown)}
+                      activeOpacity={0.7}
+                    >
+                      <View className="flex-row items-center">
+                        <Text style={{ fontSize: 20, marginRight: 8 }}>
+                          {currencies.find(c => c.code === selectedCurrency)?.flag}
+                        </Text>
+                        <Text style={{ color: 'white', fontSize: 16 }}>
+                          {currencies.find(c => c.code === selectedCurrency)?.code} - {currencies.find(c => c.code === selectedCurrency)?.name}
+                        </Text>
+                      </View>
+                      <Ionicons 
+                        name={showCurrencyDropdown ? "chevron-up" : "chevron-down"} 
+                        size={20} 
+                        color="#666" 
+                      />
+                    </TouchableOpacity>
+                    
+                    {showCurrencyDropdown && (
+                      <View className="absolute top-full left-0 right-0 bg-[#222] rounded-lg mt-1 z-10 max-h-48">
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                          {currencies.map((currency) => (
+                            <TouchableOpacity
+                              key={currency.code}
+                              className={`px-4 py-3 flex-row items-center ${
+                                selectedCurrency === currency.code ? 'bg-[#FB2355]' : ''
+                              }`}
+                              onPress={() => {
+                                setSelectedCurrency(currency.code);
+                                setShowCurrencyDropdown(false);
+                              }}
+                            >
+                              <Text style={{ fontSize: 18, marginRight: 8 }}>
+                                {currency.flag}
+                              </Text>
+                              <Text style={{ 
+                                color: selectedCurrency === currency.code ? 'white' : 'white', 
+                                fontSize: 14 
+                              }}>
+                                {currency.code} - {currency.name}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </ScrollView>
+                      </View>
+                    )}
+                  </View>
+                </View>
+
                 {/* Monthly Price Input */}
                 <View className="mb-4">
-                  <Text className="text-white text-lg mb-2">Monthly Price ($)</Text>
+                  <Text style={{ color: 'white', fontSize: 18, marginBottom: 8 }}>
+                    Monthly Price ({currencies.find(c => c.code === selectedCurrency)?.symbol})
+                  </Text>
                   <TextInput
                     className="bg-[#222] text-white rounded-lg px-4 py-3"
                     value={monthlyPrice}
                     onChangeText={setMonthlyPrice}
                     keyboardType="decimal-pad"
                     placeholder="Enter monthly price"
-                    placeholderTextColor="#666"
+                    placeholderTextColor="rgba(255,255,255,0.5)"
                   />
                   {monthlyPrice && (
                     <View className="mt-2 bg-[#222] rounded-lg p-3">
-                      <Text className="text-gray-400 text-sm">Price Breakdown (Monthly):</Text>
-                      <Text className="text-white mt-1">Store Fee (30%): ${calculatePriceBreakdown(monthlyPrice).storeFee.toFixed(2)}</Text>
-                      <Text className="text-white mt-1">Platform Fee (15%): ${calculatePriceBreakdown(monthlyPrice).platformFee.toFixed(2)}</Text>
-                      <Text className="text-[#FB2355] font-bold mt-1">Your Earnings: ${calculatePriceBreakdown(monthlyPrice).creatorEarnings.toFixed(2)}</Text>
+                      <Text style={{ color: 'white', fontSize: 14 }}>Price Breakdown (Monthly):</Text>
+                      <Text style={{ color: 'white', marginTop: 4 }}>Store Fee (30%): {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(monthlyPrice).storeFee.toFixed(2)}</Text>
+                      <Text style={{ color: 'white', marginTop: 4 }}>Platform Fee (15%): {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(monthlyPrice).platformFee.toFixed(2)}</Text>
+                      <Text className="text-[#FB2355] font-bold mt-1">Your Earnings: {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(monthlyPrice).creatorEarnings.toFixed(2)}</Text>
                     </View>
                   )}
                 </View>
 
                 {/* Yearly Price Input */}
                 <View className="mb-4">
-                  <Text className="text-white text-lg mb-2">Yearly Price ($)</Text>
+                  <Text style={{ color: 'white', fontSize: 18, marginBottom: 8 }}>
+                    Yearly Price ({currencies.find(c => c.code === selectedCurrency)?.symbol})
+                  </Text>
                   <TextInput
                     className="bg-[#222] text-white rounded-lg px-4 py-3"
                     value={yearlyPrice}
                     onChangeText={setYearlyPrice}
                     keyboardType="decimal-pad"
                     placeholder="Enter yearly price"
-                    placeholderTextColor="#666"
+                    placeholderTextColor="rgba(255,255,255,0.5)"
                   />
                   {yearlyPrice && (
                     <View className="mt-2 bg-[#222] rounded-lg p-3">
-                      <Text className="text-gray-400 text-sm">Price Breakdown (Yearly):</Text>
-                      <Text className="text-white mt-1">Store Fee (30%): ${calculatePriceBreakdown(yearlyPrice).storeFee.toFixed(2)}</Text>
-                      <Text className="text-white mt-1">Platform Fee (15%): ${calculatePriceBreakdown(yearlyPrice).platformFee.toFixed(2)}</Text>
-                      <Text className="text-[#FB2355] font-bold mt-1">Your Earnings: ${calculatePriceBreakdown(yearlyPrice).creatorEarnings.toFixed(2)}</Text>
+                      <Text style={{ color: 'white', fontSize: 14 }}>Price Breakdown (Yearly):</Text>
+                      <Text style={{ color: 'white', marginTop: 4 }}>Store Fee (30%): {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(yearlyPrice).storeFee.toFixed(2)}</Text>
+                      <Text style={{ color: 'white', marginTop: 4 }}>Platform Fee (15%): {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(yearlyPrice).platformFee.toFixed(2)}</Text>
+                      <Text className="text-[#FB2355] font-bold mt-1">Your Earnings: {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(yearlyPrice).creatorEarnings.toFixed(2)}</Text>
                     </View>
                   )}
                 </View>
@@ -1530,11 +1714,12 @@ export default function EditProfile() {
                         return;
                       }
 
-                      // Save prices to Appwrite
+                      // Save prices and currency to Appwrite
                       if (globalUser?.$id) {
                         await updateCreatorPayment(globalUser.$id, {
                           monthlyPrice: monthly,
-                          yearlyPrice: yearly
+                          yearlyPrice: yearly,
+                          currency: selectedCurrency
                         });
                         
                         // Refresh channel conditions to update the missing info modal on index.tsx
@@ -1579,6 +1764,8 @@ export default function EditProfile() {
             </View>
           </View>
         </Modal>
+
+
         </View>
       </ScrollView>
 
@@ -1641,6 +1828,39 @@ export default function EditProfile() {
                 }}>Creator Name</Text>
               </View>
               
+              {/* Warning Banner */}
+              <View style={{ 
+                backgroundColor: 'rgba(255, 165, 0, 0.1)', 
+                borderRadius: 12, 
+                padding: 16, 
+                marginBottom: 24,
+                borderWidth: 1,
+                borderColor: 'rgba(255, 165, 0, 0.3)'
+              }}>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                  <Text style={{ fontSize: 18, marginRight: 12, marginTop: 2 }}>⚠️</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ 
+                      color: '#FFA500', 
+                      fontSize: 16, 
+                      fontWeight: '600',
+                      fontFamily: 'questrial',
+                      marginBottom: 4
+                    }}>
+                      Important: Choose Carefully!
+                    </Text>
+                    <Text style={{ 
+                      color: 'rgba(255, 165, 0, 0.9)', 
+                      fontSize: 14, 
+                      fontFamily: 'questrial',
+                      lineHeight: 20
+                    }}>
+                      Your creator name cannot be changed once your channel goes live. Make sure you're happy with your choice!
+                    </Text>
+                  </View>
+                </View>
+              </View>
+              
               <TextInput
                 style={{
                   backgroundColor: '#2a2a2a',
@@ -1650,24 +1870,66 @@ export default function EditProfile() {
                   paddingVertical: 16,
                   fontSize: 16,
                   borderWidth: 1,
-                  borderColor: 'rgba(255,255,255,0.1)',
-                  marginBottom: 24,
+                  borderColor: creatorNameError ? '#F44336' : 'rgba(255,255,255,0.1)',
+                  marginBottom: 8,
                   width: '100%',
                   textAlign: 'center',
                   fontFamily: 'questrial'
                 }}
                 value={tempCreatorName}
-                onChangeText={setTempCreatorName}
+                onChangeText={(text) => {
+                  setTempCreatorName(text);
+                  setCreatorNameError(null); // Clear error when user types
+                }}
                 placeholder="Enter your creator name..."
                 placeholderTextColor="rgba(255,255,255,0.5)"
                 returnKeyType="done"
                 blurOnSubmit={true}
-                onSubmitEditing={() => {
+                onSubmitEditing={async () => {
                   Keyboard.dismiss();
-                  setCreatorName(tempCreatorName);
-                  setShowCreatorNameModal(false);
+                  if (tempCreatorName.trim()) {
+                    const isAvailable = await checkCreatorNameAvailability(tempCreatorName);
+                    if (isAvailable) {
+                      setCreatorName(tempCreatorName);
+                      setShowCreatorNameModal(false);
+                    } else {
+                      setCreatorNameError('This creator name is already taken');
+                    }
+                  }
                 }}
               />
+              
+              {/* Error Message */}
+              {creatorNameError && (
+                <Text style={{ 
+                  color: '#F44336', 
+                  fontSize: 14, 
+                  textAlign: 'center', 
+                  marginBottom: 16,
+                  fontFamily: 'questrial'
+                }}>
+                  {creatorNameError}
+                </Text>
+              )}
+              
+              {/* Loading Indicator */}
+              {checkingCreatorName && (
+                <View style={{ 
+                  flexDirection: 'row', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  marginBottom: 16
+                }}>
+                  <ActivityIndicator size="small" color="#FB2355" style={{ marginRight: 8 }} />
+                  <Text style={{ 
+                    color: 'rgba(255,255,255,0.7)', 
+                    fontSize: 14,
+                    fontFamily: 'questrial'
+                  }}>
+                    Checking availability...
+                  </Text>
+                </View>
+              )}
               
               <View style={{ 
                 flexDirection: 'row', 
@@ -1700,7 +1962,7 @@ export default function EditProfile() {
                 <TouchableOpacity 
                   style={{ 
                     flex: 1, 
-                    backgroundColor: '#FB2355', 
+                    backgroundColor: creatorNameError || checkingCreatorName ? '#666' : '#FB2355', 
                     borderRadius: 16, 
                     paddingVertical: 16, 
                     alignItems: 'center',
@@ -1710,18 +1972,28 @@ export default function EditProfile() {
                     shadowRadius: 8,
                     elevation: 8
                   }}
-                  onPress={() => {
+                  onPress={async () => {
                     Keyboard.dismiss();
-                    setCreatorName(tempCreatorName);
-                    setShowCreatorNameModal(false);
+                    if (tempCreatorName.trim() && !checkingCreatorName) {
+                      const isAvailable = await checkCreatorNameAvailability(tempCreatorName);
+                      if (isAvailable) {
+                        setCreatorName(tempCreatorName);
+                        setShowCreatorNameModal(false);
+                      } else {
+                        setCreatorNameError('This creator name is already taken');
+                      }
+                    }
                   }}
+                  disabled={!!creatorNameError || checkingCreatorName || !tempCreatorName.trim()}
                 >
                   <Text style={{ 
                     color: 'white', 
                     fontSize: 16, 
                     fontFamily: 'questrial', 
                     fontWeight: '600'
-                  }}>Save</Text>
+                  }}>
+                    {checkingCreatorName ? 'Checking...' : 'Save'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </Animated.View>

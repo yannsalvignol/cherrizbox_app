@@ -538,6 +538,7 @@ export const getProfilePictureUrl = (photoIdOrUri: string | null): string | null
 interface CreatorPayment {
     monthlyPrice: number;
     yearlyPrice: number;
+    currency?: string;
 }
 
 export const updateCreatorPayment = async (userId: string, payment: CreatorPayment): Promise<any> => {
@@ -555,40 +556,42 @@ export const updateCreatorPayment = async (userId: string, payment: CreatorPayme
             [Query.equal('userId', userId)]
         );
 
-        // Convert payment object to JSON string
+                // Convert payment object to JSON string
         const paymentString = JSON.stringify(payment);
 
         if (existingProfile.documents.length > 0) {
-            // Update existing profile
-            const updatedProfile = await databases.updateDocument(
-                config.databaseId,
-                config.profileCollectionId,
-                existingProfile.documents[0].$id,
-                {
-                    creatorpayment: paymentString,
-                    $permissions: [
-                        `read("user:${userId}")`,
-                        `write("user:${userId}")`
-                    ]
-                }
-            );
-            return updatedProfile;
+          // Update existing profile
+          const updatedProfile = await databases.updateDocument(
+            config.databaseId,
+            config.profileCollectionId,
+            existingProfile.documents[0].$id,
+            {
+              creatorpayment: paymentString,
+              currency: payment.currency || 'USD', // Save currency separately for easy access
+              $permissions: [
+                `read("user:${userId}")`,
+                `write("user:${userId}")`
+              ]
+            }
+          );
+          return updatedProfile;
         } else {
-            // Create new profile with payment info
-            const newProfile = await databases.createDocument(
-                config.databaseId,
-                config.profileCollectionId,
-                ID.unique(),
-                {
-                    userId: userId,
-                    creatorpayment: paymentString,
-                    $permissions: [
-                        `read("user:${userId}")`,
-                        `write("user:${userId}")`
-                    ]
-                }
-            );
-            return newProfile;
+          // Create new profile with payment info
+          const newProfile = await databases.createDocument(
+            config.databaseId,
+            config.profileCollectionId,
+            ID.unique(),
+            {
+              userId: userId,
+              creatorpayment: paymentString,
+              currency: payment.currency || 'USD', // Save currency separately for easy access
+              $permissions: [
+                `read("user:${userId}")`,
+                `write("user:${userId}")`
+              ]
+            }
+          );
+          return newProfile;
         }
     } catch (error) {
         console.error("Error updating user profile:", error);
