@@ -5,6 +5,41 @@ import { ActivityIndicator, Alert, Animated, Image, ImageBackground, Modal, Scro
 import { getSubscriptionCount, isUserSubscribed } from '../../../lib/appwrite';
 import StripePaymentSheet from '../../components/StripePaymentSheet';
 
+// Helper function to get currency symbol and position
+const getCurrencyInfo = (currencyCode?: string): { symbol: string; position: 'before' | 'after' } => {
+  if (!currencyCode) return { symbol: '$', position: 'before' }; // Default to USD
+  
+  const currencyInfo: { [key: string]: { symbol: string; position: 'before' | 'after' } } = {
+    'usd': { symbol: '$', position: 'before' },
+    'cad': { symbol: 'C$', position: 'before' },
+    'aud': { symbol: 'A$', position: 'before' },
+    'mxn': { symbol: '$', position: 'before' },
+    'sgd': { symbol: 'S$', position: 'before' },
+    'nzd': { symbol: 'NZ$', position: 'before' },
+    'eur': { symbol: '€', position: 'after' },
+    'gbp': { symbol: '£', position: 'before' },
+    'jpy': { symbol: '¥', position: 'before' },
+    'chf': { symbol: 'CHF', position: 'before' },
+    'cny': { symbol: '¥', position: 'before' },
+    'inr': { symbol: '₹', position: 'before' },
+    'brl': { symbol: 'R$', position: 'before' },
+    'sek': { symbol: 'kr', position: 'after' },
+    'nok': { symbol: 'kr', position: 'after' },
+    'dkk': { symbol: 'kr', position: 'after' }
+  };
+  
+  const info = currencyInfo[currencyCode.toLowerCase()];
+  return info || { symbol: currencyCode.toUpperCase(), position: 'before' };
+};
+
+// Helper function to format price with currency
+const formatPrice = (amount: string, currencyCode?: string): string => {
+  const currencyInfo = getCurrencyInfo(currencyCode);
+  return currencyInfo.position === 'before' 
+    ? `${currencyInfo.symbol} ${amount}`
+    : `${amount} ${currencyInfo.symbol}`;
+};
+
 const Property = () => {
   const { id } = useLocalSearchParams();
   const router = useRouter();
@@ -500,7 +535,7 @@ const Property = () => {
                         }}
                       >
                         <Text style={{ color: 'white', fontSize: 28, fontWeight: 'bold', textShadowColor: 'rgba(255, 255, 255, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }}>
-                          ${JSON.parse(post.payment).monthlyPrice}
+                          {formatPrice(JSON.parse(post.payment).monthlyPrice, post.currency || JSON.parse(post.payment).currency)}
                         </Text>
                         <Text style={{ color: 'white', fontSize: 16, textShadowColor: 'rgba(255, 255, 255, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial', marginTop: 4 }}>
                           per month
@@ -525,7 +560,7 @@ const Property = () => {
                         }}
                       >
                         <Text style={{ color: '#FB2355', fontSize: 28, fontWeight: 'bold', textShadowColor: 'rgba(251, 35, 85, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }}>
-                          ${JSON.parse(post.payment).yearlyPrice}
+                          {formatPrice(JSON.parse(post.payment).yearlyPrice, post.currency || JSON.parse(post.payment).currency)}
                         </Text>
                         <Text style={{ color: '#FB2355', fontSize: 16, textShadowColor: 'rgba(251, 35, 85, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial', marginTop: 4 }}>
                           per year
@@ -583,6 +618,7 @@ const Property = () => {
         amount={selectedPricing === 'monthly' ? parseFloat(JSON.parse(post?.payment || '{}').monthlyPrice || '0') : parseFloat(JSON.parse(post?.payment || '{}').yearlyPrice || '0')}
         interval={selectedPricing === 'monthly' ? 'month' : 'year'}
         creatorName={titleParam || post?.title || 'this'}
+        currency={post?.currency || JSON.parse(post?.payment || '{}').currency}
       />
     </View>
   );

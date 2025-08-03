@@ -285,7 +285,7 @@ export default function Index() {
         // First time all conditions are met, create channel and upload photo document
         console.log('✅ [Channels] First time all conditions met, creating channel and uploading photo document');
         
-        // Upload photo document (same as handleGoLive functionality)
+        // Upload photo document (same as rLive functionality)
         try {
           const { getUserProfile, getUserPhoto } = await import('@/lib/appwrite');
           const { ID } = await import('react-native-appwrite');
@@ -903,15 +903,33 @@ export default function Index() {
     console.log('🚀 Starting Stripe Onboarding...');
     
     try {
-      const { functions } = await import('@/lib/appwrite');
-      const { ExecutionMethod } = await import('react-native-appwrite');
+      const { functions, databases, config } = await import('@/lib/appwrite');
+      const { ExecutionMethod, Query } = await import('react-native-appwrite');
+      
+      // Fetch user's currency from profile collection
+      let userCurrency = 'USD'; // Default currency
+      try {
+        const userProfiles = await databases.listDocuments(
+          config.databaseId,
+          process.env.EXPO_PUBLIC_APPWRITE_PROFILE_COLLECTION_ID!,
+          [Query.equal('userId', user?.$id || '')]
+        );
+        
+        if (userProfiles.documents.length > 0) {
+          userCurrency = userProfiles.documents[0].currency || 'USD';
+          console.log('💰 User currency:', userCurrency);
+        }
+      } catch (profileError) {
+        console.log('⚠️ Could not fetch user currency, using default USD:', profileError);
+      }
       
       const result = await functions.createExecution(
         process.env.EXPO_PUBLIC_STRIPE_CONNECT_FUNCTION_ID!,
         JSON.stringify({
           userEmail: user?.email,
           userName: user?.name,
-          returnUrl: 'https://cherrybox.app/connect-return'
+          returnUrl: 'https://cherrybox.app/connect-return',
+          currency: userCurrency
         }),
         false,
         '/create-connect-account',

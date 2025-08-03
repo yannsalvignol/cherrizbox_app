@@ -16,6 +16,7 @@ interface MediaItem {
     fileUrl?: string;
     type: 'photo' | 'video';
     PhotoTopics?: string;
+    currency?: string;
 }
 
 interface PhotoCardProps {

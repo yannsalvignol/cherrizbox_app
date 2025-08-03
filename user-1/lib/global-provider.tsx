@@ -66,6 +66,7 @@ interface Post extends Models.Document {
     PhotoTopics?: string;
     isSubscribed?: boolean;
     isCancelled?: boolean;
+    currency?: string;
 }
 
 interface UserProfile extends Models.Document {

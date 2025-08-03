@@ -26,6 +26,7 @@ interface Post {
     PhotoTopics?: string;
     isSubscribed?: boolean;
     isCancelled?: boolean;
+    currency?: string;
 }
 
 interface UserProfile {

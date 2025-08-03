@@ -141,7 +141,7 @@ export async function cancelSubscription(subscriptionId: string) {
   }
 }
 
-export async function initiatePaymentIntent(amount: number, interval: 'month' | 'year', creatorName: string) {
+export async function initiatePaymentIntent(amount: number, interval: 'month' | 'year', creatorName: string, currency?: string) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
@@ -164,13 +164,13 @@ export async function initiatePaymentIntent(amount: number, interval: 'month' | 
     const creatorId = await getCreatorId(creatorName);
 
     const requestBody = {
-      path: `/create-payment-intent?creatorName=${encodeURIComponent(creatorName)}&creatorId=${encodeURIComponent(creatorId)}&price=${amount}&interval=${interval}&email=${encodeURIComponent(currentUser.email)}`,
+      path: `/create-payment-intent?creatorName=${encodeURIComponent(creatorName)}&creatorId=${encodeURIComponent(creatorId)}&price=${amount}&interval=${interval}&email=${encodeURIComponent(currentUser.email)}&currency=${encodeURIComponent(currency || 'usd')}`,
       email: currentUser.email
     };
 
     console.log('Sending request to backend:', {
       url: FUNCTION_ENDPOINT,
-      path: `/create-payment-intent?creatorName=${encodeURIComponent(creatorName)}&creatorId=${encodeURIComponent(creatorId)}&price=${amount}&interval=${interval}&email=${encodeURIComponent(currentUser.email)}`,
+      path: `/create-payment-intent?creatorName=${encodeURIComponent(creatorName)}&creatorId=${encodeURIComponent(creatorId)}&price=${amount}&interval=${interval}&email=${encodeURIComponent(currentUser.email)}&currency=${encodeURIComponent(currency || 'usd')}`,
       body: requestBody,
       headers: {
         'Content-Type': 'application/json',
