@@ -41,9 +41,311 @@ import {
 // Enhanced profile image caching using our data cache system
 import { chatDataCache } from '../../lib/data-cache';
 
+// Custom Attachment Component for DM shared media (images and documents)
+const CustomAttachmentComponent = ({ attachment }: { attachment: any }) => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [cachedImageUri, setCachedImageUri] = useState<string | null>(null);
+  
+  // Return null if not a custom_attachment
+  if (attachment?.type !== 'custom_attachment') {
+    return null;
+  }
+
+  const isImage = attachment?.attachment_type === 'image';
+  const isDocument = attachment?.attachment_type === 'document';
+
+  // Load cached image on mount (only for images)
+  useEffect(() => {
+    if (!isImage) {
+      setIsLoading(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    const loadImage = async () => {
+      const imageUrl = attachment?.appwrite_url || attachment?.local_uri;
+      
+      if (!imageUrl) {
+        if (isMounted) {
+          setHasError(true);
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      try {
+        console.log(`🖼️ [CustomAttachment] Loading image: ${imageUrl.substring(0, 60)}...`);
+        
+        // Use image cache for Appwrite URLs, direct path for local URIs
+        if (imageUrl.includes('appwrite') || imageUrl.startsWith('http')) {
+          const { chatImageCache } = await import('../../lib/image-cache');
+          const cachedPath = await chatImageCache.getCachedImagePath(imageUrl);
+          
+          if (isMounted) {
+            setCachedImageUri(cachedPath);
+            setIsLoading(false);
+            console.log(`✅ [CustomAttachment] Image ready: ${cachedPath === imageUrl ? 'original' : 'cached'}`);
+          }
+        } else {
+          // Local file, use directly
+          if (isMounted) {
+            setCachedImageUri(imageUrl);
+            setIsLoading(false);
+            console.log(`✅ [CustomAttachment] Local image ready`);
+          }
+        }
+      } catch (error) {
+        console.error('❌ [CustomAttachment] Failed to load image:', error);
+        if (isMounted) {
+          setHasError(true);
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadImage();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [attachment?.appwrite_url, attachment?.local_uri, isImage]);
+
+  // Handle document download
+  const handleDocumentDownload = async () => {
+    const documentUrl = attachment?.appwrite_url || attachment?.local_uri;
+    
+    if (!documentUrl) {
+      Alert.alert('Error', 'Document URL not available');
+      return;
+    }
+
+    try {
+      console.log(`📄 [CustomAttachment] Opening document: ${attachment?.title}`);
+      
+      // For documents, try to open directly with the system
+      const canOpen = await Linking.canOpenURL(documentUrl);
+      if (canOpen) {
+        await Linking.openURL(documentUrl);
+      } else {
+        // Fallback to sharing
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(documentUrl, {
+            mimeType: attachment?.mime_type || 'application/octet-stream',
+            dialogTitle: `Share ${attachment?.title || 'Document'}`,
+          });
+        } else {
+          Alert.alert('Error', 'Cannot open this document type');
+        }
+      }
+    } catch (error) {
+      console.error('❌ [CustomAttachment] Failed to open document:', error);
+      Alert.alert('Error', 'Failed to open document');
+    }
+  };
+
+  // Helper function to get file extension icon
+  const getDocumentIcon = () => {
+    const fileName = attachment?.title?.toLowerCase() || '';
+    
+    if (fileName.includes('.pdf')) return 'document-text';
+    if (fileName.includes('.doc') || fileName.includes('.docx')) return 'document-text';
+    if (fileName.includes('.xls') || fileName.includes('.xlsx')) return 'grid';
+    if (fileName.includes('.ppt') || fileName.includes('.pptx')) return 'easel';
+    if (fileName.includes('.txt')) return 'document-text-outline';
+    if (fileName.includes('.zip') || fileName.includes('.rar')) return 'archive';
+    
+    return 'document-outline';
+  };
+
+  // Helper function to format file size
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  if (hasError && isImage) {
+    return (
+      <View style={{
+        width: 250,
+        height: 200,
+        borderRadius: 12,
+        backgroundColor: '#2A2A2A',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginVertical: 4,
+        marginHorizontal: 8,
+        zIndex: 1,
+      }}>
+        <Ionicons name="image-outline" size={32} color="#666" />
+        <Text style={{
+          color: '#999',
+          fontSize: 14,
+          fontFamily: 'questrial',
+          textAlign: 'center',
+          marginTop: 8,
+        }}>
+          Failed to load image
+        </Text>
+      </View>
+    );
+  }
+
+  // Render document attachment
+  if (isDocument) {
+    return (
+      <View style={{
+        backgroundColor: 'transparent',
+        marginVertical: 4,
+        marginHorizontal: 8,
+        padding: 0,
+        borderRadius: 0,
+        overflow: 'hidden',
+        position: 'relative',
+      }}>
+        <TouchableOpacity
+          onPress={handleDocumentDownload}
+          style={{
+            width: 250,
+            height: 80,
+            borderRadius: 12,
+            backgroundColor: '#2A2A2A',
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingHorizontal: 16,
+            position: 'relative',
+            zIndex: 1,
+          }}
+          activeOpacity={0.8}
+        >
+          {/* Document icon */}
+          <View style={{
+            width: 48,
+            height: 48,
+            borderRadius: 8,
+            backgroundColor: '#3A3A3A',
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginRight: 12,
+          }}>
+            <Ionicons name={getDocumentIcon() as any} size={24} color="#FFFFFF" />
+          </View>
+          
+          {/* Document info */}
+          <View style={{ flex: 1 }}>
+            <Text 
+              numberOfLines={1}
+              style={{
+                color: '#FFFFFF',
+                fontSize: 14,
+                fontFamily: 'Urbanist-Medium',
+              }}
+            >
+              {attachment?.title || 'Document'}
+            </Text>
+            <Text style={{
+              color: '#999',
+              fontSize: 12,
+              fontFamily: 'questrial',
+              marginTop: 2,
+            }}>
+              {attachment?.file_size ? formatFileSize(attachment.file_size) : 'Unknown size'}
+            </Text>
+          </View>
+          
+          {/* Download arrow */}
+          <Ionicons name="download-outline" size={20} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // Render image attachment
+  if (isImage) {
+    return (
+      <View style={{
+        backgroundColor: 'transparent',
+        marginVertical: 4,
+        marginHorizontal: 8,
+        padding: 0,
+        borderRadius: 0,
+        overflow: 'hidden',
+        position: 'relative',
+      }}>
+        <View style={{
+          width: 250,
+          height: 200,
+          borderRadius: 12,
+          backgroundColor: '#2A2A2A',
+          justifyContent: 'center',
+          alignItems: 'center',
+          position: 'relative',
+          zIndex: 1,
+        }}>
+          {/* Loading indicator */}
+          {(isLoading || !cachedImageUri) && !hasError && (
+            <View style={{
+              position: 'absolute',
+              justifyContent: 'center',
+              alignItems: 'center',
+              width: '100%',
+              height: '100%',
+              backgroundColor: 'rgba(42, 42, 42, 0.8)',
+              borderRadius: 12,
+              zIndex: 1,
+            }}>
+              <ActivityIndicator size="large" color="#FFFFFF" />
+              <Text style={{
+                color: '#FFFFFF',
+                fontSize: 12,
+                fontFamily: 'questrial',
+                marginTop: 8,
+                opacity: 0.7,
+              }}>
+                Loading image...
+              </Text>
+            </View>
+          )}
+          
+          {/* Render image when ready */}
+          {cachedImageUri && (
+            <Image
+              source={{ uri: cachedImageUri }}
+              style={{
+                width: 250,
+                height: 200,
+                borderRadius: 12,
+                backgroundColor: 'transparent',
+              }}
+              resizeMode="cover"
+              onLoad={() => {
+                setIsLoading(false);
+                console.log(`🎯 [CustomAttachment] Image rendered successfully`);
+              }}
+              onError={(error) => {
+                console.error('❌ [CustomAttachment] Image rendering failed:', error);
+                setHasError(true);
+                setIsLoading(false);
+              }}
+            />
+          )}
+        </View>
+      </View>
+    );
+  }
+
+  // Fallback for unsupported attachment types
+  return null;
+};
+
 // Custom Paid Content Attachment Component
 const PaidContentAttachment = (props: any) => {
-  const { attachment, onPressIn } = props;
+  // The props object IS the attachment when called from Card component
+  const attachment = props.attachment || props; // Handle both cases
+  const { onPressIn, userCurrency, formatPrice } = props;
+
   const { user } = useGlobalContext();
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [isUnlocking, setIsUnlocking] = useState(false);
@@ -204,7 +506,7 @@ const PaidContentAttachment = (props: any) => {
                       marginTop: 4,
                       fontFamily: 'Urbanist-Bold',
                     }}>
-                      ${attachment?.price || '5.00'}
+                      {formatPrice ? formatPrice(attachment?.price || 5.00, userCurrency) : `$${attachment?.price || '5.00'}`}
                     </Text>
                   </>
                 )}
@@ -317,7 +619,7 @@ const attachmentStyles = StyleSheet.create({
 
 // Blurry File Attachment Component
 const BlurryFileAttachment = (props: any) => {
-  const { attachment } = props;
+  const { attachment, userCurrency, formatPrice } = props;
   const { user } = useGlobalContext();
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [isUnlocking, setIsUnlocking] = useState(false);
@@ -560,7 +862,7 @@ const BlurryFileAttachment = (props: any) => {
             fontWeight: '700',
             fontFamily: 'Urbanist-Bold',
           }}>
-            Unlock for ${price.toFixed(2)}
+            Unlock for {formatPrice ? formatPrice(price, userCurrency) : `$${price.toFixed(2)}`}
           </Text>
         </TouchableOpacity>
       </View>
@@ -981,7 +1283,7 @@ const BlurryFileAttachment = (props: any) => {
 
 // Custom Avatar component that fetches profile images
 const PaidVideoAttachment = (props: any) => {
-  const { attachment } = props;
+  const { attachment, userCurrency, formatPrice } = props;
   const { user } = useGlobalContext();
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [isUnlocking, setIsUnlocking] = useState(false);
@@ -1323,7 +1625,7 @@ const PaidVideoAttachment = (props: any) => {
                       fontWeight: '700',
                       fontFamily: 'Urbanist-Bold',
                     }}>
-                      Unlock for ${attachment?.price || '5.00'}
+                      Unlock for {formatPrice ? formatPrice(attachment?.price || 5.00, userCurrency) : `$${attachment?.price || '5.00'}`}
                     </Text>
                   )}
                 </TouchableOpacity>
@@ -1603,9 +1905,14 @@ const getTheme = (): DeepPartial<Theme> => ({
   messageList: {
     container: {
       backgroundColor: '#2A2A2A',
+      paddingHorizontal: 1, // Minimal padding to bring messages very close to border
     },
   },
   messageSimple: {
+    container: {
+      marginLeft: -20, // Even closer to left border for received messages
+      marginRight: 32, // Keep right margin for sent messages
+    },
     content: {
       containerInner: {
         backgroundColor: '#FB2355',
@@ -2013,7 +2320,39 @@ const CustomMessageSimple = (props: any) => {
   const messageContext = useMessageContext();
   const message = messageContext?.message;
   const channel = messageContext?.channel;
-  const { user } = useGlobalContext();
+  const { user, userCurrency } = useGlobalContext();
+
+
+  const getCurrencyInfo = (currencyCode?: string) => {
+    const currencyMap: { [key: string]: { symbol: string; position: 'before' | 'after' } } = {
+      'USD': { symbol: '$', position: 'before' },
+      'CAD': { symbol: 'C$', position: 'before' },
+      'AUD': { symbol: 'A$', position: 'before' },
+      'MXN': { symbol: '$', position: 'before' },
+      'SGD': { symbol: 'S$', position: 'before' },
+      'NZD': { symbol: 'NZ$', position: 'before' },
+      'EUR': { symbol: '€', position: 'after' },
+      'GBP': { symbol: '£', position: 'before' },
+      'JPY': { symbol: '¥', position: 'before' },
+      'CHF': { symbol: 'CHF', position: 'before' },
+      'CNY': { symbol: '¥', position: 'before' },
+      'INR': { symbol: '₹', position: 'before' },
+      'BRL': { symbol: 'R$', position: 'before' },
+      'SEK': { symbol: 'kr', position: 'after' },
+      'NOK': { symbol: 'kr', position: 'after' },
+      'DKK': { symbol: 'kr', position: 'after' },
+    };
+    return currencyMap[currencyCode || 'USD'] || { symbol: '$', position: 'before' };
+  };
+
+  const formatPrice = (price: number | string | undefined, currencyCode?: string) => {
+    if (price === undefined || price === null) return '--';
+    const priceStr = parseFloat(price.toString()).toFixed(2);
+    const currencyInfo = getCurrencyInfo(currencyCode);
+    return currencyInfo.position === 'before' 
+      ? `${currencyInfo.symbol}${priceStr}`
+      : `${priceStr}${currencyInfo.symbol}`;
+  };
   
   // Check if this message contains a poll (check for poll_id)
   const hasPoll = message?.poll_id || message?.poll;
@@ -2124,6 +2463,9 @@ const CustomMessageSimple = (props: any) => {
   // Check if message has paid video attachments
   const hasPaidVideo = message?.attachments?.some((attachment: any) => attachment?.type === 'paid_video');
   
+  // Check if message has custom attachment (tip with image/document)
+  const hasCustomAttachment = message?.attachments?.some((attachment: any) => attachment?.type === 'custom_attachment');
+  
   if (hasPaidContent) {
     console.log('Rendering message with paid content attachment');
     return (
@@ -2133,7 +2475,9 @@ const CustomMessageSimple = (props: any) => {
           attachment?.type === 'paid_content' ? (
             <PaidContentAttachment 
               key={`paid-content-${index}`}
-              attachment={attachment} 
+              attachment={attachment}
+              userCurrency={userCurrency}
+              formatPrice={formatPrice}
             />
           ) : null
         ))}
@@ -2355,6 +2699,87 @@ const CustomMessageSimple = (props: any) => {
     );
   }
   
+  if (hasCustomAttachment) {
+    console.log('Rendering message with custom attachment (tip with image/document)');
+    return (
+      <View style={{ 
+        alignItems: 'flex-start',
+        marginVertical: 8,
+        marginHorizontal: 4,
+      }}>
+        {/* Render custom attachments only (no text message) */}
+        {message.attachments?.map((attachment: any, index: number) => (
+          attachment?.type === 'custom_attachment' ? (
+            <CustomAttachmentComponent 
+              key={`custom-attachment-${index}`}
+              attachment={attachment}
+            />
+          ) : null
+        ))}
+        
+        {/* Add timestamp for custom attachment messages */}
+        {shouldShowTimestamp() && (
+          <View style={{ 
+            paddingTop: isInThread 
+              ? (isLastMessage() ? 2 : 1) // Threads - tightest spacing
+              : isDMChannel 
+                ? (isLastMessage() ? 6 : 3) // DM channels - medium spacing
+                : (isLastMessage() ? 8 : 4), // Group channels - most spacing
+            paddingBottom: isInThread 
+              ? (isLastMessage() ? 6 : 3) // Threads
+              : isDMChannel 
+                ? (isLastMessage() ? 10 : 5) // DM channels
+                : (isLastMessage() ? 12 : 6), // Group channels
+            paddingHorizontal: 5, // Consistent horizontal padding
+            marginTop: isInThread 
+              ? (isLastMessage() ? -22 : 4) // Threads - very tight to bubble
+              : isDMChannel 
+                ? (isLastMessage() ? -25 : -1) // DM channels - moderate spacing
+                : (isLastMessage() ? -10 : -6), // Group channels - original spacing
+            marginBottom: isInThread 
+              ? (isLastMessage() ? 1 : 0) // Threads
+              : isDMChannel 
+                ? (isLastMessage() ? 3 : 1) // DM channels
+                : (isLastMessage() ? 4 : 2), // Group channels
+            alignItems: 'flex-start', // Align left for custom attachments
+            backgroundColor: 'transparent',
+          }}>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6, // Slightly more space between checkmark and time
+              paddingHorizontal: 8, // Internal padding for the timestamp container
+              paddingVertical: 3, // Vertical padding for better touch target
+              borderRadius: 8, // Rounded background for timestamp
+              backgroundColor: 'rgba(0, 0, 0, 0.1)', // Subtle background
+            }}>
+              <Ionicons 
+                name="checkmark" 
+                size={13} // Slightly larger checkmark
+                color="#00C851" // Green color
+                style={{ opacity: 0.9 }}
+              />
+              <Text style={{
+                color: '#FFFFFF',
+                fontSize: 12, // Slightly larger timestamp text
+                fontWeight: '600', // Medium weight for better readability
+                fontFamily: 'questrial',
+                opacity: 0.8, // Slightly more visible
+                letterSpacing: 0.3, // Better letter spacing
+              }}>
+                {new Date(message.created_at).toLocaleTimeString([], { 
+                  hour: '2-digit', 
+                  minute: '2-digit',
+                  hour12: true 
+                })}
+              </Text>
+            </View>
+          </View>
+        )}
+      </View>
+    );
+  }
+  
   if (hasPaidContent) {
     console.log('Rendering message with paid content attachment');
     return (
@@ -2364,7 +2789,9 @@ const CustomMessageSimple = (props: any) => {
           attachment?.type === 'paid_content' ? (
             <PaidContentAttachment 
               key={`paid-content-${index}`}
-              attachment={attachment} 
+              attachment={attachment}
+              userCurrency={userCurrency}
+              formatPrice={formatPrice}
             />
           ) : null
         ))}
@@ -3148,11 +3575,13 @@ const uploadModalStyles = StyleSheet.create({
 });
 
 // Custom Price Input Modal
-const PriceInputModal = ({ visible, onClose, onSubmit, imageUri }: {
+const PriceInputModal = ({ visible, onClose, onSubmit, imageUri, userCurrency, formatPrice }: {
   visible: boolean;
   onClose: () => void;
   onSubmit: (price: number) => void;
   imageUri: string | null;
+  userCurrency?: string;
+  formatPrice?: (price: number, currency?: string) => string;
 }) => {
   const [price, setPrice] = useState('5.00');
   const [error, setError] = useState('');
@@ -3164,7 +3593,7 @@ const PriceInputModal = ({ visible, onClose, onSubmit, imageUri }: {
       return;
     }
     if (numPrice > 999) {
-      setError('Price cannot exceed $999');
+      setError(`Price cannot exceed ${formatPrice ? formatPrice(999, userCurrency) : '$999'}`);
       return;
     }
     onSubmit(numPrice);
@@ -3205,7 +3634,9 @@ const PriceInputModal = ({ visible, onClose, onSubmit, imageUri }: {
           </Text>
           
           <View style={priceModalStyles.inputContainer}>
-            <Text style={priceModalStyles.currencySymbol}>$</Text>
+            <Text style={priceModalStyles.currencySymbol}>
+              {userCurrency && formatPrice ? formatPrice(0, userCurrency).replace('0.00', '').replace('0,00', '') : '$'}
+            </Text>
             <TextInput
               style={priceModalStyles.priceInput}
               value={price}
@@ -3246,11 +3677,12 @@ const PriceInputModal = ({ visible, onClose, onSubmit, imageUri }: {
 };
 
 // Custom Upload Progress Modal
-const FilePriceInputModal = ({ visible, onClose, onSubmit, fileUri }: {
+const FilePriceInputModal = ({ visible, onClose, onSubmit, fileUri, userCurrency }: {
   visible: boolean;
   onClose: () => void;
   onSubmit: (fileUri: string, price: number, title: string) => void;
   fileUri: string | null;
+  userCurrency?: string;
 }) => {
   const [price, setPrice] = useState('');
   const [title, setTitle] = useState('');
@@ -3438,7 +3870,7 @@ const FilePriceInputModal = ({ visible, onClose, onSubmit, fileUri }: {
                 marginBottom: 8,
                 fontFamily: 'Urbanist-Regular',
               }}>
-                File Price (USD)
+                File Price ({userCurrency || 'USD'})
               </Text>
               <TextInput
                 style={{
@@ -3517,11 +3949,12 @@ const FilePriceInputModal = ({ visible, onClose, onSubmit, fileUri }: {
   );
 };
 
-const VideoPriceInputModal = ({ visible, onClose, onSubmit, videoUri }: {
+const VideoPriceInputModal = ({ visible, onClose, onSubmit, videoUri, userCurrency }: {
   visible: boolean;
   onClose: () => void;
   onSubmit: (price: number, title: string) => void;
   videoUri: string | null;
+  userCurrency?: string;
 }) => {
   const [price, setPrice] = useState('');
   const [title, setTitle] = useState('');
@@ -3679,7 +4112,7 @@ const VideoPriceInputModal = ({ visible, onClose, onSubmit, videoUri }: {
               marginBottom: 8,
               fontFamily: 'Urbanist-Regular',
             }}>
-              Video Price (USD)
+              Video Price ({userCurrency || 'USD'})
             </Text>
             <TextInput
               style={{
@@ -4143,7 +4576,8 @@ const UploadProgressModal = ({ visible, progress, uploadType = 'video' }: {
 export default function ChatScreen() {
   const router = useRouter();
   const { id: channelId } = useLocalSearchParams<{ id: string }>();
-  const { user } = useGlobalContext();
+  const { user, userCurrency } = useGlobalContext();
+
   const [isLoading, setIsLoading] = useState(true);
   const [channel, setChannel] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -4178,6 +4612,40 @@ export default function ChatScreen() {
   const [showRecordingModal, setShowRecordingModal] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const recordingRef = useRef<Audio.Recording | null>(null);
+  
+
+
+  // Currency formatting functions
+  const getCurrencyInfo = (currencyCode?: string) => {
+    const currencyMap: { [key: string]: { symbol: string; position: 'before' | 'after' } } = {
+      'USD': { symbol: '$', position: 'before' },
+      'CAD': { symbol: 'C$', position: 'before' },
+      'AUD': { symbol: 'A$', position: 'before' },
+      'MXN': { symbol: '$', position: 'before' },
+      'SGD': { symbol: 'S$', position: 'before' },
+      'NZD': { symbol: 'NZ$', position: 'before' },
+      'EUR': { symbol: '€', position: 'after' },
+      'GBP': { symbol: '£', position: 'before' },
+      'JPY': { symbol: '¥', position: 'before' },
+      'CHF': { symbol: 'CHF', position: 'before' },
+      'CNY': { symbol: '¥', position: 'before' },
+      'INR': { symbol: '₹', position: 'before' },
+      'BRL': { symbol: 'R$', position: 'before' },
+      'SEK': { symbol: 'kr', position: 'after' },
+      'NOK': { symbol: 'kr', position: 'after' },
+      'DKK': { symbol: 'kr', position: 'after' },
+    };
+    return currencyMap[currencyCode || 'USD'] || { symbol: '$', position: 'before' };
+  };
+
+  const formatPrice = (price: number | string | undefined, currencyCode?: string) => {
+    if (price === undefined || price === null) return '--';
+    const priceStr = parseFloat(price.toString()).toFixed(2);
+    const currencyInfo = getCurrencyInfo(currencyCode);
+    return currencyInfo.position === 'before' 
+      ? `${currencyInfo.symbol}${priceStr}`
+      : `${priceStr}${currencyInfo.symbol}`;
+  };
 
   useEffect(() => {
     setTheme(getTheme());
@@ -4243,6 +4711,8 @@ export default function ChatScreen() {
 
     loadProfileImage();
   }, [user]);
+
+
 
   // Preload images from visible messages for better performance
   useEffect(() => {
@@ -4886,7 +5356,7 @@ export default function ChatScreen() {
             price: price.toFixed(2),
             paid_content_id: paidContentId,
             title: 'Paid Content',
-            description: `Unlock this content for $${price.toFixed(2)}`,
+            description: `Unlock this content for ${formatPrice(price, userCurrency)}`,
           },
         ],
       });
@@ -5073,7 +5543,7 @@ export default function ChatScreen() {
       setUploadProgress('Sending file...');
       
       const messageData = {
-        text: `📁 ${title} - $${price.toFixed(2)}`,
+        text: `📁 ${title} - ${formatPrice(price, userCurrency)}`,
         attachments: [
           {
             type: 'blurry_file',
@@ -5082,7 +5552,7 @@ export default function ChatScreen() {
             price: price.toFixed(2),
             file_id: fileId,
             title: title,
-            description: `Unlock this file for $${price.toFixed(2)}`,
+            description: `Unlock this file for ${formatPrice(price, userCurrency)}`,
             is_blurred: true, // Mark as blurred
           },
         ],
@@ -5280,7 +5750,7 @@ export default function ChatScreen() {
       setUploadProgress('Sending paid video...');
       
               const messageData = {
-          text: `🎥 ${title} - $${price.toFixed(2)}`,
+          text: `🎥 ${title} - ${formatPrice(price, userCurrency)}`,
           attachments: [
             {
               type: 'paid_video',
@@ -5289,7 +5759,7 @@ export default function ChatScreen() {
               price: price.toFixed(2),
               paid_content_id: contentId,
               title: title,
-              description: `Unlock this premium video for $${price.toFixed(2)}`,
+              description: `Unlock this premium video for ${formatPrice(price, userCurrency)}`,
               is_blurred: true, // Mark as blurred/locked
             },
           ],
@@ -6371,7 +6841,7 @@ export default function ChatScreen() {
             width: 32,
             height: 32,
             borderRadius: 16,
-            backgroundColor: '#FB2355',
+            backgroundColor: '#333333',
             justifyContent: 'center',
             alignItems: 'center',
             marginRight: 8,
@@ -6386,7 +6856,7 @@ export default function ChatScreen() {
             width: 32,
             height: 32,
             borderRadius: 16,
-            backgroundColor: '#FB2355',
+            backgroundColor: '#333333',
             justifyContent: 'center',
             alignItems: 'center',
             marginRight: 8,
@@ -6473,11 +6943,13 @@ export default function ChatScreen() {
               supportedReactions={customReactions}
               messageActions={() => []} // Disable default message actions
               Card={(props: any) => {
-                console.log('🔍 Card component received props:', JSON.stringify(props, null, 2));
-                console.log('🔍 Attachment type:', props?.type);
-                console.log('🔍 Full props:', JSON.stringify(props, null, 2));
                 
                 // The props ARE the attachment, not nested under 'attachment'
+                if (props?.type === 'custom_attachment') {
+                  console.log('✅ Rendering CustomAttachmentComponent for custom_attachment');
+                  return <CustomAttachmentComponent attachment={props} />;
+                }
+                
                 if (props?.type === 'custom_photo') {
                   console.log('✅ Rendering CustomPhotoAttachment');
                   return <CustomPhotoAttachment attachment={props} />;
@@ -6490,10 +6962,21 @@ export default function ChatScreen() {
                 
                 if (props?.type === 'blurry_file') {
                   console.log('✅ Rendering BlurryFileAttachment');
-                  return <BlurryFileAttachment {...props} />;
+                  return <BlurryFileAttachment {...props} userCurrency={userCurrency} formatPrice={formatPrice} />;
                 }
+                
+                if (props?.type === 'paid_video') {
+                  console.log('✅ Rendering PaidVideoAttachment');
+                  return <PaidVideoAttachment {...props} userCurrency={userCurrency} formatPrice={formatPrice} />;
+                }
+                
+                if (props?.type === 'paid_content') {
+                  console.log('✅ Rendering PaidContentAttachment for paid_content');
+                  return <PaidContentAttachment {...props} userCurrency={userCurrency} formatPrice={formatPrice} />;
+                }
+                
                 console.log('🔄 Rendering PaidContentAttachment as fallback');
-                return <PaidContentAttachment {...props} />;
+                return <PaidContentAttachment {...props} userCurrency={userCurrency} formatPrice={formatPrice} />;
               }} // Add custom attachment component
             >
               {/* Conditional rendering based on thread state */}
@@ -6561,6 +7044,8 @@ export default function ChatScreen() {
                   }
                 }}
                 imageUri={selectedImageUri}
+                userCurrency={userCurrency}
+                formatPrice={formatPrice}
               />
               
               {/* File Price Input Modal */}
@@ -6572,6 +7057,7 @@ export default function ChatScreen() {
                 }}
                 onSubmit={sendBlurryFile}
                 fileUri={selectedFileUri}
+                userCurrency={userCurrency}
               />
               
               {/* Video Price Input Modal */}
@@ -6587,6 +7073,7 @@ export default function ChatScreen() {
                   }
                 }}
                 videoUri={selectedVideoUri}
+                userCurrency={userCurrency}
               />
               
               {/* Upload Progress Modal */}

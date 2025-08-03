@@ -18,11 +18,11 @@ import { StatusBar } from 'expo-status-bar';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, Dimensions, Image, ImageBackground, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useColorScheme } from 'react-native';
-import { Client, Databases, Query } from 'react-native-appwrite';
+import { Client, Databases, ID, Query } from 'react-native-appwrite';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Channel, Chat, DeepPartial, MessageAvatar, MessageInput, MessageList, MessageSimple, OverlayProvider, ReactionData, Theme, Thread, useMessageContext, useMessagesContext, useThreadContext } from 'stream-chat-react-native';
 import loadingIcon from '../../assets/icon/loading-icon.png';
-import { checkPaidContentPurchase, config, createPaidContentPaymentIntent, getCurrentUser } from '../../lib/appwrite';
+import { checkPaidContentPurchase, config, createPaidContentPaymentIntent, getCurrentUser, storage } from '../../lib/appwrite';
 import StripePaymentSheet from '../components/StripePaymentSheet';
 
 // Declare global interface for chat screen handlers
@@ -36,6 +36,92 @@ declare global {
 
 // Cache for profile images to avoid repeated database calls
 const profileImageCache = new Map<string, string>();
+
+// Helper function to get currency symbol and position (same as in [id].tsx)
+const getCurrencyInfo = (currencyCode?: string): { symbol: string; position: 'before' | 'after' } => {
+  if (!currencyCode) return { symbol: '$', position: 'before' }; // Default to USD
+  
+  const currencyInfo: { [key: string]: { symbol: string; position: 'before' | 'after' } } = {
+    'usd': { symbol: '$', position: 'before' },
+    'cad': { symbol: 'C$', position: 'before' },
+    'aud': { symbol: 'A$', position: 'before' },
+    'mxn': { symbol: '$', position: 'before' },
+    'sgd': { symbol: 'S$', position: 'before' },
+    'nzd': { symbol: 'NZ$', position: 'before' },
+    'eur': { symbol: '€', position: 'after' },
+    'gbp': { symbol: '£', position: 'before' },
+    'jpy': { symbol: '¥', position: 'before' },
+    'chf': { symbol: 'CHF', position: 'before' },
+    'cny': { symbol: '¥', position: 'before' },
+    'inr': { symbol: '₹', position: 'before' },
+    'brl': { symbol: 'R$', position: 'before' },
+    'sek': { symbol: 'kr', position: 'after' },
+    'nok': { symbol: 'kr', position: 'after' },
+    'dkk': { symbol: 'kr', position: 'after' }
+  };
+  
+  const info = currencyInfo[currencyCode.toLowerCase()];
+  return info || { symbol: currencyCode.toUpperCase(), position: 'before' };
+};
+
+// Helper function to format price with currency (same as in [id].tsx)
+const formatPrice = (amount: string, currencyCode?: string): string => {
+  const currencyInfo = getCurrencyInfo(currencyCode);
+  return currencyInfo.position === 'before' 
+    ? `${currencyInfo.symbol} ${amount}`
+    : `${amount} ${currencyInfo.symbol}`;
+};
+
+// Function to upload file to Appwrite storage
+const uploadFileToAppwrite = async (fileUri: string, fileName: string, mimeType?: string): Promise<string> => {
+  try {
+    console.log('📤 Starting file upload to Appwrite...');
+    console.log('📁 File URI:', fileUri);
+    console.log('📄 File Name:', fileName);
+    console.log('🏷️ MIME Type:', mimeType);
+
+    // Check if file exists
+    const fileInfo = await FileSystem.getInfoAsync(fileUri);
+    if (!fileInfo.exists) {
+      throw new Error('File does not exist at the specified URI');
+    }
+
+    console.log('📊 File Info:', fileInfo);
+
+    // Create a unique file ID
+    const fileId = ID.unique();
+    console.log('🆔 Generated File ID:', fileId);
+
+    // Create file object for upload
+    const fileToUpload = {
+      name: fileName,
+      type: mimeType || 'application/octet-stream',
+      size: fileInfo.size || 0,
+      uri: fileUri,
+    };
+
+    console.log('📦 File to upload:', fileToUpload);
+
+    // Upload to Appwrite storage
+    console.log('⬆️ Uploading to storage bucket:', config.storageId);
+    const uploadedFile = await storage.createFile(
+      config.storageId!,
+      fileId,
+      fileToUpload
+    );
+
+    console.log('✅ File uploaded successfully:', uploadedFile);
+
+    // Get the file URL
+    const fileUrl = storage.getFileView(config.storageId!, uploadedFile.$id);
+    console.log('🔗 File URL:', fileUrl);
+
+    return fileUrl.toString();
+  } catch (error) {
+    console.error('❌ Error uploading file to Appwrite:', error);
+    throw new Error(`Failed to upload file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+};
 
 // Custom Avatar component that fetches profile images
 const CustomMessageAvatar = (props: any) => {
@@ -195,7 +281,11 @@ const CustomMessageInput = ({
   selectedAttachment,
   tipAmount,
   setTipAmount,
-  currentChannel
+  currentChannel,
+  creatorCurrency,
+  creatorName,
+  userId,
+  creatorId
 }: { 
   currentChatType: string;
   setSelectedAttachment: (attachment: any) => void;
@@ -203,8 +293,145 @@ const CustomMessageInput = ({
   tipAmount: number;
   setTipAmount: (amount: number) => void;
   currentChannel: any;
+  creatorCurrency: string;
+  creatorName: string;
+  userId: string;
+  creatorId: string;
 }) => {
   const [showAttachmentModal, setShowAttachmentModal] = useState(false);
+  const [showStripeSheet, setShowStripeSheet] = useState(false);
+  const [pendingMessageData, setPendingMessageData] = useState<any>(null);
+
+  // Create payment intent for chat tips
+  const createTipPaymentIntent = async (amount: number, interval: string, creatorName: string, currency?: string) => {
+    try {
+      // Get the actual creator user ID from the current channel members
+      let actualCreatorId = creatorName; // fallback to creator name
+      
+      if (currentChannel && currentChannel.state?.members) {
+        const members = Object.keys(currentChannel.state.members);
+        console.log('📋 Channel members:', members);
+        console.log('👤 Current user ID:', userId);
+        
+        // Find the other participant (not the current user)
+        const otherMember = members.find(memberId => memberId !== userId);
+        if (otherMember) {
+          actualCreatorId = otherMember;
+          console.log('✅ Found actual creator ID from channel:', actualCreatorId);
+        } else {
+          console.log('⚠️ Could not find other member, using creator name as fallback:', creatorName);
+        }
+      } else {
+        console.log('⚠️ No channel or members available, using creator name as fallback:', creatorName);
+      }
+      
+      // Use the same structure as the working paid content function
+      const functionId = process.env.EXPO_PUBLIC_FUNCTION_ID;
+      const backendUrl = `${config.endpoint}/functions/${functionId}/executions`;
+      
+      const requestBody = {
+        path: '/create-paid-content-payment-intent',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: Math.round(amount * 100), // Convert to cents for Stripe
+          currency: currency || 'usd',
+          metadata: {
+            userId: userId || 'anonymous',
+            creatorId: actualCreatorId, // Use actual creator ID from channel members
+            creatorName: creatorName,
+            contentId: `tip_${Date.now()}`, // Unique ID for this tip
+            contentType: 'tip',
+            imageUrl: '', // No image for tips
+            paymentType: 'tip'
+          }
+        })
+      };
+      
+      const response = await fetch(backendUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Appwrite-Project': config.projectId || '',
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Backend error response:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+      }
+
+      const data = await response.json();
+      
+      // Parse the actual response from Appwrite Function's responseBody
+      let actualResponse;
+      if (data.responseBody) {
+        try {
+          actualResponse = JSON.parse(data.responseBody);
+        } catch (parseError) {
+          console.error('❌ Failed to parse responseBody:', parseError);
+          throw new Error('Invalid response format from backend');
+        }
+      } else {
+        actualResponse = data;
+      }
+      
+      if (!actualResponse.success) {
+        console.error('❌ Backend returned success: false');
+        throw new Error(actualResponse.error || 'Failed to create payment intent');
+      }
+
+      return {
+        clientSecret: actualResponse.clientSecret,
+        stripeAccountId: actualResponse.stripeAccountId
+      };
+    } catch (error) {
+      console.error('Error creating tip payment intent:', error);
+      throw error;
+    }
+  };
+
+  // Handle successful payment - send the pending message
+  const handlePaymentSuccess = async () => {
+    try {
+      if (!pendingMessageData || !currentChannel) {
+        console.error('❌ No pending message data or current channel');
+        return;
+      }
+
+      console.log('✅ Payment successful! Sending message...');
+      console.log('📤 Sending message with data:', JSON.stringify(pendingMessageData, null, 2));
+      
+      // Send the message that was prepared before payment
+      await currentChannel.sendMessage(pendingMessageData);
+      
+      console.log('✅ Message sent successfully after payment');
+      
+      // Reset state
+      setPendingMessageData(null);
+      setSelectedAttachment(null);
+      setTipAmount(5);
+      setShowStripeSheet(false);
+      
+      // Success feedback
+      Alert.alert('Success', `Message sent with ${formatPrice(pendingMessageData.attachments[0].tip_amount.toFixed(2), pendingMessageData.attachments[0].currency)} tip!`);
+      
+    } catch (error) {
+      console.error('❌ Error sending message after payment:', error);
+      Alert.alert('Error', `Payment was successful but failed to send message: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  // Handle payment cancellation/failure
+  const handlePaymentClose = () => {
+    console.log('💳 Payment cancelled or failed');
+    setShowStripeSheet(false);
+    // Keep pending message data in case user wants to try again
+  };
 
     const handleImagePicker = async () => {
     console.log('🖼️ Starting image picker...');
@@ -690,7 +917,7 @@ const CustomMessageInput = ({
                   fontWeight: 'bold',
                   marginBottom: 10,
                 }}>
-                  Tip Amount: ${tipAmount}
+                  Tip Amount: {formatPrice(tipAmount.toString(), creatorCurrency)}
                 </Text>
                 
                 {/* Custom Tip Input */}
@@ -720,7 +947,7 @@ const CustomMessageInput = ({
                       fontFamily: 'questrial',
                       marginRight: 8,
                     }}>
-                      $
+                      {getCurrencyInfo(creatorCurrency).symbol}
                     </Text>
                     <TextInput
                       value={tipAmount.toString()}
@@ -780,7 +1007,7 @@ const CustomMessageInput = ({
                           fontFamily: 'questrial',
                           fontWeight: tipAmount === amount ? 'bold' : 'normal',
                         }}>
-                          ${amount}
+                          {formatPrice(amount.toString(), creatorCurrency)}
                         </Text>
                       </TouchableOpacity>
                     ))}
@@ -852,44 +1079,60 @@ const CustomMessageInput = ({
                   <TouchableOpacity
                     onPress={async () => {
                       try {
-                        console.log('📤 Sending custom attachment with tip...');
+                        console.log('💳 Preparing Stripe payment for tip...');
                         
-                        // Create a custom message with tip and attachment data
+                        if (!selectedAttachment) {
+                          Alert.alert('No attachment', 'Please select an attachment to send with your tip.');
+                          return;
+                        }
+
+                        // Show loading state
+                        Alert.alert('Uploading', 'Uploading file to server...', [], { cancelable: false });
+                        
+                        // Upload file to Appwrite storage first
+                        const mimeType = selectedAttachment.type === 'video' ? 'video/mp4' : 
+                                        selectedAttachment.type === 'document' ? (selectedAttachment.mimeType || 'application/octet-stream') : 'image/jpeg';
+                        
+                        console.log('⬆️ Uploading file to Appwrite storage...');
+                        const appwriteFileUrl = await uploadFileToAppwrite(
+                          selectedAttachment.uri,
+                          selectedAttachment.fileName || 'attachment',
+                          mimeType
+                        );
+                        
+                        console.log('✅ File uploaded, URL:', appwriteFileUrl);
+                        
+                        // Prepare message data but don't send yet - wait for payment
                         const messageData = {
-                          text: `💝 Tip: $${tipAmount.toFixed(2)}`,
+                          text: `💝 Tip: ${formatPrice(tipAmount.toFixed(2), creatorCurrency)}`,
                           attachments: [
                             {
                               type: 'custom_attachment',
+                              appwrite_url: appwriteFileUrl,
                               local_uri: selectedAttachment.uri,
                               file_size: selectedAttachment.fileSize || 0,
                               title: selectedAttachment.fileName || 'Attachment',
-                              mime_type: selectedAttachment.type === 'video' ? 'video/mp4' : 
-                                        selectedAttachment.type === 'document' ? (selectedAttachment.mimeType || 'application/octet-stream') : 'image/jpeg',
+                              mime_type: mimeType,
                               attachment_type: selectedAttachment.type,
                               tip_amount: tipAmount,
+                              currency: creatorCurrency,
                               timestamp: new Date().toISOString(),
                             },
                           ],
                         };
 
-                        console.log('📤 Sending custom message with data:', JSON.stringify(messageData, null, 2));
+                        console.log('💾 Storing message data for after payment...');
                         
-                        // Send message with custom attachment
-                        await currentChannel?.sendMessage(messageData);
-
-                        console.log('✅ Custom message sent successfully');
+                        // Store message data for after successful payment
+                        setPendingMessageData(messageData);
                         
-                        // Close modal and reset state
+                        // Close attachment modal and open Stripe payment sheet
                         setShowAttachmentModal(false);
-                        setSelectedAttachment(null);
-                        setTipAmount(5);
-                        
-                        // Success feedback
-                        Alert.alert('Success', `Message sent with $${tipAmount.toFixed(2)} tip!`);
+                        setShowStripeSheet(true);
                         
                       } catch (error) {
-                        console.error('❌ Error sending message:', error);
-                        Alert.alert('Error', 'Failed to send message. Please try again.');
+                        console.error('❌ Error preparing payment:', error);
+                        Alert.alert('Error', `Failed to prepare payment: ${error instanceof Error ? error.message : 'Unknown error'}`);
                       }
                     }}
                     style={{
@@ -915,6 +1158,19 @@ const CustomMessageInput = ({
           </View>
         </View>
       </Modal>
+
+      {/* Stripe Payment Sheet for Tips */}
+      <StripePaymentSheet
+        visible={showStripeSheet}
+        onClose={handlePaymentClose}
+        onSuccess={handlePaymentSuccess}
+        amount={tipAmount}
+        interval="month" // Not used for tips, but required by component
+        creatorName={creatorName}
+        currency={creatorCurrency}
+        createIntentFunc={createTipPaymentIntent}
+        navigateOnSuccess={false} // Stay on chat screen
+      />
     </View>
   );
 };
@@ -995,12 +1251,14 @@ const CustomTipAttachment = (props: any) => {
   }
 
   const renderAttachmentContent = () => {
-    const { attachment_type, local_uri, title, tip_amount } = attachment;
+    const { attachment_type, appwrite_url, local_uri, title, tip_amount } = attachment;
+    // Use Appwrite URL if available, fallback to local URI
+    const fileUri = appwrite_url || local_uri;
     
     if (attachment_type === 'video') {
       return (
         <Video
-          source={{ uri: local_uri }}
+          source={{ uri: fileUri }}
           style={{ width: '100%', height: 200 }}
           resizeMode={ResizeMode.CONTAIN}
           useNativeControls
@@ -1012,17 +1270,18 @@ const CustomTipAttachment = (props: any) => {
           flex: 1,
           justifyContent: 'center',
           alignItems: 'center',
-          backgroundColor: '#2A2A2A',
+          backgroundColor: '#1A1A1A',
           borderRadius: 8,
           padding: 20,
         }}>
-          <Ionicons name="document" size={48} color="#FB2355" />
+          <Ionicons name="document-attach-outline" size={48} color="#FFFFFF" style={{ opacity: 0.7 }} />
           <Text style={{
             color: '#FFFFFF',
             fontSize: 16,
             fontFamily: 'questrial',
             marginTop: 8,
             textAlign: 'center',
+            opacity: 0.9,
           }}>
             {title}
           </Text>
@@ -1032,7 +1291,7 @@ const CustomTipAttachment = (props: any) => {
       // Image
       return (
         <Image
-          source={{ uri: local_uri }}
+          source={{ uri: fileUri }}
           style={{ width: '100%', height: 200 }}
           resizeMode="cover"
         />
@@ -1043,40 +1302,61 @@ const CustomTipAttachment = (props: any) => {
   return (
     <>
       <View style={{
-        backgroundColor: '#1A1A1A',
-        borderRadius: 12,
+        backgroundColor: '#2A2A2A',
+        borderRadius: 16,
         overflow: 'hidden',
         marginVertical: 8,
         marginLeft: 12,
         marginRight: -2,
         borderWidth: 1,
-        borderColor: '#FB2355',
+        borderColor: '#404040',
         alignSelf: 'flex-end',
         maxWidth: '80%',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
       }}>
         {/* Attachment Content */}
         <TouchableOpacity
           onPress={async () => {
-            if (attachment.local_uri) {
+            const fileUri = attachment.appwrite_url || attachment.local_uri;
+            if (fileUri) {
               if (attachment.attachment_type === 'image') {
                 // For images, show full screen modal
                 setShowFullScreenImage(true);
               } else if (attachment.attachment_type === 'document') {
-                // For documents (including PDFs), use expo-sharing
-                const isSharingAvailable = await Sharing.isAvailableAsync();
-                if (isSharingAvailable) {
-                  try {
-                    await Sharing.shareAsync(attachment.local_uri);
-                  } catch (error) {
-                    console.warn('Failed to share document:', error);
-                    Alert.alert('Error', 'Unable to share this document.');
+                // For documents, try to open with default app first (works for URLs)
+                try {
+                  await Linking.openURL(fileUri);
+                } catch (error) {
+                  console.warn('Failed to open document with default app:', error);
+                  // Fallback to sharing if it's a local file
+                  if (attachment.local_uri && !attachment.appwrite_url) {
+                    const isSharingAvailable = await Sharing.isAvailableAsync();
+                    if (isSharingAvailable) {
+                      try {
+                        await Sharing.shareAsync(attachment.local_uri);
+                      } catch (shareError) {
+                        console.warn('Failed to share document:', shareError);
+                        Alert.alert('Error', 'Unable to open or share this document.');
+                      }
+                    } else {
+                      Alert.alert('Error', 'Unable to open this document.');
+                    }
+                  } else {
+                    Alert.alert('Error', 'Unable to open this document.');
                   }
-                } else {
-                  Alert.alert('Error', 'Sharing is not available on this device.');
                 }
               } else {
                 // For other file types, try to open with default app
-                Linking.openURL(attachment.local_uri);
+                try {
+                  await Linking.openURL(fileUri);
+                } catch (error) {
+                  console.warn('Failed to open file:', error);
+                  Alert.alert('Error', 'Unable to open this file.');
+                }
               }
             }
           }}
@@ -1089,39 +1369,21 @@ const CustomTipAttachment = (props: any) => {
         
         {/* Tip Information */}
         <View style={{
-          backgroundColor: '#FB2355',
+          backgroundColor: '#1A1A1A',
           paddingHorizontal: 16,
           paddingVertical: 12,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
+          borderTopWidth: 1,
+          borderTopColor: '#404040',
         }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Ionicons name="heart" size={20} color="#FFFFFF" />
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
             <Text style={{
               color: '#FFFFFF',
-              fontSize: 16,
+              fontSize: 14,
               fontFamily: 'questrial',
-              fontWeight: 'bold',
-              marginLeft: 8,
+              fontWeight: '600',
+              opacity: 0.9,
             }}>
-              Tip: ${attachment.tip_amount?.toFixed(2) || '0.00'}
-            </Text>
-          </View>
-          
-          <View style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.2)',
-            borderRadius: 12,
-            paddingHorizontal: 8,
-            paddingVertical: 4,
-          }}>
-            <Text style={{
-              color: '#FFFFFF',
-              fontSize: 12,
-              fontFamily: 'questrial',
-              fontWeight: 'bold',
-            }}>
-              💝
+              Tip: {formatPrice((attachment.tip_amount?.toFixed(2) || '0.00'), attachment.currency || 'usd')}
             </Text>
           </View>
         </View>
@@ -1166,7 +1428,7 @@ const CustomTipAttachment = (props: any) => {
             activeOpacity={1}
           >
             <Image
-              source={{ uri: attachment.local_uri }}
+              source={{ uri: attachment.appwrite_url || attachment.local_uri }}
               style={{
                 width: '100%',
                 height: '100%',
@@ -6646,7 +6908,7 @@ const FullScreenProfileModal = ({
 
 export default function ChatScreen() {
   const { channelId, creatorName, chatType } = useLocalSearchParams();
-  const { user, isStreamConnected } = useGlobalContext();
+  const { user, isStreamConnected, posts } = useGlobalContext();
   const [groupChannel, setGroupChannel] = useState<any>(null);
   const [dmChannel, setDmChannel] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -6657,6 +6919,10 @@ export default function ChatScreen() {
   const [thread, setThread] = useState<any>(null);
   const [showCustomModal, setShowCustomModal] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<any>(null);
+  
+  // Creator data state
+  const [creatorCurrency, setCreatorCurrency] = useState<string>('usd');
+  const [creatorId, setCreatorId] = useState<string>('');
   
   // Full-screen profile picture state
   const [showFullScreenProfile, setShowFullScreenProfile] = useState(false);
@@ -6670,6 +6936,41 @@ export default function ChatScreen() {
   const [fullScreenImageUri, setFullScreenImageUri] = useState<string | null>(null);
 
   const colorScheme = useColorScheme();
+
+  // Fetch creator's currency from posts data
+  useEffect(() => {
+    if (creatorName && posts && posts.length > 0) {
+      console.log('🔍 [ChatScreen] Looking for creator currency for:', creatorName);
+      console.log('📊 [ChatScreen] Available posts:', posts.length);
+      
+      // Find the creator's post to get their currency (same logic as in [id].tsx)
+      const creatorPost = posts.find((post: any) => 
+        post.title?.toLowerCase() === creatorName.toString().toLowerCase() ||
+        post.creatorsname?.toLowerCase() === creatorName.toString().toLowerCase()
+      );
+      
+      if (creatorPost) {
+        console.log('✅ [ChatScreen] Found creator post:', creatorPost.title);
+        
+        // Extract currency from post data (same logic as in [id].tsx)
+        const currency = creatorPost.currency || 
+                        (creatorPost.payment ? JSON.parse(creatorPost.payment).currency : null) || 
+                        'usd';
+        
+        // Extract creator account ID from post data
+        const accountId = creatorPost.creatoraccountid || creatorPost.accountId || '';
+        
+        console.log('💰 [ChatScreen] Creator currency:', currency);
+        console.log('👤 [ChatScreen] Creator ID:', accountId);
+        setCreatorCurrency(currency.toLowerCase());
+        setCreatorId(accountId);
+      } else {
+        console.log('⚠️ [ChatScreen] Creator post not found, using defaults');
+        setCreatorCurrency('usd');
+        setCreatorId('');
+      }
+    }
+  }, [creatorName, posts]);
 
   // Cleanup function for memory management
   useEffect(() => {
@@ -7186,6 +7487,10 @@ export default function ChatScreen() {
                   tipAmount={tipAmount}
                   setTipAmount={setTipAmount}
                   currentChannel={currentChannel}
+                  creatorCurrency={creatorCurrency}
+                  creatorName={creatorName as string}
+                  userId={user?.$id || ''}
+                  creatorId={creatorId}
                 />
               </>
             )}

@@ -19,6 +19,8 @@ interface GlobalContextType {
   setSocialMediaPlatform: (platform: string) => void;
   socialMediaUsername: string;
   setSocialMediaUsername: (username: string) => void;
+  userCurrency: string;
+  setUserCurrency: (currency: string) => void;
 }
 
 interface User {
@@ -48,21 +50,42 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
   const [showInlineVerification, setShowInlineVerification] = React.useState(false);
   const [socialMediaPlatform, setSocialMediaPlatform] = React.useState('');
   const [socialMediaUsername, setSocialMediaUsername] = React.useState('');
+  const [userCurrency, setUserCurrency] = React.useState('USD');
+
   const previousUserId = useRef<string | null>(null);
 
   const isLogged = !!user;
 
   const refreshChannelConditions = async () => {
-    if (!user?.$id) return;
+    console.log('🚀 [Global Currency] refreshChannelConditions called for user:', user?.$id);
+    if (!user?.$id) {
+      console.log('❌ [Global Currency] No user ID, returning early');
+      return;
+    }
     
     try {
       // First check if all profile fields are filled (same as handleGoLive validation)
+      console.log('🔄 [Global Currency] Loading user profile...');
       const { getUserProfile, getUserPhoto } = await import('./appwrite');
       const profile = await getUserProfile(user.$id);
       
       if (!profile) {
+        console.log('❌ [Global Currency] No profile found');
         setMissingChannelConditions(['Profile setup incomplete']);
         return;
+      }
+
+      // Load user currency from profile
+      console.log('🔍 [Global Currency] Full profile data:', JSON.stringify(profile, null, 2));
+      console.log('🔍 [Global Currency] Profile currency field:', profile.currency);
+      console.log('🔍 [Global Currency] All profile keys:', Object.keys(profile));
+      
+      if (profile.currency) {
+        console.log('✅ [Global Currency] Setting currency to:', profile.currency);
+        setUserCurrency(profile.currency);
+      } else {
+        console.log('⚠️ [Global Currency] No currency found in profile, keeping default USD');
+        console.log('🔍 [Global Currency] Available fields:', Object.keys(profile));
       }
 
       // Check if all profile fields are filled
@@ -168,6 +191,7 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
       if (user) {
         try {
           // First check if all profile fields are filled (same as handleGoLive validation)
+          console.log('🔄 [GlobalProvider] Loading user profile for Stream connection...');
           const { getUserProfile, getUserPhoto } = await import('./appwrite');
           const profile = await getUserProfile(user.$id);
           
@@ -179,6 +203,17 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
               previousUserId.current = null;
             }
             return;
+          }
+
+          // Load user currency from profile (same as refreshChannelConditions)
+          console.log('🔍 [GlobalProvider Stream] Full profile data:', JSON.stringify(profile, null, 2));
+          console.log('🔍 [GlobalProvider Stream] Profile currency field:', profile.currency);
+          if (profile.currency) {
+            console.log('✅ [GlobalProvider Stream] Setting currency to:', profile.currency);
+            setUserCurrency(profile.currency);
+          } else {
+            console.log('⚠️ [GlobalProvider Stream] No currency found in profile, keeping default USD');
+            console.log('🔍 [GlobalProvider Stream] Available fields:', Object.keys(profile));
           }
 
           // Check if all profile fields are filled
@@ -333,6 +368,8 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
         setSocialMediaPlatform,
         socialMediaUsername,
         setSocialMediaUsername,
+        userCurrency,
+        setUserCurrency,
       }}
     >
       {children}
