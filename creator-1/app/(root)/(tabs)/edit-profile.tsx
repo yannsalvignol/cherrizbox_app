@@ -1420,14 +1420,34 @@ export default function EditProfile() {
               <ScrollView>
                 {/* Currency Picker */}
                 <View className="mb-4">
-                  <Text style={{ color: 'white', fontSize: 18, marginBottom: 8 }}>Currency</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <Text style={{ color: 'white', fontSize: 18 }}>Currency</Text>
+                    {showCreatorNameWarning && (
+                      <View style={{ 
+                        backgroundColor: '#FFA500', 
+                        borderRadius: 8, 
+                        paddingHorizontal: 8, 
+                        paddingVertical: 4 
+                      }}>
+                        <Text style={{ 
+                          color: 'white', 
+                          fontSize: 12, 
+                          fontFamily: 'questrial',
+                          fontWeight: '600'
+                        }}>
+                          LOCKED
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                   <View style={{ width: '100%' }}>
                     {/* First Row */}
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 8 }}>
                       {currencies.slice(0, 3).map((currency) => (
                         <TouchableOpacity
                           key={currency.code}
-                          onPress={() => setSelectedCurrency(currency.code)}
+                          onPress={() => !showCreatorNameWarning && setSelectedCurrency(currency.code)}
+                          disabled={showCreatorNameWarning}
                           style={{
                             backgroundColor: selectedCurrency === currency.code ? '#FB2355' : '#222',
                             borderRadius: 18,
@@ -1438,6 +1458,7 @@ export default function EditProfile() {
                             borderWidth: selectedCurrency === currency.code ? 0 : 1,
                             borderColor: '#444',
                             alignItems: 'center',
+                            opacity: showCreatorNameWarning ? 0.6 : 1,
                           }}
                         >
                           <Text style={{ 
@@ -1456,7 +1477,8 @@ export default function EditProfile() {
                       {currencies.slice(3, 6).map((currency) => (
                         <TouchableOpacity
                           key={currency.code}
-                          onPress={() => setSelectedCurrency(currency.code)}
+                          onPress={() => !showCreatorNameWarning && setSelectedCurrency(currency.code)}
+                          disabled={showCreatorNameWarning}
                           style={{
                             backgroundColor: selectedCurrency === currency.code ? '#FB2355' : '#222',
                             borderRadius: 18,
@@ -1467,6 +1489,7 @@ export default function EditProfile() {
                             borderWidth: selectedCurrency === currency.code ? 0 : 1,
                             borderColor: '#444',
                             alignItems: 'center',
+                            opacity: showCreatorNameWarning ? 0.6 : 1,
                           }}
                         >
                           <Text style={{ 
@@ -1481,6 +1504,29 @@ export default function EditProfile() {
                       ))}
                     </View>
                   </View>
+                  {/* Warning Message for Currency */}
+                  {showCreatorNameWarning && (
+                    <View style={{ 
+                      backgroundColor: 'rgba(255, 165, 0, 0.1)', 
+                      borderRadius: 12, 
+                      padding: 12, 
+                      marginTop: 8,
+                      borderWidth: 1,
+                      borderColor: 'rgba(255, 165, 0, 0.3)'
+                    }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Text style={{ fontSize: 16, marginRight: 8 }}>🔒</Text>
+                        <Text style={{ 
+                          color: '#FFA500', 
+                          fontSize: 14, 
+                          fontFamily: 'questrial',
+                          flex: 1
+                        }}>
+                          Currency cannot be changed once your channel is live. Contact support if needed.
+                        </Text>
+                      </View>
+                    </View>
+                  )}
                 </View>
 
                 {/* Monthly Price Input */}
@@ -1489,12 +1535,13 @@ export default function EditProfile() {
                     Monthly Price ({currencies.find(c => c.code === selectedCurrency)?.symbol})
                   </Text>
                   <TextInput
-                    className="bg-[#222] text-white rounded-lg px-4 py-3"
+                    className="bg-[#222] rounded-lg px-4 py-3"
                     value={monthlyPrice}
                     onChangeText={setMonthlyPrice}
                     keyboardType="decimal-pad"
                     placeholder="Enter monthly price"
                     placeholderTextColor="rgba(255,255,255,0.5)"
+                    style={{ color: 'white' }}
                   />
                   {monthlyPrice && (
                     <View className="mt-2 bg-[#222] rounded-lg p-3">
@@ -1512,12 +1559,13 @@ export default function EditProfile() {
                     Yearly Price ({currencies.find(c => c.code === selectedCurrency)?.symbol})
                   </Text>
                   <TextInput
-                    className="bg-[#222] text-white rounded-lg px-4 py-3"
+                    className="bg-[#222] rounded-lg px-4 py-3"
                     value={yearlyPrice}
                     onChangeText={setYearlyPrice}
                     keyboardType="decimal-pad"
                     placeholder="Enter yearly price"
                     placeholderTextColor="rgba(255,255,255,0.5)"
+                    style={{ color: 'white' }}
                   />
                   {yearlyPrice && (
                     <View className="mt-2 bg-[#222] rounded-lg p-3">

@@ -89,6 +89,39 @@ export default function Index() {
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationType, setNotificationType] = useState<'success' | 'error'>('success');
+  const [userCurrency, setUserCurrency] = useState('USD');
+
+  // Currency formatting functions
+  const getCurrencyInfo = (currencyCode?: string) => {
+    const currencyMap: { [key: string]: { symbol: string; position: 'before' | 'after' } } = {
+      'USD': { symbol: '$', position: 'before' },
+      'CAD': { symbol: 'C$', position: 'before' },
+      'AUD': { symbol: 'A$', position: 'before' },
+      'MXN': { symbol: '$', position: 'before' },
+      'SGD': { symbol: 'S$', position: 'before' },
+      'NZD': { symbol: 'NZ$', position: 'before' },
+      'EUR': { symbol: '€', position: 'after' },
+      'GBP': { symbol: '£', position: 'before' },
+      'JPY': { symbol: '¥', position: 'before' },
+      'CHF': { symbol: 'CHF', position: 'before' },
+      'CNY': { symbol: '¥', position: 'before' },
+      'INR': { symbol: '₹', position: 'before' },
+      'BRL': { symbol: 'R$', position: 'before' },
+      'SEK': { symbol: 'kr', position: 'after' },
+      'NOK': { symbol: 'kr', position: 'after' },
+      'DKK': { symbol: 'kr', position: 'after' },
+    };
+    return currencyMap[currencyCode || 'USD'] || { symbol: '$', position: 'before' };
+  };
+
+  const formatPrice = (price: number | string | undefined, currencyCode?: string) => {
+    if (price === undefined || price === null) return '--';
+    const priceStr = (parseFloat(price.toString()) / 100).toFixed(2);
+    const currencyInfo = getCurrencyInfo(currencyCode);
+    return currencyInfo.position === 'before' 
+      ? `${currencyInfo.symbol}${priceStr}`
+      : `${priceStr}${currencyInfo.symbol}`;
+  };
 
   // Social media platform icons mapping (same as landing.tsx)
   const networks = [
@@ -833,6 +866,30 @@ export default function Index() {
     }
   };
 
+  const loadUserCurrency = async () => {
+    if (!user?.$id) return;
+    
+    try {
+      const { databases, config } = await import('@/lib/appwrite');
+      const { Query } = await import('react-native-appwrite');
+      
+      const userProfiles = await databases.listDocuments(
+        config.databaseId,
+        process.env.EXPO_PUBLIC_APPWRITE_PROFILE_COLLECTION_ID!,
+        [Query.equal('userId', user.$id)]
+      );
+      
+      if (userProfiles.documents.length > 0) {
+        const currency = userProfiles.documents[0].currency || 'USD';
+        setUserCurrency(currency);
+        console.log('💰 Loaded user currency:', currency);
+      }
+    } catch (error) {
+      console.error('Error loading user currency:', error);
+      setUserCurrency('USD'); // Default fallback
+    }
+  };
+
   const loadCreatorFinancials = async () => {
     if (!user?.$id) return;
 
@@ -1282,6 +1339,7 @@ export default function Index() {
       });
     }
     loadProfileImage();
+    loadUserCurrency();
     if (user?.$id) {
         loadCreatorFinancials();
     }
@@ -2640,7 +2698,7 @@ export default function Index() {
                   fontWeight: 'bold',
                   fontFamily: 'Urbanist-Bold'
                 }}>
-                  ${(creatorFinancials.lifetimeVolume / 100).toFixed(2)}
+                  {formatPrice(creatorFinancials.lifetimeVolume, userCurrency)}
                 </Text>
                 <Text style={{
                     color: '#888888',
@@ -2717,7 +2775,7 @@ export default function Index() {
               )}
             </View>
                   <Text style={{ color: '#4CAF50', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>
-                    ${((creatorFinancials.stripeBalanceAvailable || 0) / 100).toFixed(2)}
+                    {formatPrice(creatorFinancials.stripeBalanceAvailable || 0, userCurrency)}
                   </Text>
                 </View>
 
@@ -2765,7 +2823,7 @@ export default function Index() {
                     )}
                   </View>
                   <Text style={{ color: '#FF9800', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>
-                    ${((creatorFinancials.stripeBalancePending || 0) / 100).toFixed(2)}
+                    {formatPrice(creatorFinancials.stripeBalancePending || 0, userCurrency)}
                   </Text>
                 </View>
 
@@ -2805,7 +2863,7 @@ export default function Index() {
                             In Transit Amount
                           </Text>
                           <Text style={{ color: '#BDBDBD', fontFamily: 'Urbanist-Regular', fontSize: 13 }}>
-                             ${((creatorFinancials.payoutsInTransitAmount || 0) / 100).toFixed(2)}
+                             {formatPrice(creatorFinancials.payoutsInTransitAmount || 0, userCurrency)}
                           </Text>
               </View>
                       )}
@@ -2815,7 +2873,7 @@ export default function Index() {
                             Pending Amount
                           </Text>
                           <Text style={{ color: '#BDBDBD', fontFamily: 'Urbanist-Regular', fontSize: 13 }}>
-                             ${((creatorFinancials.payoutsPendingAmount || 0) / 100).toFixed(2)}
+                             {formatPrice(creatorFinancials.payoutsPendingAmount || 0, userCurrency)}
                           </Text>
                         </View>
                       )}
