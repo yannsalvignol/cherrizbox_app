@@ -8,9 +8,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Dimensions, FlatList, Image, Keyboard, Modal, ScrollView, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, Vibration, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { config, databases, getUserPhoto, getUserProfile, sendCreatorVerificationNotification, updateCreatorPayment, updateUserProfile, uploadProfilePicture } from '../../../lib/appwrite';
+import { config, databases, getUserPhoto, getUserProfile, updateCreatorPayment, updateUserProfile, uploadProfilePicture } from '../../../lib/appwrite';
 import { useGlobalContext } from '../../../lib/global-provider';
-import { createCreatorChannel } from '../../../lib/stream-chat';
 import ProfilePreview from '../../components/ProfilePreview';
 
 interface ProfileData {
@@ -26,21 +25,21 @@ interface ProfileData {
 }
 
 const countries = [
-  { name: 'United States', code: '+1', flag: '🇺🇸' },
-  { name: 'Canada', code: '+1', flag: '🇨🇦' },
-  { name: 'United Kingdom', code: '+44', flag: '🇬🇧' },
-  { name: 'France', code: '+33', flag: '🇫🇷' },
-  { name: 'Germany', code: '+49', flag: '🇩🇪' },
-  { name: 'Italy', code: '+39', flag: '🇮🇹' },
-  { name: 'Spain', code: '+34', flag: '🇪🇸' },
-  { name: 'China', code: '+86', flag: '🇨🇳' },
-  { name: 'Japan', code: '+81', flag: '🇯🇵' },
-  { name: 'South Korea', code: '+82', flag: '🇰🇷' },
-  { name: 'India', code: '+91', flag: '🇮🇳' },
-  { name: 'Australia', code: '+61', flag: '🇦🇺' },
-  { name: 'Brazil', code: '+55', flag: '🇧🇷' },
-  { name: 'Mexico', code: '+52', flag: '🇲🇽' },
-  { name: 'Russia', code: '+7', flag: '🇷🇺' },
+  { name: 'United States', code: '+1', flag: '🇺🇸', format: '(XXX) XXX-XXXX' },
+  { name: 'Canada', code: '+1', flag: '🇨🇦', format: '(XXX) XXX-XXXX' },
+  { name: 'United Kingdom', code: '+44', flag: '🇬🇧', format: 'XXXX XXXXXX' },
+  { name: 'France', code: '+33', flag: '🇫🇷', format: 'X XX XX XX XX' },
+  { name: 'Germany', code: '+49', flag: '🇩🇪', format: 'XXX XXXXXXX' },
+  { name: 'Italy', code: '+39', flag: '🇮🇹', format: 'XXX XXX XXXX' },
+  { name: 'Spain', code: '+34', flag: '🇪🇸', format: 'XXX XXX XXX' },
+  { name: 'China', code: '+86', flag: '🇨🇳', format: 'XXX XXXX XXXX' },
+  { name: 'Japan', code: '+81', flag: '🇯🇵', format: 'XX XXXX XXXX' },
+  { name: 'South Korea', code: '+82', flag: '🇰🇷', format: 'XX XXXX XXXX' },
+  { name: 'India', code: '+91', flag: '🇮🇳', format: 'XXXXX XXXXX' },
+  { name: 'Australia', code: '+61', flag: '🇦🇺', format: 'X XXXX XXXX' },
+  { name: 'Brazil', code: '+55', flag: '🇧🇷', format: '(XX) XXXXX-XXXX' },
+  { name: 'Mexico', code: '+52', flag: '🇲🇽', format: 'XXX XXX XXXX' },
+  { name: 'Russia', code: '+7', flag: '🇷🇺', format: 'XXX XXX-XX-XX' },
 ];
 
 const currencies = [
@@ -49,8 +48,8 @@ const currencies = [
   { code: 'GBP', symbol: '£', name: 'British Pound', flag: '🇬🇧' },
   { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar', flag: '🇨🇦' },
   { code: 'AUD', symbol: 'A$', name: 'Australian Dollar', flag: '🇦🇺' },
-  { code: 'JPY', symbol: '¥', name: 'Japanese Yen', flag: '🇯🇵' },
   { code: 'CHF', symbol: 'CHF', name: 'Swiss Franc', flag: '🇨🇭' },
+  { code: 'JPY', symbol: '¥', name: 'Japanese Yen', flag: '🇯🇵' },
   { code: 'CNY', symbol: '¥', name: 'Chinese Yuan', flag: '🇨🇳' },
   { code: 'INR', symbol: '₹', name: 'Indian Rupee', flag: '🇮🇳' },
   { code: 'BRL', symbol: 'R$', name: 'Brazilian Real', flag: '🇧🇷' },
@@ -118,14 +117,13 @@ export default function EditProfile() {
   const [checkingCreatorName, setCheckingCreatorName] = useState(false);
   const [showCreatorNameWarning, setShowCreatorNameWarning] = useState(false);
   const [selectedCurrency, setSelectedCurrency] = useState('USD');
-  const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
   const [userPhotoThumbnail, setUserPhotoThumbnail] = useState<string | null>(null);
   const [compressedThumbnail, setCompressedThumbnail] = useState<string | null>(null);
   const [photoTitle, setPhotoTitle] = useState<string>('');
   const [photoState, setPhotoState] = useState<string>('');
-  const [showMissingFieldsModal, setShowMissingFieldsModal] = useState(false);
-  const [missingFields, setMissingFields] = useState<string[]>([]);
-  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [showPhoneNumberModal, setShowPhoneNumberModal] = useState(false);
+  const [tempPhoneNumber, setTempPhoneNumber] = useState('');
+
 
   const months = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
   const currentYear = new Date().getFullYear();
@@ -133,6 +131,25 @@ export default function EditProfile() {
 
   const getDaysInMonth = (month: number, year: number) => {
     return new Date(year, month, 0).getDate();
+  };
+
+  // Function to format phone number according to country format
+  const formatPhoneNumber = (digits: string, format: string): string => {
+    if (!digits || !format) return digits;
+    
+    let result = '';
+    let digitIndex = 0;
+    
+    for (let i = 0; i < format.length && digitIndex < digits.length; i++) {
+      if (format[i] === 'X') {
+        result += digits[digitIndex];
+        digitIndex++;
+      } else {
+        result += format[i];
+      }
+    }
+    
+    return result;
   };
 
   // Function to check if creator name is already taken
@@ -374,7 +391,8 @@ export default function EditProfile() {
                     }),
                     PhotosLocation: location,
                     PhotoTopics: topics.join(', '),
-                    Bio: bio
+                    Bio: bio,
+                    currency: selectedCurrency
                   }
                 );
               }
@@ -426,7 +444,8 @@ export default function EditProfile() {
             }),
             PhotosLocation: location,
             PhotoTopics: topics.join(', '),
-            Bio: bio
+                    Bio: bio,
+                    currency: selectedCurrency
           }
         );
         // Update local photoTitle state
@@ -449,7 +468,8 @@ export default function EditProfile() {
             }),
             PhotosLocation: location,
             PhotoTopics: topics.join(', '),
-            Bio: bio
+            Bio: bio,
+            currency: selectedCurrency
           }
         );
         // Update local photoTitle state
@@ -526,7 +546,8 @@ export default function EditProfile() {
           PhotosLocation: location || '',
           payment: JSON.stringify(paymentData),
           PhotoTopics: topics.join(', '),
-          Bio: bio || ''
+          Bio: bio || '',
+          currency: selectedCurrency
         };
         
         if (userPhoto) {
@@ -582,12 +603,12 @@ export default function EditProfile() {
 
   // Add this function to calculate the breakdown
   const calculatePriceBreakdown = (price: string) => {
-    if (!price) return { storeFee: 0, platformFee: 0, creatorEarnings: 0 };
+    if (!price) return { storeFee: 0, stripeFee: 0, creatorEarnings: 0 };
     const numPrice = parseFloat(price);
-    const storeFee = numPrice * 0.30; // 30% to app store
-    const platformFee = numPrice * 0.15; // 15% to Cherrizbox
-    const creatorEarnings = numPrice - storeFee - platformFee;
-    return { storeFee, platformFee, creatorEarnings };
+    const storeFee = numPrice * 0.20; // 20% to app store
+    const stripeFee = numPrice * 0.029 + 0.30; // Stripe fee: 2.9% + $0.30
+    const creatorEarnings = numPrice - storeFee - stripeFee;
+    return { storeFee, stripeFee, creatorEarnings };
   };
 
   // Add function to load existing payment data
@@ -609,12 +630,12 @@ export default function EditProfile() {
             
             // Load payment data
             if (existingProfile.documents[0].creatorpayment) {
-                try {
-                    const paymentData = JSON.parse(existingProfile.documents[0].creatorpayment);
-                    setMonthlyPrice(paymentData.monthlyPrice.toString());
-                    setYearlyPrice(paymentData.yearlyPrice.toString());
-                } catch (e) {
-                    console.error('Error parsing payment data:', e);
+            try {
+                const paymentData = JSON.parse(existingProfile.documents[0].creatorpayment);
+                setMonthlyPrice(paymentData.monthlyPrice.toString());
+                setYearlyPrice(paymentData.yearlyPrice.toString());
+            } catch (e) {
+                console.error('Error parsing payment data:', e);
                 }
             }
         }
@@ -623,192 +644,7 @@ export default function EditProfile() {
     }
   };
 
-  const handleGoLive = async () => {
-    try {
-      if (!globalUser?.$id) {
-        Alert.alert('Error', 'User not found');
-        return;
-      }
 
-      // Validate all required fields
-      const missingFields: string[] = [];
-      
-      if (!profileImage) {
-        missingFields.push('Profile Picture');
-      }
-      
-      if (!creatorName || creatorName.trim() === '') {
-        missingFields.push('Creator Name');
-      }
-      
-      if (!bio || bio.trim() === '') {
-        missingFields.push('Bio');
-      }
-      
-      if (!location || location.trim() === '') {
-        missingFields.push('Location');
-      }
-      
-      if (topics.length === 0) {
-        missingFields.push('Topics');
-      }
-      
-      if (!monthlyPrice || monthlyPrice.trim() === '' || parseFloat(monthlyPrice) <= 0) {
-        missingFields.push('Monthly Price');
-      }
-      
-      if (!yearlyPrice || yearlyPrice.trim() === '' || parseFloat(yearlyPrice) <= 0) {
-        missingFields.push('Yearly Price');
-      }
-      
-      if (!selectedGender) {
-        missingFields.push('Gender');
-      }
-      
-      if (!phoneNumber || phoneNumber.trim() === '') {
-        missingFields.push('Phone Number');
-      }
-
-      // If there are missing fields, show custom modal with what's missing
-      if (missingFields.length > 0) {
-        setMissingFields(missingFields);
-        setShowMissingFieldsModal(true);
-        return;
-      }
-
-      // All fields are complete, proceed with going live
-      // First, update the user document in EXPO_PUBLIC_APPWRITE_USER_COLLECTION_ID
-      try {
-        const userDocs = await databases.listDocuments(
-          config.databaseId,
-          config.userCollectionId,
-          [Query.equal('creatoraccountid', globalUser.$id)]
-        );
-        
-        if (userDocs.documents.length > 0) {
-          const userDocId = userDocs.documents[0].$id;
-          await databases.updateDocument(
-            config.databaseId,
-            config.userCollectionId,
-            userDocId,
-            {
-              account_state: 'required'
-            }
-          );
-          console.log('✅ User account_state set to required');
-        }
-      } catch (error) {
-        console.error('❌ Error updating user account_state:', error);
-        Alert.alert('Error', 'Failed to update account state. Please try again.');
-        return;
-      }
-
-      // Update photo document state
-      const userPhoto = await getUserPhoto(globalUser.$id);
-      if (userPhoto) {
-        await databases.updateDocument(
-          config.databaseId,
-          config.photoCollectionId,
-          userPhoto.$id,
-          {
-            state: 'required'
-          }
-        );
-      } else {
-        // Create new photo document with 'required' state
-        await databases.createDocument(
-          config.databaseId,
-          config.photoCollectionId,
-          ID.unique(),
-          {
-            thumbnail: profileImage || '',
-            compressed_thumbnail: compressedThumbnail || '',
-            title: creatorName || name || '',
-            prompte: creatorName || name || '',
-            IdCreator: globalUser.$id,
-            PhotosLocation: location || '',
-            payment: JSON.stringify({
-              monthlyPrice: monthlyPrice || '0',
-              yearlyPrice: yearlyPrice || '0'
-            }),
-            PhotoTopics: topics.join(', '),
-            Bio: bio || '',
-            state: 'required'
-          }
-        );
-      }
-      
-      // Check if all conditions are met for creating the channel
-      try {
-        const userDocs = await databases.listDocuments(
-          config.databaseId,
-          config.userCollectionId,
-          [Query.equal('creatoraccountid', globalUser.$id)]
-        );
-        
-        if (userDocs.documents.length > 0) {
-          const userDoc = userDocs.documents[0];
-          const accountState = userDoc.account_state;
-          const socialMediaNumberCorrect = userDoc.social_media_number_correct;
-          const stripeConnectSetupComplete = userDoc.stripeConnectSetupComplete;
-          
-          // Only create channel if all conditions are met
-          if (accountState === 'ok' && socialMediaNumberCorrect === true && stripeConnectSetupComplete === true) {
-            try {
-              const creatorDisplayName = creatorName || name || globalUser.name || 'Creator';
-              await createCreatorChannel(globalUser.$id, creatorDisplayName);
-              console.log('✅ Creator group chat created successfully - all conditions met');
-            } catch (error) {
-              console.error('❌ Error creating creator group chat:', error);
-            }
-          } else {
-            console.log('⏳ Channel creation skipped - conditions not met:', {
-              accountState,
-              socialMediaNumberCorrect,
-              stripeConnectSetupComplete
-            });
-          }
-        }
-      } catch (error) {
-        console.error('❌ Error checking user conditions for channel creation:', error);
-      }
-      
-      // Update local state
-      setPhotoState('required');
-      
-      // Send verification notification email
-      try {
-        await sendCreatorVerificationNotification({
-          userId: globalUser.$id,
-          creatorName: creatorName || name,
-          location: location,
-          topics: topics.join(', '),
-          bio: bio,
-          phoneNumber: selectedCountry.code + phoneNumber,
-          gender: selectedGender?.value || '',
-          dateOfBirth: `${selectedYear}-${selectedMonth.padStart(2, '0')}-${selectedDay.padStart(2, '0')}`,
-          monthlyPrice: monthlyPrice,
-          yearlyPrice: yearlyPrice,
-          profileImageUri: profileImage || '',
-          compressedThumbnail: compressedThumbnail || ''
-        });
-        console.log('✅ Creator verification notification sent successfully');
-      } catch (error) {
-        console.error('❌ Error sending creator verification notification:', error);
-        // Don't fail the entire process if email fails
-      }
-      
-      // Refresh channel conditions to update the missing info modal on index.tsx
-      await refreshChannelConditions();
-      
-      // Show verification message
-      setShowVerificationModal(true);
-      
-    } catch (error) {
-      console.error('Error updating photo state:', error);
-      Alert.alert('Error', 'Failed to go live. Please try again.');
-    }
-  };
 
   if (loading) {
     return (
@@ -926,7 +762,7 @@ export default function EditProfile() {
             phoneNumber={selectedCountry.code + phoneNumber}
             gender={selectedGender?.value || ''}
             dateOfBirth={`${selectedYear}-${selectedMonth.padStart(2, '0')}-${selectedDay.padStart(2, '0')}`}
-            onGoLive={handleGoLive}
+            currency={selectedCurrency}
           />
         </TouchableOpacity>
         {/* Edit form section with padding */}
@@ -1027,36 +863,28 @@ export default function EditProfile() {
               }`}
               activeOpacity={0.7}
             >
-              <Text className="text-white font-questrial text-lg mr-2">{selectedCountry.flag}</Text>
-              <Text className="text-white font-questrial text-lg">{selectedCountry.code}</Text>
+              <Text style={{ color: 'white', fontSize: 20, marginRight: 8 }}>{selectedCountry.flag}</Text>
+              <Text style={{ color: 'white', fontFamily: 'questrial', fontSize: 16 }}>{selectedCountry.code}</Text>
             </TouchableOpacity>
-            <View className={`flex-row items-center bg-[#1A1A1A] rounded-lg px-5 py-4 flex-1 ${
-              focusedInput === 'phoneNumber' ? 'border border-[#FB2355]' : ''
-            }`}>
+            <TouchableOpacity
+              className="flex-row items-center bg-[#1A1A1A] rounded-lg px-5 py-5 flex-1"
+              activeOpacity={0.8}
+              onPress={() => {
+                setTempPhoneNumber(phoneNumber);
+                setShowPhoneNumberModal(true);
+              }}
+            >
               <Ionicons 
                 name="call-outline" 
                 size={24} 
-                color={focusedInput === 'phoneNumber' ? '#FB2355' : '#666'} 
+                color="#666" 
                 style={{ marginRight: 12 }}
               />
-              <TextInput
-                className="flex-1 text-white font-questrial text-lg h-9"
-                placeholderTextColor="#666"
-                placeholder="Enter your phone number"
-                keyboardType="phone-pad"
-                onFocus={() => setFocusedInput('phoneNumber')}
-                onBlur={() => setFocusedInput(null)}
-                style={{ textAlignVertical: 'center', color: 'white', paddingTop: 0, paddingBottom: 0, fontSize: 18 }}
-                value={phoneNumber}
-                onChangeText={setPhoneNumber}
-                returnKeyType="done"
-                blurOnSubmit={true}
-                onSubmitEditing={() => {
-                  Keyboard.dismiss();
-                  setFocusedInput(null);
-                }}
-              />
-            </View>
+              <Text style={{ color: 'white', fontFamily: 'questrial', fontSize: 18, flex: 1 }}>
+                {phoneNumber ? phoneNumber : 'Enter your phone number'}
+              </Text>
+              <Ionicons name="chevron-forward" size={20} color="#666" />
+            </TouchableOpacity>
           </View>
 
           {/* Gender - Simplified Picker */}
@@ -1095,7 +923,7 @@ export default function EditProfile() {
           {/* Creator's Name - Modal Style */}
           <View style={{ marginBottom: 8 }}>
             <TouchableOpacity
-              className="bg-[#1A1A1A] rounded-lg px-5 py-4 flex-row items-center"
+              className="bg-[#1A1A1A] rounded-lg px-5 py-5 flex-row items-center"
               activeOpacity={0.8}
               onPress={() => {
                 setTempCreatorName(creatorName);
@@ -1104,7 +932,12 @@ export default function EditProfile() {
               disabled={showCreatorNameWarning}
             >
               <Ionicons name="person-circle-outline" size={22} color={showCreatorNameWarning ? "#444" : "#666"} style={{ marginRight: 10 }} />
-              <Text className={`font-questrial text-lg flex-1 ${showCreatorNameWarning ? 'text-gray-500' : 'text-white'}`}>
+              <Text style={{ 
+                color: showCreatorNameWarning ? '#666' : 'white', 
+                fontFamily: 'questrial', 
+                fontSize: 18, 
+                flex: 1 
+              }}>
                 {creatorName ? creatorName : 'Enter your creator name'}
               </Text>
               {showCreatorNameWarning ? (
@@ -1124,7 +957,7 @@ export default function EditProfile() {
                   </Text>
                 </View>
               ) : (
-                <Ionicons name="chevron-forward" size={20} color="#666" />
+              <Ionicons name="chevron-forward" size={20} color="#666" />
               )}
             </TouchableOpacity>
             
@@ -1165,11 +998,11 @@ export default function EditProfile() {
             >
               <Ionicons name="document-text-outline" size={22} color="#666" style={{ marginRight: 10 }} />
               <View className="flex-1">
-                <Text className="text-white font-questrial text-lg">
+                <Text style={{ color: 'white', fontFamily: 'questrial', fontSize: 18 }}>
                   {bio ? bio : 'Tell us about yourself'}
                 </Text>
                 {bio && (
-                  <Text className="text-gray-400 text-sm mt-1">
+                  <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>
                     {bio.length}/300 characters
                   </Text>
                 )}
@@ -1181,7 +1014,7 @@ export default function EditProfile() {
           {/* Location - Modal Style */}
           <View style={{ marginBottom: 8 }}>
             <TouchableOpacity
-              className="bg-[#1A1A1A] rounded-lg px-5 py-4 flex-row items-center"
+              className="bg-[#1A1A1A] rounded-lg px-5 py-5 flex-row items-center"
               activeOpacity={0.8}
               onPress={() => {
                 setTempLocation(location);
@@ -1189,7 +1022,7 @@ export default function EditProfile() {
               }}
             >
               <Ionicons name="location-outline" size={22} color="#666" style={{ marginRight: 10 }} />
-              <Text className="text-white font-questrial text-lg flex-1">
+              <Text style={{ color: 'white', fontFamily: 'questrial', fontSize: 18, flex: 1 }}>
                 {location ? location : 'Enter your location'}
               </Text>
               <Ionicons name="chevron-forward" size={20} color="#666" />
@@ -1200,12 +1033,12 @@ export default function EditProfile() {
           <View style={{ marginBottom: 16 }}>
            
             <TouchableOpacity
-              className="bg-[#1A1A1A] rounded-lg px-5 py-4 mb-2 flex-row items-center"
+              className="bg-[#1A1A1A] rounded-lg px-5 py-5 mb-2 flex-row items-center"
               activeOpacity={0.8}
               onPress={() => setShowTopicsModal(true)}
             >
               <Ionicons name="chatbubble-ellipses-outline" size={22} color="#FB2355" style={{ marginRight: 10 }} />
-              <Text className="text-white font-questrial text-lg">
+              <Text style={{ color: 'white', fontFamily: 'questrial', fontSize: 18 }}>
                 {topics.length > 0 ? topics.join(', ') : 'Choose topics'}
               </Text>
             </TouchableOpacity>
@@ -1271,7 +1104,7 @@ export default function EditProfile() {
               }}
             >
               <Ionicons name="card-outline" size={22} color="#FB2355" style={{ marginRight: 10 }} />
-              <Text className="text-white text-center font-questrial text-lg">
+              <Text style={{ color: 'white', textAlign: 'center', fontFamily: 'questrial', fontSize: 18 }}>
                 Subscriptions
               </Text>
             </TouchableOpacity>
@@ -1588,55 +1421,65 @@ export default function EditProfile() {
                 {/* Currency Picker */}
                 <View className="mb-4">
                   <Text style={{ color: 'white', fontSize: 18, marginBottom: 8 }}>Currency</Text>
-                  <View className="relative">
-                    <TouchableOpacity
-                      className="bg-[#222] rounded-lg px-4 py-3 flex-row items-center justify-between"
-                      onPress={() => setShowCurrencyDropdown(!showCurrencyDropdown)}
-                      activeOpacity={0.7}
-                    >
-                      <View className="flex-row items-center">
-                        <Text style={{ fontSize: 20, marginRight: 8 }}>
-                          {currencies.find(c => c.code === selectedCurrency)?.flag}
-                        </Text>
-                        <Text style={{ color: 'white', fontSize: 16 }}>
-                          {currencies.find(c => c.code === selectedCurrency)?.code} - {currencies.find(c => c.code === selectedCurrency)?.name}
-                        </Text>
-                      </View>
-                      <Ionicons 
-                        name={showCurrencyDropdown ? "chevron-up" : "chevron-down"} 
-                        size={20} 
-                        color="#666" 
-                      />
-                    </TouchableOpacity>
-                    
-                    {showCurrencyDropdown && (
-                      <View className="absolute top-full left-0 right-0 bg-[#222] rounded-lg mt-1 z-10 max-h-48">
-                        <ScrollView showsVerticalScrollIndicator={false}>
-                          {currencies.map((currency) => (
-                            <TouchableOpacity
-                              key={currency.code}
-                              className={`px-4 py-3 flex-row items-center ${
-                                selectedCurrency === currency.code ? 'bg-[#FB2355]' : ''
-                              }`}
-                              onPress={() => {
-                                setSelectedCurrency(currency.code);
-                                setShowCurrencyDropdown(false);
-                              }}
-                            >
-                              <Text style={{ fontSize: 18, marginRight: 8 }}>
-                                {currency.flag}
-                              </Text>
-                              <Text style={{ 
-                                color: selectedCurrency === currency.code ? 'white' : 'white', 
-                                fontSize: 14 
-                              }}>
-                                {currency.code} - {currency.name}
-                              </Text>
-                            </TouchableOpacity>
-                          ))}
-                        </ScrollView>
-                      </View>
-                    )}
+                  <View style={{ width: '100%' }}>
+                    {/* First Row */}
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 8 }}>
+                      {currencies.slice(0, 3).map((currency) => (
+                        <TouchableOpacity
+                          key={currency.code}
+                          onPress={() => setSelectedCurrency(currency.code)}
+                          style={{
+                            backgroundColor: selectedCurrency === currency.code ? '#FB2355' : '#222',
+                            borderRadius: 18,
+                            paddingVertical: 12,
+                            paddingHorizontal: 8,
+                            marginHorizontal: 2,
+                            flex: 1,
+                            borderWidth: selectedCurrency === currency.code ? 0 : 1,
+                            borderColor: '#444',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <Text style={{ 
+                            color: selectedCurrency === currency.code ? 'white' : '#aaa', 
+                            fontFamily: 'questrial', 
+                            fontSize: 14,
+                            textAlign: 'center',
+                          }}>
+                            {currency.flag} {currency.code}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                    {/* Second Row */}
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                      {currencies.slice(3, 6).map((currency) => (
+                        <TouchableOpacity
+                          key={currency.code}
+                          onPress={() => setSelectedCurrency(currency.code)}
+                          style={{
+                            backgroundColor: selectedCurrency === currency.code ? '#FB2355' : '#222',
+                            borderRadius: 18,
+                            paddingVertical: 12,
+                            paddingHorizontal: 8,
+                            marginHorizontal: 2,
+                            flex: 1,
+                            borderWidth: selectedCurrency === currency.code ? 0 : 1,
+                            borderColor: '#444',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <Text style={{ 
+                            color: selectedCurrency === currency.code ? 'white' : '#aaa', 
+                            fontFamily: 'questrial', 
+                            fontSize: 14,
+                            textAlign: 'center',
+                          }}>
+                            {currency.flag} {currency.code}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
                   </View>
                 </View>
 
@@ -1656,8 +1499,8 @@ export default function EditProfile() {
                   {monthlyPrice && (
                     <View className="mt-2 bg-[#222] rounded-lg p-3">
                       <Text style={{ color: 'white', fontSize: 14 }}>Price Breakdown (Monthly):</Text>
-                      <Text style={{ color: 'white', marginTop: 4 }}>Store Fee (30%): {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(monthlyPrice).storeFee.toFixed(2)}</Text>
-                      <Text style={{ color: 'white', marginTop: 4 }}>Platform Fee (15%): {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(monthlyPrice).platformFee.toFixed(2)}</Text>
+                      <Text style={{ color: 'white', marginTop: 4 }}>Store Fee (20%): {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(monthlyPrice).storeFee.toFixed(2)}</Text>
+                      <Text style={{ color: 'white', marginTop: 4 }}>Stripe Fee (2.9% + {currencies.find(c => c.code === selectedCurrency)?.symbol}0.30): {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(monthlyPrice).stripeFee.toFixed(2)}</Text>
                       <Text className="text-[#FB2355] font-bold mt-1">Your Earnings: {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(monthlyPrice).creatorEarnings.toFixed(2)}</Text>
                     </View>
                   )}
@@ -1679,8 +1522,8 @@ export default function EditProfile() {
                   {yearlyPrice && (
                     <View className="mt-2 bg-[#222] rounded-lg p-3">
                       <Text style={{ color: 'white', fontSize: 14 }}>Price Breakdown (Yearly):</Text>
-                      <Text style={{ color: 'white', marginTop: 4 }}>Store Fee (30%): {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(yearlyPrice).storeFee.toFixed(2)}</Text>
-                      <Text style={{ color: 'white', marginTop: 4 }}>Platform Fee (15%): {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(yearlyPrice).platformFee.toFixed(2)}</Text>
+                      <Text style={{ color: 'white', marginTop: 4 }}>Store Fee (20%): {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(yearlyPrice).storeFee.toFixed(2)}</Text>
+                      <Text style={{ color: 'white', marginTop: 4 }}>Stripe Fee (2.9% + {currencies.find(c => c.code === selectedCurrency)?.symbol}0.30): {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(yearlyPrice).stripeFee.toFixed(2)}</Text>
                       <Text className="text-[#FB2355] font-bold mt-1">Your Earnings: {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(yearlyPrice).creatorEarnings.toFixed(2)}</Text>
                     </View>
                   )}
@@ -1828,38 +1671,7 @@ export default function EditProfile() {
                 }}>Creator Name</Text>
               </View>
               
-              {/* Warning Banner */}
-              <View style={{ 
-                backgroundColor: 'rgba(255, 165, 0, 0.1)', 
-                borderRadius: 12, 
-                padding: 16, 
-                marginBottom: 24,
-                borderWidth: 1,
-                borderColor: 'rgba(255, 165, 0, 0.3)'
-              }}>
-                <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-                  <Text style={{ fontSize: 18, marginRight: 12, marginTop: 2 }}>⚠️</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ 
-                      color: '#FFA500', 
-                      fontSize: 16, 
-                      fontWeight: '600',
-                      fontFamily: 'questrial',
-                      marginBottom: 4
-                    }}>
-                      Important: Choose Carefully!
-                    </Text>
-                    <Text style={{ 
-                      color: 'rgba(255, 165, 0, 0.9)', 
-                      fontSize: 14, 
-                      fontFamily: 'questrial',
-                      lineHeight: 20
-                    }}>
-                      Your creator name cannot be changed once your channel goes live. Make sure you're happy with your choice!
-                    </Text>
-                  </View>
-                </View>
-              </View>
+
               
               <TextInput
                 style={{
@@ -1890,8 +1702,8 @@ export default function EditProfile() {
                   if (tempCreatorName.trim()) {
                     const isAvailable = await checkCreatorNameAvailability(tempCreatorName);
                     if (isAvailable) {
-                      setCreatorName(tempCreatorName);
-                      setShowCreatorNameModal(false);
+                  setCreatorName(tempCreatorName);
+                  setShowCreatorNameModal(false);
                     } else {
                       setCreatorNameError('This creator name is already taken');
                     }
@@ -1977,8 +1789,23 @@ export default function EditProfile() {
                     if (tempCreatorName.trim() && !checkingCreatorName) {
                       const isAvailable = await checkCreatorNameAvailability(tempCreatorName);
                       if (isAvailable) {
-                        setCreatorName(tempCreatorName);
-                        setShowCreatorNameModal(false);
+                        Alert.alert(
+                          'Important Reminder',
+                          'Your creator name cannot be changed once your channel goes live. Make sure you\'re happy with your choice!',
+                          [
+                            {
+                              text: 'Cancel',
+                              style: 'cancel'
+                            },
+                            {
+                              text: 'Save Anyway',
+                              onPress: () => {
+                    setCreatorName(tempCreatorName);
+                    setShowCreatorNameModal(false);
+                              }
+                            }
+                          ]
+                        );
                       } else {
                         setCreatorNameError('This creator name is already taken');
                       }
@@ -2306,292 +2133,92 @@ export default function EditProfile() {
         </TouchableWithoutFeedback>
       </Modal>
 
-      {/* Missing Fields Modal */}
+            {/* Phone Number Modal */}
       <Modal
-        visible={showMissingFieldsModal}
+        visible={showPhoneNumberModal}
         transparent={true}
         animationType="fade"
-        onRequestClose={() => setShowMissingFieldsModal(false)}
+        onRequestClose={() => setShowPhoneNumberModal(false)}
       >
-        <TouchableWithoutFeedback onPress={() => setShowMissingFieldsModal(false)}>
-          <View style={{ 
-            flex: 1, 
-            backgroundColor: 'rgba(0,0,0,0.75)', 
-            justifyContent: 'center', 
-            alignItems: 'center',
-            backdropFilter: 'blur(10px)'
-          }}>
-            <Animated.View style={{
-              backgroundColor: '#1a1a1a',
-              borderRadius: 24,
-              padding: 32,
-              width: '90%',
-              maxWidth: 400,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 20 },
-              shadowOpacity: 0.3,
-              shadowRadius: 40,
-              elevation: 20,
-              borderWidth: 1,
-              borderColor: 'rgba(255,255,255,0.1)',
-              alignItems: 'center',
-            }}>
+        <View className="flex-1 bg-black/80 justify-center items-center">
+          <View className="bg-[#1A1A1A] rounded-3xl w-[90%] max-w-md overflow-hidden">
               {/* Header */}
-              <View style={{ 
-                flexDirection: 'row', 
-                alignItems: 'center', 
-                marginBottom: 24,
-                paddingBottom: 16,
-                borderBottomWidth: 1,
-                borderBottomColor: 'rgba(255,255,255,0.1)',
-                width: '100%'
-              }}>
-                <View style={{
-                  backgroundColor: 'rgba(251, 35, 85, 0.1)',
-                  borderRadius: 12,
-                  padding: 8,
-                  marginRight: 12
-                }}>
-                  <Text style={{ fontSize: 24 }}>🎯</Text>
+            <View className="bg-gradient-to-r from-[#FB2355] to-[#FF6B9D] p-6">
+              <View className="flex-row justify-between items-center">
+                <View>
+                  <Text className="text-white text-2xl font-bold font-questrial">Phone Number</Text>
+                  <Text className="text-white/80 text-sm font-questrial mt-1">Enter your contact number</Text>
                 </View>
-                <Text style={{ 
-                  color: 'white', 
-                  fontSize: 20, 
-                  fontWeight: '600', 
-                  fontFamily: 'questrial',
-                  letterSpacing: 0.5
-                }}>Almost There!</Text>
-              </View>
-
-              {/* Message */}
-              <Text style={{ 
-                color: 'rgba(255,255,255,0.9)', 
-                fontSize: 16, 
-                textAlign: 'center', 
-                marginBottom: 24,
-                lineHeight: 24,
-                fontFamily: 'questrial'
-              }}>
-                Complete these fields to go live and start your creator journey! ✨
-              </Text>
-
-              {/* Missing Fields List */}
-              <View style={{ 
-                backgroundColor: 'rgba(255,255,255,0.05)', 
-                borderRadius: 16, 
-                padding: 20, 
-                width: '100%',
-                marginBottom: 24
-              }}>
-                <Text style={{ 
-                  color: '#FB2355', 
-                  fontSize: 14, 
-                  fontWeight: '600', 
-                  marginBottom: 12,
-                  fontFamily: 'questrial'
-                }}>
-                  Missing Information:
-                </Text>
-                {missingFields.map((field, index) => (
-                  <View key={index} style={{ 
-                    flexDirection: 'row', 
-                    alignItems: 'center', 
-                    marginBottom: 8,
-                    paddingVertical: 4
-                  }}>
-                    <Text style={{ 
-                      color: '#FB2355', 
-                      fontSize: 16, 
-                      marginRight: 8 
-                    }}>
-                      ❌
-                    </Text>
-                    <Text style={{ 
-                      color: 'white', 
-                      fontSize: 15, 
-                      fontFamily: 'questrial',
-                      flex: 1
-                    }}>
-                      {field}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-
-              {/* Action Button */}
               <TouchableOpacity 
-                style={{ 
-                  backgroundColor: '#FB2355', 
-                  borderRadius: 16, 
-                  paddingVertical: 16, 
-                  paddingHorizontal: 32,
-                  shadowColor: '#FB2355',
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 8,
-                  elevation: 8
-                }}
-                onPress={() => setShowMissingFieldsModal(false)}
-              >
-                <Text style={{ 
-                  color: 'white', 
-                  fontSize: 16, 
-                  fontFamily: 'questrial', 
-                  fontWeight: '600',
-                  textAlign: 'center'
-                }}>
-                  Got it! Let me complete my profile 🚀
-                </Text>
+                  onPress={() => setShowPhoneNumberModal(false)}
+                  className="w-10 h-10 bg-white/20 rounded-full items-center justify-center"
+                >
+                  <Ionicons name="close" size={20} color="white" />
               </TouchableOpacity>
-            </Animated.View>
           </View>
-                 </TouchableWithoutFeedback>
-       </Modal>
+            </View>
 
-       {/* Verification Modal */}
-       <Modal
-         visible={showVerificationModal}
-         transparent={true}
-         animationType="fade"
-         onRequestClose={() => setShowVerificationModal(false)}
-       >
-         <TouchableWithoutFeedback onPress={() => setShowVerificationModal(false)}>
-           <View style={{ 
-             flex: 1, 
-             backgroundColor: 'rgba(0,0,0,0.75)', 
-             justifyContent: 'center', 
-             alignItems: 'center',
-             backdropFilter: 'blur(10px)'
-           }}>
-             <Animated.View style={{
-               backgroundColor: '#1a1a1a',
-               borderRadius: 24,
-               padding: 32,
-               width: '90%',
-               maxWidth: 400,
-               shadowColor: '#000',
-               shadowOffset: { width: 0, height: 20 },
-               shadowOpacity: 0.3,
-               shadowRadius: 40,
-               elevation: 20,
-               borderWidth: 1,
-               borderColor: 'rgba(255,255,255,0.1)',
-               alignItems: 'center',
-             }}>
-               {/* Header */}
-               <View style={{ 
-                 flexDirection: 'row', 
-                 alignItems: 'center', 
-                 marginBottom: 24,
-                 paddingBottom: 16,
-                 borderBottomWidth: 1,
-                 borderBottomColor: 'rgba(255,255,255,0.1)',
-                 width: '100%'
-               }}>
-                 <View style={{
-                   backgroundColor: 'rgba(251, 35, 85, 0.1)',
-                   borderRadius: 12,
-                   padding: 8,
-                   marginRight: 12
-                 }}>
-                   <Text style={{ fontSize: 24 }}>✅</Text>
+            {/* Content */}
+            <View className="p-6">
+              {/* Country Code Display */}
+              <View className="flex-row items-center justify-center mb-6">
+                <View className="bg-[#2A2A2A] rounded-xl px-4 py-3 mr-3">
+                  <Text style={{ color: 'white', fontSize: 24 }}>{selectedCountry.flag}</Text>
                  </View>
-                 <Text style={{ 
-                   color: 'white', 
-                   fontSize: 20, 
-                   fontWeight: '600', 
-                   fontFamily: 'questrial',
-                   letterSpacing: 0.5
-                 }}>Request Submitted!</Text>
+                <View className="bg-[#2A2A2A] rounded-xl px-4 py-3">
+                  <Text style={{ color: 'white', fontSize: 18, fontFamily: 'questrial', fontWeight: '600' }}>{selectedCountry.code}</Text>
+                </View>
                </View>
 
-               {/* Message */}
-               <View style={{ marginBottom: 24 }}>
-                 <Text style={{ 
-                   color: 'rgba(255,255,255,0.9)', 
-                   fontSize: 16, 
+              {/* Phone Number Input */}
+              <View className="mb-6">
+                <Text className="text-white text-sm font-questrial mb-3 text-center">Enter your phone number</Text>
+                <View className="bg-[#2A2A2A] rounded-xl px-4 py-4 border-2 border-[#FB2355]/30">
+                  <TextInput
+                    className="text-white text-3xl font-questrial text-center"
+                    placeholder={selectedCountry.format}
+                    placeholderTextColor="#666"
+                    value={tempPhoneNumber}
+                    onChangeText={(text) => {
+                      // Remove formatting to get raw digits
+                      const rawDigits = text.replace(/\D/g, '');
+                      // Format according to country format
+                      const formatted = formatPhoneNumber(rawDigits, selectedCountry.format);
+                      setTempPhoneNumber(formatted);
+                    }}
+                    keyboardType="phone-pad"
+                    returnKeyType="done"
+                    onSubmitEditing={() => {
+                      setPhoneNumber(tempPhoneNumber);
+                      setShowPhoneNumberModal(false);
+                    }}
+                    style={{ 
+                      color: 'white',
+                      letterSpacing: 2,
                    textAlign: 'center', 
-                   marginBottom: 16,
-                   lineHeight: 24,
-                   fontFamily: 'questrial'
-                 }}>
-                   Your request is now under review by our team! 🔍
-                 </Text>
-                 
-                 <Text style={{ 
-                   color: 'rgba(255,255,255,0.8)', 
-                   fontSize: 14, 
-                   textAlign: 'center', 
-                   marginBottom: 12,
-                   lineHeight: 20,
-                   fontFamily: 'questrial'
-                 }}>
-                   We'll upload your group once we verify it's you. We work as quickly as possible! ⚡
-                 </Text>
-                 
-                 <Text style={{ 
-                   color: 'rgba(255,255,255,0.8)', 
-                   fontSize: 14, 
-                   textAlign: 'center', 
-                   lineHeight: 20,
-                   fontFamily: 'questrial'
-                 }}>
-                   Don't worry - we'll contact you if we have any doubts! 📞
-                 </Text>
-               </View>
-
-               {/* Status Indicator */}
-               <View style={{ 
-                 backgroundColor: 'rgba(255, 165, 0, 0.1)', 
-                 borderRadius: 16, 
-                 padding: 16, 
-                 width: '100%',
-                 marginBottom: 24,
-                 borderWidth: 1,
-                 borderColor: 'rgba(255, 165, 0, 0.3)'
-               }}>
-                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-                   <Text style={{ fontSize: 20, marginRight: 8 }}>⏳</Text>
-                   <Text style={{ 
-                     color: '#FFA500', 
-                     fontSize: 14, 
-                     fontWeight: '600',
-                     fontFamily: 'questrial'
-                   }}>
-                     Status: Under Review
-                   </Text>
+                      fontSize: 28,
+                      paddingHorizontal: 20
+                    }}
+                  />
                  </View>
                </View>
 
-               {/* Action Button */}
+              {/* Save Button */}
                <TouchableOpacity 
-                 style={{ 
-                   backgroundColor: '#FB2355', 
-                   borderRadius: 16, 
-                   paddingVertical: 16, 
-                   paddingHorizontal: 32,
-                   shadowColor: '#FB2355',
-                   shadowOffset: { width: 0, height: 4 },
-                   shadowOpacity: 0.3,
-                   shadowRadius: 8,
-                   elevation: 8
-                 }}
-                 onPress={() => setShowVerificationModal(false)}
-               >
-                 <Text style={{ 
-                   color: 'white', 
-                   fontSize: 16, 
-                   fontFamily: 'questrial', 
-                   fontWeight: '600',
-                   textAlign: 'center'
-                 }}>
-                   Got it! Thanks for your patience 🙏
-                 </Text>
+                className="bg-[#FB2355] rounded-xl py-4 items-center"
+                onPress={() => {
+                  setPhoneNumber(tempPhoneNumber);
+                  setShowPhoneNumberModal(false);
+                }}
+              >
+                <Text className="text-white text-lg font-questrial font-semibold">Save Phone Number</Text>
                </TouchableOpacity>
-             </Animated.View>
            </View>
-         </TouchableWithoutFeedback>
+          </View>
+        </View>
        </Modal>
+
+
      </SafeAreaView>
    );
  }

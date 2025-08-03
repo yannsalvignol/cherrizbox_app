@@ -20,6 +20,7 @@ interface ProfilePreviewProps {
   phoneNumber?: string;
   gender?: string;
   dateOfBirth?: string;
+  currency?: string;
   onGoLive?: () => void;
 }
 
@@ -39,9 +40,43 @@ const ProfilePreview: React.FC<ProfilePreviewProps> = ({
   phoneNumber,
   gender,
   dateOfBirth,
+  currency,
   onGoLive,
 }) => {
   const [selectedPricing, setSelectedPricing] = useState<'monthly' | 'yearly'>('monthly');
+
+  // Currency mapping with symbol position
+  const getCurrencyInfo = (currencyCode?: string) => {
+    const currencyMap: { [key: string]: { symbol: string; position: 'before' | 'after' } } = {
+      'USD': { symbol: '$', position: 'before' },
+      'CAD': { symbol: 'C$', position: 'before' },
+      'AUD': { symbol: 'A$', position: 'before' },
+      'MXN': { symbol: '$', position: 'before' },
+      'SGD': { symbol: 'S$', position: 'before' },
+      'NZD': { symbol: 'NZ$', position: 'before' },
+      'EUR': { symbol: '€', position: 'after' },
+      'GBP': { symbol: '£', position: 'before' },
+      'JPY': { symbol: '¥', position: 'before' },
+      'CHF': { symbol: 'CHF', position: 'before' },
+      'CNY': { symbol: '¥', position: 'before' },
+      'INR': { symbol: '₹', position: 'before' },
+      'BRL': { symbol: 'R$', position: 'before' },
+      'SEK': { symbol: 'kr', position: 'after' },
+      'NOK': { symbol: 'kr', position: 'after' },
+      'DKK': { symbol: 'kr', position: 'after' },
+    };
+    return currencyMap[currencyCode || 'USD'] || { symbol: '$', position: 'before' };
+  };
+
+  const currencyInfo = getCurrencyInfo(currency);
+  
+  const formatPrice = (price: number | string | undefined) => {
+    if (price === undefined || price === null) return '--';
+    const priceStr = price.toString();
+    return currencyInfo.position === 'before' 
+      ? `${currencyInfo.symbol}${priceStr}`
+      : `${priceStr}${currencyInfo.symbol}`;
+  };
 
 
 
@@ -198,7 +233,7 @@ const ProfilePreview: React.FC<ProfilePreviewProps> = ({
                     }}
                   >
                     <Text style={{ color: 'white', fontSize: 28, fontWeight: 'bold', textShadowColor: 'rgba(255, 255, 255, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }}>
-                      ${monthlyPrice ?? '--'}
+                      {formatPrice(monthlyPrice)}
                     </Text>
                     <Text style={{ color: 'white', fontSize: 16, textShadowColor: 'rgba(255, 255, 255, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial', marginTop: 4 }}>
                       per month
@@ -223,7 +258,7 @@ const ProfilePreview: React.FC<ProfilePreviewProps> = ({
                     }}
                   >
                     <Text style={{ color: '#FB2355', fontSize: 28, fontWeight: 'bold', textShadowColor: 'rgba(251, 35, 85, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }}>
-                      ${yearlyPrice ?? '--'}
+                      {formatPrice(yearlyPrice)}
                     </Text>
                     <Text style={{ color: '#FB2355', fontSize: 16, textShadowColor: 'rgba(251, 35, 85, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial', marginTop: 4 }}>
                       per year
