@@ -22,7 +22,7 @@ const LoginScreen = () => {
         const result = await login();
         if(result){
             await refetch();
-            router.replace('/(root)/(tabs)');
+            router.replace('/welcome');
         } else{
             console.log('Login Failed');
         }
@@ -32,7 +32,7 @@ const LoginScreen = () => {
         const result = await loginWithApple();
         if(result){
             await refetch();
-            router.replace('/(root)/(tabs)');
+            router.replace('/welcome');
         } else {
             console.log('Apple Login Failed');
         }
@@ -49,7 +49,7 @@ const LoginScreen = () => {
             setIsSubmitting(true);
             await SignIn(form.email, form.password);
             await refetch(); // Refresh the global state to update login status
-            router.replace('/(root)/(tabs)');
+            router.replace('/welcome');
         } catch (error: any) {
             setError('Invalid email or password');
         } finally {

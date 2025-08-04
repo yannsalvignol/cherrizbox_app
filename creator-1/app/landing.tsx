@@ -7,7 +7,6 @@ import { Image, ImageBackground, KeyboardAvoidingView, Modal, Platform, StyleShe
 const LandingScreen = () => {
   const router = useRouter();
   const { user } = useGlobalContext();
-  const [showNetworkModal, setShowNetworkModal] = useState(false);
   const [showUsernameModal, setShowUsernameModal] = useState(false);
   const [selectedNetwork, setSelectedNetwork] = useState('');
   const [username, setUsername] = useState('');
@@ -22,17 +21,11 @@ const LandingScreen = () => {
   const networks = [
     { name: 'LinkedIn', icon: 'logo-linkedin', color: '#0077B5', type: 'ionicon' },
     { name: 'TikTok', icon: 'musical-notes', color: '#000000', type: 'ionicon' },
-    { name: 'YouTube', icon: 'logo-youtube', color: '#FF0000', type: 'ionicon' },
     { name: 'Instagram', icon: 'logo-instagram', color: '#E4405F', type: 'ionicon' },
-    { name: 'Twitch', icon: 'logo-twitch', color: '#9146FF', type: 'ionicon' },
     { name: 'X', icon: require('../assets/images/X.png'), color: '#000000', type: 'image' },
   ];
 
-  const handleNetworkSelect = (network: string) => {
-    setSelectedNetwork(network);
-    setShowNetworkModal(false);
-    setShowUsernameModal(true);
-  };
+
 
   const handleContinue = () => {
     if (username.trim()) {
@@ -88,27 +81,43 @@ const LandingScreen = () => {
               Tell us on what network you are a legend:
             </Text>
 
-            <TouchableOpacity 
-              style={styles.networkSelector}
-              onPress={() => setShowNetworkModal(true)}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.networkSelectorText}>
-                {selectedNetwork || 'Choose your platform'}
-              </Text>
-              <Ionicons name="chevron-down" size={20} color="white" />
-            </TouchableOpacity>
-
-            {selectedNetwork && (
-              <View style={styles.selectedNetworkContainer}>
-                <Text style={styles.selectedNetworkText}>
-                  Selected: {selectedNetwork}
-                </Text>
-                <TouchableOpacity onPress={resetSelection} style={styles.changeButton}>
-                  <Text style={styles.changeButtonText}>Change</Text>
-                </TouchableOpacity>
+            <View style={{ marginBottom: 20 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: 12 }}>
+                {networks.map((network) => (
+                  <TouchableOpacity
+                    key={network.name}
+                    onPress={() => setSelectedNetwork(network.name)}
+                    style={{
+                      backgroundColor: selectedNetwork === network.name ? '#FB2355' : 'rgba(255, 255, 255, 0.2)',
+                      borderRadius: 18,
+                      paddingVertical: 12,
+                      paddingHorizontal: 16,
+                      flex: 1,
+                      minWidth: '45%',
+                      borderWidth: selectedNetwork === network.name ? 0 : 1,
+                      borderColor: 'rgba(255, 255, 255, 0.3)',
+                      alignItems: 'center',
+                      flexDirection: 'row',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {network.type === 'image' ? (
+                      <Image source={network.icon} style={{ width: 20, height: 20, marginRight: 8 }} />
+                    ) : (
+                      <Ionicons name={network.icon as any} size={20} color={selectedNetwork === network.name ? 'white' : network.color} style={{ marginRight: 8 }} />
+                    )}
+                    <Text style={{ 
+                      color: selectedNetwork === network.name ? 'white' : 'white', 
+                      fontFamily: 'Urbanist-Bold', 
+                      fontSize: 14,
+                      textAlign: 'center',
+                    }}>
+                      {network.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
-            )}
+            </View>
 
             <TouchableOpacity 
               style={[styles.ctaButton, !selectedNetwork && styles.disabledButton]}
@@ -132,41 +141,7 @@ const LandingScreen = () => {
       </ImageBackground>
       <View style={styles.footer} />
 
-             {/* Network Selection Modal */}
-       <Modal
-         visible={showNetworkModal}
-         transparent={true}
-         animationType="slide"
-         onRequestClose={() => setShowNetworkModal(false)}
-       >
-         <View style={styles.modalOverlay}>
-           <View style={styles.modalContent}>
-             <View style={styles.modalHeader}>
-               <Text style={styles.modalTitle}>Choose Your Platform</Text>
-               <TouchableOpacity onPress={() => setShowNetworkModal(false)}>
-                 <Ionicons name="close" size={24} color="white" />
-               </TouchableOpacity>
-             </View>
-             
-                          {networks.map((network) => (
-               <TouchableOpacity
-                 key={network.name}
-                 style={styles.networkOption}
-                 onPress={() => handleNetworkSelect(network.name)}
-                 activeOpacity={0.7}
-               >
-                 {network.type === 'image' ? (
-                   <Image source={network.icon} style={styles.networkImage} />
-                 ) : (
-                   <Ionicons name={network.icon as any} size={24} color={network.color} />
-                 )}
-                 <Text style={styles.networkOptionText}>{network.name}</Text>
-                 <Ionicons name="chevron-forward" size={20} color="white" />
-               </TouchableOpacity>
-             ))}
-           </View>
-         </View>
-       </Modal>
+
 
        {/* Username Input Modal */}
        <Modal
@@ -284,51 +259,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 30,
   },
-  networkSelector: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderRadius: 25,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    minWidth: 200,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  networkSelectorText: {
-    color: 'white',
-    fontSize: 16,
-    fontFamily: 'Urbanist-Regular',
-  },
-  selectedNetworkContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    marginBottom: 20,
-    minWidth: 250,
-  },
-  selectedNetworkText: {
-    color: 'white',
-    fontSize: 16,
-    fontFamily: 'Urbanist-Bold',
-  },
-  changeButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    paddingHorizontal: 15,
-    paddingVertical: 5,
-    borderRadius: 15,
-  },
-  changeButtonText: {
-    color: 'white',
-    fontSize: 12,
-    fontFamily: 'Urbanist-Bold',
-  },
+
   usernameLabel: {
     fontSize: 16,
     color: 'white',
@@ -389,6 +320,7 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
     opacity: 0.9,
   },
+
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -411,37 +343,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
     paddingHorizontal: 10,
-  },
-  modalTitle: {
-    fontSize: 20,
-    color: 'white',
-    fontFamily: 'Urbanist-Bold',
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    textAlign: 'center',
-  },
-  networkOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    marginBottom: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 15,
-  },
-  networkOptionText: {
-    color: 'white',
-    fontSize: 16,
-    fontFamily: 'Urbanist-Regular',
-    flex: 1,
-    marginLeft: 15,
-  },
-  networkImage: {
-    width: 24,
-    height: 24,
-    resizeMode: 'contain',
   },
   modalSubtitle: {
     fontSize: 20,

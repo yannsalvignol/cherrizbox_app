@@ -63,6 +63,7 @@ const ProfilePreview: React.FC<ProfilePreviewProps> = ({
       'BRL': { symbol: 'R$', position: 'before' },
       'SEK': { symbol: 'kr', position: 'after' },
       'NOK': { symbol: 'kr', position: 'after' },
+      
       'DKK': { symbol: 'kr', position: 'after' },
     };
     return currencyMap[currencyCode || 'USD'] || { symbol: '$', position: 'before' };

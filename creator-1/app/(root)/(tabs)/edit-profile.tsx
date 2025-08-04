@@ -76,7 +76,7 @@ const trendingTopics = [
 
 export default function EditProfile() {
   const router = useRouter();
-  const { user: globalUser, refreshChannelConditions } = useGlobalContext();
+  const { user: globalUser, refreshChannelConditions, userCurrency } = useGlobalContext();
   const scrollViewRef = useRef<ScrollView>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
@@ -117,6 +117,8 @@ export default function EditProfile() {
   const [checkingCreatorName, setCheckingCreatorName] = useState(false);
   const [showCreatorNameWarning, setShowCreatorNameWarning] = useState(false);
   const [selectedCurrency, setSelectedCurrency] = useState('USD');
+
+
   const [userPhotoThumbnail, setUserPhotoThumbnail] = useState<string | null>(null);
   const [compressedThumbnail, setCompressedThumbnail] = useState<string | null>(null);
   const [photoTitle, setPhotoTitle] = useState<string>('');
@@ -310,6 +312,7 @@ export default function EditProfile() {
     };
 
     loadUserData();
+    loadExistingPaymentData();
   }, [globalUser]);
 
   const pickImage = async () => {
@@ -762,7 +765,7 @@ export default function EditProfile() {
             phoneNumber={selectedCountry.code + phoneNumber}
             gender={selectedGender?.value || ''}
             dateOfBirth={`${selectedYear}-${selectedMonth.padStart(2, '0')}-${selectedDay.padStart(2, '0')}`}
-            currency={selectedCurrency}
+            currency={userCurrency}
           />
         </TouchableOpacity>
         {/* Edit form section with padding */}
@@ -880,8 +883,8 @@ export default function EditProfile() {
                 color="#666" 
                 style={{ marginRight: 12 }}
               />
-              <Text style={{ color: 'white', fontFamily: 'questrial', fontSize: 18, flex: 1 }}>
-                {phoneNumber ? phoneNumber : 'Enter your phone number'}
+              <Text style={{ color: 'white', fontFamily: 'Urbanist-Light', fontSize: 17, flex: 1 }}>
+                {phoneNumber ? phoneNumber : 'Enter phone number'}
               </Text>
               <Ionicons name="chevron-forward" size={20} color="#666" />
             </TouchableOpacity>
@@ -934,7 +937,7 @@ export default function EditProfile() {
               <Ionicons name="person-circle-outline" size={22} color={showCreatorNameWarning ? "#444" : "#666"} style={{ marginRight: 10 }} />
               <Text style={{ 
                 color: showCreatorNameWarning ? '#666' : 'white', 
-                fontFamily: 'questrial', 
+                fontFamily: 'Urbanist-Light', 
                 fontSize: 18, 
                 flex: 1 
               }}>
@@ -950,7 +953,7 @@ export default function EditProfile() {
                   <Text style={{ 
                     color: 'white', 
                     fontSize: 12, 
-                    fontFamily: 'questrial',
+                    fontFamily: 'Urbanist-Light',
                     fontWeight: '600'
                   }}>
                     LOCKED
@@ -998,7 +1001,7 @@ export default function EditProfile() {
             >
               <Ionicons name="document-text-outline" size={22} color="#666" style={{ marginRight: 10 }} />
               <View className="flex-1">
-                <Text style={{ color: 'white', fontFamily: 'questrial', fontSize: 18 }}>
+                <Text style={{ color: 'white', fontFamily: 'Urbanist-Light', fontSize: 18 }}>
                   {bio ? bio : 'Tell us about yourself'}
                 </Text>
                 {bio && (
@@ -1022,7 +1025,7 @@ export default function EditProfile() {
               }}
             >
               <Ionicons name="location-outline" size={22} color="#666" style={{ marginRight: 10 }} />
-              <Text style={{ color: 'white', fontFamily: 'questrial', fontSize: 18, flex: 1 }}>
+              <Text style={{ color: 'white', fontFamily: 'Urbanist-Light', fontSize: 18, flex: 1 }}>
                 {location ? location : 'Enter your location'}
               </Text>
               <Ionicons name="chevron-forward" size={20} color="#666" />
@@ -1038,7 +1041,7 @@ export default function EditProfile() {
               onPress={() => setShowTopicsModal(true)}
             >
               <Ionicons name="chatbubble-ellipses-outline" size={22} color="#FB2355" style={{ marginRight: 10 }} />
-              <Text style={{ color: 'white', fontFamily: 'questrial', fontSize: 18 }}>
+              <Text style={{ color: 'white', fontFamily: 'Urbanist-Light', fontSize: 18 }}>
                 {topics.length > 0 ? topics.join(', ') : 'Choose topics'}
               </Text>
             </TouchableOpacity>
@@ -2189,13 +2192,13 @@ export default function EditProfile() {
         onRequestClose={() => setShowPhoneNumberModal(false)}
       >
         <View className="flex-1 bg-black/80 justify-center items-center">
-          <View className="bg-[#1A1A1A] rounded-3xl w-[90%] max-w-md overflow-hidden">
+          <View className="bg-[#1A1A1A] rounded-3xl w-[90%] max-w-md overflow-hidden" style={{ borderWidth: 2, borderColor: '#FB2355' }}>
               {/* Header */}
             <View className="bg-gradient-to-r from-[#FB2355] to-[#FF6B9D] p-6">
               <View className="flex-row justify-between items-center">
                 <View>
-                  <Text className="text-white text-2xl font-bold font-questrial">Phone Number</Text>
-                  <Text className="text-white/80 text-sm font-questrial mt-1">Enter your contact number</Text>
+                  <Text style={{ color: 'white', fontSize: 24, fontFamily: 'questrial', fontWeight: 'bold' }}>Phone Number</Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, fontFamily: 'questrial', marginTop: 4 }}>Enter your contact number</Text>
                 </View>
               <TouchableOpacity 
                   onPress={() => setShowPhoneNumberModal(false)}
@@ -2220,12 +2223,12 @@ export default function EditProfile() {
 
               {/* Phone Number Input */}
               <View className="mb-6">
-                <Text className="text-white text-sm font-questrial mb-3 text-center">Enter your phone number</Text>
+                <Text style={{ color: 'white', fontSize: 14, fontFamily: 'questrial', marginBottom: 12, textAlign: 'center' }}>Enter your phone number</Text>
                 <View className="bg-[#2A2A2A] rounded-xl px-4 py-4 border-2 border-[#FB2355]/30">
                   <TextInput
                     className="text-white text-3xl font-questrial text-center"
                     placeholder={selectedCountry.format}
-                    placeholderTextColor="#666"
+                    placeholderTextColor="rgba(255,255,255,0.5)"
                     value={tempPhoneNumber}
                     onChangeText={(text) => {
                       // Remove formatting to get raw digits
@@ -2259,7 +2262,7 @@ export default function EditProfile() {
                   setShowPhoneNumberModal(false);
                 }}
               >
-                <Text className="text-white text-lg font-questrial font-semibold">Save Phone Number</Text>
+                <Text style={{ color: 'white', fontSize: 18, fontFamily: 'questrial', fontWeight: '600' }}>Save Phone Number</Text>
                </TouchableOpacity>
            </View>
           </View>

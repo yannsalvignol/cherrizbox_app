@@ -20,6 +20,7 @@ interface Channel {
   image?: string;
   memberNames?: { [userId: string]: string };
   memberAvatars?: { [userId: string]: string };
+  memberTipAmounts?: { [userId: string]: number };
   unreadCount: number;
 }
 
@@ -89,6 +90,7 @@ export default function Index() {
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationType, setNotificationType] = useState<'success' | 'error'>('success');
+  const [showNetworkErrorModal, setShowNetworkErrorModal] = useState(false);
   const [userCurrency, setUserCurrency] = useState('USD');
 
   // Currency formatting functions
@@ -142,7 +144,7 @@ export default function Index() {
     const [filteredChannels, setFilteredChannels] = useState<Channel[]>([]);
     
     // Cache for user profiles to avoid redundant API calls
-    const userProfileCache = useRef<Map<string, { name: string; avatar: string; timestamp: number }>>(new Map());
+    const userProfileCache = useRef<Map<string, { name: string; avatar: string; uncashedTipAmount: number; documentId: string; timestamp: number }>>(new Map());
     const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
     const CHANNELS_PER_PAGE = 30; // Load 30 channels at a time
 
@@ -500,6 +502,7 @@ export default function Index() {
           if (channel.id.startsWith('dm-')) {
             const memberNames: { [userId: string]: string } = {};
             const memberAvatars: { [userId: string]: string } = {};
+            const memberTipAmounts: { [userId: string]: number } = {};
             
           // Get cached data for other members
             const otherMembers = channel.members.filter(memberId => memberId !== user?.$id);
@@ -509,14 +512,16 @@ export default function Index() {
             if (cachedProfile) {
               memberNames[memberId] = cachedProfile.name;
               memberAvatars[memberId] = cachedProfile.avatar;
+              memberTipAmounts[memberId] = cachedProfile.uncashedTipAmount;
             } else {
               // Fallback if not in cache (shouldn't happen after batch fetch)
               memberNames[memberId] = memberId;
               memberAvatars[memberId] = '';
+              memberTipAmounts[memberId] = 0;
               }
             }
             
-            return { ...channel, memberNames, memberAvatars };
+            return { ...channel, memberNames, memberAvatars, memberTipAmounts };
           }
           return channel;
       });
@@ -635,6 +640,8 @@ export default function Index() {
           userProfileCache.current.set(userData.accountId, {
             name: userData.username || userData.accountId,
             avatar: userData.profileImageUri || userData.avatar || '',
+            uncashedTipAmount: userData.uncashed_tip_amount || 0,
+            documentId: userData.$id,
             timestamp: now
           });
         }
@@ -645,6 +652,8 @@ export default function Index() {
             userProfileCache.current.set(memberId, {
               name: memberId,
               avatar: '',
+              uncashedTipAmount: 0,
+              documentId: '', // No document ID for users not found
               timestamp: now
             });
           }
@@ -1001,12 +1010,14 @@ export default function Index() {
         setShowStripeConnect(true);
         // Refresh data after onboarding attempt
         await loadCreatorFinancials();
+        // Update channel conditions to reflect the new Stripe setup status
+        await refreshChannelConditions();
       } else {
         throw new Error(response.error || 'Failed to create Stripe Connect account.');
       }
     } catch (error) {
       console.error('❌ Error during Stripe onboarding:', error);
-      Alert.alert("Error", (error as Error).message || "An unexpected error occurred. Please try again.");
+      setShowNetworkErrorModal(true);
     } finally {
       setIsLoadingStripeConnect(false);
     }
@@ -1041,7 +1052,7 @@ export default function Index() {
       }
         } catch (error) {  
       console.error('❌ Error opening Stripe dashboard:', error);
-      Alert.alert("Error", (error as Error).message || "An unexpected error occurred. Please try again.");
+      setShowNetworkErrorModal(true);
         } finally {
       setIsLoadingStripeConnect(false);
     }
@@ -1116,25 +1127,72 @@ export default function Index() {
     const isGroupChat = item.id.startsWith('creator-');
     const hasUnread = item.unreadCount > 0;
     
+    // Check if DM channel has tip amount
+    const hasTip = isDM && item.memberTipAmounts && (() => {
+      const otherMemberId = item.members.find(memberId => memberId !== user?.$id);
+      const tipAmountCents = otherMemberId ? item.memberTipAmounts[otherMemberId] : 0;
+      return tipAmountCents > 0;
+    })();
+    
     return (
       <TouchableOpacity 
         style={{
           flexDirection: 'row',
           alignItems: 'center',
           padding: isGroupChat ? 16 : 12,
-          backgroundColor: isGroupChat ? '#2A1A2A' : '#1A1A1A',
+          backgroundColor: isGroupChat ? '#2A1A2A' : (hasTip ? '#1A2A1A' : '#1A1A1A'), // Pale green for tipped DMs
           marginHorizontal: 16,
           marginVertical: isGroupChat ? 4 : 2,
           borderRadius: isGroupChat ? 16 : 8,
           borderWidth: isGroupChat ? 2 : 1,
-          borderColor: isGroupChat ? '#FB2355' : '#333333',
+          borderColor: isGroupChat ? '#FB2355' : (hasTip ? '#2A4A2A' : '#333333'), // Darker green border for tipped DMs
           shadowColor: isGroupChat ? '#FB2355' : 'transparent',
           shadowOffset: isGroupChat ? { width: 0, height: 2 } : { width: 0, height: 0 },
           shadowOpacity: isGroupChat ? 0.3 : 0,
           shadowRadius: isGroupChat ? 8 : 0,
           elevation: isGroupChat ? 8 : 0,
         }}
-        onPress={() => {
+        onPress={async () => {
+          // Reset uncashed tip amount when opening a DM channel with tips
+          if (isDM && hasTip) {
+            try {
+              const otherMemberId = item.members.find(memberId => memberId !== user?.$id);
+              if (otherMemberId && item.memberTipAmounts) {
+                const uncashedTipAmount = item.memberTipAmounts[otherMemberId];
+                if (uncashedTipAmount > 0) {
+                  const { databases, config } = await import('@/lib/appwrite');
+                  
+                  // Get the cached profile to find the document ID
+                  const cachedProfile = userProfileCache.current.get(otherMemberId);
+                  if (cachedProfile && cachedProfile.documentId) {
+                    // Set cashed_tip_amount to the current uncashed_tip_amount value, then reset uncashed to 0
+                    await databases.updateDocument(
+                      config.databaseId,
+                      process.env.EXPO_PUBLIC_APPWRITE_USER_USER_COLLECTION_ID!,
+                      cachedProfile.documentId,
+                      {
+                        cashed_tip_amount: uncashedTipAmount,
+                        uncashed_tip_amount: 0
+                      }
+                    );
+                    
+                    console.log(`💰 [Tips] Updated tip amounts for user ${otherMemberId}: cashed=${uncashedTipAmount}, uncashed=0`);
+                    
+                    // Update cache to reflect the change
+                    userProfileCache.current.set(otherMemberId, {
+                      ...cachedProfile,
+                      uncashedTipAmount: 0
+                    });
+                  } else {
+                    console.log(`⚠️ [Tips] No document ID found for user ${otherMemberId}`);
+                  }
+                }
+              }
+            } catch (error) {
+              console.error('❌ [Tips] Error resetting tip amounts:', error);
+            }
+          }
+          
           router.push(`/chat/${item.id}` as any);
         }}
       >
@@ -1213,6 +1271,26 @@ export default function Index() {
                 {item.memberCount} member{item.memberCount !== 1 ? 's' : ''}
               </Text>
             )}
+            
+            {/* Show tip amount for DM channels */}
+            {isDM && item.memberTipAmounts && (() => {
+              const otherMemberId = item.members.find(memberId => memberId !== user?.$id);
+              const tipAmountCents = otherMemberId ? item.memberTipAmounts[otherMemberId] : 0;
+              if (tipAmountCents > 0) {
+                const tipAmount = tipAmountCents * 100; // Convert to actual currency
+                return (
+                  <Text style={{ 
+                    color: '#FFD700', 
+                    fontSize: 11,
+                    fontFamily: 'Urbanist-Bold',
+                    marginRight: 8,
+                  }}>
+                    💰 {formatPrice(tipAmount, userCurrency)}
+                  </Text>
+                );
+              }
+              return null;
+            })()}
             
             {item.lastMessageAt && (
               <Text style={{ 
@@ -1535,7 +1613,7 @@ export default function Index() {
           {(channels.length > 0 || showSearch) && (
             <View style={{
               paddingHorizontal: 16,
-              paddingVertical: 8,
+              paddingVertical: 4,
               backgroundColor: 'black',
               borderBottomWidth: showSearch ? 1 : 0,
               borderBottomColor: '#333333',
@@ -1694,7 +1772,7 @@ export default function Index() {
               keyExtractor={(item) => item.id}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ 
-                paddingVertical: 16,
+                paddingVertical: 6,
                 backgroundColor: 'black'
               }}
               style={{ backgroundColor: 'black' }}
@@ -3162,21 +3240,13 @@ export default function Index() {
                     navState.url.includes('failure')) {
                   setShowStripeConnect(false);
                   loadCreatorFinancials(); // Refresh data even on cancellation
-                  Alert.alert(
-                    "Setup Incomplete",
-                    "Stripe Connect setup was not completed. You can try again anytime.",
-                    [{ text: "OK", style: "default" }]
-                  );
+                  setShowNetworkErrorModal(true);
                 }
               }}
               onError={(syntheticEvent) => {
                 const { nativeEvent } = syntheticEvent;
                 console.error('WebView error:', nativeEvent);
-                Alert.alert(
-                  "Error",
-                  "Failed to load Stripe Connect. Please try again.",
-                  [{ text: "OK", style: "default" }]
-                );
+                setShowNetworkErrorModal(true);
               }}
               onHttpError={(syntheticEvent) => {
                 const { nativeEvent } = syntheticEvent;
@@ -3250,6 +3320,33 @@ export default function Index() {
           </View>
         </Modal>
 
+        {/* Network Error Modal */}
+        <Modal
+          visible={showNetworkErrorModal}
+          animationType="fade"
+          transparent
+          onRequestClose={() => setShowNetworkErrorModal(false)}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' }}>
+            <View style={{ backgroundColor: '#18181B', borderRadius: 18, padding: 28, width: '85%', maxWidth: 400, alignItems: 'center', borderWidth: 1, borderColor: '#FB2355' }}>
+              <View style={{ backgroundColor: 'rgba(251, 35, 85, 0.1)', borderRadius: 12, padding: 12, marginBottom: 16 }}>
+                <Ionicons name="wifi-outline" size={32} color="#FB2355" />
+              </View>
+              <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 22, marginBottom: 10, textAlign: 'center' }}>
+                Network Issue
+              </Text>
+              <Text style={{ color: '#CCCCCC', fontFamily: 'Urbanist-Regular', fontSize: 15, marginBottom: 20, textAlign: 'center', lineHeight: 22 }}>
+                We're experiencing network issues. Please check your connection and try again later.
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowNetworkErrorModal(false)}
+                style={{ backgroundColor: '#FB2355', borderRadius: 10, paddingVertical: 12, paddingHorizontal: 32 }}
+              >
+                <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>Try Again Later</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
 
         </SafeAreaView>
     );

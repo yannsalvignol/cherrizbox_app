@@ -129,7 +129,7 @@ const App = () => {
             );
             await SignIn(form.email, form.password);
             refetch();
-            router.replace('/(root)/(tabs)');
+            router.replace('/welcome');
         } catch (error) {
             if (error instanceof Error) {
                 Alert.alert('Error', error.message);
@@ -152,6 +152,7 @@ const App = () => {
         const result = await login(socialMedia as string, socialMediaUsername as string, socialMediaNumber as string);
         if(result){
             refetch();
+            router.replace('/welcome');
         } else{
             console.log('Login Failed');
         }
@@ -168,6 +169,7 @@ const App = () => {
         const result = await loginWithApple(socialMedia as string, socialMediaUsername as string, socialMediaNumber as string);
         if(result){
             refetch();
+            router.replace('/welcome');
         } else {
             console.log('Apple Login Failed');
         }
