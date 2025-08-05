@@ -27,6 +27,7 @@ interface Post {
     isSubscribed?: boolean;
     isCancelled?: boolean;
     currency?: string;
+    state?: string;
 }
 
 interface UserProfile {
@@ -47,7 +48,9 @@ export default function Index() {
 
     useEffect(() => {
       if (!loading) {
-        setFilteredPosts(posts);
+        // Filter posts to only show those with state=ok
+        const approvedPosts = posts.filter(post => post.state === 'ok');
+        setFilteredPosts(approvedPosts);
       }
     }, [posts, loading]);
 
@@ -61,12 +64,15 @@ export default function Index() {
         if (query.trim()) {
             filterPosts(query, selectedTrends);
         } else {
-            setFilteredPosts(posts); // Reset to show all posts when search is empty
+            // Reset to show only approved posts when search is empty
+            const approvedPosts = posts.filter(post => post.state === 'ok');
+            setFilteredPosts(approvedPosts);
         }
     };
 
     const filterPosts = (query: string, trends: string[]) => {
-        let filtered = [...posts];
+        // Start with posts that have state=ok
+        let filtered = posts.filter(post => post.state === 'ok');
 
         // Apply search filter
         if (query.trim()) {
@@ -295,7 +301,7 @@ export default function Index() {
                     ) : (
                         <View className="items-center justify-center py-20">
                             <Image 
-                                source={require('../../../assets/images/cherry-icon.png')} 
+                                source={require('../../../assets/images/loading-icon.png')} 
                                 style={{ width: 80, height: 80, marginBottom: 16 }} 
                             />
                             <Text style={{ 

@@ -1,27 +1,48 @@
 {
   "expo": {
-    "name": "cherrizbox",
-    "slug": "cherrizbox",
+    "name": "Cherrizbox",
+    "slug": "cherrizboxtest",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "com.yannsalvignol.cherrizboxbetatest",
+    "scheme": "cherripay",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "extra": {
-      "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_test_51RQyjPBMxMFyUXHbGzFEIYSTdMdY8rajTo0CRJ32cv0SfdnLmvu0ViWjUqC4WGakM35JvcucUHwyS6TImjSrBYDF00a6PPIT7B"
+      "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_test_51RQyjPBMxMFyUXHbGzFEIYSTdMdY8rajTo0CRJ32cv0SfdnLmvu0ViWjUqC4WGakM35JvcucUHwyS6TImjSrBYDF00a6PPIT7B",
+      "router": {
+        "origin": "https://cherrizbox.expo.app"
+      },
+      "eas": {
+        "projectId": "22f3ac93-c920-4bf6-a379-50a109207177"
+      }
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yannsalvignol.cherrizboxbetatest",
-      "associatedDomains": ["applinks:cherrybox.app"],
+      "bundleIdentifier": "com.yannsalvignol.cherripay",
+      "associatedDomains": [
+        "applinks:cherrybox.app",
+        "applinks:cherrybox.app"
+      ],
       "infoPlist": {
         "CFBundleURLTypes": [
           {
             "CFBundleURLName": "OAuth Callback",
-            "CFBundleURLSchemes": ["com.yannsalvignol.cherrizboxbetatest"]
+            "CFBundleURLSchemes": [
+              "com.yannsalvignol.cherripay"
+            ]
+          },
+          {
+            "CFBundleURLName": "OAuth Callback",
+            "CFBundleURLSchemes": [
+              "com.yannsalvignol.cherripay"
+            ]
           }
-        ]
+        ],
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Cherrizbox needs camera access to let you take photos and videos to share with creators.",
+        "NSPhotoLibraryUsageDescription": "Cherrizbox needs photo library access to let you select photos and videos to share with creators.",
+        "NSMicrophoneUsageDescription": "Cherrizbox needs microphone access to record videos with sound."
       }
     },
     "android": {
@@ -36,7 +57,20 @@
           "autoVerify": true,
           "data": [
             {
-              "scheme": "com.yannsalvignol.cherrizboxbetatest"
+              "scheme": "com.yannsalvignol.cherripay"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        },
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "com.yannsalvignol.cherripay"
             }
           ],
           "category": [
@@ -44,19 +78,26 @@
             "DEFAULT"
           ]
         }
-      ]
+      ],
+      "package": "com.yannsalvignol.cherripay"
     },
     "web": {
       "bundler": "metro",
-      "output": "static",
+      "output": "server",
       "favicon": "./assets/images/icon.png"
     },
     "plugins": [
-      "expo-router",
+      [
+        "expo-router",
+        {
+          "origin": "https://cherrizbox.expo.app"
+        }
+      ],
       [
         "@stripe/stripe-react-native",
         {
-          "merchantIdentifier": "merchant.com.cherrizboxtest" // TODO: replace with your real Apple Pay merchant ID
+          "merchantIdentifier": "merchant.com.yannsalvignol.cherripay",
+          "publishableKey": "pk_test_51RQyjPBMxMFyUXHbGzFEIYSTdMdY8rajTo0CRJ32cv0SfdnLmvu0ViWjUqC4WGakM35JvcucUHwyS6TImjSrBYDF00a6PPIT7B"
         }
       ],
       [
@@ -81,7 +122,6 @@
             "./assets/fonts/Urbanist-ExtraLight.ttf",
             "./assets/fonts/MuseoModerno-Regular.ttf",
             "./assets/fonts/Questrial-Regular.ttf",
-            "./assets/fonts/MuseoModerno-Thin.ttf",
             "./assets/fonts/Urbanist-Black.ttf",
             "./assets/fonts/Urbanist-Thin.ttf"
           ]

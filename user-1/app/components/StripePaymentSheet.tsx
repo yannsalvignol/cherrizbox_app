@@ -1,4 +1,5 @@
 import { StripeProvider, useStripe } from '@stripe/stripe-react-native';
+import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, Modal, Text, View } from 'react-native';
@@ -32,16 +33,38 @@ const InnerSheet: React.FC<StripePaymentSheetProps & {clientSecret: string; stri
   creatorName,
   navigateOnSuccess
 }) => {
-  const { initPaymentSheet, presentPaymentSheet } = useStripe();
+  const { initPaymentSheet, presentPaymentSheet, isPlatformPaySupported } = useStripe();
   const router = useRouter();
   const [initializing, setInitializing] = useState(true);
+  
+  // Get merchant ID from config
+  const plugins = Constants.expoConfig?.plugins as any[];
+  const stripePlugin = plugins?.find(plugin => Array.isArray(plugin) && plugin[0] === '@stripe/stripe-react-native');
+  const merchantId = stripePlugin?.[1]?.merchantIdentifier;
 
   useEffect(() => {
     (async () => {
+      // Check if Apple Pay is supported
+      const isApplePaySupported = await isPlatformPaySupported();
+      console.log('🍎 Apple Pay Support Check:');
+      console.log('  - Is Apple Pay Supported:', isApplePaySupported);
+      console.log('  - Merchant ID from config:', merchantId);
+      console.log('  - Full plugins config:', JSON.stringify(Constants.expoConfig?.plugins, null, 2));
+      console.log('  - Stripe Account ID:', stripeAccountId);
+      console.log('  - Apple Pay enabled in config:', !!merchantId);
+      
       const { error } = await initPaymentSheet({
         paymentIntentClientSecret: clientSecret,
         merchantDisplayName: 'Cherrybox',
         allowsDelayedPaymentMethods: false,
+        returnURL: 'com.yannsalvignol.cherripay://payment-return',
+        applePay: {
+          merchantCountryCode: 'US',
+        },
+        googlePay: {
+          merchantCountryCode: 'US',
+          testEnv: true,
+        },
       });
       if (error) {
         Alert.alert('Stripe', error.message);
@@ -49,6 +72,7 @@ const InnerSheet: React.FC<StripePaymentSheetProps & {clientSecret: string; stri
         return;
       }
       setInitializing(false);
+      console.log('💳 Presenting payment sheet...');
       const { error: presentError } = await presentPaymentSheet();
       if (presentError) {
         // If user explicitly cancelled the sheet, just close silently
@@ -84,6 +108,11 @@ const StripePaymentSheet: React.FC<StripePaymentSheetProps> = (props) => {
   const [paymentData, setPaymentData] = useState<{clientSecret:string; stripeAccountId:string}|null>(null);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string|null>(null);
+
+  // Get merchant ID from config
+  const plugins = Constants.expoConfig?.plugins as any[];
+  const stripePlugin = plugins?.find(plugin => Array.isArray(plugin) && plugin[0] === '@stripe/stripe-react-native');
+  const merchantId = stripePlugin?.[1]?.merchantIdentifier;
 
   const bounceAnim = React.useRef(new Animated.Value(1)).current;
 
@@ -130,6 +159,7 @@ const StripePaymentSheet: React.FC<StripePaymentSheetProps> = (props) => {
           <StripeProvider
             publishableKey={PUBLISHABLE_KEY}
             stripeAccountId={paymentData.stripeAccountId}
+            merchantIdentifier={merchantId}
           >
             <InnerSheet {...props} clientSecret={paymentData.clientSecret} stripeAccountId={paymentData.stripeAccountId} />
           </StripeProvider>

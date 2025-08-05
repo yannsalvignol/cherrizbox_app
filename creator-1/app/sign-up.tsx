@@ -261,8 +261,11 @@ const App = () => {
                                     secureTextEntry={!showPassword}
                                     onFocus={() => setIsPasswordFocused(true)}
                                     onBlur={() => setIsPasswordFocused(false)}
-                                    textContentType="none"
-                                    autoComplete="off"
+                                    textContentType="newPassword"
+                                    autoComplete="new-password"
+                                    autoCapitalize="none"
+                                    autoCorrect={false}
+                                    spellCheck={false}
                                 />
                                 <TouchableOpacity
                                     className="px-4"
@@ -285,8 +288,11 @@ const App = () => {
                                     className="flex-1 px-5 py-6 font-['Urbanist-Regular']"
                                     placeholderTextColor="#9CA3AF"
                                     secureTextEntry={!showConfirmPassword}
-                                    textContentType="none"
-                                    autoComplete="off"
+                                    textContentType="oneTimeCode"
+                                    autoComplete="one-time-code"
+                                    autoCapitalize="none"
+                                    autoCorrect={false}
+                                    spellCheck={false}
                                 />
                                 <TouchableOpacity
                                     className="px-4"

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "cherrizbox",
+    "name": "Cherrizbox Pro",
     "slug": "cherrizbox",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -16,6 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.yannsalvignol.cherrizboxcreator",
+      "buildNumber": "2",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -98,10 +99,8 @@
       "typedRoutes": true
     },
     "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "290eb785-e4e1-44ad-b020-2d23fcf3a3e0"
-      }
-    }
+      "router": {}
+    },
+    "owner": "yannsalvignol"
   }
 }

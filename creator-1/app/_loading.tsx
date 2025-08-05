@@ -41,7 +41,6 @@ const LoadingScreen = () => {
       <View style={styles.overlay}>
       <View style={styles.textRow}>
           <Text style={styles.cherrizbox}>Cherrizbox</Text>
-          <Text style={styles.dot}>.</Text>
         </View>
         <Text style={styles.loadingText}>{loadingText}</Text>
       </View>
@@ -71,16 +70,9 @@ const styles = StyleSheet.create({
     fontSize: 50,
     fontWeight: 'bold',
     color: 'white',
-    fontFamily: 'questrial',
+    fontFamily: 'MuseoModerno-Regular',
   },
-  dot: {
-    fontSize: 50,
-    fontWeight: 'bold',
-    color: 'white',
-    fontFamily: 'questrial',
-    marginLeft: 2,
-    marginBottom: 2,
-  },
+
   loadingText: {
     fontSize: 16,
     color: 'white',

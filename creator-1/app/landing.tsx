@@ -47,6 +47,11 @@ const LandingScreen = () => {
     }
   };
 
+  const handleNetworkSelection = (networkName: string) => {
+    setSelectedNetwork(networkName);
+    setShowUsernameModal(true);
+  };
+
   const resetSelection = () => {
     setSelectedNetwork('');
     setUsername('');
@@ -86,7 +91,7 @@ const LandingScreen = () => {
                 {networks.map((network) => (
                   <TouchableOpacity
                     key={network.name}
-                    onPress={() => setSelectedNetwork(network.name)}
+                    onPress={() => handleNetworkSelection(network.name)}
                     style={{
                       backgroundColor: selectedNetwork === network.name ? '#FB2355' : 'rgba(255, 255, 255, 0.2)',
                       borderRadius: 18,
@@ -118,16 +123,6 @@ const LandingScreen = () => {
                 ))}
               </View>
             </View>
-
-            <TouchableOpacity 
-              style={[styles.ctaButton, !selectedNetwork && styles.disabledButton]}
-              onPress={() => setShowUsernameModal(true)}
-              activeOpacity={0.8}
-              disabled={!selectedNetwork}
-            >
-              <Text style={styles.ctaButtonText}>Continue</Text>
-              <Ionicons name="arrow-forward" size={20} color="white" style={styles.arrowIcon} />
-            </TouchableOpacity>
 
             <TouchableOpacity 
               style={styles.loginButton}

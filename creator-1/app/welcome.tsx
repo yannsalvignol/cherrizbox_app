@@ -132,7 +132,7 @@ const WelcomeScreen = () => {
                     ]}
                 >
                     <Text style={styles.welcomeText}>Welcome to</Text>
-                    <Text style={styles.cherrizboxText}>Cherrizbox</Text>
+                    <Text style={styles.cherrizboxText}>cherrizbox</Text>
                     <Text style={styles.subtitleText}>Loading your experience...</Text>
                 </Animated.View>
 
