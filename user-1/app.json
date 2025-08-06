@@ -42,7 +42,8 @@
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "Cherrizbox needs camera access to let you take photos and videos to share with creators.",
         "NSPhotoLibraryUsageDescription": "Cherrizbox needs photo library access to let you select photos and videos to share with creators.",
-        "NSMicrophoneUsageDescription": "Cherrizbox needs microphone access to record videos with sound."
+        "NSMicrophoneUsageDescription": "Cherrizbox needs microphone access to record videos with sound.",
+        "NSApplePayUsageDescription": "Cherrizbox uses Apple Pay to process secure payments for subscriptions and content purchases."
       }
     },
     "android": {

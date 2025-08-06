@@ -1041,6 +1041,60 @@ export const getPurchasedContent = async (
     }
 };
 
+// Function to upload file to Appwrite storage
+export const uploadFileToAppwrite = async (fileUri: string, fileName: string, mimeType?: string): Promise<string> => {
+  try {
+    console.log('📤 Starting file upload to Appwrite...');
+    console.log('📁 File URI:', fileUri);
+    console.log('📄 File Name:', fileName);
+    console.log('🏷️ MIME Type:', mimeType);
+
+    // We need to import FileSystem dynamically to avoid circular dependencies
+    const FileSystem = await import('expo-file-system');
+
+    // Check if file exists
+    const fileInfo = await FileSystem.getInfoAsync(fileUri);
+    if (!fileInfo.exists) {
+      throw new Error('File does not exist at the specified URI');
+    }
+
+    console.log('📊 File Info:', fileInfo);
+
+    // Create a unique file ID
+    const fileId = ID.unique();
+    console.log('🆔 Generated File ID:', fileId);
+
+    // Create file object for upload
+    const fileToUpload = {
+      name: fileName,
+      type: mimeType || 'application/octet-stream',
+      size: fileInfo.size || 0,
+      uri: fileUri,
+    };
+
+    console.log('📦 File to upload:', fileToUpload);
+
+    // Upload to Appwrite storage
+    console.log('⬆️ Uploading to storage bucket:', config.storageId);
+    const uploadedFile = await storage.createFile(
+      config.storageId!,
+      fileId,
+      fileToUpload
+    );
+
+    console.log('✅ File uploaded successfully:', uploadedFile);
+
+    // Get the file URL
+    const fileUrl = storage.getFileView(config.storageId!, uploadedFile.$id);
+    console.log('🔗 File URL:', fileUrl);
+
+    return fileUrl.toString();
+  } catch (error) {
+    console.error('❌ Error uploading file to Appwrite:', error);
+    throw new Error(`Failed to upload file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+};
+
 export async function ensureUserDocument() {
   const user = await account.get();
   const userId = user.$id;
