@@ -148,13 +148,13 @@ const CustomInputButtons: React.FC = () => {
           width: 32,
           height: 32,
           borderRadius: 16,
-          backgroundColor: '#333333',
+          backgroundColor: '#FFFFFF',
           justifyContent: 'center',
           alignItems: 'center',
           marginRight: 8,
         }}
       >
-        <Ionicons name="camera" size={18} color="white" />
+        <Ionicons name="camera" size={28} color="black" />
       </TouchableOpacity>
       
       <TouchableOpacity
@@ -163,13 +163,13 @@ const CustomInputButtons: React.FC = () => {
           width: 32,
           height: 32,
           borderRadius: 16,
-          backgroundColor: '#333333',
+          backgroundColor: '#FFFFFF',
           justifyContent: 'center',
           alignItems: 'center',
-          marginRight: 8,
+          marginRight: 0,
         }}
       >
-        <Ionicons name="mic" size={18} color="white" />
+        <Ionicons name="mic" size={28} color="black" />
       </TouchableOpacity>
     </View>
   );

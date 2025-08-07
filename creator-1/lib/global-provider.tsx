@@ -186,10 +186,30 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
     }
   };
 
+  // Restore connection state on mount (before user loads)
+  useEffect(() => {
+    const restoreState = async () => {
+      try {
+        const { restoreConnectionState } = await import('./stream-chat');
+        const restored = await restoreConnectionState();
+        if (restored.isValid) {
+          console.log('🚀 [GlobalProvider] Connection state restored for user:', restored.userId);
+        }
+      } catch (error) {
+        console.log('Could not restore connection state:', error);
+      }
+    };
+    restoreState();
+  }, []); // Run once on mount
+
   useEffect(() => {
     const connectToStream = async () => {
       if (user) {
         try {
+          // Preload Stream connection data early
+          const { preloadStreamConnection } = await import('./stream-chat');
+          preloadStreamConnection(user.$id); // Fire and forget for early cache warming
+          
           // First check if all profile fields are filled (same as handleGoLive validation)
           console.log('🔄 [GlobalProvider] Loading user profile for Stream connection...');
           const { getUserProfile, getUserPhoto } = await import('./appwrite');

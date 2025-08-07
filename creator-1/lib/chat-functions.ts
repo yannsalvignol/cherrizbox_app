@@ -274,11 +274,54 @@ export const sendBlurryFile = async (
       
       setUploadProgress('Uploading to cloud storage...');
       
-      // Create file object for upload
+      // Determine file extension and MIME type from URI or title
+      let fileExtension = '.pdf'; // Default to PDF
+      let mimeType = 'application/pdf';
+      
+      // Try to extract extension from URI
+      if (fileUri.includes('.')) {
+        const uriParts = fileUri.split('.');
+        const ext = uriParts[uriParts.length - 1].toLowerCase();
+        if (ext) {
+          fileExtension = `.${ext}`;
+          // Set appropriate MIME type based on extension
+          switch(ext) {
+            case 'pdf':
+              mimeType = 'application/pdf';
+              break;
+            case 'doc':
+            case 'docx':
+              mimeType = 'application/msword';
+              break;
+            case 'txt':
+              mimeType = 'text/plain';
+              break;
+            case 'jpg':
+            case 'jpeg':
+              mimeType = 'image/jpeg';
+              break;
+            case 'png':
+              mimeType = 'image/png';
+              break;
+            default:
+              mimeType = 'application/octet-stream';
+          }
+        }
+      }
+      
+      // Also check title for file type hints
+      if (title.toLowerCase().includes('.pdf')) {
+        fileExtension = '.pdf';
+        mimeType = 'application/pdf';
+      }
+      
+      console.log(`📄 File type detected: ${fileExtension}, MIME: ${mimeType}`);
+      
+      // Create file object for upload with proper extension
       const fileToUpload = {
         uri: fileUri,
-        type: 'application/octet-stream', // Generic file type
-        name: `paid_file_${fileId}`,
+        type: mimeType,
+        name: `paid_file_${fileId}${fileExtension}`, // Include file extension
         size: fileBlob.size,
       };
 
@@ -668,6 +711,99 @@ export const getCreatorId = (channel: any) => {
 /**
  * Preloads visible images in the chat for better performance
  */
+/**
+ * Preload all thread messages for messages that have replies
+ * This enables instant thread access without loading delays
+ */
+export const preloadAllThreadMessages = async (
+  channel: any, 
+  threadMessagesCache: React.MutableRefObject<Map<string, any[]>>
+) => {
+  if (!channel?.state?.messages) {
+    console.log('📝 [ThreadPreload] No channel messages to scan');
+    return;
+  }
+
+  console.log('🧵 [ThreadPreload] Starting thread discovery and preloading...');
+  
+  try {
+    // Get all messages from the channel
+    const allMessages = Object.values(channel.state.messages);
+    
+    // Find messages that have thread replies (reply_count > 0)
+    const messagesWithThreads = allMessages.filter((message: any) => 
+      message?.reply_count && message.reply_count > 0
+    );
+    
+    console.log(`🔍 [ThreadPreload] Found ${messagesWithThreads.length} messages with threads`);
+    
+    if (messagesWithThreads.length === 0) {
+      console.log('📝 [ThreadPreload] No threads found to preload');
+      return;
+    }
+    
+    // Batch load all thread messages in parallel
+    const threadLoadPromises = messagesWithThreads.map(async (message: any) => {
+      try {
+        // Check if already cached
+        if (threadMessagesCache.current.has(message.id)) {
+          console.log(`⚡ [ThreadPreload] Thread ${message.id} already cached`);
+          return { messageId: message.id, cached: true };
+        }
+        
+        console.log(`🔄 [ThreadPreload] Loading thread for message: ${message.id}`);
+        
+        // Load thread replies
+        const threadReplies = await channel.getReplies(message.id, {
+          limit: 50,
+        });
+        
+        // Cache the thread messages
+        threadMessagesCache.current.set(message.id, threadReplies.messages);
+        
+        console.log(`✅ [ThreadPreload] Cached ${threadReplies.messages.length} messages for thread ${message.id}`);
+        
+        return {
+          messageId: message.id,
+          messageCount: threadReplies.messages.length,
+          success: true
+        };
+        
+      } catch (error) {
+        console.error(`❌ [ThreadPreload] Failed to load thread ${message.id}:`, error);
+        return {
+          messageId: message.id,
+          error: error,
+          success: false
+        };
+      }
+    });
+    
+    // Wait for all thread loading to complete
+    const results = await Promise.allSettled(threadLoadPromises);
+    
+    // Log results
+    const successful = results.filter(result => 
+      result.status === 'fulfilled' && result.value.success
+    ).length;
+    
+    const cached = results.filter(result => 
+      result.status === 'fulfilled' && result.value.cached
+    ).length;
+    
+    const failed = results.filter(result => 
+      result.status === 'rejected' || 
+      (result.status === 'fulfilled' && !result.value.success && !result.value.cached)
+    ).length;
+    
+    console.log(`🎯 [ThreadPreload] Results: ${successful} loaded, ${cached} cached, ${failed} failed`);
+    console.log(`💾 [ThreadPreload] Total threads in cache: ${threadMessagesCache.current.size}`);
+    
+  } catch (error) {
+    console.error('❌ [ThreadPreload] Error during thread preloading:', error);
+  }
+};
+
 export const preloadVisibleImages = async (channel: any) => {
   try {
     if (!channel?.state?.messages) {

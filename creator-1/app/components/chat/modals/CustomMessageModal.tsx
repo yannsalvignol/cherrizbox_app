@@ -249,7 +249,7 @@ const CustomMessageModal = ({ visible, onClose, message, onThreadReply }: Custom
             alignSelf: 'center',
           }}>
             <View style={{
-              backgroundColor: '#1A1A1A',
+              backgroundColor: '#FFFFFF',
               borderRadius: 20,
               paddingVertical: 16,
               paddingHorizontal: 16,
@@ -272,16 +272,16 @@ const CustomMessageModal = ({ visible, onClose, message, onThreadReply }: Custom
                   paddingVertical: 12,
                   paddingHorizontal: 12,
                   marginBottom: 12,
-                  backgroundColor: '#2A2A2A',
+                  backgroundColor: '#FFFFFF',
                   borderRadius: 14,
                   borderWidth: 1,
-                  borderColor: '#404040',
+                  borderColor: '#1A1A1A',
                 }}
                 onPress={handleThreadReply}
                 activeOpacity={0.8}
               >
                 <View style={{
-                  backgroundColor: '#FB2355',
+                  backgroundColor: '#1A1A1A',
                   borderRadius: 16,
                   width: 32,
                   height: 32,
@@ -292,7 +292,7 @@ const CustomMessageModal = ({ visible, onClose, message, onThreadReply }: Custom
                   <Ionicons name="chatbubble-outline" size={16} color="#FFFFFF" />
                 </View>
                 <Text style={{
-                  color: '#FFFFFF',
+                  color: 'black',
                   fontSize: 14,
                   fontWeight: '600',
                   fontFamily: 'questrial',
@@ -312,7 +312,7 @@ const CustomMessageModal = ({ visible, onClose, message, onThreadReply }: Custom
                     paddingVertical: 12,
                     paddingHorizontal: 12,
                     marginBottom: 12,
-                    backgroundColor: '#2A2A2A',
+                    backgroundColor: '#FFFFFF',
                     borderRadius: 14,
                     borderWidth: 1,
                     borderColor: '#FF4444',
@@ -363,7 +363,7 @@ const CustomMessageModal = ({ visible, onClose, message, onThreadReply }: Custom
                     <TouchableOpacity
                       key={item.type}
                       style={{
-                        backgroundColor: '#2A2A2A',
+                        backgroundColor: '#FFFFFF',
                         borderRadius: 18,
                         width: 36,
                         height: 36,
@@ -371,7 +371,7 @@ const CustomMessageModal = ({ visible, onClose, message, onThreadReply }: Custom
                         alignItems: 'center',
                         margin: 4,
                         borderWidth: 1,
-                        borderColor: hasUserReacted ? '#666666' : '#404040',
+                        borderColor: hasUserReacted ? '#999999' : '#404040',
                         position: 'relative',
                       }}
                       onPress={() => handleReaction(item.type)}

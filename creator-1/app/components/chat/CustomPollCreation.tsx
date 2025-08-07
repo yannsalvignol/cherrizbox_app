@@ -1,14 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    Animated,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Animated,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 interface CustomPollCreationProps {
@@ -150,7 +150,7 @@ const CustomPollCreation = ({ visible, onClose, onCreatePoll }: CustomPollCreati
           maxHeight: '90%',
           width: '90%',
           borderWidth: 2,
-          borderColor: '#FB2355',
+          borderColor: '#1A1A1A',
           flex: 1,
           maxWidth: 400,
         }}>
@@ -292,7 +292,7 @@ const CustomPollCreation = ({ visible, onClose, onCreatePoll }: CustomPollCreati
               <TouchableOpacity
                 onPress={addOption}
                 style={{
-                  backgroundColor: '#FB2355',
+                  backgroundColor: '#1A1A1A',
                   borderRadius: 12,
                   paddingVertical: 14,
                   alignItems: 'center',
@@ -341,8 +341,8 @@ const CustomPollCreation = ({ visible, onClose, onCreatePoll }: CustomPollCreati
                   height: 20,
                   borderRadius: 4,
                   borderWidth: 2,
-                  borderColor: allowMultipleAnswers ? '#FB2355' : '#666666',
-                  backgroundColor: allowMultipleAnswers ? '#FB2355' : 'transparent',
+                  borderColor: allowMultipleAnswers ? '#1A1A1A' : '#666666',
+                  backgroundColor: allowMultipleAnswers ? '#1A1A1A' : 'transparent',
                   marginRight: 12,
                   justifyContent: 'center',
                   alignItems: 'center',
@@ -373,8 +373,8 @@ const CustomPollCreation = ({ visible, onClose, onCreatePoll }: CustomPollCreati
                   height: 20,
                   borderRadius: 4,
                   borderWidth: 2,
-                  borderColor: allowUserSuggestedOptions ? '#FB2355' : '#666666',
-                  backgroundColor: allowUserSuggestedOptions ? '#FB2355' : 'transparent',
+                  borderColor: allowUserSuggestedOptions ? '#1A1A1A' : '#666666',
+                  backgroundColor: allowUserSuggestedOptions ? '#1A1A1A' : 'transparent',
                   marginRight: 12,
                   justifyContent: 'center',
                   alignItems: 'center',
@@ -430,7 +430,7 @@ const CustomPollCreation = ({ visible, onClose, onCreatePoll }: CustomPollCreati
               style={{
                 flex: 1,
                 backgroundColor: (!pollQuestion.trim() || pollOptions.filter(o => o.trim()).length < 2) 
-                  ? '#666666' : '#FB2355',
+                  ? '#666666' : '#1A1A1A',
                 borderRadius: 12,
                 paddingVertical: 14,
                 alignItems: 'center',

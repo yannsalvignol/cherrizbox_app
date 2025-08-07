@@ -10,7 +10,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Image, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { Client, Databases, Query } from 'react-native-appwrite';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Channel, Chat, MessageAvatar, MessageList, OverlayProvider, ReactionData, Thread, useMessageContext, useThreadContext } from 'stream-chat-react-native';
+import { Channel, Chat, MessageAvatar, MessageList, OverlayProvider, ReactionData, useMessageContext, useThreadContext } from 'stream-chat-react-native';
 import loadingIcon from '../../assets/icon/loading-icon.png';
 import { config } from '../../lib/appwrite';
 
@@ -20,6 +20,7 @@ import { FullScreenProfileModal } from '@/app/components/modals/FullScreenProfil
 
 import { CustomMessageInput } from '@/app/components/CustomMessageInput';
 import { CustomMessageSimple } from '@/app/components/CustomMessageSimple';
+import { CustomThread } from '@/app/components/CustomThread';
 
 // Declare global interface for chat screen handlers
 declare global {
@@ -318,7 +319,76 @@ export default function ChatScreen() {
 
   // Handle thread reply
   const handleThreadReply = (message: any) => {
+    handleThreadOpen(message);
+  };
+
+  // Cache for preloaded thread messages
+  const threadMessagesCache = useRef<Map<string, any[]>>(new Map());
+
+  // Preload all thread messages when channel loads
+  const preloadAllThreadMessages = async (channel: any) => {
+    if (!channel || !channel.state.messages) return;
+    
+    console.log('🚀 [ChatScreen] Starting thread preload for channel');
+    const messages = Object.values(channel.state.messages);
+    
+    // Find messages that have thread replies (reply_count > 0)
+    const messagesWithThreads = messages.filter((msg: any) => 
+      msg.reply_count && msg.reply_count > 0
+    );
+    
+    console.log(`📊 [ChatScreen] Found ${messagesWithThreads.length} messages with threads`);
+    
+    // Preload thread messages for each message with threads
+    const preloadPromises = messagesWithThreads.map(async (message: any) => {
+      try {
+        const threadReplies = await channel.getReplies(message.id, {
+          limit: 50,
+        });
+        
+        // Cache the thread messages
+        threadMessagesCache.current.set(message.id, threadReplies.messages);
+        console.log(`✅ [ChatScreen] Cached ${threadReplies.messages.length} messages for thread ${message.id.substring(0, 8)}...`);
+        
+        return threadReplies;
+      } catch (error) {
+        console.error(`❌ [ChatScreen] Error preloading thread ${message.id}:`, error);
+        return null;
+      }
+    });
+    
+    // Wait for all thread preloading to complete
+    const results = await Promise.allSettled(preloadPromises);
+    const successful = results.filter(r => r.status === 'fulfilled').length;
+    console.log(`🎉 [ChatScreen] Successfully preloaded ${successful}/${messagesWithThreads.length} threads`);
+  };
+
+  // Preload thread messages when thread is set
+  const handleThreadOpen = async (message: any) => {
+    console.log('🧵 [ChatScreen] Opening thread for message:', message.id);
     setThread(message);
+    
+    // Check if we already have cached thread messages
+    const cachedMessages = threadMessagesCache.current.get(message.id);
+    if (cachedMessages) {
+      console.log('⚡ [ChatScreen] Using cached thread messages:', cachedMessages.length);
+      return;
+    }
+    
+    // If not cached, load immediately (fallback)
+    try {
+      const threadReplies = await currentChannel?.getReplies(message.id, {
+        limit: 50,
+      });
+      console.log('✅ [ChatScreen] Loaded thread messages on demand:', threadReplies?.messages?.length || 0);
+      
+      // Cache for future use
+      if (threadReplies?.messages) {
+        threadMessagesCache.current.set(message.id, threadReplies.messages);
+      }
+    } catch (error) {
+      console.error('❌ [ChatScreen] Error loading thread messages:', error);
+    }
   };
 
   useEffect(() => {
@@ -443,6 +513,12 @@ export default function ChatScreen() {
             memberCount: Object.keys(groupChannel.state.members).length,
             messageCount: groupChannel.state.messages ? Object.keys(groupChannel.state.messages).length : 0
           });
+          
+          // Preload thread messages for group channel
+          setTimeout(() => {
+            preloadAllThreadMessages(groupChannel);
+          }, 1000); // Small delay to let the channel fully load
+          
         } catch (groupError) {
           console.error('Error loading group channel:', groupError);
         }
@@ -465,6 +541,12 @@ export default function ChatScreen() {
             memberCount: Object.keys(dmChannel.state.members).length,
             members: Object.keys(dmChannel.state.members)
           });
+          
+          // Preload thread messages for DM channel
+          setTimeout(() => {
+            preloadAllThreadMessages(dmChannel);
+          }, 1000); // Small delay to let the channel fully load
+          
         } catch (dmError) {
           console.error('Error loading DM channel:', dmError);
         }
@@ -557,7 +639,7 @@ export default function ChatScreen() {
                 // Only open thread for non-poll messages
                 // For poll messages, let the poll handle its own interactions
                 if (message && !message.poll) {
-                  setThread(message);
+                  handleThreadOpen(message);
                 }
               }}
               MessageSimple={(props: any) => <CustomMessageSimple {...props} client={client} />}
@@ -585,7 +667,9 @@ export default function ChatScreen() {
                     position: 'absolute', 
                     left: 16,
                     zIndex: 10,
-                    padding: 8
+                    padding: 8,
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    borderRadius: 20,
                 }}
               >
                   <Ionicons name="chevron-back-outline" size={24} color="white" />
@@ -623,12 +707,12 @@ export default function ChatScreen() {
                 alignItems: 'center'
               }}>
                 <Text style={{ 
-                  fontSize: thread ? 18 : 40,
+                  fontSize: thread ? 20 : 40,
                   fontWeight: 'bold',
                   color: 'white', 
-                  fontFamily: 'MuseoModerno-Regular'
+                  fontFamily: thread ? 'questrial' : 'MuseoModerno-Regular'
                 }}>
-                  {thread ? 'Thread Reply' : 'cherrizbox'}
+                  {thread ? 'Thread' : 'cherrizbox'}
                 </Text>
               </View>
               
@@ -759,19 +843,32 @@ export default function ChatScreen() {
             
             {/* Conditional rendering based on thread state */}
             {thread ? (
-              <Thread />
+              <CustomThread 
+                currentChatType={currentChatType as string}
+                setSelectedAttachment={setSelectedAttachment}
+                selectedAttachment={selectedAttachment}
+                tipAmount={tipAmount}
+                setTipAmount={setTipAmount}
+                currentChannel={currentChannel}
+                creatorCurrency={creatorCurrency}
+                creatorName={creatorName as string}
+                userId={user?.$id || ''}
+                creatorId={creatorId}
+                client={client}
+                threadMessagesCache={threadMessagesCache}
+              />
             ) : (
               <>
                 <MessageList 
                   DateHeader={() => null}
                   EmptyStateIndicator={() => (
-                    <View style={{ flex: 1, backgroundColor: '#2A2A2A', justifyContent: 'center', alignItems: 'center', padding: 32 }}>
+                    <View style={{ flex: 1, backgroundColor: '#DCDEDF', justifyContent: 'center', alignItems: 'center', padding: 32 }}>
                       <Image
                         source={loadingIcon}
                         style={{ width: 60, height: 60, marginBottom: 18, opacity: 0.8 }}
                         resizeMode="contain"
                       />
-                      <Text style={{ color: '#fff', fontSize: 18, fontFamily: 'questrial', textAlign: 'center', opacity: 0.7 }}>
+                      <Text style={{ color: '#1A1A1A', fontSize: 18, fontFamily: 'questrial', textAlign: 'center', opacity: 0.7 }}>
                         No messages yet. Start the conversation!
                       </Text>
                     </View>

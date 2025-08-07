@@ -1,3 +1,4 @@
+//this is the file with the paid buttons
 import React from 'react';
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { MessageInput } from 'stream-chat-react-native';
@@ -21,7 +22,7 @@ const CustomMessageInput = ({
   isFileUploading,
   isVideoUploading
 }: CustomMessageInputProps) => (
-  <View style={{ backgroundColor: '#1A1A1A', paddingBottom: 20 }}>
+  <View style={{ backgroundColor: '#FFFFFF', paddingBottom: 20 }}>
     {/* Horizontally scrollable buttons */}
     <ScrollView 
       horizontal 
@@ -33,12 +34,12 @@ const CustomMessageInput = ({
       }}
       style={{
         borderTopWidth: 1,
-        borderTopColor: '#2A2A2A',
+        borderTopColor: '#FFFFFF',
       }}
     >
       <TouchableOpacity
         style={{
-          backgroundColor: '#FB2355',
+          backgroundColor: '#1A1A1A',
           borderRadius: 20,
           paddingHorizontal: 12,
           paddingVertical: 6,
@@ -57,7 +58,7 @@ const CustomMessageInput = ({
       
       <TouchableOpacity
         style={{
-          backgroundColor: '#FFD700',
+          backgroundColor: '#1A1A1A',
           borderRadius: 20,
           paddingHorizontal: 12,
           paddingVertical: 6,
@@ -66,7 +67,7 @@ const CustomMessageInput = ({
         onPress={handlePaidContentCreation}
       >
         <Text style={{
-          color: '#1A1A1A',
+          color: '#FFFFFF',
           fontSize: 12,
           fontWeight: 'bold',
         }}>
@@ -76,7 +77,7 @@ const CustomMessageInput = ({
       
       <TouchableOpacity
         style={{
-          backgroundColor: isFileUploading ? '#2E7D32' : '#4CAF50',
+          backgroundColor: isFileUploading ? '#2A2A2A' : '#1A1A1A',
           borderRadius: 20,
           paddingHorizontal: 12,
           paddingVertical: 6,
@@ -110,7 +111,7 @@ const CustomMessageInput = ({
       
       <TouchableOpacity
         style={{
-          backgroundColor: isVideoUploading ? '#7B1FA2' : '#9C27B0',
+          backgroundColor: isVideoUploading ? '#2A2A2A' : '#1A1A1A',
           borderRadius: 20,
           paddingHorizontal: 12,
           paddingVertical: 6,
@@ -142,7 +143,20 @@ const CustomMessageInput = ({
         )}
       </TouchableOpacity>
     </ScrollView>
-    <MessageInput />
+    <MessageInput 
+      additionalTextInputProps={{
+        placeholder: "Send a message...",
+        placeholderTextColor: "#8E8E93",
+        style: {
+          flex: 1,
+          minHeight: 32,
+          textAlignVertical: 'center',
+          paddingTop: 6,
+          paddingBottom: 6,
+          fontSize: 16,
+        }
+      }}
+    />
   </View>
 );
 

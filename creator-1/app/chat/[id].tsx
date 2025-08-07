@@ -10,8 +10,7 @@ import {
   Channel,
   Chat,
   MessageList,
-  OverlayProvider,
-  Thread
+  OverlayProvider
 } from 'stream-chat-react-native';
 import {
   getUserProfile
@@ -28,6 +27,8 @@ import CustomMessageAvatar from '../components/chat/CustomMessageAvatar';
 import CustomMessageInput from '../components/chat/CustomMessageInput';
 import CustomMessageSimple from '../components/chat/CustomMessageSimple';
 import CustomPollCreation from '../components/chat/CustomPollCreation';
+import CustomReactionList from '../components/chat/CustomReactionList';
+import CustomThread from '../components/chat/CustomThread';
 import EmptyStateIndicator from '../components/chat/EmptyStateIndicator';
 import CustomMessageModal from '../components/chat/modals/CustomMessageModal';
 import FileUploadModal from '../components/chat/modals/FileUploadModal';
@@ -44,6 +45,7 @@ import {
   handleLongPressMessage,
   handleSendAudio,
   handleThreadReply,
+  preloadAllThreadMessages,
   preloadVisibleImages
 } from '../../lib/chat-functions';
 import { customReactions } from '../../lib/chat-reactions';
@@ -96,19 +98,32 @@ export default function ChatScreen() {
   const [isRecording, setIsRecording] = useState(false);
   const recordingRef = useRef<Audio.Recording | null>(null);
   
+  // Thread message caching system
+  const threadMessagesCache = useRef<Map<string, any[]>>(new Map());
+  
 
 
   useEffect(() => {
     setTheme(getChatTheme());
   }, [colorScheme]);
 
-  // Register the recording modal handler for CustomInputButtons
+  // Register global handlers for CustomInputButtons and message actions
   useEffect(() => {
+    // Set up recording modal handler
     setGlobalRecordingModalHandler(setShowRecordingModal);
+    
+    // Set up message action handlers
+    (global as any).chatScreenHandlers = {
+      handleLongPressMessage: ({ message }: { message: any }) => {
+        setSelectedMessage(message);
+        setShowCustomModal(true);
+      }
+    };
     
     // Cleanup on unmount
     return () => {
       setGlobalRecordingModalHandler(() => {});
+      (global as any).chatScreenHandlers = null;
     };
   }, []);
 
@@ -175,10 +190,18 @@ export default function ChatScreen() {
 
 
 
-  // Preload images from visible messages for better performance
+  // Preload images and thread messages from visible messages for better performance
   useEffect(() => {
+      if (!channel) return;
+
     // Preload with a delay to not block initial render
-    const preloadTimer = setTimeout(() => preloadVisibleImages(channel), 2000);
+    const preloadTimer = setTimeout(() => {
+      // Preload visible images
+      preloadVisibleImages(channel);
+      
+      // Preload all thread messages for instant thread access
+      preloadAllThreadMessages(channel, threadMessagesCache);
+    }, 1000); // Reduced delay for faster thread preloading
     
     return () => clearTimeout(preloadTimer);
   }, [channel]);
@@ -238,7 +261,7 @@ export default function ChatScreen() {
           </Text>
           <TouchableOpacity 
             style={{
-              backgroundColor: '#FB2355',
+              backgroundColor: '#FFFFFF',
               paddingHorizontal: 24,
               paddingVertical: 12,
               borderRadius: 25,
@@ -312,8 +335,8 @@ export default function ChatScreen() {
 
 
 
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#1A1A1A' }} edges={['top']}>
+    return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#DCDEDF' }} edges={['top']}>
       {/* Header */}
       <View className="flex-row items-center justify-between px-5 py-3 bg-black" style={{ minHeight: 85 }}>
         {/* Cherrizbox Logo */}
@@ -331,7 +354,7 @@ export default function ChatScreen() {
             <Text style={{
               fontSize: 42,
               fontWeight: 'bold',
-              color: 'white',
+              color: 'black',
               fontFamily: 'MuseoModerno-Regular',
               textAlign: 'center',
             }}>
@@ -383,9 +406,13 @@ export default function ChatScreen() {
               MessageSimple={CustomMessageSimple}
               MessageAvatar={CustomMessageAvatar}
               MessageStatus={CustomMessageStatus}
+              MessageTimestamp={() => null} // Remove default timestamps
+              MessageFooter={() => null} // Remove footer timestamps
               ShowThreadMessageInChannelButton={() => null}
               supportedReactions={customReactions}
               messageActions={() => []} // Disable default message actions
+              ReactionListTop={CustomReactionList} // Custom reaction list without dark background
+              ReactionListBottom={CustomReactionList}
               Card={(props: any) => {
                 
                 // The props ARE the attachment, not nested under 'attachment'
@@ -401,11 +428,7 @@ export default function ChatScreen() {
                 
                 if (props?.type === 'custom_audio') {
                   console.log('✅ Rendering CustomAudioAttachment');
-                  return <CustomAudioAttachment 
-                    attachment={props} 
-                    setSelectedMessage={setSelectedMessage}
-                    setShowCustomModal={setShowCustomModal}
-                  />;
+                  return <CustomAudioAttachment attachment={props} />;
                 }
                 
                 if (props?.type === 'blurry_file') {
@@ -429,7 +452,17 @@ export default function ChatScreen() {
             >
               {/* Conditional rendering based on thread state */}
               {thread ? (
-                <Thread />
+                <CustomThread 
+                  channel={channel}
+                  client={client}
+                  threadMessagesCache={threadMessagesCache}
+                  user={user}
+                  userCurrency={userCurrency}
+                  showPollCreation={showPollCreation}
+                  setShowPollCreation={setShowPollCreation}
+                  uploadManager={uploadManager}
+                  onCloseThread={() => setThread(null)}
+                />
               ) : (
                 <View style={{ flex: 1 }}>
                   <MessageList 

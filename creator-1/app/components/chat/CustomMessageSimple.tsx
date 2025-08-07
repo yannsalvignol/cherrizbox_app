@@ -3,19 +3,22 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Text, View } from 'react-native';
 import {
-    MessageSimple,
-    useMessageContext,
-    useThreadContext
+  MessageSimple,
+  useMessageContext,
+  useThreadContext
 } from 'stream-chat-react-native';
 import { formatPrice } from '../../../lib/currency-utils';
 import BlurryFileAttachment from './attachments/BlurryFileAttachment';
 import CustomAttachment from './attachments/CustomAttachment';
+import CustomAudioAttachment from './attachments/CustomAudioAttachment';
 import PaidContentAttachment from './attachments/PaidContentAttachment';
 import PaidVideoAttachment from './attachments/PaidVideoAttachment';
 import PollDisplayComponent from './CustomPollComponent';
+import CustomReactionList from './CustomReactionList';
 
 interface CustomMessageSimpleProps {
   [key: string]: any; // Stream Chat props
+  isInThread?: boolean; // Flag to indicate if message is in thread context
 }
 
 interface MessageContextData {
@@ -73,6 +76,7 @@ const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = (props) => {
   const hasBlurryFile = message?.attachments?.some((attachment: any) => attachment?.type === 'blurry_file');
   const hasPaidVideo = message?.attachments?.some((attachment: any) => attachment?.type === 'paid_video');
   const hasCustomAttachment = message?.attachments?.some((attachment: any) => attachment?.type === 'custom_attachment');
+  const hasAudioAttachment = message?.attachments?.some((attachment: any) => attachment?.type === 'custom_audio');
 
   /**
    * Check if this is the last message in the channel/thread
@@ -248,7 +252,65 @@ const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = (props) => {
             />
           ) : null
         ))}
-        {renderTimestamp('flex-end')}
+        {/* Custom timestamp for paid videos - positioned to the right */}
+        {shouldShowTimestamp() && (
+          <View style={{ 
+            paddingTop: isInThread 
+              ? (isLastMessage() ? 2 : 1)
+              : isDMChannel 
+                ? (isLastMessage() ? 6 : 3)
+                : (isLastMessage() ? 8 : 4),
+            paddingBottom: isInThread 
+              ? (isLastMessage() ? 6 : 3)
+              : isDMChannel 
+                ? (isLastMessage() ? 10 : 5)
+                : (isLastMessage() ? 12 : 6),
+            marginTop: isInThread 
+              ? (isLastMessage() ? -22 : 4)
+              : isDMChannel 
+                ? (isLastMessage() ? -25 : -1)
+                : (isLastMessage() ? -10 : -6),
+            marginBottom: isInThread 
+              ? (isLastMessage() ? 1 : 0)
+              : isDMChannel 
+                ? (isLastMessage() ? 3 : 1)
+                : (isLastMessage() ? 4 : 2),
+            alignItems: 'flex-end',
+            marginRight: -5,  // Move timestamp closer to the right edge
+            backgroundColor: 'transparent',
+          }}>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              paddingHorizontal: 8,
+              paddingVertical: 3,
+              borderRadius: 8,
+              backgroundColor: 'rgba(0, 0, 0, 0.1)',
+            }}>
+              <Ionicons 
+                name="checkmark" 
+                size={13}
+                color="#00C851"
+                style={{ opacity: 0.9 }}
+              />
+              <Text style={{
+                color: '#FFFFFF',
+                fontSize: 12,
+                fontWeight: '600',
+                fontFamily: 'questrial',
+                opacity: 0.8,
+                letterSpacing: 0.3,
+              }}>
+                {new Date(message.created_at).toLocaleTimeString([], { 
+                  hour: '2-digit', 
+                  minute: '2-digit',
+                  hour12: true 
+                })}
+              </Text>
+            </View>
+          </View>
+        )}
       </View>
     );
   }
@@ -267,7 +329,152 @@ const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = (props) => {
             />
           ) : null
         ))}
-        {renderTimestamp('flex-end')}
+        {/* Custom timestamp for blurry files - positioned to the right */}
+        {shouldShowTimestamp() && (
+          <View style={{ 
+            paddingTop: isInThread 
+              ? (isLastMessage() ? 2 : 1)
+              : isDMChannel 
+                ? (isLastMessage() ? 6 : 3)
+                : (isLastMessage() ? 8 : 4),
+            paddingBottom: isInThread 
+              ? (isLastMessage() ? 6 : 3)
+              : isDMChannel 
+                ? (isLastMessage() ? 10 : 5)
+                : (isLastMessage() ? 12 : 6),
+            marginTop: isInThread 
+              ? (isLastMessage() ? -22 : 4)
+              : isDMChannel 
+                ? (isLastMessage() ? -25 : -1)
+                : (isLastMessage() ? -20 : -15),
+            marginBottom: isInThread 
+              ? (isLastMessage() ? 1 : 0)
+              : isDMChannel 
+                ? (isLastMessage() ? 3 : 1)
+                : (isLastMessage() ? 4 : 2),
+            alignItems: 'flex-end',
+            marginRight: -5,  // Move timestamp closer to the right edge
+            backgroundColor: 'transparent',
+          }}>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              paddingHorizontal: 8,
+              paddingVertical: 3,
+              borderRadius: 8,
+              backgroundColor: 'rgba(0, 0, 0, 0.1)',
+            }}>
+              <Ionicons 
+                name="checkmark" 
+                size={13}
+                color="#00C851"
+                style={{ opacity: 0.9 }}
+              />
+              <Text style={{
+                color: '#FFFFFF',
+                fontSize: 12,
+                fontWeight: '600',
+                fontFamily: 'questrial',
+                opacity: 0.8,
+                letterSpacing: 0.3,
+              }}>
+                {new Date(message.created_at).toLocaleTimeString([], { 
+                  hour: '2-digit', 
+                  minute: '2-digit',
+                  hour12: true 
+                })}
+              </Text>
+            </View>
+          </View>
+        )}
+      </View>
+    );
+  }
+
+  // Handle audio attachments
+  if (hasAudioAttachment) {
+    console.log('Rendering message with audio attachment');
+    return (
+      <View style={{ 
+        alignItems: isMyMessage ? 'flex-end' : 'flex-start',  // Align based on sender
+        paddingRight: props.isInThread && isMyMessage ? 8 : 5, // Closer to right edge for sent
+        paddingLeft: props.isInThread && !isMyMessage ? 8 : 0, // Closer to left edge for received
+        marginTop: 20, // Add space between day timestamp and audio attachment
+        position: 'relative', // Enable absolute positioning for reactions
+      }}>
+        {/* Render audio attachments only (no text message) */}
+        {message.attachments?.map((attachment: any, index: number) => (
+          attachment?.type === 'custom_audio' ? (
+            <CustomAudioAttachment 
+              key={`audio-${index}`}
+              attachment={attachment} 
+            />
+          ) : null
+        ))}
+        
+        {/* Render reactions on top of audio attachment */}
+        <CustomReactionList />
+        {/* Custom timestamp with lower positioning for audio */}
+        {shouldShowTimestamp() && (
+          <View style={{
+            paddingTop: isInThread 
+              ? (isLastMessage() ? 4 : 3) // Reduced padding for audio
+              : isDMChannel 
+                ? (isLastMessage() ? 6 : 4) 
+                : (isLastMessage() ? 8 : 5), 
+            paddingBottom: isInThread 
+              ? (isLastMessage() ? 6 : 3) 
+              : isDMChannel 
+                ? (isLastMessage() ? 10 : 5) 
+                : (isLastMessage() ? 12 : 6), 
+            paddingHorizontal: 0,
+            marginHorizontal: -10, // Negative margin to extend beyond container bounds
+            marginTop: isInThread 
+              ? (isLastMessage() ? -18 : 2) // More negative margin to bring closer
+              : isDMChannel 
+                ? (isLastMessage() ? -25 : 0) 
+                : (isLastMessage() ? 5 : 8), 
+            marginBottom: isInThread 
+              ? (isLastMessage() ? 1 : 0) 
+              : isDMChannel 
+                ? (isLastMessage() ? 3 : 1) 
+                : (isLastMessage() ? 4 : 2), 
+            alignItems: 'flex-end',
+            backgroundColor: 'transparent',
+          }}>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              paddingHorizontal: 8,
+              paddingVertical: 3,
+              borderRadius: 8,
+              backgroundColor: 'rgba(0, 0, 0, 0.1)',
+            }}>
+              <Ionicons 
+                name="checkmark" 
+                size={13}
+                color="#00C851"
+                style={{ opacity: 0.9 }}
+              />
+              <Text style={{
+                color: '#FFFFFF',
+                fontSize: 12,
+                fontWeight: '600',
+                fontFamily: 'questrial',
+                opacity: 0.8,
+                letterSpacing: 0.3,
+              }}>
+                {new Date(message.created_at).toLocaleTimeString([], { 
+                  hour: '2-digit', 
+                  minute: '2-digit',
+                  hour12: true 
+                })}
+              </Text>
+            </View>
+          </View>
+        )}
       </View>
     );
   }
@@ -290,14 +497,17 @@ const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = (props) => {
             />
           ) : null
         ))}
-        {renderTimestamp('flex-start')}
       </View>
     );
   }
 
   // Default message rendering with custom timestamp
   return (
-    <View>
+    <View style={{
+      // Override negative margins in thread context for received messages
+      marginLeft: props.isInThread && !isMyMessage ? 8 : 0,  // Reduced - closer to left edge
+      marginRight: props.isInThread && isMyMessage ? 8 : 0,   // Reduced - closer to right edge
+    }}>
       {/* Render the default MessageSimple */}
       <MessageSimple {...props} />
       
@@ -305,27 +515,28 @@ const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = (props) => {
       {shouldShowTimestamp() && (
         <View style={{
           paddingTop: isInThread 
-            ? (isLastMessage() ? 2 : 1) // Threads - tightest spacing
+            ? (isLastMessage() ? 1 : 0) // Threads - even tighter spacing
             : isDMChannel 
-              ? (isLastMessage() ? 6 : 3) // DM channels - medium spacing
-              : (isLastMessage() ? 8 : 4), // Group channels - most spacing
+              ? (isLastMessage() ? 3 : 2) // DM channels - reduced spacing
+              : (isLastMessage() ? 4 : 2), // Group channels - reduced spacing
           paddingBottom: isInThread 
-            ? (isLastMessage() ? 6 : 3) // Threads
+            ? (isLastMessage() ? 4 : 2) // Threads - reduced
             : isDMChannel 
-              ? (isLastMessage() ? 10 : 5) // DM channels
-              : (isLastMessage() ? 12 : 6), // Group channels
-          paddingHorizontal: 0, // Consistent horizontal padding
+              ? (isLastMessage() ? 6 : 3) // DM channels - reduced
+              : (isLastMessage() ? 8 : 4), // Group channels - reduced
+          marginHorizontal: -5, // Can use negative values if needed
           marginTop: isInThread 
-            ? (isLastMessage() ? -22 : 4) // Threads - very tight to bubble
+            ? (isLastMessage() ? -5 : 1) // Threads - more negative to bring closer
             : isDMChannel 
-              ? (isLastMessage() ? -30 : -1) // DM channels - moderate spacing
-              : (isLastMessage() ? -30 : 2), // Group channels - original spacing
+              ? (isLastMessage() ? -35 : -3) // DM channels - more negative
+              : (isLastMessage() ? -10 : 0), // Group channels - more negative
           marginBottom: isInThread 
-            ? (isLastMessage() ? 1 : 0) // Threads
+            ? (isLastMessage() ? 0 : 0) // Threads
             : isDMChannel 
               ? (isLastMessage() ? 3 : 1) // DM channels
               : (isLastMessage() ? 4 : 2), // Group channels
           alignItems: isMyMessage ? 'flex-end' : 'flex-start', // Align right for our messages, left for others
+          marginRight: isMyMessage ? -5 : 0, // Move our messages closer to the right edge
           backgroundColor: 'transparent',
         }}>
           <View style={{

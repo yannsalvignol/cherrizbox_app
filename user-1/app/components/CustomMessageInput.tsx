@@ -22,6 +22,7 @@ interface CustomMessageInputProps {
   creatorName: string;
   userId: string;
   creatorId: string;
+  isThreadInput?: boolean;
 }
 
 export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({ 
@@ -34,7 +35,8 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
   creatorCurrency,
   creatorName,
   userId,
-  creatorId
+  creatorId,
+  isThreadInput = false
 }) => {
   const [showAttachmentModal, setShowAttachmentModal] = useState(false);
   const [showStripeSheet, setShowStripeSheet] = useState(false);
@@ -269,8 +271,8 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
     }
   };
 
-  // For group chats, show a message that encourages thread replies
-  if (currentChatType === 'group') {
+  // For group chats, show a message that encourages thread replies (unless it's a thread input)
+  if (currentChatType === 'group' && !isThreadInput) {
     return (
       <View style={{
         backgroundColor: '#1A1A1A',
@@ -280,7 +282,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
         borderTopColor: '#2A2A2A',
       }}>
         <View style={{
-          backgroundColor: '#2A2A2A',
+          backgroundColor: '#DCDEDF',
           borderRadius: 20,
           paddingHorizontal: 16,
           paddingVertical: 16,
@@ -320,6 +322,25 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
           Group chats are thread-only to keep conversations organized
         </Text>
       </View>
+    );
+  }
+  
+  // For thread input, use simple MessageInput
+  if (isThreadInput || currentChatType === 'thread') {
+    return (
+      <MessageInput 
+        additionalTextInputProps={{
+          placeholder: 'Reply to thread...',
+          placeholderTextColor: '#999999',
+          style: {
+            fontSize: 16,
+            fontFamily: 'questrial',
+            color: '#1A1A1A',
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+          }
+        }}
+      />
     );
   }
   

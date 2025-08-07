@@ -4,17 +4,17 @@ import React, { useRef, useState } from 'react';
 import { Alert, Animated, Text, TouchableOpacity, View } from 'react-native';
 import { useMessageContext } from 'stream-chat-react-native';
 
-interface CustomAudioAttachmentProps {
-  attachment: any;
-  setSelectedMessage?: (message: any) => void;
-  setShowCustomModal?: (show: boolean) => void;
+interface AudioAttachment {
+  type: string;
+  asset_url?: string;
+  duration?: string;
 }
 
-const CustomAudioAttachment = ({ 
-  attachment, 
-  setSelectedMessage, 
-  setShowCustomModal 
-}: CustomAudioAttachmentProps) => {
+interface CustomAudioAttachmentProps {
+  attachment: AudioAttachment;
+}
+
+const CustomAudioAttachment = ({ attachment }: CustomAudioAttachmentProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
@@ -223,7 +223,7 @@ const CustomAudioAttachment = ({
       console.log('🎵 Loading audio:', attachment.asset_url);
       
       // Try to load audio with headers if it's from Appwrite
-      const audioSource = attachment.asset_url.includes('appwrite') 
+      const audioSource = attachment.asset_url?.includes('appwrite') 
         ? {
             uri: attachment.asset_url,
             headers: {
@@ -231,7 +231,7 @@ const CustomAudioAttachment = ({
               'Content-Type': 'audio/mp4'
             }
           }
-        : { uri: attachment.asset_url };
+        : { uri: attachment.asset_url || '' };
           
       console.log('🎵 Audio source:', audioSource);
       
@@ -311,12 +311,23 @@ const CustomAudioAttachment = ({
   };
 
   const handleLongPress = (event: any) => {
-    // Prevent event bubbling
+    console.log('🎵 [CustomAudioAttachment] Long press detected on audio');
     event.stopPropagation();
     
-    if (message && setSelectedMessage && setShowCustomModal) {
-      setSelectedMessage(message);
-      setShowCustomModal(true);
+    if (message) {
+      console.log('✅ [CustomAudioAttachment] Setting selected message for modal');
+      
+      try {
+        // Access the global app state through a custom event system
+        if ((global as any).chatScreenHandlers?.handleLongPressMessage) {
+          (global as any).chatScreenHandlers.handleLongPressMessage({ message });
+          console.log('✅ [CustomAudioAttachment] Called global handler');
+        } else {
+          console.log('⚠️ [CustomAudioAttachment] Global handlers not available');
+        }
+      } catch (error) {
+        console.log('⚠️ [CustomAudioAttachment] Error calling global handler:', error);
+      }
     }
   };
 
@@ -356,7 +367,7 @@ const CustomAudioAttachment = ({
             // During playback, use progress to determine colors
             if (index < activeBars) {
               // Played section - bright pink
-              barColor = '#FB2355';
+              barColor = '#1A1A1A';
             } else if (index === activeBars && activeBars < totalBars) {
               // Currently playing bar - lighter pink
               barColor = '#FF6B8A';
@@ -400,13 +411,13 @@ const CustomAudioAttachment = ({
       }}
     >
       <View style={{
-        backgroundColor: '#2A2A2A',
+        backgroundColor: '#FFFFFF',
         borderRadius: 16,
         padding: 16,
         flexDirection: 'row',
         alignItems: 'center',
         width: 320,
-        minHeight: 80,
+        minHeight: 72,
       }}>
         {/* Play/Pause Button */}
         <TouchableOpacity
@@ -415,46 +426,39 @@ const CustomAudioAttachment = ({
             playAudio();
           }}
           style={{
-            width: 48,
-            height: 48,
-            borderRadius: 24,
-            backgroundColor: '#FB2355',
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            backgroundColor: '#FFFFFF',
             justifyContent: 'center',
             alignItems: 'center',
             marginRight: 16,
+            borderWidth: 1.5,
+            borderColor: '#E5E5EA', // Apple-like thin border
           }}
         >
           <Ionicons 
             name={isPlaying ? "pause" : "play"} 
-            size={24} 
-            color="white"
+            size={22} 
+            color="#000000"
             style={{ marginLeft: isPlaying ? 0 : 2 }} // Center play icon
           />
         </TouchableOpacity>
 
         {/* Content Area */}
-        <View style={{ flex: 1, flexDirection: 'column' }}>
-          {/* Title and Duration */}
-          <View style={{ 
-            flexDirection: 'row', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            marginBottom: 8 
+        <View style={{ flex: 1, flexDirection: 'column', justifyContent: 'center', position: 'relative' }}>
+          {/* Duration - positioned absolutely in corner */}
+          <View style={{
+            position: 'absolute',
+            bottom: -13,
+            right: 10,
+            zIndex: 1,
           }}>
             <Text style={{
-              color: '#FFFFFF',
-              fontSize: 16,
+              color: '#A1A1AA',
+              fontSize: 11,
               fontFamily: 'questrial',
-              fontWeight: '600',
-            }}>
-              Voice Message
-            </Text>
-            
-            <Text style={{
-              color: '#FB2355',
-              fontSize: 14,
-              fontFamily: 'questrial',
-              fontWeight: '500',
+              fontWeight: '400',
             }}>
               {isPlaying && totalDuration > 0 
                 ? `${formatTime(currentTime)} / ${formatTime(totalDuration)}`
@@ -464,7 +468,57 @@ const CustomAudioAttachment = ({
           </View>
 
           {/* Sound Bars */}
-          <SoundBars />
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            height: 24,
+            justifyContent: 'space-between',
+            paddingHorizontal: 2,
+          }}>
+            {Array.from({ length: 40 }, (_, index) => {
+              const progress = totalDuration > 0 ? currentTime / totalDuration : 0;
+              const totalBars = 40;
+              const activeBars = Math.floor(progress * totalBars);
+              
+              let barColor;
+              let barHeight;
+              
+              // Generate varied heights for 40 bars with more variation
+              const heights = [3, 8, 5, 12, 7, 16, 4, 20, 9, 24, 6, 22, 11, 18, 5, 14, 8, 10, 13, 6, 4, 9, 7, 15, 12, 19, 6, 21, 10, 23, 8, 17, 5, 13, 11, 16, 7, 9, 4, 8];
+              
+              if (!isPlaying) {
+                // Not playing - all bars light gray with varied heights
+                barColor = '#E5E5EA';
+                barHeight = heights[index];
+              } else {
+                if (index < activeBars) {
+                  // Played section - black
+                  barColor = '#000000';
+                  barHeight = heights[index];
+                } else if (index === activeBars && activeBars < totalBars) {
+                  // Currently playing bar - black and slightly taller
+                  barColor = '#000000';
+                  barHeight = heights[index] + 2;
+                } else {
+                  // Unplayed section - light gray
+                  barColor = '#F2F2F7';
+                  barHeight = heights[index];
+                }
+              }
+              
+              return (
+                <View
+                  key={index}
+                  style={{
+                    width: 2,
+                    height: barHeight,
+                    backgroundColor: barColor,
+                    borderRadius: 1,
+                  }}
+                />
+              );
+            })}
+          </View>
         </View>
         
         {/* Stop Button when playing */}
@@ -475,16 +529,16 @@ const CustomAudioAttachment = ({
               stopAudio();
             }}
             style={{ 
-              marginLeft: 12,
-              width: 32,
-              height: 32,
-              borderRadius: 16,
-              backgroundColor: '#444',
+              marginLeft: 10,
+              width: 28,
+              height: 28,
+              borderRadius: 14,
+              backgroundColor: '#F2F2F7',
               justifyContent: 'center',
-              alignItems: 'center'
+              alignItems: 'center',
             }}
           >
-            <Ionicons name="stop" size={16} color="#FB2355" />
+            <Ionicons name="stop" size={14} color="#000000" />
           </TouchableOpacity>
         )}
       </View>

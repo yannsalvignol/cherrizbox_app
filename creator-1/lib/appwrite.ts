@@ -268,16 +268,62 @@ export async function loginWithApple(socialMedia?: string, socialMediaUsername?:
 
 export async function logout() {
     try {
+        // First clear Stream Chat connection and caches
+        try {
+            console.log('🔄 Clearing Stream Chat connection and caches...');
+            const { disconnectUser, clearTokenCache } = await import('./stream-chat');
+            
+            // Disconnect from Stream Chat
+            await disconnectUser();
+            
+            // Clear all caches (memory, AsyncStorage, but not backend since user might login again)
+            await clearTokenCache(false, true);
+            
+            console.log('✅ Stream Chat cleared successfully');
+        } catch (streamError) {
+            console.error('Error clearing Stream Chat:', streamError);
+            // Continue with logout even if Stream clearing fails
+        }
+        
+        // Clear any other app caches from AsyncStorage
+        try {
+            const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+            
+            // Clear any additional app-specific keys
+            const keysToRemove = [
+                'user_currency',
+                'user_profile_cache',
+                // Add any other app-specific keys here
+            ];
+            
+            await AsyncStorage.multiRemove(keysToRemove);
+            console.log('✅ App caches cleared');
+        } catch (cacheError) {
+            console.error('Error clearing app caches:', cacheError);
+        }
+        
+        // Finally, delete the Appwrite session
         const result = await account.deleteSession("current");
+        console.log('✅ Appwrite session deleted');
+        
         return result;
     } catch (error) {
-        console.error(error);
+        console.error('Logout error:', error);
         return false;
     }
 }
 export async function SignIn(email: string, password: string) {
     try {
-        // First, try to delete any existing session
+        // First, clear any existing Stream Chat connection and caches
+        try {
+            const { disconnectUser, clearTokenCache } = await import('./stream-chat');
+            await disconnectUser();
+            await clearTokenCache(false, true); // Clear AsyncStorage but not backend
+        } catch (streamError) {
+            // Ignore if Stream Chat is not connected
+        }
+        
+        // Try to delete any existing Appwrite session
         try {
             await account.deleteSession('current');
         } catch (error) {

@@ -4,8 +4,8 @@ import { ID, Query } from 'appwrite';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, FlatList, Image, Keyboard, Modal, ScrollView, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, Vibration, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Image, Keyboard, Modal, ScrollView, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, Vibration, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { config, databases, getUserPhoto, getUserProfile, updateCreatorPayment, updateUserProfile, uploadProfilePicture } from '../../../lib/appwrite';
@@ -77,8 +77,7 @@ const trendingTopics = [
 export default function EditProfile() {
   const router = useRouter();
   const { user: globalUser, refreshChannelConditions, userCurrency } = useGlobalContext();
-  const scrollViewRef = useRef<ScrollView>(null);
-  const [isEditMode, setIsEditMode] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -587,10 +586,6 @@ export default function EditProfile() {
       // Refresh channel conditions to update the missing info modal on index.tsx
       await refreshChannelConditions();
       
-      // Scroll back to preview
-      setIsEditMode(false);
-      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-      
       // Hide success message after 2 seconds
       setTimeout(() => {
         setSuccessMessage(null);
@@ -661,16 +656,12 @@ export default function EditProfile() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }} edges={[]}>
-      {/* Header with back and settings - positioned absolutely to overlap preview */}
+      {/* Header with back and settings */}
       <View style={{ 
-        position: 'absolute', 
-        top: 0, 
-        left: 0, 
-        right: 0, 
-        zIndex: 10,
         paddingTop: 60,
         paddingHorizontal: 16,
-        paddingBottom: 16
+        paddingBottom: 16,
+        backgroundColor: 'black'
       }}>
         <View className="flex-row items-center">
         <TouchableOpacity onPress={() => router.back()} className="flex-row items-center">
@@ -680,7 +671,7 @@ export default function EditProfile() {
             resizeMode="contain"
           />
           <Text style={{ color: 'white', fontSize: 21, marginLeft: 12, fontFamily: 'Nunito-Bold' }}>
-              {isEditMode ? 'Edit Profile' : 'Preview'}
+              Edit Profile
           </Text>
         </TouchableOpacity>
         <View className="flex-1" />
@@ -700,77 +691,11 @@ export default function EditProfile() {
         contentContainerStyle={{ paddingBottom: 40 }}
         bounces={true}
         keyboardShouldPersistTaps="handled"
-        ref={scrollViewRef}
-        scrollEnabled={true}
-        onScroll={(event) => {
-          const offsetY = event.nativeEvent.contentOffset.y;
-          const screenHeight = Dimensions.get('window').height;
-          
-          // Immediate snap when scrolling up (stronger effect)
-          if (offsetY < screenHeight * 0.3 && isEditMode) {
-            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-            setIsEditMode(false);
-          }
-        }}
-        scrollEventThrottle={16}
-        onScrollEndDrag={(event) => {
-          const offsetY = event.nativeEvent.contentOffset.y;
-          const screenHeight = Dimensions.get('window').height;
-          
-          // Always snap when scrolling up (binary effect)
-          if (offsetY < screenHeight * 0.5) {
-            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-            setIsEditMode(false);
-          } else if (offsetY > screenHeight * 0.5) {
-            if (!isEditMode) {
-              // Snap to edit form when transitioning from preview
-              scrollViewRef.current?.scrollTo({ y: screenHeight, animated: true });
-              setIsEditMode(true);
-            }
-          }
-        }}
       >
-        <TouchableOpacity 
-          activeOpacity={1}
-          onPress={() => {
-            const screenHeight = Dimensions.get('window').height;
-            if (isEditMode) {
-              // Go back to preview
-              scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-              setIsEditMode(false);
-            } else {
-              // Go to edit form
-              scrollViewRef.current?.scrollTo({ y: screenHeight, animated: true });
-              setIsEditMode(true);
-            }
-          }}
-        >
-          {/* Profile Preview at the top */}
-          <ProfilePreview
-            profileImageUri={profileImage || undefined}
-            name={photoTitle || ''}
-            location={location}
-            bio={bio}
-            followerCount={0} // Optionally fetch real follower count if needed
-            monthlyPrice={monthlyPrice}
-            yearlyPrice={yearlyPrice}
-            state={photoState}
-            creatorsname={creatorName}
-            topics={topics.join(', ')}
-            ProfilesBio={bio}
-            creatorpayment={JSON.stringify({
-              monthlyPrice: monthlyPrice || '0',
-              yearlyPrice: yearlyPrice || '0'
-            })}
-            phoneNumber={selectedCountry.code + phoneNumber}
-            gender={selectedGender?.value || ''}
-            dateOfBirth={`${selectedYear}-${selectedMonth.padStart(2, '0')}-${selectedDay.padStart(2, '0')}`}
-            currency={userCurrency}
-          />
-        </TouchableOpacity>
         {/* Edit form section with padding */}
-        <View className="px-4 items-center mt-24 mb-4">
-        {/* Avatar (moved inside ScrollView) */}
+        <View className="px-4 items-center mt-4 mb-4">
+        {/* Avatar with Preview Button */}
+        <View className="flex-row items-center justify-center w-full mb-4">
           <View className="w-36 h-36 rounded-full bg-[#1A1A1A] items-center justify-center relative">
             {isUploadingImage ? (
               <View className="w-full h-full items-center justify-center">
@@ -796,6 +721,34 @@ export default function EditProfile() {
                 style={{ opacity: isUploadingImage ? 0.5 : 1 }}
               />
             </TouchableOpacity>
+          </View>
+          
+          {/* Preview Button */}
+          <TouchableOpacity
+            onPress={() => setShowPreviewModal(true)}
+            style={{
+              marginLeft: 20,
+              backgroundColor: '#222',
+              borderRadius: 12,
+              paddingHorizontal: 16,
+              paddingVertical: 10,
+              flexDirection: 'row',
+              alignItems: 'center',
+              borderWidth: 1,
+              borderColor: '#444'
+            }}
+          >
+            <Ionicons name="eye-outline" size={20} color="#FB2355" />
+            <Text style={{ 
+              color: 'white', 
+              fontSize: 14, 
+              fontFamily: 'questrial',
+              marginLeft: 8,
+              fontWeight: '600'
+            }}>
+              Preview
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Form Fields */}
@@ -2269,6 +2222,84 @@ export default function EditProfile() {
         </View>
        </Modal>
 
+      {/* Profile Preview Modal */}
+      <Modal
+        visible={showPreviewModal}
+        transparent={false}
+        animationType="slide"
+        onRequestClose={() => setShowPreviewModal(false)}
+        statusBarTranslucent={true}
+        presentationStyle="fullScreen"
+      >
+        <View style={{ flex: 1, backgroundColor: 'black' }}>
+          {/* Close button header */}
+          <View style={{ 
+            position: 'absolute', 
+            top: 50, 
+            left: 0, 
+            right: 0, 
+            zIndex: 100,
+            paddingHorizontal: 16,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <TouchableOpacity 
+              onPress={() => setShowPreviewModal(false)}
+              style={{
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                borderRadius: 20,
+                padding: 10
+              }}
+            >
+              <Ionicons name="close" size={24} color="white" />
+            </TouchableOpacity>
+            
+            <Text style={{ 
+              color: 'white', 
+              fontSize: 18, 
+              fontFamily: 'Nunito-Bold',
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              borderRadius: 20
+            }}>
+              Profile Preview
+            </Text>
+            
+            <View style={{ width: 44 }} />
+          </View>
+          
+          <ScrollView 
+            style={{ flex: 1 }}
+            contentContainerStyle={{ paddingTop: 0 }}
+            showsVerticalScrollIndicator={false}
+            bounces={true}
+          >
+            <ProfilePreview
+              profileImageUri={profileImage || undefined}
+              name={photoTitle || creatorName || name || ''}
+              location={location}
+              bio={bio}
+              followerCount={0}
+              monthlyPrice={monthlyPrice}
+              yearlyPrice={yearlyPrice}
+              state={photoState}
+              creatorsname={creatorName}
+              topics={topics.join(', ')}
+              ProfilesBio={bio}
+              creatorpayment={JSON.stringify({
+                monthlyPrice: monthlyPrice || '0',
+                yearlyPrice: yearlyPrice || '0'
+              })}
+              phoneNumber={selectedCountry.code + phoneNumber}
+              gender={selectedGender?.value || ''}
+              dateOfBirth={`${selectedYear}-${selectedMonth.padStart(2, '0')}-${selectedDay.padStart(2, '0')}`}
+              currency={userCurrency || selectedCurrency}
+            />
+          </ScrollView>
+        </View>
+      </Modal>
 
      </SafeAreaView>
    );

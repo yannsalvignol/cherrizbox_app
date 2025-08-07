@@ -104,14 +104,17 @@ const PaidContentAttachment = (props: PaidContentAttachmentProps) => {
 
   if (attachment?.type === 'paid_content') {
     return (
-      <>
+      <View style={{
+        alignItems: 'flex-end',  // Align to the right
+        width: '100%',
+        marginRight: -5,  // Use margin for negative values
+      }}>
         <View style={{
           width: 300,
           height: 200,
           borderRadius: 12,
           overflow: 'hidden',
           marginVertical: 8,
-          marginHorizontal: 12,
           position: 'relative',
         }}>
           {/* Background Image */}
@@ -157,7 +160,7 @@ const PaidContentAttachment = (props: PaidContentAttachmentProps) => {
               activeOpacity={0.8}
             >
               <View style={{
-                backgroundColor: 'rgba(251, 35, 85, 0.9)',
+                backgroundColor: '#404040',
                 borderRadius: 50,
                 width: 80,
                 height: 80,
@@ -215,7 +218,7 @@ const PaidContentAttachment = (props: PaidContentAttachmentProps) => {
             </View>
           )}
         </View>
-      </>
+      </View>
     );
   }
 
@@ -252,7 +255,7 @@ const attachmentStyles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#FB2355',
+    backgroundColor: '#1A1A1A',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -264,7 +267,7 @@ const attachmentStyles = StyleSheet.create({
   priceText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FB2355',
+    color: '#1A1A1A',
     marginBottom: 8,
     fontFamily: 'Urbanist-Bold',
   },
@@ -276,7 +279,7 @@ const attachmentStyles = StyleSheet.create({
     fontFamily: 'Urbanist-Regular',
   },
   unlockButton: {
-    backgroundColor: '#FB2355',
+    backgroundColor: '#1A1A1A',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 25,

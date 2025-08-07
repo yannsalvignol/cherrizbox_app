@@ -2,11 +2,9 @@ import { checkPaidContentPurchase } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Sharing from 'expo-sharing';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Linking, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { WebView } from 'react-native-webview';
 import { useMessageContext } from 'stream-chat-react-native';
 
 interface BlurryFileAttachmentProps {
@@ -131,40 +129,17 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
       height: fileDimensions.height,
       borderRadius: 12,
       marginVertical: 8,
-      marginHorizontal: 12,
       position: 'relative',
       borderWidth: 1,
-      borderColor: '#1976D2',
+      borderColor: '#E0E0E0',
       overflow: 'hidden',
-      shadowColor: '#1976D2',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 8,
+      backgroundColor: '#FFFFFF',
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 4,
     }}>
-      {/* Blue gradient background */}
-      <LinearGradient
-        colors={['#1976D2', '#2196F3', '#1565C0']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-        }}
-      />
-      
-      {/* Subtle overlay for better text readability */}
-      <View style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.15)',
-      }} />
       
       {/* Content */}
       <View style={{
@@ -175,28 +150,28 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
       }}>
         {/* File icon with lock */}
         <View style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          backgroundColor: 'transparent',
           borderRadius: 40,
-          width: 70,
-          height: 70,
+          width: 80,
+          height: 80,
           justifyContent: 'center',
           alignItems: 'center',
           marginBottom: 12,
-          borderWidth: 2,
-          borderColor: 'rgba(255, 255, 255, 1)',
           position: 'relative',
-          shadowColor: '#000000',
-          shadowOffset: { width: 0, height: 3 },
-          shadowOpacity: 0.3,
-          shadowRadius: 6,
-          elevation: 6,
         }}>
-          <Ionicons name="document-text" size={32} color="#1976D2" />
+          <Image
+            source={require('@/assets/icon/pdf.png')}
+            style={{
+              width: 64,
+              height: 64,
+              resizeMode: 'contain',
+            }}
+          />
           <View style={{
             position: 'absolute',
             bottom: -3,
             right: -3,
-            backgroundColor: '#1565C0',
+            backgroundColor: '#666666',
             borderRadius: 12,
             width: 26,
             height: 26,
@@ -211,29 +186,22 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
         
         {/* File title */}
         <Text style={{
-          color: '#FFFFFF',
+          color: '#333333',
           fontSize: 18,
           fontWeight: '700',
           textAlign: 'center',
           marginBottom: 4,
           fontFamily: 'Urbanist-Bold',
-          textShadowColor: 'rgba(0, 0, 0, 0.4)',
-          textShadowOffset: { width: 0, height: 1 },
-          textShadowRadius: 3,
         }}>
           {title}
         </Text>
         
         <Text style={{
-          color: '#FFFFFF',
+          color: '#666666',
           fontSize: 14,
           textAlign: 'center',
           marginBottom: 16,
           fontFamily: 'Urbanist-Medium',
-          opacity: 0.9,
-          textShadowColor: 'rgba(0, 0, 0, 0.4)',
-          textShadowOffset: { width: 0, height: 1 },
-          textShadowRadius: 3,
         }}>
           Premium File Content
         </Text>
@@ -241,21 +209,20 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
         <TouchableOpacity
           onPress={onUnlock}
           style={{
-            backgroundColor: '#FFFFFF',
+            backgroundColor: '#999999',
             paddingHorizontal: 24,
-            paddingVertical: 10,
+            paddingVertical: 12,
             borderRadius: 25,
             shadowColor: '#000000',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.3,
-            shadowRadius: 8,
-            elevation: 8,
-            borderWidth: 2,
-            borderColor: '#1976D2',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+            elevation: 4,
+            marginTop: -8,  // Move button up slightly towards the middle
           }}
         >          
           <Text style={{
-            color: '#1565C0',
+            color: '#FFFFFF',
             fontSize: 16,
             fontWeight: '700',
             fontFamily: 'Urbanist-Bold',
@@ -272,23 +239,18 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
           position: 'absolute',
           top: 8,
           right: 8,
-          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          backgroundColor: 'rgba(0, 0, 0, 0.1)',
           borderRadius: 20,
           width: 40,
           height: 40,
           justifyContent: 'center',
           alignItems: 'center',
-          shadowColor: '#000000',
-          shadowOffset: { width: 0, height: 3 },
-          shadowOpacity: 0.3,
-          shadowRadius: 6,
-          elevation: 6,
         }}
       >
         <Ionicons 
           name={isPortraitMode ? "phone-portrait" : "phone-landscape"} 
           size={20} 
-          color="#1976D2" 
+          color="#666666" 
         />
       </TouchableOpacity>
     </View>
@@ -326,25 +288,25 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
         width: fileDimensions.width,
         height: fileDimensions.height,
         borderRadius: 12,
-        backgroundColor: '#1A1A1A',
+        backgroundColor: '#FFFFFF',
         marginVertical: 8,
-        marginHorizontal: 12,
         position: 'relative',
         borderWidth: 1,
-        borderColor: '#4CAF50',
+        borderColor: '#E0E0E0',
         overflow: 'hidden',
         shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 8,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 4,
       }}>
         {/* File content preview */}
         <View style={{
           flex: 1,
           justifyContent: 'center',
           alignItems: 'center',
-          backgroundColor: '#2A2A2A',
+          backgroundColor: '#FFFFFF',
+          padding: 16,
         }}>
           {isImage ? (
             <Image 
@@ -364,40 +326,81 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
               backgroundColor: '#FFFFFF',
               position: 'relative',
             }}>
-              {/* PDF Viewer using WebView */}
-              <WebView
-                source={{ uri: fileUri }}
+              {/* PDF Icon and Open Button */}
+              <Image
+                source={require('@/assets/icon/pdf.png')}
                 style={{
-                  width: '100%',
-                  height: '100%',
-                  backgroundColor: '#FFFFFF',
+                  width: 64,
+                  height: 64,
+                  resizeMode: 'contain',
+                  marginBottom: 12,
                 }}
-                javaScriptEnabled={true}
-                domStorageEnabled={true}
-                startInLoadingState={true}
-                renderLoading={() => (
-                  <View style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    backgroundColor: '#FFFFFF',
-                  }}>
-                    <ActivityIndicator size="large" color="#4CAF50" />
-                    <Text style={{
-                      color: '#666666',
-                      fontSize: 12,
-                      marginTop: 8,
-                      fontFamily: 'Urbanist-Regular',
-                    }}>
-                      Loading PDF...
-                    </Text>
-                  </View>
-                )}
               />
+              
+              <Text style={{
+                color: '#333333',
+                fontSize: 16,
+                fontWeight: '700',
+                textAlign: 'center',
+                marginBottom: 6,
+                fontFamily: 'Urbanist-Bold',
+              }}>
+                {title || 'PDF Document'}
+              </Text>
+              
+              <Text style={{
+                color: '#666666',
+                fontSize: 13,
+                textAlign: 'center',
+                marginBottom: 16,
+                fontFamily: 'Urbanist-Medium',
+              }}>
+                PDF File Ready
+              </Text>
+              
+              <TouchableOpacity
+                onPress={async () => {
+                  try {
+                    const supported = await Linking.canOpenURL(fileUri);
+                    if (supported) {
+                      await Linking.openURL(fileUri);
+                    } else {
+                      if (await Sharing.isAvailableAsync()) {
+                        await Sharing.shareAsync(fileUri, {
+                          dialogTitle: 'Open PDF with...',
+                          UTI: 'com.adobe.pdf',
+                        });
+                      }
+                    }
+                  } catch (error) {
+                    console.error('Error opening PDF:', error);
+                    Alert.alert('Error', 'Could not open PDF file');
+                  }
+                }}
+                style={{
+                  backgroundColor: '#333333',
+                  paddingHorizontal: 28,
+                  paddingVertical: 12,
+                  borderRadius: 22,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  shadowColor: '#000000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 4,
+                  elevation: 4,
+                }}
+              >
+                <Ionicons name="open-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Text style={{
+                  color: '#FFFFFF',
+                  fontSize: 15,
+                  fontWeight: '700',
+                  fontFamily: 'Urbanist-Bold',
+                }}>
+                  Open File
+                </Text>
+              </TouchableOpacity>
             </View>
           ) : isText ? (
             <ScrollView 
@@ -561,80 +564,22 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
             position: 'absolute',
             top: 8,
             right: 8,
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            backgroundColor: 'rgba(0, 0, 0, 0.05)',
             borderRadius: 20,
             width: 36,
             height: 36,
             justifyContent: 'center',
             alignItems: 'center',
-            shadowColor: '#000000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.2,
-            shadowRadius: 4,
-            elevation: 4,
+            borderWidth: 1,
+            borderColor: '#E0E0E0',
           }}
         >
           {isDownloading ? (
-            <ActivityIndicator size="small" color="#1A1A1A" />
+            <ActivityIndicator size="small" color="#333333" />
           ) : (
-            <Ionicons name="download" size={18} color="#1A1A1A" />
+            <Ionicons name="download" size={18} color="#333333" />
           )}
         </TouchableOpacity>
-        
-        {/* File info overlay */}
-        <View style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          padding: 12,
-        }}>
-          <Text style={{
-            color: 'white',
-            fontSize: 14,
-            fontWeight: '600',
-            fontFamily: 'Urbanist-SemiBold',
-          }}>
-            {title}
-          </Text>
-          <TouchableOpacity
-            onPress={async () => {
-              try {
-                const supported = await Linking.canOpenURL(fileUri);
-                if (supported) {
-                  await Linking.openURL(fileUri);
-                } else {
-                  if (await Sharing.isAvailableAsync()) {
-                    await Sharing.shareAsync(fileUri, {
-                      dialogTitle: 'Open file with...',
-                    });
-                  }
-                }
-              } catch (error) {
-                console.error('Error opening file:', error);
-                Alert.alert('Error', 'Could not open file');
-              }
-            }}
-            style={{
-              backgroundColor: '#4CAF50',
-              paddingHorizontal: 16,
-              paddingVertical: 8,
-              borderRadius: 6,
-              marginTop: 8,
-              alignItems: 'center',
-            }}
-          >
-            <Text style={{
-              color: 'white',
-              fontSize: 12,
-              fontWeight: 'bold',
-              fontFamily: 'Urbanist-SemiBold',
-            }}>
-              Open File
-            </Text>
-          </TouchableOpacity>
-        </View>
         
         {/* Format toggle button */}
         <TouchableOpacity
@@ -662,19 +607,25 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
   };
 
   return (
-    <View style={styles.container}>
-      {attachment.is_blurred && !isUnlocked ? (
-        <BlurredFileContent 
-          onUnlock={handleUnlock}
-          price={parseFloat(attachment.price || '0')}
-          title={attachment.title || 'Paid File'}
-        />
-      ) : (
-        <UnlockedFileContent 
-          title={attachment.title || 'Paid File'}
-          fileUri={attachment.local_file_uri || attachment.image_url || ''}
-        />
-      )}
+    <View style={{
+      alignItems: 'flex-end',  // Align to the right
+      width: '100%',
+      marginRight: -5,  // Use margin for negative values
+    }}>
+      <View style={styles.container}>
+        {attachment.is_blurred && !isUnlocked ? (
+          <BlurredFileContent 
+            onUnlock={handleUnlock}
+            price={parseFloat(attachment.price || '0')}
+            title={attachment.title || 'Paid File'}
+          />
+        ) : (
+          <UnlockedFileContent 
+            title={attachment.title || 'Paid File'}
+            fileUri={attachment.local_file_uri || attachment.image_url || ''}
+          />
+        )}
+      </View>
     </View>
   );
 };
@@ -684,7 +635,7 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#2A2A2A',
+    backgroundColor: 'transparent',
   },
 });
 

@@ -149,7 +149,7 @@ const AudioRecordingModal = ({ visible, onClose, onSend }: AudioRecordingModalPr
             width: 80,
             height: 80,
             borderRadius: 40,
-            backgroundColor: isRecording ? '#FF4444' : '#FB2355',
+            backgroundColor: isRecording ? '#FF4444' : '#1A1A1A',
             justifyContent: 'center',
             alignItems: 'center',
             marginBottom: 20
@@ -178,7 +178,7 @@ const AudioRecordingModal = ({ visible, onClose, onSend }: AudioRecordingModalPr
               <TouchableOpacity
                 onPress={startRecording}
                 style={{
-                  backgroundColor: '#FB2355',
+                  backgroundColor: '#1A1A1A',
                   paddingHorizontal: 20,
                   paddingVertical: 12,
                   borderRadius: 25

@@ -199,14 +199,17 @@ const PaidVideoAttachment = (props: PaidVideoAttachmentProps) => {
 
   if (attachment?.type === 'paid_video') {
     return (
-      <>
+      <View style={{
+        alignItems: 'flex-end',  // Align to the right
+        width: '100%',
+        marginRight: -5,  // Use margin for negative values
+      }}>
         <View style={{
           width: videoDimensions.width,
           height: videoDimensions.height,
           borderRadius: 12,
           overflow: 'hidden',
           marginVertical: 8,
-          marginHorizontal: 12,
           position: 'relative',
         }}>
           {/* Video Player or Background */}
@@ -298,12 +301,12 @@ const PaidVideoAttachment = (props: PaidVideoAttachmentProps) => {
                   shadowRadius: 6,
                   elevation: 6,
                 }}>
-                  <Ionicons name="play" size={32} color="#FB2355" />
+                  <Ionicons name="play" size={32} color="#1A1A1A" />
                   <View style={{
                     position: 'absolute',
                     bottom: -3,
                     right: -3,
-                    backgroundColor: '#FB2355',
+                    backgroundColor: '#1A1A1A',
                     borderRadius: 12,
                     width: 26,
                     height: 26,
@@ -337,7 +340,7 @@ const PaidVideoAttachment = (props: PaidVideoAttachmentProps) => {
                   onPress={handleUnlock}
                   disabled={isUnlocking}
                   style={{
-                    backgroundColor: '#FB2355',
+                    backgroundColor: '#1A1A1A',
                     paddingHorizontal: 24,
                     paddingVertical: 12,
                     borderRadius: 25,
@@ -464,9 +467,7 @@ const PaidVideoAttachment = (props: PaidVideoAttachmentProps) => {
           )}
 
         </View>
-
-        
-      </>
+      </View>
     );
   }
 

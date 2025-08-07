@@ -151,22 +151,24 @@ export const CustomPollComponent: React.FC<CustomPollComponentProps> = ({ messag
 
   return (
     <View style={{
-      backgroundColor: 'rgba(42, 42, 42, 0.95)',
+      backgroundColor: '#FFFFFF',
       borderRadius: 16,
-      padding: 18,
+      padding: 20,
       marginVertical: 10,
       marginHorizontal: 16,
-      shadowColor: '#000',
+      shadowColor: '#000000',
       shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.25,
-      shadowRadius: 4,
-      elevation: 5,
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 4,
+      borderWidth: 1,
+      borderColor: '#F0F0F0',
     }}>
       {/* Poll Header */}
       <View style={{ marginBottom: 16 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
           <View style={{
-            backgroundColor: '#FB2355',
+            backgroundColor: '#000000',
             width: 32,
             height: 32,
             borderRadius: 16,
@@ -177,7 +179,7 @@ export const CustomPollComponent: React.FC<CustomPollComponentProps> = ({ messag
             <Ionicons name="stats-chart" size={16} color="#FFFFFF" />
           </View>
           <Text style={{
-            color: '#FFFFFF',
+            color: '#1A1A1A',
             fontSize: 18,
             fontWeight: '700',
             fontFamily: 'questrial',
@@ -189,7 +191,7 @@ export const CustomPollComponent: React.FC<CustomPollComponentProps> = ({ messag
         
         {poll?.description && (
           <Text style={{
-            color: 'rgba(255, 255, 255, 0.7)',
+            color: '#666666',
             fontSize: 14,
             fontFamily: 'questrial',
             lineHeight: 20,
@@ -212,12 +214,12 @@ export const CustomPollComponent: React.FC<CustomPollComponentProps> = ({ messag
             <TouchableOpacity
               key={option.id || index}
               style={{
-                backgroundColor: isVoted ? 'rgba(251, 35, 85, 0.15)' : 'rgba(64, 64, 64, 0.4)',
+                backgroundColor: isVoted ? '#F8F9FA' : '#FFFFFF',
                 borderRadius: 12,
                 marginBottom: 10,
                 overflow: 'hidden',
-                borderWidth: isVoted ? 1.5 : 1,
-                borderColor: isVoted ? '#FB2355' : 'rgba(102, 102, 102, 0.5)',
+                borderWidth: isVoted ? 2 : 1,
+                borderColor: isVoted ? '#000000' : '#E5E5EA',
                 opacity: isVoting ? 0.6 : 1,
               }}
               onPress={() => handleVote(option.id)}
@@ -232,7 +234,7 @@ export const CustomPollComponent: React.FC<CustomPollComponentProps> = ({ messag
                   top: 0,
                   bottom: 0,
                   width: `${percentage}%`,
-                  backgroundColor: isVoted ? 'rgba(251, 35, 85, 0.25)' : 'rgba(255, 255, 255, 0.08)',
+                  backgroundColor: isVoted ? '#E5E5EA' : '#F8F9FA',
                 }} />
               )}
               
@@ -248,9 +250,9 @@ export const CustomPollComponent: React.FC<CustomPollComponentProps> = ({ messag
                     width: 22,
                     height: 22,
                     borderRadius: poll.max_votes_allowed === 1 ? 11 : 4,
-                    backgroundColor: isVoted ? '#FB2355' : 'transparent',
+                    backgroundColor: isVoted ? '#000000' : 'transparent',
                     borderWidth: 2,
-                    borderColor: isVoted ? '#FB2355' : 'rgba(204, 204, 204, 0.6)',
+                    borderColor: isVoted ? '#000000' : '#CCCCCC',
                     marginRight: 12,
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -262,7 +264,7 @@ export const CustomPollComponent: React.FC<CustomPollComponentProps> = ({ messag
 
                   {/* Option text */}
                   <Text style={{
-                    color: '#FFFFFF',
+                    color: '#1A1A1A',
                     fontSize: 15,
                     fontFamily: 'questrial',
                     flex: 1,
@@ -275,7 +277,7 @@ export const CustomPollComponent: React.FC<CustomPollComponentProps> = ({ messag
                 {/* Vote stats */}
                 <View style={{ alignItems: 'flex-end', marginLeft: 12 }}>
                   <Text style={{
-                    color: isVoted ? '#FB2355' : '#FFFFFF',
+                    color: isVoted ? '#000000' : '#666666',
                     fontSize: 14,
                     fontFamily: 'questrial',
                     fontWeight: '600',
@@ -283,7 +285,7 @@ export const CustomPollComponent: React.FC<CustomPollComponentProps> = ({ messag
                     {percentage}%
                   </Text>
                   <Text style={{
-                    color: 'rgba(204, 204, 204, 0.8)',
+                    color: '#999999',
                     fontSize: 11,
                     fontFamily: 'questrial',
                     marginTop: 2,
@@ -304,12 +306,12 @@ export const CustomPollComponent: React.FC<CustomPollComponentProps> = ({ messag
         alignItems: 'center',
         paddingTop: 12,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(64, 64, 64, 0.4)',
+        borderTopColor: '#F0F0F0',
       }}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Ionicons name="people-outline" size={14} color="rgba(204, 204, 204, 0.8)" />
+          <Ionicons name="people-outline" size={14} color="#999999" />
           <Text style={{
-            color: 'rgba(204, 204, 204, 0.8)',
+            color: '#999999',
             fontSize: 12,
             fontFamily: 'questrial',
             marginLeft: 6,
@@ -319,18 +321,16 @@ export const CustomPollComponent: React.FC<CustomPollComponentProps> = ({ messag
         </View>
 
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Ionicons 
-            name={poll.max_votes_allowed === 1 ? 'radio-button-on-outline' : 'checkbox-outline'} 
-            size={14} 
-            color="rgba(204, 204, 204, 0.8)" 
-          />
           <Text style={{
-            color: 'rgba(204, 204, 204, 0.8)',
+            color: '#999999',
             fontSize: 12,
             fontFamily: 'questrial',
-            marginLeft: 6,
           }}>
-            {poll.max_votes_allowed === 1 ? 'Single choice' : 'Multiple choice'}
+            {message?.created_at ? new Date(message.created_at).toLocaleTimeString([], { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              hour12: false 
+            }) : ''}
           </Text>
         </View>
       </View>
@@ -338,17 +338,19 @@ export const CustomPollComponent: React.FC<CustomPollComponentProps> = ({ messag
       {/* Poll status badge */}
       {poll.is_closed && (
         <View style={{
-          backgroundColor: 'rgba(102, 102, 102, 0.9)',
+          backgroundColor: '#F0F0F0',
           borderRadius: 8,
           padding: 8,
           marginTop: 12,
           alignItems: 'center',
           flexDirection: 'row',
           justifyContent: 'center',
+          borderWidth: 1,
+          borderColor: '#E5E5EA',
         }}>
-          <Ionicons name="lock-closed" size={12} color="#FFFFFF" style={{ marginRight: 6 }} />
+          <Ionicons name="lock-closed" size={12} color="#666666" style={{ marginRight: 6 }} />
           <Text style={{
-            color: '#FFFFFF',
+            color: '#666666',
             fontSize: 12,
             fontFamily: 'questrial',
             fontWeight: '600',
