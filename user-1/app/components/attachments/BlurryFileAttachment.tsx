@@ -2,20 +2,19 @@ import { dataCache } from '@/lib/data-cache';
 import { useGlobalContext } from '@/lib/global-provider';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Sharing from 'expo-sharing';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    Linking,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  Linking,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useMessageContext } from 'stream-chat-react-native';
 import { checkPaidContentPurchase } from '../../../lib/appwrite';
@@ -175,38 +174,8 @@ export const BlurryFileAttachment: React.FC<BlurryFileAttachmentProps> = ({ atta
       marginLeft: 0,
       marginRight: 12,
       position: 'relative',
-      borderWidth: 1,
-      borderColor: '#1976D2',
       overflow: 'hidden',
-      shadowColor: '#1976D2',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 8,
     }}>
-      {/* Blue gradient background */}
-      <LinearGradient
-        colors={['#1976D2', '#2196F3', '#1565C0']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-        }}
-      />
-      
-      {/* Subtle overlay for better text readability */}
-      <View style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.15)',
-      }} />
       
       {/* Content */}
       <View style={{
@@ -215,7 +184,7 @@ export const BlurryFileAttachment: React.FC<BlurryFileAttachmentProps> = ({ atta
         alignItems: 'center',
         padding: 16,
       }}>
-        {/* File icon with lock */}
+        {/* PDF icon with lock */}
         <View style={{
           backgroundColor: 'rgba(255, 255, 255, 0.95)',
           borderRadius: 40,
@@ -233,7 +202,14 @@ export const BlurryFileAttachment: React.FC<BlurryFileAttachmentProps> = ({ atta
           shadowRadius: 6,
           elevation: 6,
         }}>
-          <Ionicons name="document-text" size={32} color="#1976D2" />
+          <Image 
+            source={require('../../../assets/icon/pdf.png')}
+            style={{
+              width: 40,
+              height: 40,
+              resizeMode: 'contain',
+            }}
+          />
           <View style={{
             position: 'absolute',
             bottom: -3,

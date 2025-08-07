@@ -125,6 +125,29 @@ export const getChatTheme = (): DeepPartial<Theme> => ({
       textAlign: 'center',
     } as any,
   } as any,
+   // Style for quoted reply previews (both in MessageInput header and in chat bubbles)
+   reply: {
+    container: {
+      backgroundColor: '#FB2355',
+      borderWidth: 0,
+      borderColor: 'transparent',
+      paddingVertical: 4,
+      paddingHorizontal: 6,
+      borderRadius: 6,
+    },
+    textContainer: {
+      backgroundColor: 'transparent',
+    },
+    text: {
+      color: '#FFFFFF',
+      fontSize: 14,
+    },
+    author: {
+      color: '#FFFFFF',
+      fontSize: 12,
+      fontWeight: 'bold',
+    },
+  } as any,
 });
 
 /**

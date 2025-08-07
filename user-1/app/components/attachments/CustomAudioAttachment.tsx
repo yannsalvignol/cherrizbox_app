@@ -366,8 +366,8 @@ export const CustomAudioAttachment: React.FC<CustomAudioAttachmentProps> = ({ at
           let barColor;
           
           if (!isPlaying) {
-            // Not playing - all bars gray
-            barColor = '#666';
+            // Not playing - all bars light gray
+            barColor = '#E9ECEF';
           } else {
             // During playback, use progress to determine colors
             if (index < activeBars) {
@@ -377,8 +377,8 @@ export const CustomAudioAttachment: React.FC<CustomAudioAttachmentProps> = ({ at
               // Currently playing bar - lighter pink
               barColor = '#FF6B8A';
             } else {
-              // Unplayed section - darker gray
-              barColor = '#444';
+              // Unplayed section - light gray
+              barColor = '#F8F9FA';
             }
           }
           
@@ -416,13 +416,14 @@ export const CustomAudioAttachment: React.FC<CustomAudioAttachmentProps> = ({ at
       }}
     >
       <View style={{
-        backgroundColor: '#2A2A2A',
+        backgroundColor: '#FFFFFF',
         borderRadius: 16,
         padding: 16,
         flexDirection: 'row',
         alignItems: 'center',
         width: 320,
-        minHeight: 80,
+        minHeight: 72,
+        // Remove border and shadow for a more minimal look
       }}>
         {/* Play/Pause Button */}
         <TouchableOpacity
@@ -431,46 +432,39 @@ export const CustomAudioAttachment: React.FC<CustomAudioAttachmentProps> = ({ at
             playAudio();
           }}
           style={{
-            width: 48,
-            height: 48,
-            borderRadius: 24,
-            backgroundColor: '#FB2355',
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            backgroundColor: '#FFFFFF',
             justifyContent: 'center',
             alignItems: 'center',
             marginRight: 16,
+            borderWidth: 1.5,
+            borderColor: '#E5E5EA', // Apple-like thin border
           }}
         >
           <Ionicons 
             name={isPlaying ? "pause" : "play"} 
-            size={24} 
-            color="white"
+            size={22} 
+            color="#000000"
             style={{ marginLeft: isPlaying ? 0 : 2 }} // Center play icon
           />
         </TouchableOpacity>
 
         {/* Content Area */}
-        <View style={{ flex: 1, flexDirection: 'column' }}>
-          {/* Title and Duration */}
-          <View style={{ 
-            flexDirection: 'row', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            marginBottom: 8 
+        <View style={{ flex: 1, flexDirection: 'column', justifyContent: 'center', position: 'relative' }}>
+          {/* Duration - positioned absolutely in corner */}
+          <View style={{
+            position: 'absolute',
+            bottom: -20,
+            right: 0,
+            zIndex: 1,
           }}>
             <Text style={{
-              color: '#FFFFFF',
-              fontSize: 16,
+              color: '#A1A1AA',
+              fontSize: 11,
               fontFamily: 'questrial',
-              fontWeight: '600',
-            }}>
-              Voice Message
-            </Text>
-            
-            <Text style={{
-              color: '#FB2355',
-              fontSize: 14,
-              fontFamily: 'questrial',
-              fontWeight: '500',
+              fontWeight: '400',
             }}>
               {isPlaying && totalDuration > 0 
                 ? `${formatTime(currentTime)} / ${formatTime(totalDuration)}`
@@ -480,9 +474,58 @@ export const CustomAudioAttachment: React.FC<CustomAudioAttachmentProps> = ({ at
           </View>
 
           {/* Sound Bars */}
-          <SoundBars />
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            height: 24,
+            justifyContent: 'space-between',
+            paddingHorizontal: 2,
+          }}>
+            {Array.from({ length: 40 }, (_, index) => {
+              const progress = totalDuration > 0 ? currentTime / totalDuration : 0;
+              const totalBars = 40;
+              const activeBars = Math.floor(progress * totalBars);
+              
+              let barColor;
+              let barHeight;
+              
+              // Generate varied heights for 40 bars with more variation
+              const heights = [3, 8, 5, 12, 7, 16, 4, 20, 9, 24, 6, 22, 11, 18, 5, 14, 8, 10, 13, 6, 4, 9, 7, 15, 12, 19, 6, 21, 10, 23, 8, 17, 5, 13, 11, 16, 7, 9, 4, 8];
+              
+              if (!isPlaying) {
+                // Not playing - all bars light gray with varied heights
+                barColor = '#E5E5EA';
+                barHeight = heights[index];
+              } else {
+                if (index < activeBars) {
+                  // Played section - black
+                  barColor = '#000000';
+                  barHeight = heights[index];
+                } else if (index === activeBars && activeBars < totalBars) {
+                  // Currently playing bar - black and slightly taller
+                  barColor = '#000000';
+                  barHeight = heights[index] + 2;
+                } else {
+                  // Unplayed section - light gray
+                  barColor = '#F2F2F7';
+                  barHeight = heights[index];
+                }
+              }
+              
+              return (
+                <View
+                  key={index}
+                  style={{
+                    width: 2,
+                    height: barHeight,
+                    backgroundColor: barColor,
+                    borderRadius: 1,
+                  }}
+                />
+              );
+            })}
+          </View>
         </View>
-        
         {/* Stop Button when playing */}
         {isPlaying && (
           <TouchableOpacity 
@@ -491,16 +534,16 @@ export const CustomAudioAttachment: React.FC<CustomAudioAttachmentProps> = ({ at
               stopAudio();
             }}
             style={{ 
-              marginLeft: 12,
-              width: 32,
-              height: 32,
-              borderRadius: 16,
-              backgroundColor: '#444',
+              marginLeft: 10,
+              width: 28,
+              height: 28,
+              borderRadius: 14,
+              backgroundColor: '#F2F2F7',
               justifyContent: 'center',
-              alignItems: 'center'
+              alignItems: 'center',
             }}
           >
-            <Ionicons name="stop" size={16} color="#FB2355" />
+            <Ionicons name="stop" size={14} color="#000000" />
           </TouchableOpacity>
         )}
       </View>
