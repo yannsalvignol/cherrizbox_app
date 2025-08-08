@@ -253,6 +253,26 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
           color="#666666" 
         />
       </TouchableOpacity>
+
+      {/* Timestamp in bottom right corner */}
+      {message?.created_at && (
+        <Text style={{
+          position: 'absolute',
+          bottom: 8,
+          right: 8,
+          color: '#666666',
+          fontSize: 12,
+          fontWeight: '600',
+          fontFamily: 'questrial',
+          opacity: 0.8,
+        }}>
+          {new Date(message.created_at).toLocaleTimeString([], { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: true 
+          })}
+        </Text>
+      )}
     </View>
   );
 
@@ -602,6 +622,26 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
             color="#FFFFFF" 
           />
         </TouchableOpacity>
+
+        {/* Timestamp in bottom right corner */}
+        {message?.created_at && (
+          <Text style={{
+            position: 'absolute',
+            bottom: 8,
+            right: 8,
+            color: '#666666',
+            fontSize: 12,
+            fontWeight: '600',
+            fontFamily: 'questrial',
+            opacity: 0.8,
+          }}>
+            {new Date(message.created_at).toLocaleTimeString([], { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              hour12: true 
+            })}
+          </Text>
+        )}
       </View>
     );
   };

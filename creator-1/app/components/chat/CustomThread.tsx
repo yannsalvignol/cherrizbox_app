@@ -201,43 +201,43 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
     >
       <View style={{ flex: 1 }}>
         {/* Thread Header with Back Button and Original Message */}
-        <View style={{
+    <View style={{
           backgroundColor: '#FFFFFF',
-          borderBottomWidth: 1,
+        borderBottomWidth: 1,
           borderBottomColor: '#E5E5EA',
           paddingHorizontal: 16,
           paddingVertical: 12,
-          flexDirection: 'row',
-          alignItems: 'center',
+        flexDirection: 'row',
+        alignItems: 'center',
           minHeight: 60,
-        }}>
-          {/* Back Button */}
-          <TouchableOpacity
+      }}>
+        {/* Back Button */}
+        <TouchableOpacity
             onPress={onCloseThread}
-            style={{
+          style={{
               width: 40,
               height: 40,
               borderRadius: 20,
               backgroundColor: '#F8F9FA',
               alignItems: 'center',
               justifyContent: 'center',
-              marginRight: 12,
-            }}
-          >
+            marginRight: 12,
+          }}
+        >
             <Ionicons name="arrow-back" size={20} color="#1A1A1A" />
-          </TouchableOpacity>
+        </TouchableOpacity>
 
           {/* Original Message Info */}
-          <View style={{ flex: 1 }}>
-            <Text style={{
+        <View style={{ flex: 1 }}>
+          <Text style={{
               fontSize: 14,
               fontFamily: 'questrial',
               color: '#666666',
-              marginBottom: 2,
-            }}>
+            marginBottom: 2,
+          }}>
               Thread • {getUserDisplayName(thread)}
-            </Text>
-            <Text style={{
+          </Text>
+          <Text style={{
               fontSize: 16,
               fontFamily: 'questrial',
               color: '#1A1A1A',
@@ -264,13 +264,13 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
                 fontWeight: '600',
               }}>
                 {thread.reply_count} {thread.reply_count === 1 ? 'reply' : 'replies'}
-              </Text>
+          </Text>
             </View>
           )}
-        </View>
+      </View>
 
         {/* Thread Messages */}
-        <View style={{ 
+      <View style={{
           flex: 1,
           paddingHorizontal: 0, // Reduced padding to allow messages to get closer to edges
           backgroundColor: '#DCDEDF', // Ensure background color is set
@@ -293,16 +293,16 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
               }
             }}
             EmptyStateIndicator={() => (
-            <View style={{ 
+        <View style={{
               flex: 1, 
               backgroundColor: '#DCDEDF', 
               justifyContent: 'center', 
-              alignItems: 'center', 
+          alignItems: 'center',
               padding: 32 
-            }}>
+        }}>
               {isLoadingThread ? (
                 <>
-                  <Text style={{ 
+          <Text style={{
                     color: '#1A1A1A', 
                     fontSize: 16, 
                     fontFamily: 'questrial',
@@ -311,10 +311,10 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
                     marginBottom: 16
                   }}>
                     Loading thread messages...
-                  </Text>
+          </Text>
                 </>
               ) : (
-                <Text style={{ 
+          <Text style={{
                   color: '#1A1A1A', 
                   fontSize: 16, 
                   fontFamily: 'questrial',
@@ -322,7 +322,7 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
                   opacity: 0.7 
                 }}>
                   Start a conversation in this thread
-                </Text>
+          </Text>
               )}
             </View>
           )}
@@ -366,10 +366,10 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
               }
             }}
           />
-        </View>
+      </View>
       </View>
     </KeyboardAvoidingView>
   );
 };
 
-export default CustomThread;
+export default CustomThread; 

@@ -695,8 +695,9 @@ export default function EditProfile() {
         {/* Edit form section with padding */}
         <View className="px-4 items-center mt-4 mb-4">
         {/* Avatar with Preview Button */}
-        <View className="flex-row items-center justify-center w-full mb-4">
-          <View className="w-36 h-36 rounded-full bg-[#1A1A1A] items-center justify-center relative">
+        <View className="w-full mb-4 relative">
+          {/* Centered Profile Picture */}
+          <View className="w-36 h-36 rounded-full bg-[#1A1A1A] items-center justify-center relative mx-auto">
             {isUploadingImage ? (
               <View className="w-full h-full items-center justify-center">
                 <ActivityIndicator size="large" color="#FB2355" />
@@ -723,11 +724,14 @@ export default function EditProfile() {
             </TouchableOpacity>
           </View>
           
-          {/* Preview Button */}
+          {/* Preview Button - Positioned Absolutely */}
           <TouchableOpacity
             onPress={() => setShowPreviewModal(true)}
             style={{
-              marginLeft: 20,
+              position: 'absolute',
+              left: 16,
+              top: '100%',
+              transform: [{ translateY: -20 }],
               backgroundColor: '#222',
               borderRadius: 12,
               paddingHorizontal: 16,
@@ -748,7 +752,7 @@ export default function EditProfile() {
             }}>
               Preview
             </Text>
-          </TouchableOpacity>
+            </TouchableOpacity>
         </View>
 
         {/* Form Fields */}
@@ -836,7 +840,7 @@ export default function EditProfile() {
                 color="#666" 
                 style={{ marginRight: 12 }}
               />
-              <Text style={{ color: 'white', fontFamily: 'Urbanist-Light', fontSize: 17, flex: 1 }}>
+              <Text style={{ color: 'white', fontFamily: 'Nunito-Regular', fontSize: 17, flex: 1 }}>
                 {phoneNumber ? phoneNumber : 'Enter phone number'}
               </Text>
               <Ionicons name="chevron-forward" size={20} color="#666" />
@@ -890,7 +894,7 @@ export default function EditProfile() {
               <Ionicons name="person-circle-outline" size={22} color={showCreatorNameWarning ? "#444" : "#666"} style={{ marginRight: 10 }} />
               <Text style={{ 
                 color: showCreatorNameWarning ? '#666' : 'white', 
-                fontFamily: 'Urbanist-Light', 
+                fontFamily: 'Nunito-Regular', 
                 fontSize: 18, 
                 flex: 1 
               }}>
@@ -954,7 +958,7 @@ export default function EditProfile() {
             >
               <Ionicons name="document-text-outline" size={22} color="#666" style={{ marginRight: 10 }} />
               <View className="flex-1">
-                <Text style={{ color: 'white', fontFamily: 'Urbanist-Light', fontSize: 18 }}>
+                <Text style={{ color: 'white', fontFamily: 'Nunito-Regular', fontSize: 18 }}>
                   {bio ? bio : 'Tell us about yourself'}
                 </Text>
                 {bio && (
@@ -978,7 +982,7 @@ export default function EditProfile() {
               }}
             >
               <Ionicons name="location-outline" size={22} color="#666" style={{ marginRight: 10 }} />
-              <Text style={{ color: 'white', fontFamily: 'Urbanist-Light', fontSize: 18, flex: 1 }}>
+              <Text style={{ color: 'white', fontFamily: 'Nunito-Regular', fontSize: 18, flex: 1 }}>
                 {location ? location : 'Enter your location'}
               </Text>
               <Ionicons name="chevron-forward" size={20} color="#666" />
@@ -994,7 +998,7 @@ export default function EditProfile() {
               onPress={() => setShowTopicsModal(true)}
             >
               <Ionicons name="chatbubble-ellipses-outline" size={22} color="#FB2355" style={{ marginRight: 10 }} />
-              <Text style={{ color: 'white', fontFamily: 'Urbanist-Light', fontSize: 18 }}>
+              <Text style={{ color: 'white', fontFamily: 'Nunito-Regular', fontSize: 18 }}>
                 {topics.length > 0 ? topics.join(', ') : 'Choose topics'}
               </Text>
             </TouchableOpacity>
@@ -1487,7 +1491,7 @@ export default function EditProfile() {
 
                 {/* Monthly Price Input */}
                 <View className="mb-4">
-                  <Text style={{ color: 'white', fontSize: 18, marginBottom: 8 }}>
+                  <Text style={{ color: 'white', fontSize: 18, marginBottom: 8, fontFamily: 'questrial' }}>
                     Monthly Price ({currencies.find(c => c.code === selectedCurrency)?.symbol})
                   </Text>
                   <TextInput
@@ -1497,21 +1501,27 @@ export default function EditProfile() {
                     keyboardType="decimal-pad"
                     placeholder="Enter monthly price"
                     placeholderTextColor="rgba(255,255,255,0.5)"
-                    style={{ color: 'white' }}
+                    style={{ 
+                      color: 'white',
+                      fontSize: 16,
+                      fontFamily: 'questrial',
+                      letterSpacing: 0,
+                      textAlign: 'center'
+                    }}
                   />
                   {monthlyPrice && (
                     <View className="mt-2 bg-[#222] rounded-lg p-3">
-                      <Text style={{ color: 'white', fontSize: 14 }}>Price Breakdown (Monthly):</Text>
-                      <Text style={{ color: 'white', marginTop: 4 }}>Store Fee (20%): {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(monthlyPrice).storeFee.toFixed(2)}</Text>
-                      <Text style={{ color: 'white', marginTop: 4 }}>Stripe Fee (2.9% + {currencies.find(c => c.code === selectedCurrency)?.symbol}0.30): {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(monthlyPrice).stripeFee.toFixed(2)}</Text>
-                      <Text className="text-[#FB2355] font-bold mt-1">Your Earnings: {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(monthlyPrice).creatorEarnings.toFixed(2)}</Text>
+                      <Text style={{ color: 'white', fontSize: 14, fontFamily: 'questrial' }}>Price Breakdown (Monthly):</Text>
+                      <Text style={{ color: 'white', marginTop: 4, fontFamily: 'questrial' }}>Store Fee (20%): {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(monthlyPrice).storeFee.toFixed(2)}</Text>
+                      <Text style={{ color: 'white', marginTop: 4, fontFamily: 'questrial' }}>Stripe Fee (2.9% + {currencies.find(c => c.code === selectedCurrency)?.symbol}0.30): {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(monthlyPrice).stripeFee.toFixed(2)}</Text>
+                      <Text style={{ color: '#FB2355', fontWeight: 'bold', marginTop: 4, fontFamily: 'questrial' }}>Your Earnings: {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(monthlyPrice).creatorEarnings.toFixed(2)}</Text>
                     </View>
                   )}
                 </View>
 
                 {/* Yearly Price Input */}
                 <View className="mb-4">
-                  <Text style={{ color: 'white', fontSize: 18, marginBottom: 8 }}>
+                  <Text style={{ color: 'white', fontSize: 18, marginBottom: 8, fontFamily: 'questrial' }}>
                     Yearly Price ({currencies.find(c => c.code === selectedCurrency)?.symbol})
                   </Text>
                   <TextInput
@@ -1521,14 +1531,20 @@ export default function EditProfile() {
                     keyboardType="decimal-pad"
                     placeholder="Enter yearly price"
                     placeholderTextColor="rgba(255,255,255,0.5)"
-                    style={{ color: 'white' }}
+                    style={{ 
+                      color: 'white',
+                      fontSize: 16,
+                      fontFamily: 'questrial',
+                      letterSpacing: 0,
+                      textAlign: 'center'
+                    }}
                   />
                   {yearlyPrice && (
                     <View className="mt-2 bg-[#222] rounded-lg p-3">
-                      <Text style={{ color: 'white', fontSize: 14 }}>Price Breakdown (Yearly):</Text>
-                      <Text style={{ color: 'white', marginTop: 4 }}>Store Fee (20%): {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(yearlyPrice).storeFee.toFixed(2)}</Text>
-                      <Text style={{ color: 'white', marginTop: 4 }}>Stripe Fee (2.9% + {currencies.find(c => c.code === selectedCurrency)?.symbol}0.30): {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(yearlyPrice).stripeFee.toFixed(2)}</Text>
-                      <Text className="text-[#FB2355] font-bold mt-1">Your Earnings: {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(yearlyPrice).creatorEarnings.toFixed(2)}</Text>
+                      <Text style={{ color: 'white', fontSize: 14, fontFamily: 'questrial' }}>Price Breakdown (Yearly):</Text>
+                      <Text style={{ color: 'white', marginTop: 4, fontFamily: 'questrial' }}>Store Fee (20%): {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(yearlyPrice).storeFee.toFixed(2)}</Text>
+                      <Text style={{ color: 'white', marginTop: 4, fontFamily: 'questrial' }}>Stripe Fee (2.9% + {currencies.find(c => c.code === selectedCurrency)?.symbol}0.30): {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(yearlyPrice).stripeFee.toFixed(2)}</Text>
+                      <Text style={{ color: '#FB2355', fontWeight: 'bold', marginTop: 4, fontFamily: 'questrial' }}>Your Earnings: {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(yearlyPrice).creatorEarnings.toFixed(2)}</Text>
                     </View>
                   )}
                 </View>
@@ -1593,21 +1609,21 @@ export default function EditProfile() {
                     {savingPrices ? 'Saving...' : 'Save Prices'}
                   </Text>
                 </TouchableOpacity>
-              </ScrollView>
 
               {/* Error Message */}
               {priceError && (
-                <Text className="text-red-500 text-center mt-2">
+                  <Text className="text-red-500 text-center mt-3 mb-2">
                   {priceError}
                 </Text>
               )}
 
               {/* Success Message */}
               {successMessage && (
-                <Text className="text-green-500 text-center mt-2">
+                  <Text className="text-green-500 text-center mt-3 mb-2">
                   {successMessage}
                 </Text>
               )}
+              </ScrollView>
             </View>
           </View>
         </Modal>
@@ -2160,7 +2176,7 @@ export default function EditProfile() {
                   <Ionicons name="close" size={20} color="white" />
               </TouchableOpacity>
           </View>
-            </View>
+              </View>
 
             {/* Content */}
             <View className="p-6">
@@ -2176,10 +2192,10 @@ export default function EditProfile() {
 
               {/* Phone Number Input */}
               <View className="mb-6">
-                <Text style={{ color: 'white', fontSize: 14, fontFamily: 'questrial', marginBottom: 12, textAlign: 'center' }}>Enter your phone number</Text>
+                <Text style={{ color: 'white', fontSize: 14, fontFamily: 'Nunito-Regular', marginBottom: 12, textAlign: 'center' }}>Enter your phone number</Text>
                 <View className="bg-[#2A2A2A] rounded-xl px-4 py-4 border-2 border-[#FB2355]/30">
                   <TextInput
-                    className="text-white text-3xl font-questrial text-center"
+                    className="text-white text-3xl Nunito-Regular text-center"
                     placeholder={selectedCountry.format}
                     placeholderTextColor="rgba(255,255,255,0.5)"
                     value={tempPhoneNumber}
@@ -2197,18 +2213,18 @@ export default function EditProfile() {
                       setShowPhoneNumberModal(false);
                     }}
                     style={{ 
-                      color: 'white',
+                      color: 'white', 
                       letterSpacing: 2,
                    textAlign: 'center', 
                       fontSize: 28,
                       paddingHorizontal: 20
                     }}
                   />
-                 </View>
-               </View>
+                  </View>
+              </View>
 
               {/* Save Button */}
-               <TouchableOpacity 
+              <TouchableOpacity 
                 className="bg-[#FB2355] rounded-xl py-4 items-center"
                 onPress={() => {
                   setPhoneNumber(tempPhoneNumber);
@@ -2216,14 +2232,14 @@ export default function EditProfile() {
                 }}
               >
                 <Text style={{ color: 'white', fontSize: 18, fontFamily: 'questrial', fontWeight: '600' }}>Save Phone Number</Text>
-               </TouchableOpacity>
-           </View>
+              </TouchableOpacity>
+          </View>
           </View>
         </View>
        </Modal>
 
       {/* Profile Preview Modal */}
-      <Modal
+       <Modal
         visible={showPreviewModal}
         transparent={false}
         animationType="slide"
@@ -2233,20 +2249,20 @@ export default function EditProfile() {
       >
         <View style={{ flex: 1, backgroundColor: 'black' }}>
           {/* Close button header */}
-          <View style={{ 
+           <View style={{ 
             position: 'absolute', 
             top: 50, 
             left: 0, 
             right: 0, 
             zIndex: 100,
             paddingHorizontal: 16,
-            flexDirection: 'row',
+                 flexDirection: 'row', 
             justifyContent: 'space-between',
             alignItems: 'center'
           }}>
-            <TouchableOpacity 
+               <TouchableOpacity 
               onPress={() => setShowPreviewModal(false)}
-              style={{
+                 style={{ 
                 backgroundColor: 'rgba(0, 0, 0, 0.5)',
                 borderRadius: 20,
                 padding: 10
@@ -2255,8 +2271,8 @@ export default function EditProfile() {
               <Ionicons name="close" size={24} color="white" />
             </TouchableOpacity>
             
-            <Text style={{ 
-              color: 'white', 
+                 <Text style={{ 
+                   color: 'white', 
               fontSize: 18, 
               fontFamily: 'Nunito-Bold',
               backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -2265,10 +2281,10 @@ export default function EditProfile() {
               borderRadius: 20
             }}>
               Profile Preview
-            </Text>
+                 </Text>
             
             <View style={{ width: 44 }} />
-          </View>
+           </View>
           
           <ScrollView 
             style={{ flex: 1 }}
@@ -2299,7 +2315,7 @@ export default function EditProfile() {
             />
           </ScrollView>
         </View>
-      </Modal>
+       </Modal>
 
      </SafeAreaView>
    );

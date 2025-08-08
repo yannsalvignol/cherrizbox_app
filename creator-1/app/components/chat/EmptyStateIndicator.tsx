@@ -11,7 +11,7 @@ const EmptyStateIndicator = ({ channelId }: EmptyStateIndicatorProps) => {
   return (
     <View style={{ 
       flex: 1, 
-      backgroundColor: '#2A2A2A', 
+      backgroundColor: '#DCDEDF', 
       justifyContent: 'center', 
       alignItems: 'center', 
       padding: 32 

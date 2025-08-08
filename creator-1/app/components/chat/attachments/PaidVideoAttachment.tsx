@@ -366,6 +366,8 @@ const PaidVideoAttachment = (props: PaidVideoAttachmentProps) => {
                     </Text>
                   )}
                 </TouchableOpacity>
+                
+
               </View>
                
                {/* Format toggle button */}
@@ -389,6 +391,29 @@ const PaidVideoAttachment = (props: PaidVideoAttachmentProps) => {
                    color="#FFFFFF" 
                  />
                </TouchableOpacity>
+
+               {/* Timestamp in corner */}
+               {message?.created_at && (
+                 <Text style={{
+                   position: 'absolute',
+                   bottom: 8,
+                   right: 8,
+                   color: '#FFFFFF',
+                   fontSize: 12,
+                   fontWeight: '600',
+                   fontFamily: 'questrial',
+                   opacity: 0.9,
+                   textShadowColor: 'rgba(0, 0, 0, 0.8)',
+                   textShadowOffset: { width: 0, height: 1 },
+                   textShadowRadius: 3,
+                 }}>
+                   {new Date(message.created_at).toLocaleTimeString([], { 
+                     hour: '2-digit', 
+                     minute: '2-digit',
+                     hour12: true 
+                   })}
+                 </Text>
+               )}
              </View>
            )}
           

@@ -26,7 +26,7 @@ const PaidContentAttachment = (props: PaidContentAttachmentProps) => {
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
-  // Get message context to access message sender info
+  // Get message context to access message sender info and timestamp
   const messageContext = useMessageContext();
   const message = messageContext?.message;
   const messageSender = message?.user;
@@ -105,9 +105,12 @@ const PaidContentAttachment = (props: PaidContentAttachmentProps) => {
   if (attachment?.type === 'paid_content') {
     return (
       <View style={{
-        alignItems: 'flex-end',  // Align to the right
-        width: '100%',
-        marginRight: -5,  // Use margin for negative values
+        backgroundColor: 'transparent',
+        margin: -8, // Negative margin to override parent container
+        padding: 0,
+        borderRadius: 0,
+        overflow: 'visible',
+        position: 'relative',
       }}>
         <View style={{
           width: 300,
@@ -216,6 +219,29 @@ const PaidContentAttachment = (props: PaidContentAttachmentProps) => {
                 Unlocked
               </Text>
             </View>
+          )}
+
+          {/* Timestamp in bottom right corner */}
+          {message?.created_at && (
+            <Text style={{
+              position: 'absolute',
+              bottom: 8,
+              right: 8,
+              color: '#FFFFFF',
+              fontSize: 12,
+              fontWeight: '600',
+              fontFamily: 'questrial',
+              opacity: 0.9,
+              textShadowColor: 'rgba(0, 0, 0, 0.8)',
+              textShadowOffset: { width: 0, height: 1 },
+              textShadowRadius: 3,
+            }}>
+              {new Date(message.created_at).toLocaleTimeString([], { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: true 
+              })}
+            </Text>
           )}
         </View>
       </View>

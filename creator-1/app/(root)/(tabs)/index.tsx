@@ -1,28 +1,30 @@
+import {
+  ChannelList,
+  SearchBar
+} from '@/app/components/channels';
+import {
+  CustomNotificationModal,
+  NetworkErrorModal,
+  SocialMediaVerificationModal,
+  StripeConnectModal,
+  SubscriberInfoModal
+} from '@/app/components/modals';
 import { getUserProfile } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
+import {
+  filterChannels,
+  formatPrice,
+  type Channel
+} from '@/lib/index-utils';
 import { client, connectUser } from '@/lib/stream-chat';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Image, Keyboard, KeyboardAvoidingView, Modal, Platform, RefreshControl, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Animated, FlatList, Image, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { WebView } from 'react-native-webview';
 
-interface Channel {
-  id: string;
-  type: string;
-  lastMessage?: string;
-  lastMessageAt?: string;
-  memberCount: number;
-  members: string[];
-  name?: string;
-  image?: string;
-  memberNames?: { [userId: string]: string };
-  memberAvatars?: { [userId: string]: string };
-  memberTipAmounts?: { [userId: string]: number };
-  unreadCount: number;
-}
+
 
 interface StripeConnectProfile {
   stripeConnectAccountId?: string;
@@ -83,6 +85,9 @@ export default function Index() {
     const [showSubscriberModal, setShowSubscriberModal] = useState(false);
     const [channelsLoaded, setChannelsLoaded] = useState(false);
   const [isCheckingConditions, setIsCheckingConditions] = useState(false);
+  const [shouldHighlightSetup, setShouldHighlightSetup] = useState(false);
+  const setupButtonAnimation = useRef(new Animated.Value(1)).current;
+  const earningsScrollRef = useRef<ScrollView>(null);
   const [socialMediaCode, setSocialMediaCode] = useState('');
   const [isVerifyingCode, setIsVerifyingCode] = useState(false);
   const [verificationError, setVerificationError] = useState('');
@@ -93,37 +98,7 @@ export default function Index() {
   const [showNetworkErrorModal, setShowNetworkErrorModal] = useState(false);
   const [userCurrency, setUserCurrency] = useState('USD');
 
-  // Currency formatting functions
-  const getCurrencyInfo = (currencyCode?: string) => {
-    const currencyMap: { [key: string]: { symbol: string; position: 'before' | 'after' } } = {
-      'USD': { symbol: '$', position: 'before' },
-      'CAD': { symbol: 'C$', position: 'before' },
-      'AUD': { symbol: 'A$', position: 'before' },
-      'MXN': { symbol: '$', position: 'before' },
-      'SGD': { symbol: 'S$', position: 'before' },
-      'NZD': { symbol: 'NZ$', position: 'before' },
-      'EUR': { symbol: '€', position: 'after' },
-      'GBP': { symbol: '£', position: 'before' },
-      'JPY': { symbol: '¥', position: 'before' },
-      'CHF': { symbol: 'CHF', position: 'before' },
-      'CNY': { symbol: '¥', position: 'before' },
-      'INR': { symbol: '₹', position: 'before' },
-      'BRL': { symbol: 'R$', position: 'before' },
-      'SEK': { symbol: 'kr', position: 'after' },
-      'NOK': { symbol: 'kr', position: 'after' },
-      'DKK': { symbol: 'kr', position: 'after' },
-    };
-    return currencyMap[currencyCode || 'USD'] || { symbol: '$', position: 'before' };
-  };
 
-  const formatPrice = (price: number | string | undefined, currencyCode?: string) => {
-    if (price === undefined || price === null) return '--';
-    const priceStr = (parseFloat(price.toString()) / 100).toFixed(2);
-    const currencyInfo = getCurrencyInfo(currencyCode);
-    return currencyInfo.position === 'before' 
-      ? `${currencyInfo.symbol}${priceStr}`
-      : `${priceStr}${currencyInfo.symbol}`;
-  };
 
   // Social media platform icons mapping (same as landing.tsx)
   const networks = [
@@ -149,10 +124,10 @@ export default function Index() {
     const CHANNELS_PER_PAGE = 30; // Load 30 channels at a time
 
     const tabs = [
-      { id: 'chats', label: 'Chats' },
-      { id: 'other', label: 'Earnings' },
-      { id: 'insights', label: 'Insights' },
-      { id: 'audience', label: 'Audience' }
+      { id: 'chats', label: 'Chats', icon: 'chatbubbles-outline' },
+      { id: 'other', label: 'Earnings', icon: 'cash-outline' },
+      { id: 'insights', label: 'Insights', icon: 'analytics-outline' },
+      { id: 'audience', label: 'Audience', icon: 'people-outline' }
     ];
 
   const checkChannelConditions = async () => {
@@ -666,51 +641,14 @@ export default function Index() {
     }
   };
   
-  // Filter channels based on search query
-  const filterChannels = (channelList: Channel[], query: string) => {
-    console.log(`🔍 [Search] Filtering ${channelList.length} channels with query: "${query}"`);
-    
-    if (!query.trim()) {
-      setFilteredChannels(channelList);
-      console.log('✅ [Search] Empty query, showing all channels');
-      return;
-    }
-    
-    const lowercaseQuery = query.toLowerCase().trim();
-    const filtered = channelList.filter(channel => {
-      // Search in channel name
-      if (channel.name && channel.name.toLowerCase().includes(lowercaseQuery)) {
-        return true;
-      }
-      
-      // Search in member names for DM channels
-      if (channel.id.startsWith('dm-')) {
-        const otherMembers = channel.members.filter(memberId => memberId !== user?.$id);
-        for (const memberId of otherMembers) {
-          const memberName = channel.memberNames?.[memberId];
-          if (memberName && memberName.toLowerCase().includes(lowercaseQuery)) {
-            return true;
-          }
-        }
-      }
-      
-      // Search in last message
-      if (channel.lastMessage && channel.lastMessage.toLowerCase().includes(lowercaseQuery)) {
-        return true;
-      }
-      
-      return false;
-    });
-    
-    console.log(`✅ [Search] Found ${filtered.length} matching channels`);
-    setFilteredChannels(filtered);
-  };
+
   
   // Handle search input changes
   const handleSearchChange = (text: string) => {
     console.log(`🔍 [Search] Search query changed: "${text}"`);
     setSearchQuery(text);
-    filterChannels(channels, text);
+    const filtered = filterChannels(channels, text, user?.$id);
+    setFilteredChannels(filtered);
   };
   
   // Load more channels when reaching the end of the list
@@ -757,6 +695,52 @@ export default function Index() {
             );
             
             console.log('✅ [SocialMedia] Code verified successfully, account_state set to ok');
+            
+            // Update all documents in the photo collection for this user
+            try {
+              console.log('🔄 [PhotoCollection] Updating photo collection state to "ok" for user:', user.$id);
+              
+              // Get all photo documents for this user
+              const photoDocs = await databases.listDocuments(
+                config.databaseId,
+                config.photoCollectionId,
+                [Query.equal('IdCreator', user.$id)]
+              );
+              
+              console.log(`📸 [PhotoCollection] Found ${photoDocs.documents.length} photo documents to update`);
+              
+              // Update each photo document's state to 'ok'
+              const updatePromises = photoDocs.documents.map(async (photoDoc) => {
+                try {
+                  await databases.updateDocument(
+                    config.databaseId,
+                    config.photoCollectionId,
+                    photoDoc.$id,
+                    { state: 'ok' }
+                  );
+                  console.log(`✅ [PhotoCollection] Updated photo document ${photoDoc.$id} state to "ok"`);
+                  return { success: true, id: photoDoc.$id };
+                } catch (error) {
+                  console.error(`❌ [PhotoCollection] Failed to update photo document ${photoDoc.$id}:`, error);
+                  return { success: false, id: photoDoc.$id, error };
+                }
+              });
+              
+              const results = await Promise.allSettled(updatePromises);
+              const successful = results.filter(result => result.status === 'fulfilled' && result.value.success).length;
+              const failed = results.filter(result => result.status === 'rejected' || (result.status === 'fulfilled' && !result.value.success)).length;
+              
+              console.log(`📊 [PhotoCollection] Update summary: ${successful} successful, ${failed} failed`);
+              
+              if (failed > 0) {
+                console.warn(`⚠️ [PhotoCollection] Some photo documents failed to update. Check logs above for details.`);
+              }
+              
+            } catch (error) {
+              console.error('❌ [PhotoCollection] Error updating photo collection:', error);
+              // Don't throw here - we don't want to break the main verification flow
+            }
+            
             setShowInlineVerification(false);
             setSocialMediaCode('');
             
@@ -1058,300 +1042,9 @@ export default function Index() {
     }
   };
 
-  const getChannelDisplayName = (channel: Channel) => {
-    if (channel.name) return channel.name;
-    
-    // For DM channels, show the other person's name
-    if (channel.id.startsWith('dm-') && channel.members.length > 0) {
-      const otherMembers = channel.members.filter(memberId => memberId !== user?.$id);
-      if (otherMembers.length > 0) {
-        const otherMemberId = otherMembers[0];
-        const otherMemberName = channel.memberNames?.[otherMemberId];
-        const displayName = otherMemberName ? `Chat with ${otherMemberName}` : `Chat with ${otherMemberId}`;
-        console.log(`📱 Channel ${channel.id}: ${displayName}`);
-        return displayName;
-      }
-    }
-    
-    // For creator channels
-    if (channel.id.startsWith('creator-')) {
-      return 'My Box';
-    }
-    
-    return 'Unnamed Channel';
-  };
 
-  const getChannelAvatar = (channel: Channel) => {
-    if (channel.image) return channel.image;
-    
-    // For DM channels, show the other person's avatar
-    if (channel.id.startsWith('dm-') && channel.members.length > 0) {
-      const otherMembers = channel.members.filter(memberId => memberId !== user?.$id);
-      if (otherMembers.length > 0) {
-        const otherMemberId = otherMembers[0];
-        const otherMemberAvatar = channel.memberAvatars?.[otherMemberId];
-        if (otherMemberAvatar) {
-          return otherMemberAvatar; // Return the avatar URL
-        }
-        // Fallback to first letter of username or ID
-        const otherMemberName = channel.memberNames?.[otherMemberId];
-        return otherMemberName ? otherMemberName[0]?.toUpperCase() : otherMemberId[0]?.toUpperCase() || 'U';
-      }
-    }
-    
-    // For creator channels, show user's profile image or first letter
-    if (channel.id.startsWith('creator-')) {
-      return profileImage || user?.name?.[0]?.toUpperCase() || 'U';
-    }
-    
-    return 'C';
-  };
 
-  const formatLastMessageTime = (timestamp?: string) => {
-    if (!timestamp) return '';
-    
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-    
-    if (diffInHours < 1) return 'Just now';
-    if (diffInHours < 24) return `${Math.floor(diffInHours)}h ago`;
-    if (diffInHours < 48) return 'Yesterday';
-    return date.toLocaleDateString();
-  };
 
-  const renderChannelItem = useCallback(({ item }: { item: Channel }) => {
-    const displayName = getChannelDisplayName(item);
-    const avatar = getChannelAvatar(item);
-    const isDM = item.id.startsWith('dm-');
-    const isGroupChat = item.id.startsWith('creator-');
-    const hasUnread = item.unreadCount > 0;
-    
-    // Check if DM channel has tip amount
-    const hasTip = isDM && item.memberTipAmounts && (() => {
-      const otherMemberId = item.members.find(memberId => memberId !== user?.$id);
-      const tipAmountCents = otherMemberId ? item.memberTipAmounts[otherMemberId] : 0;
-      return tipAmountCents > 0;
-    })();
-    
-    return (
-      <TouchableOpacity 
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          padding: isGroupChat ? 16 : 12,
-          backgroundColor: isGroupChat ? '#2A1A2A' : (hasTip ? '#1A2A1A' : '#1A1A1A'), // Pale green for tipped DMs
-          marginHorizontal: 16,
-          marginVertical: isGroupChat ? 4 : 2,
-          borderRadius: isGroupChat ? 16 : 8,
-          borderWidth: isGroupChat ? 2 : 1,
-          borderColor: isGroupChat ? '#FB2355' : (hasTip ? '#2A4A2A' : '#333333'), // Darker green border for tipped DMs
-          shadowColor: isGroupChat ? '#FB2355' : 'transparent',
-          shadowOffset: isGroupChat ? { width: 0, height: 2 } : { width: 0, height: 0 },
-          shadowOpacity: isGroupChat ? 0.3 : 0,
-          shadowRadius: isGroupChat ? 8 : 0,
-          elevation: isGroupChat ? 8 : 0,
-        }}
-        onPress={async () => {
-          // Reset uncashed tip amount when opening a DM channel with tips
-          if (isDM && hasTip) {
-            try {
-              const otherMemberId = item.members.find(memberId => memberId !== user?.$id);
-              if (otherMemberId && item.memberTipAmounts) {
-                const uncashedTipAmount = item.memberTipAmounts[otherMemberId];
-                if (uncashedTipAmount > 0) {
-                  const { databases, config } = await import('@/lib/appwrite');
-                  
-                  // Get the cached profile to find the document ID
-                  const cachedProfile = userProfileCache.current.get(otherMemberId);
-                  if (cachedProfile && cachedProfile.documentId) {
-                    // Set cashed_tip_amount to the current uncashed_tip_amount value, then reset uncashed to 0
-                    await databases.updateDocument(
-                      config.databaseId,
-                      process.env.EXPO_PUBLIC_APPWRITE_USER_USER_COLLECTION_ID!,
-                      cachedProfile.documentId,
-                      {
-                        cashed_tip_amount: uncashedTipAmount,
-                        uncashed_tip_amount: 0
-                      }
-                    );
-                    
-                    console.log(`💰 [Tips] Updated tip amounts for user ${otherMemberId}: cashed=${uncashedTipAmount}, uncashed=0`);
-                    
-                    // Update cache to reflect the change
-                    userProfileCache.current.set(otherMemberId, {
-                      ...cachedProfile,
-                      uncashedTipAmount: 0
-                    });
-                  } else {
-                    console.log(`⚠️ [Tips] No document ID found for user ${otherMemberId}`);
-                  }
-                }
-              }
-            } catch (error) {
-              console.error('❌ [Tips] Error resetting tip amounts:', error);
-            }
-          }
-          
-          router.push(`/chat/${item.id}` as any);
-        }}
-      >
-        {/* Avatar */}
-        <View style={{
-          width: isGroupChat ? 48 : 40,
-          height: isGroupChat ? 48 : 40,
-          borderRadius: isGroupChat ? 24 : 20,
-          backgroundColor: isGroupChat ? '#FB2355' : 'transparent',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginRight: isGroupChat ? 14 : 10,
-          borderWidth: isGroupChat ? 2 : 0,
-          borderColor: isGroupChat ? '#FFD700' : 'transparent',
-        }}>
-          {item.image || (avatar && avatar.startsWith('http')) ? (
-            <Image
-              source={{ uri: item.image || avatar }}
-              style={{ 
-                width: isGroupChat ? 48 : 40, 
-                height: isGroupChat ? 48 : 40, 
-                borderRadius: isGroupChat ? 24 : 20 
-              }}
-              resizeMode="cover"
-            />
-          ) : (
-            <Text style={{ 
-              color: 'white', 
-              fontSize: isGroupChat ? 18 : 16, 
-              fontWeight: 'bold',
-              fontFamily: 'Urbanist-Bold'
-            }}>
-              {avatar}
-            </Text>
-          )}
-        </View>
-
-        {/* Channel Info */}
-        <View style={{ flex: 1 }}>
-          <View style={{ 
-            flexDirection: 'row', 
-            alignItems: 'center', 
-            marginBottom: isGroupChat ? 4 : 2 
-          }}>
-            <Text style={{ 
-              color: 'white', 
-              fontSize: isGroupChat ? 18 : 16, 
-              fontWeight: 'bold',
-              fontFamily: 'Urbanist-Bold',
-              marginRight: isGroupChat ? 8 : 0,
-            }}>
-              {displayName}
-            </Text>
-          </View>
-          
-          <Text style={{ 
-            color: hasUnread ? 'white' : (isGroupChat ? '#CCCCCC' : '#888888'), 
-            fontSize: isGroupChat ? 14 : 13,
-            fontFamily: hasUnread ? 'Urbanist-Bold' : 'Urbanist-Regular',
-          }}>
-            {item.lastMessage || (hasUnread ? `${item.unreadCount} new message${item.unreadCount > 1 ? 's' : ''}` : (isGroupChat ? 'Share updates with your fans' : 'No messages yet'))}
-          </Text>
-          
-          <View style={{ 
-            flexDirection: 'row', 
-            alignItems: 'center', 
-            marginTop: isGroupChat ? 4 : 2 
-          }}>
-            {!isDM && (
-              <Text style={{ 
-                color: isGroupChat ? '#FFD700' : '#666666', 
-                fontSize: isGroupChat ? 12 : 11,
-                fontFamily: 'Urbanist-Regular',
-                fontWeight: isGroupChat ? 'bold' : 'normal',
-              }}>
-                {item.memberCount} member{item.memberCount !== 1 ? 's' : ''}
-              </Text>
-            )}
-            
-            {/* Show tip amount for DM channels */}
-            {isDM && item.memberTipAmounts && (() => {
-              const otherMemberId = item.members.find(memberId => memberId !== user?.$id);
-              const tipAmountCents = otherMemberId ? item.memberTipAmounts[otherMemberId] : 0;
-              if (tipAmountCents > 0) {
-                const tipAmount = tipAmountCents * 100; // Convert to actual currency
-                return (
-                  <Text style={{ 
-                    color: '#FFD700', 
-                    fontSize: 11,
-                    fontFamily: 'Urbanist-Bold',
-                    marginRight: 8,
-                  }}>
-                    💰 {formatPrice(tipAmount, userCurrency)}
-                  </Text>
-                );
-              }
-              return null;
-            })()}
-            
-            {item.lastMessageAt && (
-              <Text style={{ 
-                color: isGroupChat ? '#FFD700' : '#666666', 
-                fontSize: isGroupChat ? 12 : 11,
-                fontFamily: 'Urbanist-Regular',
-                marginLeft: isDM ? 0 : 8,
-                fontWeight: isGroupChat ? 'bold' : 'normal',
-              }}>
-                {formatLastMessageTime(item.lastMessageAt)}
-              </Text>
-            )}
-            
-            {isGroupChat && (
-              <View style={{
-                width: 8,
-                height: 8,
-                backgroundColor: '#FFD700',
-                borderRadius: 4,
-                marginLeft: 8,
-              }} />
-            )}
-          </View>
-        </View>
-
-        {/* Arrow or Unread Count Badge */}
-        {item.unreadCount > 0 ? (
-          <View style={{
-            backgroundColor: '#FB2355',
-            borderRadius: 12,
-            minWidth: 24,
-            height: 24,
-            justifyContent: 'center',
-            alignItems: 'center',
-            paddingHorizontal: 8,
-          }}>
-            <Text style={{
-              color: 'white',
-              fontSize: 12,
-              fontWeight: 'bold',
-              fontFamily: 'Urbanist-Bold',
-            }}>
-              {item.unreadCount > 99 ? '99+' : item.unreadCount}
-            </Text>
-          </View>
-        ) : (
-        <View style={{
-          width: isGroupChat ? 24 : 20,
-          height: isGroupChat ? 24 : 20,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <Text style={{ 
-            color: isGroupChat ? '#FFD700' : '#666666', 
-            fontSize: isGroupChat ? 16 : 14 
-          }}>›</Text>
-        </View>
-        )}
-      </TouchableOpacity>
-    );
-  }, [user, profileImage, router]);
 
   const loadAudience = async () => {
     if (!user?.$id) return;
@@ -1454,74 +1147,59 @@ export default function Index() {
     setFilteredAudience(filtered);
   }, [audience, audienceSearch, audienceFilter]);
 
+  // Handle highlighting setup button when navigating from payment setup incomplete
+  useEffect(() => {
+    // Check if we should highlight the setup button when other tab is selected
+    if (selectedTab === 'other' && shouldHighlightSetup) {
+      // Start the animation after a short delay to ensure the tab content is rendered
+      setTimeout(() => {
+        startSetupButtonAnimation();
+      }, 500);
+    }
+  }, [selectedTab, shouldHighlightSetup]);
+
+  // Animation function for the setup button
+  const startSetupButtonAnimation = () => {
+    // Scroll to the bottom to show the setup button
+    if (earningsScrollRef.current) {
+      earningsScrollRef.current.scrollToEnd({ animated: true });
+    }
+    
+    // Start the pulsing animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(setupButtonAnimation, {
+          toValue: 1.1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(setupButtonAnimation, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ]),
+      { iterations: 3 } // Animate 3 times then stop
+    ).start(() => {
+      // Reset highlight after animation completes
+      setTimeout(() => {
+        setShouldHighlightSetup(false);
+      }, 1000);
+    });
+  };
+
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }} edges={['top']}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#DCDEDF' }} edges={['top']}>
             {/* Custom Notification */}
-            {showNotification && (
-              <View style={{
-                position: 'absolute',
-                top: 60,
-                left: 16,
-                right: 16,
-                zIndex: 1000,
-                backgroundColor: notificationType === 'success' ? '#4CAF50' : '#F44336',
-                borderRadius: 12,
-                padding: 16,
-                flexDirection: 'row',
-                alignItems: 'center',
-                shadowColor: '#000',
-                shadowOffset: {
-                  width: 0,
-                  height: 2,
-                },
-                shadowOpacity: 0.25,
-                shadowRadius: 3.84,
-                elevation: 5,
-              }}>
-                <View style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: 12,
-                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginRight: 12,
-                }}>
-                  <Text style={{
-                    color: 'white',
-                    fontSize: 16,
-                    fontWeight: 'bold',
-                  }}>
-                    {notificationType === 'success' ? '✓' : '✕'}
-                  </Text>
-                </View>
-                <Text style={{
-                  color: 'white',
-                  fontSize: 14,
-                  fontFamily: 'Urbanist-Regular',
-                  flex: 1,
-                }}>
-                  {notificationMessage}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => setShowNotification(false)}
-                  style={{
-                    padding: 4,
-                  }}
-                >
-                  <Text style={{
-                    color: 'white',
-                    fontSize: 18,
-                    fontWeight: 'bold',
-                  }}>
-                    ×
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
+            <CustomNotificationModal
+              visible={showNotification}
+              message={notificationMessage}
+              type={notificationType}
+              onClose={() => setShowNotification(false)}
+            />
             
             {/* Header */}
-            <View className="flex-row items-center justify-between px-4 py-2 bg-black">
+            <View className="flex-row items-center justify-between px-4 py-2 bg-#DCDEDF">
                 <Image 
                     source={require('../../../assets/images/cherry-icon.png')}
                     className="w-16 h-16 rounded-lg"
@@ -1533,7 +1211,7 @@ export default function Index() {
                         <Text style={{
                             fontSize: 39,
                             fontWeight: 'bold',
-                            color: 'white',
+                            color: 'black',
                             fontFamily: 'MuseoModerno-Regular',
                             textAlign: 'center',
                         }}>
@@ -1562,7 +1240,7 @@ export default function Index() {
 
       {/* Toggle Picker */}
       <View style={{
-        backgroundColor: 'black',
+        backgroundColor: '#DCDEDF',
         paddingVertical: 8,
       }}>
         <FlatList
@@ -1579,23 +1257,34 @@ export default function Index() {
                 paddingVertical: 10,
                 paddingHorizontal: 20,
                 borderRadius: 25,
-                backgroundColor: selectedTab === item.id ? 'white' : '#1A1A1A',
+                backgroundColor: selectedTab === item.id ? 'white' : '#DCDEDF',
                 borderWidth: 1,
-                borderColor: selectedTab === item.id ? 'white' : '#333333',
+                borderColor: selectedTab === item.id ? 'black' : 'black',
                 alignItems: 'center',
                 justifyContent: 'center',
                 minWidth: 80,
               }}
               onPress={() => setSelectedTab(item.id)}
             >
-              <Text style={{
-                color: selectedTab === item.id ? 'black' : '#888888',
-                fontSize: 14,
-                fontWeight: selectedTab === item.id ? 'bold' : 'normal',
-                fontFamily: selectedTab === item.id ? 'Urbanist-Bold' : 'Urbanist-Regular',
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
               }}>
-                {item.label}
-                    </Text>
+                <Ionicons 
+                  name={item.icon as any} 
+                  size={16} 
+                  color={selectedTab === item.id ? 'black' : 'black'}
+                />
+                <Text style={{
+                  color: selectedTab === item.id ? 'black' : 'black',
+                  fontSize: 14,
+                  fontWeight: selectedTab === item.id ? 'bold' : 'normal',
+                  fontFamily: selectedTab === item.id ? 'Urbanist-Bold' : 'Urbanist-Regular',
+                }}>
+                  {item.label}
+                </Text>
+              </View>
             </TouchableOpacity>
           )}
           keyExtractor={(item) => item.id}
@@ -1605,238 +1294,51 @@ export default function Index() {
       {/* Content based on selected tab */}
       {selectedTab === 'chats' && (
         <KeyboardAvoidingView 
-          style={{ flex: 1, backgroundColor: 'black' }}
+          style={{ flex: 1, backgroundColor: '#DCDEDF' }}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         >
-          {/* Search Bar - Only show when there are channels */}
-          {(channels.length > 0 || showSearch) && (
-            <View style={{
-              paddingHorizontal: 16,
-              paddingVertical: 4,
-              backgroundColor: 'black',
-              borderBottomWidth: showSearch ? 1 : 0,
-              borderBottomColor: '#333333',
-            }}>
-              {showSearch ? (
-                <View style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  backgroundColor: '#1A1A1A',
-                  borderRadius: 10,
-                  paddingHorizontal: 12,
-                  paddingVertical: 8,
-                  borderWidth: 1,
-                  borderColor: '#333333',
-                }}>
-                  <Ionicons name="search" size={20} color="#888888" style={{ marginRight: 8 }} />
-                  <TextInput
-                    style={{
-                      flex: 1,
-                      color: 'white',
-                      fontSize: 16,
-                      fontFamily: 'Urbanist-Regular',
-                      padding: 0,
-                    }}
-                    placeholder="Search chats..."
-                    placeholderTextColor="#888888"
-                    value={searchQuery}
-                    onChangeText={handleSearchChange}
-                    autoFocus
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
-                  {searchQuery.length > 0 && (
-                    <TouchableOpacity onPress={() => setSearchQuery('')}>
-                      <Ionicons name="close-circle" size={20} color="#888888" style={{ marginLeft: 8 }} />
-                    </TouchableOpacity>
-                  )}
-                  <TouchableOpacity
-                    onPress={() => {
-                      setShowSearch(false);
-                      setSearchQuery('');
-                      setFilteredChannels(channels);
-                    }}
-                    style={{ marginLeft: 12 }}
-                  >
-                    <Text style={{ color: '#FB2355', fontFamily: 'Urbanist-Bold', fontSize: 14 }}>Cancel</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <TouchableOpacity
-                  onPress={() => setShowSearch(true)}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: '#1A1A1A',
-                    borderRadius: 10,
-                    paddingVertical: 10,
-                    borderWidth: 1,
-                    borderColor: '#333333',
-                  }}
-                >
-                  <Ionicons name="search" size={20} color="#888888" style={{ marginRight: 8 }} />
-                  <Text style={{ color: '#888888', fontSize: 16, fontFamily: 'Urbanist-Regular' }}>
-                    Search chats...
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
+          {/* Search Bar */}
+          <SearchBar
+            showSearch={showSearch}
+            searchQuery={searchQuery}
+            onSearchToggle={setShowSearch}
+            onSearchChange={handleSearchChange}
+            onSearchClear={() => setSearchQuery('')}
+            onSearchCancel={() => {
+              setShowSearch(false);
+              setSearchQuery('');
+              setFilteredChannels(channels);
+            }}
+            hasChannels={channels.length > 0}
+          />
           
-                    {isLoading ? (
-            <View style={{ 
-              flex: 1, 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              backgroundColor: 'black'
-            }}>
-              <Image 
-                source={require('../../../assets/icon/loading-icon.png')} 
-                style={{ width: 60, height: 60, marginBottom: 16 }} 
-              />
-              <Text style={{ 
-                color: '#FB2355', 
-                fontSize: 18, 
-                marginBottom: 12,
-                fontFamily: 'Urbanist-Bold'
-              }}>
-                Loading channels...
-              </Text>
-                            <ActivityIndicator size="large" color="#FB2355" />
-                        </View>
-          ) : channels.length > 0 ? (
-            <FlatList
-              data={searchQuery ? filteredChannels : channels}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={onRefresh}
-                  tintColor="#FB2355"
-                  colors={["#FB2355"]}
-                  progressBackgroundColor="black"
-                />
-              }
-              renderItem={({ item, index }) => {
-                const isGroupChat = item.id.startsWith('creator-');
-                const currentData = searchQuery ? filteredChannels : channels;
-                const isFirstDM = !isGroupChat && index > 0 && currentData[index - 1].id.startsWith('creator-');
-                
-                return (
-                  <View>
-                    {/* Section header for first DM */}
-                    {isFirstDM && !searchQuery && (
-                                            <View style={{
-                        paddingHorizontal: 20,
-                        paddingVertical: 12,
-                        backgroundColor: 'black',
-                      }}>
-                        <Text style={{
-                          color: '#888888',
-                          fontSize: 14,
-                          fontWeight: 'bold',
-                          fontFamily: 'Urbanist-Bold',
-                          textTransform: 'uppercase',
-                          letterSpacing: 1,
-                        }}>
-                          One-on-One Chats
-                        </Text>
-                                                    </View>
-                    )}
-                    
-                    {/* Group chat section header */}
-                    {isGroupChat && index === 0 && !searchQuery && (
-                                            <View style={{
-                        paddingHorizontal: 20,
-                        paddingVertical: 12,
-                        backgroundColor: 'black',
-                      }}>
-                        <Text style={{
-                          color: '#FFD700',
-                          fontSize: 14,
-                          fontWeight: 'bold',
-                          fontFamily: 'Urbanist-Bold',
-                          textTransform: 'uppercase',
-                          letterSpacing: 1,
-                        }}>
-                          My Box
-                                                    </Text>
-                                                </View>
-                                            )}
-                    
-                    {renderChannelItem({ item })}
-                                        </View>
-                );
-              }}
-              keyExtractor={(item) => item.id}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ 
-                paddingVertical: 6,
-                backgroundColor: 'black'
-              }}
-              style={{ backgroundColor: 'black' }}
-              // Performance optimizations
-              removeClippedSubviews={true}
-              maxToRenderPerBatch={10}
-              updateCellsBatchingPeriod={50}
-              windowSize={10}
-              initialNumToRender={15}
-              getItemLayout={(data, index) => ({
-                length: 80, // Approximate height of each item
-                offset: 80 * index,
-                index
-              })}
-              // Load more functionality
-              onEndReached={handleLoadMore}
-              onEndReachedThreshold={0.5}
-              ListFooterComponent={() => {
-                if (isLoadingMore) {
-                  return (
-                    <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-                      <ActivityIndicator size="small" color="#FB2355" />
-                      <Text style={{ color: '#888888', fontFamily: 'Urbanist-Regular', fontSize: 14, marginTop: 8 }}>
-                        Loading more chats...
-                      </Text>
-                    </View>
-                  );
-                }
-                if (!hasMoreChannels && channels.length >= CHANNELS_PER_PAGE && !searchQuery) {
-                  return (
-                    <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-                      <Text style={{ color: '#888888', fontFamily: 'Urbanist-Regular', fontSize: 14 }}>
-                        All chats loaded
-                      </Text>
-                    </View>
-                  );
-                }
-                return null;
-              }}
-              ListEmptyComponent={() => {
-                if (searchQuery) {
-                  return (
-                    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 100 }}>
-                      <Ionicons name="search" size={60} color="#333333" style={{ marginBottom: 16 }} />
-                      <Text style={{ color: '#888888', fontSize: 18, fontFamily: 'Urbanist-Bold', marginBottom: 8 }}>
-                        No results found
-                      </Text>
-                      <Text style={{ color: '#666666', fontSize: 14, fontFamily: 'Urbanist-Regular' }}>
-                        Try searching with a different term
-                      </Text>
-                    </View>
-                  );
-                }
-                return null;
-              }}
+          {!isCheckingConditions && !showInlineVerification && missingChannelConditions.length === 0 ? (
+            <ChannelList
+              channels={channels}
+              filteredChannels={filteredChannels}
+              searchQuery={searchQuery}
+              isLoading={isLoading}
+              refreshing={refreshing}
+              isLoadingMore={isLoadingMore}
+              hasMoreChannels={hasMoreChannels}
+              channelsPerPage={CHANNELS_PER_PAGE}
+              currentUserId={user?.$id}
+              profileImage={profileImage}
+              userName={user?.name}
+              userCurrency={userCurrency}
+              userProfileCache={userProfileCache}
+              onRefresh={onRefresh}
+              onLoadMore={handleLoadMore}
             />
           ) : (
             <ScrollView
               contentContainerStyle={{ 
-              flex: 1, 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              backgroundColor: 'black',
-              paddingHorizontal: 32
+                flex: 1, 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                backgroundColor: '#DCDEDF',
+                paddingHorizontal: 32
               }}
               refreshControl={
                 <RefreshControl
@@ -1844,7 +1346,7 @@ export default function Index() {
                   onRefresh={onRefresh}
                   tintColor="#FB2355"
                   colors={["#FB2355"]}
-                  progressBackgroundColor="black"
+                  progressBackgroundColor="#DCDEDF"
                 />
               }
             >
@@ -1866,231 +1368,26 @@ export default function Index() {
                   <ActivityIndicator size="large" color="#FB2355" />
                 </>
               ) : showInlineVerification ? (
-                <>
-                  <View style={{
-                    backgroundColor: 'rgba(251, 35, 85, 0.05)',
-                    borderRadius: 20,
-                    padding: 28,
-                    marginBottom: 24,
-                    borderWidth: 2,
-                    borderColor: 'rgba(251, 35, 85, 0.2)',
-                    width: '100%',
-                    alignItems: 'center'
-                  }}>
-                    {/* Compact Header */}
-                    <View style={{ 
-                      flexDirection: 'row', 
-                      alignItems: 'center', 
-                      marginBottom: 16,
-                      width: '100%'
-                    }}>
-                      <View style={{
-                        backgroundColor: 'rgba(251, 35, 85, 0.15)',
-                        borderRadius: 8,
-                        padding: 6,
-                        marginRight: 10
-                      }}>
-                        <Ionicons name="shield-checkmark" size={16} color="#FB2355" />
-                      </View>
-                      <Text style={{ 
-                        color: 'white', 
-                        fontSize: 16, 
-                        fontFamily: 'Urbanist-Bold',
-                        flex: 1
-                      }}>Verify Account</Text>
-                    </View>
-
-                    {/* Social Media Info */}
-                    <View style={{
-                      backgroundColor: 'rgba(251, 35, 85, 0.08)',
-                      borderRadius: 12,
-                      padding: 12,
-                      marginBottom: 16,
-                      borderWidth: 1,
-                      borderColor: 'rgba(251, 35, 85, 0.2)',
-                      alignItems: 'center',
-                      width: '100%'
-                    }}>
-                      {(() => {
-                        const network = networks.find(n => n.name === socialMediaPlatform);
-                        return (
-                          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                            {network?.type === 'image' ? (
-                              <Image source={network.icon} style={{ width: 20, height: 20, marginRight: 8 }} />
-                            ) : (
-                              <Ionicons 
-                                name={network?.icon as any} 
-                                size={20} 
-                                color={network?.color || '#FB2355'} 
-                                style={{ marginRight: 8 }}
-                              />
-                            )}
-                            <Text style={{
-                              color: '#FB2355',
-                              fontSize: 16,
-                              fontFamily: 'Urbanist-Bold'
-                            }}>
-                              @{socialMediaUsername}
-                            </Text>
-                          </View>
-                        );
-                      })()}
-                      <Text style={{
-                        color: 'rgba(255,255,255,0.7)',
-                        fontSize: 12,
-                        fontFamily: 'Urbanist-Regular'
-                      }}>
-                        Enter the 6-digit code sent to your {socialMediaPlatform}
-                      </Text>
-                    </View>
-
-                    {/* OTP Style Input */}
-                    <View style={{ 
-                      width: '100%',
-                      marginBottom: 20
-                    }}>
-                      <TextInput
-                        style={{
-                          backgroundColor: 'rgba(255,255,255,0.08)',
-                          borderRadius: 12,
-                          padding: 16,
-                          color: 'white',
-                          fontSize: 20,
-                          fontFamily: 'Urbanist-Bold',
-                          textAlign: 'center',
-                          letterSpacing: 4,
-                          borderWidth: 1,
-                          borderColor: verificationError ? '#FB2355' : 'rgba(255,255,255,0.2)',
-                          width: '100%'
-                        }}
-                        placeholder="000000"
-                        placeholderTextColor="rgba(255,255,255,0.4)"
-                        value={socialMediaCode}
-                        onChangeText={(text) => {
-                          // Only allow numbers and limit to 6 digits
-                          const numericText = text.replace(/[^0-9]/g, '');
-                          setSocialMediaCode(numericText.slice(0, 6));
-                          setVerificationError('');
-                        }}
-                        keyboardType="numeric"
-                        maxLength={6}
-                        autoFocus
-                        returnKeyType="done"
-                        onSubmitEditing={() => {
-                          if (socialMediaCode.length === 6) {
-                            handleVerifySocialMediaCode();
-                          } else {
-                            Keyboard.dismiss();
-                          }
-                        }}
-                      />
-                      {verificationError ? (
-                        <Text style={{ 
-                          color: '#FB2355', 
-                          fontSize: 12, 
-                          marginTop: 4,
-                          fontFamily: 'Urbanist-Regular',
-                          textAlign: 'center'
-                        }}>
-                          {verificationError}
-                        </Text>
-                      ) : null}
-                    </View>
-
-                    {/* Single Action Button */}
-                    <TouchableOpacity 
-                      style={{ 
-                        backgroundColor: socialMediaCode.length === 6 ? '#FB2355' : 'rgba(251, 35, 85, 0.4)', 
-                        borderRadius: 12, 
-                        paddingVertical: 14, 
-                        paddingHorizontal: 32,
-                        width: '100%',
-                        alignItems: 'center',
-                        shadowColor: socialMediaCode.length === 6 ? '#FB2355' : 'transparent',
-                        shadowOffset: { width: 0, height: 4 },
-                        shadowOpacity: socialMediaCode.length === 6 ? 0.3 : 0,
-                        shadowRadius: 8,
-                        elevation: socialMediaCode.length === 6 ? 8 : 0,
-                        marginBottom: 16
-                      }}
-                      onPress={() => {
-                        Keyboard.dismiss();
-                        handleVerifySocialMediaCode();
-                      }}
-                      disabled={socialMediaCode.length !== 6 || isVerifyingCode}
-                    >
-                      <Text style={{ 
-                        color: 'white', 
-                        fontSize: 16, 
-                        fontFamily: 'Urbanist-Bold'
-                      }}>
-                        {isVerifyingCode ? 'Verifying...' : 'Verify Code'}
-                      </Text>
-                    </TouchableOpacity>
-
-                    {/* Change Username Link */}
-                    <TouchableOpacity 
-                      onPress={() => {
-                        setShowInlineVerification(false);
-                        router.push('/change-username');
-                      }}
-                      style={{
-                        paddingVertical: 8,
-                        paddingHorizontal: 12,
-                        borderRadius: 8,
-                        backgroundColor: 'rgba(251, 35, 85, 0.1)',
-                        borderWidth: 1,
-                        borderColor: 'rgba(251, 35, 85, 0.3)',
-                        alignItems: 'center'
-                      }}
-                    >
-                      <Text style={{
-                        color: '#FB2355',
-                        fontSize: 12,
-                        fontFamily: 'Urbanist-Medium',
-                        textDecorationLine: 'underline'
-                      }}>
-                        Wrong username? Change it
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* Code Delivery Time Info */}
-                  <Text style={{
-                    color: 'rgba(255, 255, 255, 0.6)',
-                    fontSize: 11,
-                    fontFamily: 'Urbanist-Regular',
-                    textAlign: 'center',
-                    fontStyle: 'italic',
-                    marginTop: 8
-                  }}>
-                    The code can take up to 6 hours to be sent
-                  </Text>
-                  
-                  {/* Resend Code Link */}
-                  <TouchableOpacity 
-                    onPress={handleResendCode}
-                    style={{
-                      marginTop: 12,
-                      paddingVertical: 8,
-                      paddingHorizontal: 16,
-                      borderRadius: 20,
-                      backgroundColor: 'rgba(251, 35, 85, 0.1)',
-                      borderWidth: 1,
-                      borderColor: 'rgba(251, 35, 85, 0.3)',
-                      alignSelf: 'center'
-                    }}
-                  >
-                    <Text style={{
-                      color: '#FB2355',
-                      fontSize: 12,
-                      fontFamily: 'Urbanist-Regular',
-                      textAlign: 'center'
-                    }}>
-                      I did not receive any code, ask to send it again
-                    </Text>
-                  </TouchableOpacity>
-                </>
+                <SocialMediaVerificationModal
+                  visible={showInlineVerification}
+                  socialMediaPlatform={socialMediaPlatform}
+                  socialMediaUsername={socialMediaUsername}
+                  socialMediaCode={socialMediaCode}
+                  verificationError={verificationError}
+                  isVerifyingCode={isVerifyingCode}
+                  networks={networks}
+                  onCodeChange={(code) => {
+                    setSocialMediaCode(code);
+                    setVerificationError('');
+                  }}
+                  onVerifyCode={handleVerifySocialMediaCode}
+                  onResendCode={handleResendCode}
+                  onClose={() => setShowInlineVerification(false)}
+                  onChangeUsername={() => {
+                    setShowInlineVerification(false);
+                    router.push('/change-username');
+                  }}
+                />
               ) : missingChannelConditions.length > 0 ? (
                 <>
                   <View style={{
@@ -2188,8 +1485,9 @@ export default function Index() {
                     
                     <TouchableOpacity
                       onPress={() => {
-                        // If only payment setup is missing, go to earnings page
+                        // If only payment setup is missing, go to earnings page and highlight setup button
                         if (missingChannelConditions.length === 1 && missingChannelConditions[0] === 'Payment setup incomplete') {
+                          setShouldHighlightSetup(true);
                           setSelectedTab('other');
                         } else {
                           // Otherwise go to edit-profile page
@@ -2270,7 +1568,7 @@ export default function Index() {
         <ScrollView 
           style={{ 
               flex: 1, 
-          backgroundColor: 'black',
+          backgroundColor: '#DCDEDF',
           paddingHorizontal: 4
           }}
           contentContainerStyle={{
@@ -2527,7 +1825,7 @@ export default function Index() {
       )}
 
       {selectedTab === 'audience' && (
-        <View style={{ flex: 1, backgroundColor: 'black' }}>
+        <View style={{ flex: 1, backgroundColor: '#DCDEDF' }}>
           {/* Fixed Header with Search and Filters */}
           <View style={{ paddingHorizontal: 16, paddingTop: 24, paddingBottom: 16 }}>
             {/* Search Bar */}
@@ -2599,7 +1897,7 @@ export default function Index() {
           <ScrollView 
             style={{ 
               flex: 1, 
-              backgroundColor: 'black',
+              backgroundColor: '#DCDEDF',
               paddingHorizontal: 0
             }}
             contentContainerStyle={{
@@ -2614,7 +1912,7 @@ export default function Index() {
                 onRefresh={onRefresh}
                 tintColor="#FB2355"
                 colors={["#FB2355"]}
-                progressBackgroundColor="black"
+                progressBackgroundColor="#DCDEDF"
               />
             }
           >
@@ -2706,9 +2004,10 @@ export default function Index() {
 
       {selectedTab === 'other' && (
         <ScrollView 
+          ref={earningsScrollRef}
           style={{ 
             flex: 1, 
-            backgroundColor: 'black',
+            backgroundColor: '#DCDEDF',
           }}
           contentContainerStyle={{
             flexGrow: 1,
@@ -3098,25 +2397,33 @@ export default function Index() {
           
           <View style={{ alignItems: 'center', width: '100%', paddingBottom: 10, marginTop: 20 }}>
             {/* Stripe Connect Express Button */}
-            <TouchableOpacity
+            <Animated.View
               style={{
-                backgroundColor: creatorFinancials?.stripeConnectSetupComplete ? '#333' : '#FB2355',
-                paddingVertical: 16,
-                borderRadius: 16,
-                flexDirection: 'row',
-          alignItems: 'center', 
-          justifyContent: 'center',
+                transform: [{ scale: setupButtonAnimation }],
                 width: '100%',
-                shadowColor: creatorFinancials?.stripeConnectSetupComplete ? 'transparent' : '#FB2355',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.4,
-                shadowRadius: 10,
-                elevation: creatorFinancials?.stripeConnectSetupComplete ? 0 : 8,
-                opacity: isLoadingStripeConnect ? 0.7 : 1,
               }}
-              disabled={isLoadingStripeConnect || creatorFinancials?.stripeConnectSetupComplete}
-              onPress={handleOnboarding}
             >
+              <TouchableOpacity
+                style={{
+                  backgroundColor: creatorFinancials?.stripeConnectSetupComplete ? '#333' : (shouldHighlightSetup ? '#FF4081' : '#FB2355'),
+                  paddingVertical: 16,
+                  borderRadius: 16,
+                  flexDirection: 'row',
+            alignItems: 'center', 
+            justifyContent: 'center',
+                  width: '100%',
+                  shadowColor: creatorFinancials?.stripeConnectSetupComplete ? 'transparent' : (shouldHighlightSetup ? '#FF4081' : '#FB2355'),
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: shouldHighlightSetup ? 0.6 : 0.4,
+                  shadowRadius: shouldHighlightSetup ? 15 : 10,
+                  elevation: creatorFinancials?.stripeConnectSetupComplete ? 0 : (shouldHighlightSetup ? 12 : 8),
+                  opacity: isLoadingStripeConnect ? 0.7 : 1,
+                  borderWidth: shouldHighlightSetup ? 2 : 0,
+                  borderColor: shouldHighlightSetup ? '#FFB74D' : 'transparent',
+                }}
+                disabled={isLoadingStripeConnect || creatorFinancials?.stripeConnectSetupComplete}
+                onPress={handleOnboarding}
+              >
               <Ionicons name="card-outline" size={22} color="white" style={{ marginRight: 12 }} />
               <View>
           <Text style={{ 
@@ -3141,138 +2448,71 @@ export default function Index() {
           </Text>
         </View>
             </TouchableOpacity>
+            </Animated.View>
           </View>
         </ScrollView>
       )}
 
       {/* Stripe Connect WebView Modal */}
-      <Modal
+      <StripeConnectModal
         visible={showStripeConnect}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowStripeConnect(false)}
-      >
-        <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }}>
-          {/* Header */}
-        <View style={{ 
-            flexDirection: 'row',
-          alignItems: 'center', 
-            justifyContent: 'space-between',
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-          backgroundColor: 'black',
-            borderBottomWidth: 1,
-            borderBottomColor: '#333333'
-        }}>
-          <Text style={{ 
-            color: 'white', 
-              fontSize: 18,
-              fontWeight: 'bold',
-              fontFamily: 'Urbanist-Bold'
-            }}>
-              Stripe Connect Setup
-          </Text>
-            <TouchableOpacity
-              onPress={() => setShowStripeConnect(false)}
-              style={{
-                padding: 8,
-                backgroundColor: '#333333',
-                borderRadius: 8
-              }}
-            >
-          <Text style={{ 
-                color: 'white',
-            fontSize: 16, 
-                fontWeight: 'bold',
-                fontFamily: 'Urbanist-Bold'
-          }}>
-                ✕
-          </Text>
-            </TouchableOpacity>
-        </View>
-
-          {/* WebView */}
-          {stripeConnectUrl ? (
-            <WebView
-              source={{ uri: stripeConnectUrl }}
-              style={{ flex: 1, backgroundColor: 'white' }}
-              startInLoadingState={true}
-              renderLoading={() => (
-        <View style={{ 
-          flex: 1, 
-          justifyContent: 'center',
-                  alignItems: 'center',
-                  backgroundColor: 'white'
-        }}>
-                  <ActivityIndicator size="large" color="#FB2355" />
-          <Text style={{ 
-                    color: '#666666',
-                    fontSize: 16,
-                    fontFamily: 'Urbanist-Regular',
-                    marginTop: 16
-                  }}>
-                    Loading Stripe Connect...
-          </Text>
-                </View>
-              )}
-              onNavigationStateChange={(navState) => {
-                // Handle navigation state changes
-                console.log('🌐 Navigation state changed:', navState.url);
-                
-                // Close modal when user completes onboarding or goes to return URL
-                if (navState.url.includes('cherrybox.app/connect-return') || 
-                    navState.url.includes('success') ||
-                    navState.url.includes('complete') ||
-                    navState.url.includes('dashboard.stripe.com/connect/accounts') ||
-                    navState.url.includes('account_updated=true')) {
-                  setShowStripeConnect(false);
-                  loadCreatorFinancials(); // Refresh data after completion
-                  Alert.alert(
-                    "Setup Complete",
-                    "Your Stripe Connect account has been set up successfully! You can now receive payments directly.",
-                    [{ text: "OK", style: "default" }]
-                  );
+        stripeConnectUrl={stripeConnectUrl}
+        onClose={() => setShowStripeConnect(false)}
+        onNavigationStateChange={(navState) => {
+          // Handle navigation state changes
+          console.log('🌐 Navigation state changed:', navState.url);
+          
+          // Close modal when user completes onboarding or goes to return URL
+          if (navState.url.includes('cherrybox.app/connect-return') || 
+              navState.url.includes('success') ||
+              navState.url.includes('complete') ||
+              navState.url.includes('dashboard.stripe.com/connect/accounts') ||
+              navState.url.includes('account_updated=true')) {
+            setShowStripeConnect(false);
+            loadCreatorFinancials(); // Refresh data after completion
+            
+            // Refresh channel conditions to update missing requirements
+            setTimeout(async () => {
+              await refreshChannelConditions();
+              
+              // Switch to chat tab and show 6-digit code modal
+              setSelectedTab('chats');
+              setShowInlineVerification(true);
+            }, 1000); // Small delay to ensure financial data is loaded
+            
+            Alert.alert(
+              "Setup Complete",
+              "Your Stripe Connect account has been set up successfully! Please verify your social media to complete channel setup.",
+              [{ 
+                text: "OK", 
+                style: "default",
+                onPress: () => {
+                  // Ensure we're on the chat tab after alert dismissal
+                  setSelectedTab('chats');
                 }
-                
-                // Handle errors or cancellations
-                if (navState.url.includes('error') || 
-                    navState.url.includes('cancel') ||
-                    navState.url.includes('failure')) {
-                  setShowStripeConnect(false);
-                  loadCreatorFinancials(); // Refresh data even on cancellation
-                  setShowNetworkErrorModal(true);
-                }
-              }}
-              onError={(syntheticEvent) => {
-                const { nativeEvent } = syntheticEvent;
-                console.error('WebView error:', nativeEvent);
-                setShowNetworkErrorModal(true);
-              }}
-              onHttpError={(syntheticEvent) => {
-                const { nativeEvent } = syntheticEvent;
-                console.error('WebView HTTP error:', nativeEvent);
-              }}
-            />
-          ) : (
-            <View style={{
-              flex: 1,
-              justifyContent: 'center',
-              alignItems: 'center',
-              backgroundColor: 'white'
-            }}>
-              <ActivityIndicator size="large" color="#FB2355" />
-          <Text style={{ 
-                color: '#666666',
-            fontSize: 16, 
-                fontFamily: 'Urbanist-Regular',
-                marginTop: 16
-          }}>
-                Preparing Stripe Connect...
-          </Text>
-        </View>
-      )}
-        </SafeAreaView>
-      </Modal>
+              }]
+            );
+          }
+          
+          // Handle errors or cancellations
+          if (navState.url.includes('error') || 
+              navState.url.includes('cancel') ||
+              navState.url.includes('failure')) {
+            setShowStripeConnect(false);
+            loadCreatorFinancials(); // Refresh data even on cancellation
+            setShowNetworkErrorModal(true);
+          }
+        }}
+        onError={(syntheticEvent) => {
+          const { nativeEvent } = syntheticEvent;
+          console.error('WebView error:', nativeEvent);
+          setShowNetworkErrorModal(true);
+        }}
+        onHttpError={(syntheticEvent) => {
+          const { nativeEvent } = syntheticEvent;
+          console.error('WebView HTTP error:', nativeEvent);
+        }}
+      />
         {/* Overlay to close info bubble when open */}
       {openInfoBubble && (
         <TouchableOpacity
@@ -3281,72 +2521,18 @@ export default function Index() {
           onPress={() => setOpenInfoBubble(null)}
         />
       )}
-        {/* Subscriber Info Modal (always mounted, controlled by state) */}
-        <Modal
+        {/* Subscriber Info Modal */}
+        <SubscriberInfoModal
           visible={showSubscriberModal}
-          animationType="slide"
-          transparent
-          onRequestClose={() => setShowSubscriberModal(false)}
-        >
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' }}>
-            <View style={{ backgroundColor: '#18181B', borderRadius: 18, padding: 28, width: '85%', maxWidth: 400, alignItems: 'center', borderWidth: 1, borderColor: '#FB2355' }}>
-              <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 22, marginBottom: 10, textAlign: 'center' }}>
-                {selectedSubscriber?.userName || selectedSubscriber?.customerEmail || 'Subscriber'}
-              </Text>
-              <Text style={{ color: '#CCCCCC', fontFamily: 'Urbanist-Regular', fontSize: 15, marginBottom: 18, textAlign: 'center' }}>
-                {selectedSubscriber?.customerEmail && selectedSubscriber?.userName ? selectedSubscriber.customerEmail : ''}
-              </Text>
-              <View style={{ width: '100%', marginBottom: 10 }}>
-                <Text style={{ color: '#FB2355', fontFamily: 'Urbanist-Bold', fontSize: 15, marginBottom: 2 }}>Subscription Created</Text>
-                <Text style={{ color: 'white', fontFamily: 'Urbanist-Regular', fontSize: 15, marginBottom: 8 }}>
-                  {selectedSubscriber?.createdAt ? new Date(selectedSubscriber.createdAt).toLocaleString() : (selectedSubscriber?.$createdAt ? new Date(selectedSubscriber.$createdAt).toLocaleString() : 'N/A')}
-                </Text>
-                <Text style={{ color: '#FB2355', fontFamily: 'Urbanist-Bold', fontSize: 15, marginBottom: 2 }}>Renewal Date</Text>
-                <Text style={{ color: 'white', fontFamily: 'Urbanist-Regular', fontSize: 15, marginBottom: 8 }}>
-                  {selectedSubscriber?.renewalDate ? new Date(selectedSubscriber.renewalDate).toLocaleString() : 'N/A'}
-                </Text>
-                <Text style={{ color: '#FB2355', fontFamily: 'Urbanist-Bold', fontSize: 15, marginBottom: 2 }}>Payment Status</Text>
-                <Text style={{ color: 'white', fontFamily: 'Urbanist-Regular', fontSize: 15, marginBottom: 8 }}>
-                  {selectedSubscriber?.paymentStatus || 'N/A'}
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => setShowSubscriberModal(false)}
-                style={{ marginTop: 10, backgroundColor: '#FB2355', borderRadius: 10, paddingVertical: 10, paddingHorizontal: 32 }}
-              >
-                <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>Close</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
+          subscriber={selectedSubscriber}
+          onClose={() => setShowSubscriberModal(false)}
+        />
 
         {/* Network Error Modal */}
-        <Modal
+        <NetworkErrorModal
           visible={showNetworkErrorModal}
-          animationType="fade"
-          transparent
-          onRequestClose={() => setShowNetworkErrorModal(false)}
-        >
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' }}>
-            <View style={{ backgroundColor: '#18181B', borderRadius: 18, padding: 28, width: '85%', maxWidth: 400, alignItems: 'center', borderWidth: 1, borderColor: '#FB2355' }}>
-              <View style={{ backgroundColor: 'rgba(251, 35, 85, 0.1)', borderRadius: 12, padding: 12, marginBottom: 16 }}>
-                <Ionicons name="wifi-outline" size={32} color="#FB2355" />
-              </View>
-              <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 22, marginBottom: 10, textAlign: 'center' }}>
-                Network Issue
-              </Text>
-              <Text style={{ color: '#CCCCCC', fontFamily: 'Urbanist-Regular', fontSize: 15, marginBottom: 20, textAlign: 'center', lineHeight: 22 }}>
-                We're experiencing network issues. Please check your connection and try again later.
-              </Text>
-              <TouchableOpacity
-                onPress={() => setShowNetworkErrorModal(false)}
-                style={{ backgroundColor: '#FB2355', borderRadius: 10, paddingVertical: 12, paddingHorizontal: 32 }}
-              >
-                <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>Try Again Later</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
+          onClose={() => setShowNetworkErrorModal(false)}
+        />
 
         </SafeAreaView>
     );

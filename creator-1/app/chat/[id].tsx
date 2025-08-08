@@ -1,6 +1,8 @@
 import { useGlobalContext } from '@/lib/global-provider';
 import { client, connectUser } from '@/lib/stream-chat';
+import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
+import { BlurView } from 'expo-blur';
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
@@ -97,6 +99,7 @@ export default function ChatScreen() {
   const [showRecordingModal, setShowRecordingModal] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const recordingRef = useRef<Audio.Recording | null>(null);
+  const [showPaidButtons, setShowPaidButtons] = useState(false);
   
   // Thread message caching system
   const threadMessagesCache = useRef<Map<string, any[]>>(new Map());
@@ -406,8 +409,6 @@ export default function ChatScreen() {
               MessageSimple={CustomMessageSimple}
               MessageAvatar={CustomMessageAvatar}
               MessageStatus={CustomMessageStatus}
-              MessageTimestamp={() => null} // Remove default timestamps
-              MessageFooter={() => null} // Remove footer timestamps
               ShowThreadMessageInChannelButton={() => null}
               supportedReactions={customReactions}
               messageActions={() => []} // Disable default message actions
@@ -465,12 +466,112 @@ export default function ChatScreen() {
                 />
               ) : (
                 <View style={{ flex: 1 }}>
-                  <MessageList 
-                    EmptyStateIndicator={() => (
-                      <EmptyStateIndicator channelId={channelId} />
+                  <View style={{ flex: 1, position: 'relative' }}>
+                    <MessageList 
+                      EmptyStateIndicator={() => (
+                        <EmptyStateIndicator channelId={channelId} />
+                      )}
+                      onThreadSelect={setThread}
+                    />
+                    
+                    {/* Creator Name Banner - Floating on top */}
+                    <View style={{
+                      position: 'absolute',
+                      top: 4,
+                      left: '10%',
+                      width: '80%',
+                      backgroundColor: 'white',
+                      paddingHorizontal: 16,
+                      paddingVertical: 12,
+                      borderRadius: 20,
+                      shadowColor: '#000',
+                      shadowOffset: {
+                        width: 0,
+                        height: 2,
+                      },
+                      shadowOpacity: 0.25,
+                      shadowRadius: 8,
+                      elevation: 6,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 15,
+                    }}>
+                      {/* Creator Thumbnail */}
+                      <View style={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: 24,
+                        backgroundColor: '#1A1A1A',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        overflow: 'hidden',
+                        marginRight: 12,
+                      }}>
+                        {profileImage ? (
+                          <Image
+                            source={{ uri: profileImage }}
+                            style={{ width: '100%', height: '100%' }}
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <Text style={{
+                            color: 'white',
+                            fontSize: 14,
+                            fontWeight: 'bold',
+                          }}>
+                            {user?.name?.[0]?.toUpperCase() || 'U'}
+                          </Text>
+                        )}
+                      </View>
+                      
+                      {/* Creator Name */}
+                      <Text style={{
+                        color: '#1A1A1A',
+                        fontSize: 32,
+                        fontWeight: 'bold',
+                        fontFamily: 'MuseoModerno-Regular',
+                      }}>
+                        {user?.name || 'Creator'}
+                      </Text>
+                    </View>
+                    
+                    {/* Dollar Sign Button - Floating in chat area */}
+                    {!showPaidButtons && (
+                      <TouchableOpacity
+                        style={{
+                          position: 'absolute',
+                          bottom: 10,
+                          left: 10,
+                          width: 48,
+                          height: 48,
+                          borderRadius: 12,
+                          backgroundColor: '#FFD700',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          shadowColor: '#000',
+                          shadowOffset: {
+                            width: 0,
+                            height: 2,
+                          },
+                          shadowOpacity: 0.25,
+                          shadowRadius: 3.84,
+                          elevation: 5,
+                          zIndex: 10,
+                        }}
+                        onPress={() => setShowPaidButtons(true)}
+                      >
+                        <Text style={{
+                          color: '#1A1A1A',
+                          fontSize: 24,
+                          fontWeight: 'bold',
+                        }}>
+                          $
+                        </Text>
+                      </TouchableOpacity>
                     )}
-                    onThreadSelect={setThread}
-                  />
+                  </View>
+                  
                   <CustomMessageInput 
                     showPollCreation={showPollCreation}
                     setShowPollCreation={setShowPollCreation}
@@ -479,7 +580,253 @@ export default function ChatScreen() {
                     handlePaidVideoCreation={uploadManager.video.handleVideoCreation}
                     isFileUploading={uploadManager.file.isUploading}
                     isVideoUploading={uploadManager.video.isUploading}
+                    showPaidButtons={false}
                   />
+                  
+                  {/* Paid Content Modal Overlay */}
+                  {showPaidButtons && (
+                    <View style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      zIndex: 20,
+                    }}>
+                      {/* Blur Background */}
+                      <BlurView
+                        intensity={80}
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                        }}
+                      />
+                      
+                      {/* Close Button */}
+                      <TouchableOpacity
+                        style={{
+                          position: 'absolute',
+                          top: 40,
+                          right: 20,
+                          width: 40,
+                          height: 40,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          zIndex: 30,
+                        }}
+                        onPress={() => setShowPaidButtons(false)}
+                      >
+                        <Ionicons name="close-outline" size={50} color="#1A1A1A" />
+                      </TouchableOpacity>
+                      
+                      {/* Content Buttons */}
+                      <View style={{
+                        flex: 1,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        paddingHorizontal: 0,
+                        paddingTop: 170, // Move buttons down
+                      }}>
+                        {/* Poll Button */}
+                        <TouchableOpacity
+                          style={{
+                            width: '100%',
+                            paddingVertical: 20,
+                            paddingHorizontal: 24,
+                            marginBottom: 24,
+                            alignItems: 'center',
+                            flexDirection: 'row',
+                            justifyContent: 'flex-start',
+                          }}
+                          onPress={() => {
+                            setShowPaidButtons(false);
+                            setShowPollCreation(true);
+                          }}
+                        >
+                          <View style={{
+                            width: 50,
+                            height: 50,
+                            borderRadius: 25,
+                            backgroundColor: '#1A1A1A',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginRight: 16,
+                            shadowColor: '#000',
+                            shadowOffset: {
+                              width: 0,
+                              height: 2,
+                            },
+                            shadowOpacity: 0.3,
+                            shadowRadius: 4,
+                            elevation: 5,
+                          }}>
+                            <Ionicons name="bar-chart" size={24} color="white" />
+                          </View>
+                          <Text style={{
+                            color: 'white',
+                            fontSize: 30,
+                            fontWeight: 'bold',
+                            fontFamily: 'Urbanist-Bold',
+                          }}>
+                            CREATE POLL
+                          </Text>
+                        </TouchableOpacity>
+                        
+                        {/* Paid Photos Button */}
+                        <TouchableOpacity
+                          style={{
+                            width: '100%',
+                            paddingVertical: 20,
+                            paddingHorizontal: 24,
+                            marginBottom: 24,
+                            alignItems: 'center',
+                            flexDirection: 'row',
+                            justifyContent: 'flex-start',
+                          }}
+                          onPress={() => {
+                            setShowPaidButtons(false);
+                            uploadManager.photo.handlePhotoCreation();
+                          }}
+                        >
+                          <View style={{
+                            width: 50,
+                            height: 50,
+                            borderRadius: 25,
+                            backgroundColor: '#1A1A1A',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginRight: 16,
+                            shadowColor: '#000',
+                            shadowOffset: {
+                              width: 0,
+                              height: 2,
+                            },
+                            shadowOpacity: 0.3,
+                            shadowRadius: 4,
+                            elevation: 5,
+                          }}>
+                            <Ionicons name="camera" size={24} color="white" />
+                          </View>
+                          <Text style={{
+                            color: 'white',
+                            fontSize: 30,
+                            fontWeight: 'bold',
+                            fontFamily: 'Urbanist-Bold',
+                          }}>
+                            PAID PHOTOS 
+                          </Text>
+                        </TouchableOpacity>
+                        
+                        {/* Paid Files Button */}
+                        <TouchableOpacity
+                          style={{
+                            width: '100%',
+                            paddingVertical: 20,
+                            paddingHorizontal: 24,
+                            marginBottom: 24,
+                            alignItems: 'center',
+                            opacity: uploadManager.file.isUploading ? 0.7 : 1,
+                            flexDirection: 'row',
+                            justifyContent: 'flex-start',
+                          }}
+                          onPress={() => {
+                            if (!uploadManager.file.isUploading) {
+                              setShowPaidButtons(false);
+                              uploadManager.file.handleFileCreation();
+                            }
+                          }}
+                          disabled={uploadManager.file.isUploading}
+                        >
+                          <View style={{
+                            width: 50,
+                            height: 50,
+                            borderRadius: 25,
+                            backgroundColor: uploadManager.file.isUploading ? '#2A2A2A' : '#1A1A1A',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginRight: 16,
+                            shadowColor: '#000',
+                            shadowOffset: {
+                              width: 0,
+                              height: 2,
+                            },
+                            shadowOpacity: 0.3,
+                            shadowRadius: 4,
+                            elevation: 5,
+                          }}>
+                            {uploadManager.file.isUploading ? (
+                              <ActivityIndicator size="small" color="white" />
+                            ) : (
+                              <Ionicons name="document" size={24} color="white" />
+                            )}
+                          </View>
+                          <Text style={{
+                            color: 'white',
+                            fontSize: 30,
+                            fontWeight: 'bold',
+                            fontFamily: 'Urbanist-Bold',
+                          }}>
+                            {uploadManager.file.isUploading ? 'Uploading Files...' : 'PAID FILES'}
+                          </Text>
+                        </TouchableOpacity>
+                        
+                        {/* Paid Videos Button */}
+                        <TouchableOpacity
+                          style={{
+                            width: '100%',
+                            paddingVertical: 20,
+                            paddingHorizontal: 24,
+                            alignItems: 'center',
+                            opacity: uploadManager.video.isUploading ? 0.7 : 1,
+                            flexDirection: 'row',
+                            justifyContent: 'flex-start',
+                          }}
+                          onPress={() => {
+                            if (!uploadManager.video.isUploading) {
+                              setShowPaidButtons(false);
+                              uploadManager.video.handleVideoCreation();
+                            }
+                          }}
+                          disabled={uploadManager.video.isUploading}
+                        >
+                          <View style={{
+                            width: 50,
+                            height: 50,
+                            borderRadius: 25,
+                            backgroundColor: uploadManager.video.isUploading ? '#2A2A2A' : '#1A1A1A',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginRight: 16,
+                            shadowColor: '#000',
+                            shadowOffset: {
+                              width: 0,
+                              height: 2,
+                            },
+                            shadowOpacity: 0.3,
+                            shadowRadius: 4,
+                            elevation: 5,
+                          }}>
+                            {uploadManager.video.isUploading ? (
+                              <ActivityIndicator size="small" color="white" />
+                            ) : (
+                              <Ionicons name="videocam" size={24} color="white" />
+                            )}
+                          </View>
+                          <Text style={{
+                            color: 'white',
+                            fontSize: 30,
+                            fontWeight: 'bold',
+                            fontFamily: 'Urbanist-Bold',
+                          }}>
+                            {uploadManager.video.isUploading ? 'Uploading Videos...' : 'Paid Videos'}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
                   
                   {/* Poll Creation Modal */}
                   <CustomPollCreation
