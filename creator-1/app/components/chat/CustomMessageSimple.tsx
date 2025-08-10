@@ -30,17 +30,19 @@ interface ThreadContextData {
 }
 
 /**
- * Custom MessageSimple component that handles different message types and timestamps
+ * Custom MessageSimple component that handles different message types
  * 
  * Features:
  * - Custom poll rendering
  * - Paid content attachments (photos, videos, files)
  * - Custom attachment handling (tips with images/documents)
- * - Smart timestamp display with 5-minute logic
  * - Thread and DM channel awareness
  * - Responsive spacing for different channel types
  */
 const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = (props) => {
+  // Filter out custom props that aren't compatible with MessageSimple
+  const { isInThread: _, ...messageSimpleProps } = props;
+  
   // Get message context and global state
   const messageContext = useMessageContext() as MessageContextData;
   const message = messageContext?.message;
@@ -55,9 +57,6 @@ const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = (props) => {
   // Channel and message type checks
   const isDMChannel = channel?.id?.startsWith('dm-');
   const isMyMessage = message?.user?.id === user?.$id;
-
-  // Filter out custom props that aren't compatible with MessageSimple
-  const { isInThread: _, ...messageSimpleProps } = props;
 
   // Poll detection
   const hasPoll = message?.poll_id || message?.poll;
@@ -108,7 +107,10 @@ const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = (props) => {
   if (hasPaidContent) {
     console.log('Rendering message with paid content attachment');
     return (
-      <View style={{ alignItems: 'flex-end' }}>
+      <View style={{ 
+        alignItems: 'flex-end',
+        marginRight: 5, 
+      }}>
         {/* Render paid content attachments only (no text message) */}
         {message.attachments?.map((attachment: any, index: number) => (
           attachment?.type === 'paid_content' ? (
@@ -170,6 +172,7 @@ const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = (props) => {
         paddingLeft: props.isInThread && !isMyMessage ? 8 : 0, // Closer to left edge for received
         marginTop: 4, // Add space between day timestamp and audio attachment
         marginBottom: 4, // Add space underneath audio attachment for better separation
+        marginRight: isMyMessage ? -8 : 0, // Move sent audio messages closer to the right
         position: 'relative', // Enable absolute positioning for reactions
       }}>
         {/* Render the default MessageSimple which will show attachments and timestamps */}

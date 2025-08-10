@@ -1,9 +1,9 @@
 import React from 'react';
 import {
-    Modal,
-    Text,
-    TouchableOpacity,
-    View
+  Modal,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 interface Subscriber {
@@ -40,36 +40,27 @@ export const SubscriberInfoModal: React.FC<SubscriberInfoModalProps> = ({
         alignItems: 'center' 
       }}>
         <View style={{ 
-          backgroundColor: '#18181B', 
+          backgroundColor: 'white', 
           borderRadius: 18, 
           padding: 28, 
           width: '85%', 
           maxWidth: 400, 
           alignItems: 'center', 
-          borderWidth: 1, 
-          borderColor: '#FB2355' 
+          borderWidth: 2, 
+          borderColor: 'black' 
         }}>
           <Text style={{ 
-            color: 'white', 
+            color: 'black', 
             fontFamily: 'Urbanist-Bold', 
             fontSize: 22, 
-            marginBottom: 10, 
-            textAlign: 'center' 
-          }}>
-            {subscriber?.userName || subscriber?.customerEmail || 'Subscriber'}
-          </Text>
-          <Text style={{ 
-            color: '#CCCCCC', 
-            fontFamily: 'Urbanist-Regular', 
-            fontSize: 15, 
             marginBottom: 18, 
             textAlign: 'center' 
           }}>
-            {subscriber?.customerEmail && subscriber?.userName ? subscriber.customerEmail : ''}
+            {subscriber?.userName || 'Subscriber'}
           </Text>
           <View style={{ width: '100%', marginBottom: 10 }}>
             <Text style={{ 
-              color: '#FB2355', 
+              color: 'black', 
               fontFamily: 'Urbanist-Bold', 
               fontSize: 15, 
               marginBottom: 2 
@@ -77,7 +68,7 @@ export const SubscriberInfoModal: React.FC<SubscriberInfoModalProps> = ({
               Subscription Created
             </Text>
             <Text style={{ 
-              color: 'white', 
+              color: '#666666', 
               fontFamily: 'Urbanist-Regular', 
               fontSize: 15, 
               marginBottom: 8 
@@ -91,7 +82,7 @@ export const SubscriberInfoModal: React.FC<SubscriberInfoModalProps> = ({
               }
             </Text>
             <Text style={{ 
-              color: '#FB2355', 
+              color: 'black', 
               fontFamily: 'Urbanist-Bold', 
               fontSize: 15, 
               marginBottom: 2 
@@ -99,7 +90,7 @@ export const SubscriberInfoModal: React.FC<SubscriberInfoModalProps> = ({
               Renewal Date
             </Text>
             <Text style={{ 
-              color: 'white', 
+              color: '#666666', 
               fontFamily: 'Urbanist-Regular', 
               fontSize: 15, 
               marginBottom: 8 
@@ -110,7 +101,7 @@ export const SubscriberInfoModal: React.FC<SubscriberInfoModalProps> = ({
               }
             </Text>
             <Text style={{ 
-              color: '#FB2355', 
+              color: 'black', 
               fontFamily: 'Urbanist-Bold', 
               fontSize: 15, 
               marginBottom: 2 
@@ -118,7 +109,7 @@ export const SubscriberInfoModal: React.FC<SubscriberInfoModalProps> = ({
               Payment Status
             </Text>
             <Text style={{ 
-              color: 'white', 
+              color: '#666666', 
               fontFamily: 'Urbanist-Regular', 
               fontSize: 15, 
               marginBottom: 8 
@@ -130,7 +121,7 @@ export const SubscriberInfoModal: React.FC<SubscriberInfoModalProps> = ({
             onPress={onClose}
             style={{ 
               marginTop: 10, 
-              backgroundColor: '#FB2355', 
+              backgroundColor: 'black', 
               borderRadius: 10, 
               paddingVertical: 10, 
               paddingHorizontal: 32 

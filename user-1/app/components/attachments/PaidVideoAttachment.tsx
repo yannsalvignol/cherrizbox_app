@@ -154,6 +154,29 @@ export const PaidVideoAttachment: React.FC<PaidVideoAttachmentProps> = ({ attach
                   Unlocked
                 </Text>
               </View>
+
+              {/* Timestamp in bottom right corner */}
+              {message?.created_at && (
+                <Text style={{
+                  position: 'absolute',
+                  bottom: 8,
+                  right: 8,
+                  color: '#FFFFFF',
+                  fontSize: 12,
+                  fontWeight: '600',
+                  fontFamily: 'questrial',
+                  opacity: 0.9,
+                  textShadowColor: 'rgba(0, 0, 0, 0.8)',
+                  textShadowOffset: { width: 0, height: 1 },
+                  textShadowRadius: 2,
+                }}>
+                  {new Date(message.created_at).toLocaleTimeString([], { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: true 
+                  })}
+                </Text>
+              )}
             </>
           ) : (
             // Locked video preview
@@ -246,6 +269,29 @@ export const PaidVideoAttachment: React.FC<PaidVideoAttachmentProps> = ({ attach
                   ${attachment?.price || '9.99'}
                 </Text>
               </TouchableOpacity>
+
+              {/* Timestamp in bottom right corner for locked state */}
+              {message?.created_at && (
+                <Text style={{
+                  position: 'absolute',
+                  bottom: 8,
+                  right: 8,
+                  color: '#FFFFFF',
+                  fontSize: 12,
+                  fontWeight: '600',
+                  fontFamily: 'questrial',
+                  opacity: 0.9,
+                  textShadowColor: 'rgba(0, 0, 0, 0.8)',
+                  textShadowOffset: { width: 0, height: 1 },
+                  textShadowRadius: 2,
+                }}>
+                  {new Date(message.created_at).toLocaleTimeString([], { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: true 
+                  })}
+                </Text>
+              )}
             </>
           )}
         </View>

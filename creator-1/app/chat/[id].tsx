@@ -33,7 +33,9 @@ import CustomReactionList from '../components/chat/CustomReactionList';
 import CustomThread from '../components/chat/CustomThread';
 import EmptyStateIndicator from '../components/chat/EmptyStateIndicator';
 import CustomMessageModal from '../components/chat/modals/CustomMessageModal';
+import EditMessageModal from '../components/chat/modals/EditMessageModal';
 import FileUploadModal from '../components/chat/modals/FileUploadModal';
+import ImageViewerModal from '../components/chat/modals/ImageViewerModal';
 import PaidFilesPriceModal from '../components/chat/modals/PaidFilesPriceModal';
 import PaidPhotosPriceModal from '../components/chat/modals/PaidPhotosPriceModal';
 import PaidVideosPriceModal from '../components/chat/modals/PaidVideosPriceModal';
@@ -87,6 +89,10 @@ export default function ChatScreen() {
   const [thread, setThread] = useState<any>(null);
   const [showCustomModal, setShowCustomModal] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<any>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [messageToEdit, setMessageToEdit] = useState<any>(null);
+  const [showImageViewer, setShowImageViewer] = useState(false);
+  const [imageToView, setImageToView] = useState<string>('');
   const colorScheme = useColorScheme();
   const [theme, setTheme] = useState(getChatTheme());
   // Upload management using custom hooks
@@ -223,14 +229,14 @@ export default function ChatScreen() {
             style={{ width: 60, height: 60, marginBottom: 16 }} 
           />
           <Text style={{ 
-            color: '#FB2355', 
+            color: 'white', 
             fontSize: 18, 
             marginBottom: 12,
             fontFamily: 'questrial'
           }}>
             Loading chat...
           </Text>
-          <ActivityIndicator size="large" color="#FB2355" />
+          <ActivityIndicator size="large" color="white" />
         </View>
       </SafeAreaView>
     );
@@ -312,7 +318,7 @@ export default function ChatScreen() {
           </Text>
           <TouchableOpacity 
             style={{
-              backgroundColor: '#FB2355',
+              backgroundColor: 'white',
               paddingHorizontal: 24,
               paddingVertical: 12,
               borderRadius: 25,
@@ -838,12 +844,40 @@ export default function ChatScreen() {
               )}
 
               {/* Custom Message Modal */}
-              <CustomMessageModal
-                visible={showCustomModal}
-                onClose={() => setShowCustomModal(false)}
-                message={selectedMessage}
-                onThreadReply={(message) => handleThreadReply(message, setThread)}
-              />
+                          <CustomMessageModal
+              visible={showCustomModal}
+              onClose={() => setShowCustomModal(false)}
+              message={selectedMessage}
+              onThreadReply={(message) => handleThreadReply(message, setThread)}
+              onEditMessage={(message) => {
+                setMessageToEdit(message);
+                setShowEditModal(true);
+              }}
+              onOpenImage={(imageUrl) => {
+                setImageToView(imageUrl);
+                setShowImageViewer(true);
+              }}
+            />
+
+                          {/* Edit Message Modal */}
+            <EditMessageModal
+              visible={showEditModal}
+              onClose={() => {
+                setShowEditModal(false);
+                setMessageToEdit(null);
+              }}
+              message={messageToEdit}
+            />
+
+            {/* Image Viewer Modal */}
+            <ImageViewerModal
+              visible={showImageViewer}
+              imageUrl={imageToView}
+              onClose={() => {
+                setShowImageViewer(false);
+                setImageToView('');
+              }}
+            />
               
               {/* Price Input Modal */}
               <PaidPhotosPriceModal

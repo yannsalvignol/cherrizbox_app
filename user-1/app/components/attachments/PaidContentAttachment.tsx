@@ -163,7 +163,7 @@ export const PaidContentAttachment: React.FC<PaidContentAttachmentProps> = ({ at
               activeOpacity={0.8}
             >
               <View style={{
-                backgroundColor: 'rgba(251, 35, 85, 0.9)',
+                backgroundColor: 'rgba(51, 50, 51, 0.95)',
                 borderRadius: 50,
                 width: 80,
                 height: 80,
@@ -219,6 +219,29 @@ export const PaidContentAttachment: React.FC<PaidContentAttachmentProps> = ({ at
                 Unlocked
               </Text>
             </View>
+          )}
+
+          {/* Timestamp in bottom right corner */}
+          {message?.created_at && (
+            <Text style={{
+              position: 'absolute',
+              bottom: 8,
+              right: 8,
+              color: '#FFFFFF',
+              fontSize: 12,
+              fontWeight: '600',
+              fontFamily: 'questrial',
+              opacity: 0.9,
+              textShadowColor: 'rgba(0, 0, 0, 0.8)',
+              textShadowOffset: { width: 0, height: 1 },
+              textShadowRadius: 2,
+            }}>
+              {new Date(message.created_at).toLocaleTimeString([], { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: true 
+              })}
+            </Text>
           )}
         </TouchableOpacity>
 

@@ -1,6 +1,5 @@
 import { StreamChat } from 'stream-chat';
-import { getCurrentUser } from './appwrite';
-import { testStreamTokenGeneration } from './test-stream-token';
+import { getCurrentUser, getOrGenerateStreamChatToken } from './appwrite';
 
 // Initialize Stream Chat client
 export const client = StreamChat.getInstance("xzrue5uj6btx");
@@ -8,6 +7,13 @@ export const client = StreamChat.getInstance("xzrue5uj6btx");
 // Global connection state
 let isConnected = false;
 let connectedUserId: string | null = null;
+
+// Helper function to create consistent DM channel IDs
+const createDMChannelId = (userId1: string, userId2: string): string => {
+    // Always sort IDs alphabetically to ensure consistent channel IDs
+    const sortedIds = [userId1, userId2].sort();
+    return `dm-${sortedIds[0]}-${sortedIds[1]}`;
+};
 
 // Function to connect user to Stream Chat (only once per session)
 export const connectUser = async (userId: string) => {
@@ -35,11 +41,8 @@ export const connectUser = async (userId: string) => {
             throw new Error('No current user found');
         }
 
-        // Get server-side token from our Appwrite function
-        const tokenResult = await testStreamTokenGeneration();
-        if (!tokenResult.success || !tokenResult.token) {
-            throw new Error('Failed to generate Stream Chat token');
-        }
+        // Get cached token or generate new one
+        const token = await getOrGenerateStreamChatToken(userId);
         
         // Create user object for Stream Chat
         const userObject = {
@@ -49,10 +52,10 @@ export const connectUser = async (userId: string) => {
         };
 
         // Connect user to Stream Chat (this will create the user if it doesn't exist)
-        await client.connectUser(userObject, tokenResult.token);
+        await client.connectUser(userObject, token);
 
         // Enable file uploads - setUser requires both user object and token
-        client.setUser(userObject, tokenResult.token);
+        client.setUser(userObject, token);
 
         // Update connection state
         isConnected = true;
@@ -131,8 +134,8 @@ export const preSetupChannels = async (userId: string, creatorIds: string[]) => 
                     console.error(`❌ Error setting up group channel for creator ${creatorId}:`, groupError);
                 }
 
-                // Setup DM channel
-                const dmChannelId = `dm-${creatorId}-${userId}`;
+                // Setup DM channel with consistent ID format
+                const dmChannelId = createDMChannelId(creatorId, userId);
                 const dmChannel = client.channel('messaging', dmChannelId);
                 
                 try {
@@ -209,8 +212,8 @@ export async function createDirectMessageChannel(user1Id: string, user2Id: strin
 
     console.log('✅ Stream Chat connection verified');
     
-    // Create a custom channel ID for direct messages
-    const channelId = `dm-${user1Id}-${user2Id}`;
+    // Create a custom channel ID for direct messages with consistent format
+    const channelId = createDMChannelId(user1Id, user2Id);
     console.log('🏗️ Creating channel with custom ID:', channelId);
     console.log('👥 Channel members:', [user1Id, user2Id]);
 
@@ -219,7 +222,17 @@ export async function createDirectMessageChannel(user1Id: string, user2Id: strin
     });
 
     console.log('📡 Calling channel.create()...');
-    await channel.create();
+    try {
+      await channel.create();
+    } catch (error: any) {
+      // If channel already exists, just watch it instead
+      if (error?.message?.includes('already exists') || error?.code === 4) {
+        console.log('📺 Channel already exists, watching instead...');
+        await channel.watch();
+      } else {
+        throw error;
+      }
+    }
     
     console.log('✅ Direct message channel created successfully!');
     console.log('📊 Channel info:', {
@@ -239,4 +252,44 @@ export async function createDirectMessageChannel(user1Id: string, user2Id: strin
     });
     throw error;
   }
-} 
+}
+
+// Initialize Stream Chat specifically for payment success
+export const initializeStreamChatOnPaymentSuccess = async (userId: string) => {
+    try {
+        console.log('🎉 Initializing Stream Chat after successful payment for user:', userId);
+
+        // Get current user
+        const currentUser = await getCurrentUser();
+        if (!currentUser) {
+            throw new Error('No current user found');
+        }
+
+        // Get or generate cached token (this will generate and cache if not exists)
+        const token = await getOrGenerateStreamChatToken(userId);
+        console.log('✅ Stream Chat token obtained');
+
+        // Create user object for Stream Chat
+        const userObject = {
+            id: userId,
+            name: currentUser.name || userId,
+            image: currentUser.avatar || undefined,
+        };
+
+        console.log('🔌 Connecting user to Stream Chat...');
+        
+        // Connect user to Stream Chat
+        await client.connectUser(userObject, token);
+        client.setUser(userObject, token);
+
+        // Update connection state
+        isConnected = true;
+        connectedUserId = userId;
+
+        console.log('✅ Stream Chat initialized successfully after payment!');
+        return true;
+    } catch (error) {
+        console.error('❌ Error initializing Stream Chat on payment success:', error);
+        throw error;
+    }
+}; 

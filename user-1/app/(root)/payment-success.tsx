@@ -5,9 +5,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, BackHandler, Dimensions, Platform, StyleSheet, Text, View } from 'react-native';
-import { getCreatorIdByName, getCurrentUser } from '../../lib/appwrite';
+import { getCreatorIdByName, getCurrentUser, getUserSubscriptions } from '../../lib/appwrite';
 import { useGlobalContext } from '../../lib/global-provider';
-import { createDirectMessageChannel } from '../../lib/stream-chat';
+import { createDirectMessageChannel, initializeStreamChatOnPaymentSuccess, preSetupChannels } from '../../lib/stream-chat';
 
 const { width, height } = Dimensions.get('window');
 
@@ -29,8 +29,6 @@ export default function PaymentSuccess() {
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const checkmarkScale = useRef(new Animated.Value(0)).current;
   const [logoCentered, setLogoCentered] = useState(false);
-  // Add state for loading the channel
-  const [creatingChannel, setCreatingChannel] = useState(false);
 
   // Log the creator name when component mounts
   useEffect(() => {
@@ -112,18 +110,72 @@ export default function PaymentSuccess() {
         tension: 100,
         friction: 5,
         useNativeDriver: true,
-      }).start(() => {
-        // Refetch data during animation completion
-        console.log('🔄 Refreshing posts and creators during animation...');
-        Promise.all([refreshPosts(), refreshCreators()]).then(() => {
-          console.log('✅ Data refresh completed during animation');
+      }).start(async () => {
+        // Initialize Stream Chat and refresh data during animation completion
+        console.log('🔄 Initializing Stream Chat and refreshing data during animation...');
+        
+        try {
+          // Get current user for Stream Chat initialization
+          const user = await getCurrentUser();
+          if (user) {
+            console.log('🎉 Initializing Stream Chat after successful payment...');
+            await initializeStreamChatOnPaymentSuccess(user.$id);
+            
+            // Set up channels for ALL active subscriptions (like the global provider does)
+            console.log('🚀 Setting up channels for all active subscriptions...');
+            try {
+              // Get fresh subscription data
+              const userSubscriptions = await getUserSubscriptions(user.$id);
+              const activeCreatorIds = userSubscriptions
+                .filter(sub => sub.status === 'active' && (!sub.endsAt || new Date(sub.endsAt) > new Date()))
+                .map(sub => sub.creatorAccountId)
+                .filter(id => id && id !== user.$id); // Filter out invalid IDs and self
+              
+              if (activeCreatorIds.length > 0) {
+                console.log('📋 Setting up channels for active creators:', activeCreatorIds);
+                
+                // Pre-setup channels for all active creators (like global provider does)
+                await preSetupChannels(user.$id, activeCreatorIds);
+                console.log('✅ All channels pre-setup completed');
+                
+                // Verify specific DM channel for the creator from this payment exists
+                const creatorNameStr = Array.isArray(creatorName) ? creatorName[0] : creatorName;
+                if (creatorNameStr) {
+                  try {
+                    const specificCreatorId = await getCreatorIdByName(creatorNameStr);
+                    if (specificCreatorId && specificCreatorId !== user.$id && activeCreatorIds.includes(specificCreatorId)) {
+                      console.log('✅ Payment creator channel already set up during pre-setup phase');
+                      // No need to create again - preSetupChannels already handled this
+                    } else if (specificCreatorId && specificCreatorId !== user.$id) {
+                      console.log('💬 Creating direct message channel for payment creator (not in active list)...');
+                      await createDirectMessageChannel(user.$id, specificCreatorId);
+                      console.log('✅ Direct message channel created for payment creator');
+                    }
+                  } catch (dmError) {
+                    console.error('❌ Error with specific DM channel:', dmError);
+                    // Don't throw - not critical
+                  }
+                }
+              } else {
+                console.log('⚠️ No active creators found for channel setup');
+              }
+            } catch (channelError) {
+              console.error('❌ Error setting up channels:', channelError);
+              // Don't throw - continue with data refresh
+            }
+          }
+
+          // Refresh posts and creators
+          await Promise.all([refreshPosts(), refreshCreators()]);
+          console.log('✅ Stream Chat initialization, channel setup, and data refresh completed');
+          
           // Automatically navigate to app tabs after refresh
           router.replace('/(root)/(tabs)');
-        }).catch((error) => {
-          console.error('❌ Error refreshing data during animation:', error);
-          // Still navigate away even if refresh fails
+        } catch (error) {
+          console.error('❌ Error during Stream Chat initialization or data refresh:', error);
+          // Still navigate away even if initialization fails
           router.replace('/(root)/(tabs)');
-        });
+        }
       });
     });
     // Rotate background icons
@@ -139,84 +191,7 @@ export default function PaymentSuccess() {
     outputRange: ['0deg', '360deg'],
   });
 
-  // Replace the onPress handler for the Continue button:
-  const handleContinue = async () => {
-    console.log('🚀 Payment success - starting channel creation process...');
-    setCreatingChannel(true);
-    
-    const startTime = Date.now();
-    
-    try {
-      console.log('👤 Getting current user...');
-      const user = await getCurrentUser();
-      if (!user) {
-        throw new Error('No current user found');
-      }
-      console.log('✅ Current user retrieved:', { userId: user.$id, name: user.name });
 
-      const creatorNameStr = Array.isArray(creatorName) ? creatorName[0] : creatorName;
-      if (!creatorNameStr) {
-        console.warn('⚠️ No creator name available - skipping channel creation');
-        // Data already refreshed during animation, just navigate
-        console.log('🏠 Navigating to app tabs...');
-        router.replace('/(root)/(tabs)');
-        return;
-      }
-      
-      console.log('🎯 Looking up creator ID for:', creatorNameStr);
-      const creatorId = await getCreatorIdByName(creatorNameStr);
-      if (!creatorId) {
-        throw new Error(`Creator ID not found for: ${creatorNameStr}`);
-      }
-      console.log('✅ Creator ID found:', creatorId);
-
-      // Safety check: prevent creating DM channel with yourself
-      if (user.$id === creatorId) {
-        console.warn('⚠️ Cannot create DM channel with yourself. Current user and creator are the same.');
-        console.log('👤 Current user ID:', user.$id);
-        console.log('🎯 Creator ID:', creatorId);
-        console.log('📝 Creator name:', creatorNameStr);
-        // Data already refreshed during animation, just navigate
-        console.log('🏠 Navigating to app tabs...');
-        router.replace('/(root)/(tabs)');
-        return;
-      }
-
-      console.log('💬 Creating direct message channel...');
-      console.log('👥 Channel members:', { user1: user.$id, user2: creatorId });
-      const channel = await createDirectMessageChannel(user.$id, creatorId);
-      console.log('✅ Direct message channel created successfully!');
-      console.log('📊 Channel details:', {
-        channelId: channel.id,
-        channelType: channel.type,
-        memberCount: Object.keys(channel.state.members).length
-      });
-
-      const totalTime = Date.now() - startTime;
-      console.log(`⏱️ Channel creation completed in ${totalTime}ms`);
-
-      // Data already refreshed during animation, just navigate
-      console.log('🏠 Navigating to app tabs...');
-      router.replace('/(root)/(tabs)');
-      
-    } catch (err) {
-      const totalTime = Date.now() - startTime;
-      console.error('❌ Failed to create DM channel:', err);
-      console.error('⏱️ Process failed after', totalTime, 'ms');
-      console.error('🔍 Error details:', {
-        name: err instanceof Error ? err.name : 'Unknown',
-        message: err instanceof Error ? err.message : 'Unknown error',
-        stack: err instanceof Error ? err.stack : undefined
-      });
-      
-      // Data already refreshed during animation, just navigate
-      console.log('🏠 Navigating to app tabs despite channel creation failure...');
-      router.replace('/(root)/(tabs)');
-    } finally {
-      setCreatingChannel(false);
-      console.log('🏁 Channel creation process finished');
-    }
-  };
 
   return (
     <View style={styles.container}>

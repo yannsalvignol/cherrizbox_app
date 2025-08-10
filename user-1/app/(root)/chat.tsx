@@ -2,7 +2,7 @@ import { getTheme } from '@/lib/chat-theme';
 import { dataCache } from '@/lib/data-cache';
 import { useGlobalContext } from '@/lib/global-provider';
 import { imageCache } from '@/lib/image-cache';
-import { client } from '@/lib/stream-chat';
+import { client, connectUser } from '@/lib/stream-chat';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -10,7 +10,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Image, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { Client, Databases, Query } from 'react-native-appwrite';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Channel, Chat, MessageAvatar, MessageList, OverlayProvider, ReactionData, useMessageContext, useThreadContext } from 'stream-chat-react-native';
+import { Channel, Chat, MessageAvatar, MessageList, OverlayProvider, ReactionData, useMessageContext } from 'stream-chat-react-native';
 import loadingIcon from '../../assets/icon/loading-icon.png';
 import { config } from '../../lib/appwrite';
 
@@ -43,46 +43,9 @@ export const CustomMessageAvatar = (props: any) => {
   const message = messageContext?.message || props.message;
   const channel = messageContext?.channel;
   
-  // Check if we're in a thread
-  const threadContext = useThreadContext();
-  const isInThread = !!threadContext?.thread;
-  const threadMessages = threadContext?.threadMessages || [];
+
   
-  // Function to check if we should show avatar based on 5-minute logic (same as timestamp)
-  const shouldShowAvatar = () => {
-    if (!message?.created_at || !message?.user?.id) return false;
-    
-    const currentMessageTime = new Date(message.created_at);
-    const currentUserId = message.user.id;
-    
-    // Use thread messages if we're in a thread, otherwise use channel messages
-    const messages = isInThread ? threadMessages : Object.values(channel?.state.messages || {});
-    
-    // Find all messages from the same user
-    const userMessages = messages
-      .filter((msg: any) => msg.user?.id === currentUserId)
-      .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-    
-    const currentMessageIndex = userMessages.findIndex((msg: any) => msg.id === message.id);
-    
-    // If this is the last message from this user overall, show avatar
-    if (currentMessageIndex === userMessages.length - 1) {
-      return true;
-    }
-    
-    // Get the next message from the same user
-    const nextMessage = userMessages[currentMessageIndex + 1];
-    if (!nextMessage?.created_at) {
-      return true; // Show avatar if we can't find next message
-    }
-    
-    const nextMessageTime = new Date(nextMessage.created_at);
-    const timeDifference = nextMessageTime.getTime() - currentMessageTime.getTime();
-    const fiveMinutesInMs = 5 * 60 * 1000; // 5 minutes in milliseconds
-    
-    // Show avatar if more than 5 minutes will pass before the next message
-    return timeDifference >= fiveMinutesInMs;
-  };
+
   
   useEffect(() => {
     const fetchProfileImage = async () => {
@@ -151,8 +114,6 @@ export const CustomMessageAvatar = (props: any) => {
     fetchProfileImage();
   }, [message?.user?.id]);
 
-  const showAvatar = shouldShowAvatar();
-
   // If we have a custom profile image, render it
   if (profileImage) {
     return (
@@ -163,7 +124,6 @@ export const CustomMessageAvatar = (props: any) => {
         marginRight: 8,
         overflow: 'hidden',
         backgroundColor: '#2A2A2A',
-        opacity: showAvatar ? 1 : 0, // Make invisible but keep space
       }}>
         <Image
           source={{ uri: profileImage }}
@@ -177,12 +137,8 @@ export const CustomMessageAvatar = (props: any) => {
     );
   }
 
-  // Fall back to default MessageAvatar if no custom image, also apply opacity
-  return (
-    <View style={{ opacity: showAvatar ? 1 : 0 }}>
-      <MessageAvatar {...props} />
-    </View>
-  );
+  // Fall back to default MessageAvatar if no custom image
+  return <MessageAvatar {...props} />;
 };
 
 // Custom MessageStatus component that hides the default timestamp completely
@@ -206,7 +162,7 @@ const customReactions: ReactionData[] = [
 
 export default function ChatScreen() {
   const { channelId, creatorName, chatType } = useLocalSearchParams();
-  const { user, isStreamConnected, posts } = useGlobalContext();
+  const { user, isStreamConnected, setIsStreamConnected, posts } = useGlobalContext();
   const [groupChannel, setGroupChannel] = useState<any>(null);
   const [dmChannel, setDmChannel] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -472,11 +428,21 @@ export default function ChatScreen() {
       try {
         if (!channelId || !user) return;
 
-        // Wait for Stream Chat connection if not connected yet
+        // Connect to Stream Chat if not connected yet
         if (!isStreamConnected) {
-          console.log('Waiting for Stream Chat connection...');
+          console.log('Stream Chat not connected, attempting to connect...');
           setLoading(true);
-          return;
+          try {
+            await connectUser(user.$id);
+            console.log('✅ Stream Chat connected successfully for chat screen');
+            // Update global state to reflect the connection
+            setIsStreamConnected(true);
+          } catch (error) {
+            console.error('❌ Failed to connect to Stream Chat:', error);
+            setError('Failed to connect to chat. Please try again.');
+            setLoading(false);
+            return;
+          }
         }
 
         // Get creator ID from channel ID

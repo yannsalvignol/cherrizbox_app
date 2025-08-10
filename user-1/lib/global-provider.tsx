@@ -2,7 +2,7 @@ import { Models } from 'appwrite';
 import * as FileSystem from 'expo-file-system';
 import React, { createContext, ReactNode, useContext, useEffect, useRef, useState } from "react";
 
-import { deleteExpiredSubscriptions, getAllPosts, getCurrentUser, getSubscriptionStatus, getUserProfile, getUserSubscriptions } from "./appwrite";
+import { clearStreamChatToken, deleteExpiredSubscriptions, getAllPosts, getCurrentUser, getSubscriptionStatus, getUserProfile, getUserSubscriptions } from "./appwrite";
 import { connectUser, disconnectUser, preSetupChannels } from "./stream-chat";
 import { useAppwrite } from "./useAppwrite";
 
@@ -84,6 +84,7 @@ interface GlobalContextType {
   loading: boolean;
   refetch: (newParams?: any) => Promise<void>;
   isStreamConnected: boolean;
+  setIsStreamConnected: (connected: boolean) => void;
   creators: UserProfile[];
   refreshCreators: () => Promise<void>;
   posts: Post[];
@@ -228,12 +229,12 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
         });
       setCreators(filteredSubscriptions);
 
-      // Pre-setup channels for active subscriptions
+      // Only pre-setup channels if Stream Chat is connected (meaning user has active subscriptions)
       const activeCreatorIds = filteredSubscriptions
         .filter(sub => sub.status === 'active')
         .map(sub => sub.creatorAccountId);
 
-      if (activeCreatorIds.length > 0) {
+      if (activeCreatorIds.length > 0 && isStreamConnected) {
         console.log('🚀 Starting channel pre-setup for active creators...');
         // Run channel pre-setup in background (don't await to avoid blocking UI)
         preSetupChannels(user.$id, activeCreatorIds).then((result) => {
@@ -241,6 +242,8 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
         }).catch((error) => {
           console.error('❌ Channel pre-setup failed:', error);
         });
+      } else if (activeCreatorIds.length > 0) {
+        console.log('⚠️ Active subscriptions found but Stream Chat not connected - skipping channel pre-setup');
       }
     } catch (error) {
       console.error('Error loading creators:', error);
@@ -341,15 +344,43 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
     const handleConnection = async () => {
       if (user && !loading) {
         if (previousUserId.current !== user.$id) {
-          if (previousUserId.current) await disconnectUser();
-          await connectUser(user.$id);
-              setIsStreamConnected(true);
-              previousUserId.current = user.$id;
-          loadCreators();
-          loadPosts();
-          loadUserProfile();
+          // Always load user profile and check subscriptions first
+          await loadUserProfile();
+          await loadCreators();
+          
+          // Check if user has any active subscriptions
+          const userSubscriptions = await getUserSubscriptions(user.$id);
+          const hasActiveSubscriptions = userSubscriptions.some(sub => 
+            sub.status === 'active' && (!sub.endsAt || new Date(sub.endsAt) > new Date())
+          );
+          
+          console.log('🔍 User has active subscriptions:', hasActiveSubscriptions);
+          
+          // Only initialize heavy processes if user has active subscriptions
+          if (hasActiveSubscriptions) {
+            console.log('🚀 User has subscriptions - initializing Stream Chat and heavy processes');
+            if (previousUserId.current) await disconnectUser();
+            await connectUser(user.$id);
+            setIsStreamConnected(true);
+            previousUserId.current = user.$id;
+            loadPosts();
+          } else {
+            console.log('⚠️ User has no active subscriptions - skipping Stream Chat initialization');
+            // Set basic states without heavy initialization
+            setIsStreamConnected(false);
+            previousUserId.current = user.$id;
+            // Load posts anyway for the main feed
+            loadPosts();
+          }
         }
       } else if (!user && !loading && previousUserId.current) {
+            // Clear cached token on logout
+            try {
+              await clearStreamChatToken(previousUserId.current);
+            } catch (error) {
+              console.error('Error clearing cached Stream Chat token:', error);
+            }
+            
             await disconnectUser();
             setIsStreamConnected(false);
             previousUserId.current = null;
@@ -372,6 +403,7 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
         loading,
         refetch,
         isStreamConnected,
+        setIsStreamConnected,
         creators,
         refreshCreators,
         posts,

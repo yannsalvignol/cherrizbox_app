@@ -74,7 +74,7 @@ export default function WelcomeAnimation() {
             // Final vibration
             triggerVibration([0, 100]);
             
-            // Navigate immediately
+            // Navigate immediately - don't wait for Stream Chat if user has no subscriptions
             router.replace('/(root)/(tabs)');
             
             // Fade out overlay
@@ -178,8 +178,8 @@ export default function WelcomeAnimation() {
                             Your content is ready! 🎉
                         </Text>
                         
-                        {/* Show channel setup status if creators are loaded */}
-                        {creators.length > 0 && (
+                        {/* Show initialization status based on subscriptions */}
+                        {creators.length > 0 ? (
                             <Text style={{
                                 fontSize: 14,
                                 color: 'rgba(255, 255, 255, 0.6)',
@@ -187,7 +187,20 @@ export default function WelcomeAnimation() {
                                 textAlign: 'center',
                                 marginTop: 16,
                             }}>
-                                Setting up {creators.filter(c => c.status === 'active').length} creator channels...
+                                {creators.filter(c => c.status === 'active').length > 0 
+                                    ? `Setting up ${creators.filter(c => c.status === 'active').length} creator channels...`
+                                    : 'Loading your content...'
+                                }
+                            </Text>
+                        ) : (
+                            <Text style={{
+                                fontSize: 14,
+                                color: 'rgba(255, 255, 255, 0.6)',
+                                fontFamily: 'Urbanist-Regular',
+                                textAlign: 'center',
+                                marginTop: 16,
+                            }}>
+                                Loading your content...
                             </Text>
                         )}
                     </Animated.View>

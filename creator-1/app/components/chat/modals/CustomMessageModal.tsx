@@ -12,9 +12,11 @@ interface CustomMessageModalProps {
   onClose: () => void;
   message: any;
   onThreadReply: (message: any) => void;
+  onEditMessage?: (message: any) => void;
+  onOpenImage?: (imageUrl: string) => void;
 }
 
-const CustomMessageModal = ({ visible, onClose, message, onThreadReply }: CustomMessageModalProps) => {
+const CustomMessageModal = ({ visible, onClose, message, onThreadReply, onEditMessage, onOpenImage }: CustomMessageModalProps) => {
   const [showReactions, setShowReactions] = useState(false);
   const { supportedReactions } = useMessagesContext();
   const { user } = useGlobalContext();
@@ -118,6 +120,32 @@ const CustomMessageModal = ({ visible, onClose, message, onThreadReply }: Custom
       setTimeout(() => {
         onThreadReply(message);
       }, 50);
+    }
+  };
+
+  // Handle edit message
+  const handleEditMessage = () => {
+    handleClose();
+    if (message && onEditMessage) {
+      setTimeout(() => {
+        onEditMessage(message);
+      }, 50);
+    }
+  };
+
+  // Handle open image
+  const handleOpenImage = () => {
+    handleClose();
+    if (message && onOpenImage) {
+      // Find the first image attachment
+      const imageAttachment = message.attachments?.find((att: any) => 
+        att?.type === 'custom_photo' || att?.type === 'paid_content' || att?.image_url
+      );
+      if (imageAttachment?.image_url) {
+        setTimeout(() => {
+          onOpenImage(imageAttachment.image_url);
+        }, 50);
+      }
     }
   };
 
@@ -302,6 +330,88 @@ const CustomMessageModal = ({ visible, onClose, message, onThreadReply }: Custom
                 </Text>
                 <Ionicons name="chevron-forward" size={14} color="#666666" />
               </TouchableOpacity>
+
+              {/* Open Image Button - only show for messages with images */}
+              {message?.attachments?.some((att: any) => att?.type === 'custom_photo' || att?.type === 'paid_content' || att?.image_url) && onOpenImage && (
+                <TouchableOpacity
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingVertical: 12,
+                    paddingHorizontal: 12,
+                    marginBottom: 12,
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: 14,
+                    borderWidth: 1,
+                    borderColor: '#2196F3',
+                  }}
+                  onPress={handleOpenImage}
+                  activeOpacity={0.8}
+                >
+                  <View style={{
+                    backgroundColor: '#2196F3',
+                    borderRadius: 16,
+                    width: 32,
+                    height: 32,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    marginRight: 12,
+                  }}>
+                    <Ionicons name="expand-outline" size={16} color="#FFFFFF" />
+                  </View>
+                  <Text style={{
+                    color: '#2196F3',
+                    fontSize: 14,
+                    fontWeight: '600',
+                    fontFamily: 'questrial',
+                    flex: 1,
+                  }}>
+                    Open Image
+                  </Text>
+                  <Ionicons name="chevron-forward" size={14} color="#666666" />
+                </TouchableOpacity>
+              )}
+
+              {/* Edit Message Button - only show for user's own text messages */}
+              {message?.user?.id === user?.$id && message?.text && !message?.attachments?.length && onEditMessage && (
+                <TouchableOpacity
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingVertical: 12,
+                    paddingHorizontal: 12,
+                    marginBottom: 12,
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: 14,
+                    borderWidth: 1,
+                    borderColor: 'black',
+                  }}
+                  onPress={handleEditMessage}
+                  activeOpacity={0.8}
+                >
+                  <View style={{
+                    backgroundColor: 'black',
+                    borderRadius: 16,
+                    width: 32,
+                    height: 32,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    marginRight: 12,
+                  }}>
+                    <Ionicons name="pencil-outline" size={16} color="#FFFFFF" />
+                  </View>
+                  <Text style={{
+                    color: 'black',
+                    fontSize: 14,
+                    fontWeight: '600',
+                    fontFamily: 'questrial',
+                    flex: 1,
+                  }}>
+                    Edit Message
+                  </Text>
+                  <Ionicons name="chevron-forward" size={14} color="#666666" />
+                </TouchableOpacity>
+              )}
 
               {/* Delete Message Button - only show for user's own messages */}
               {message?.user?.id === user?.$id && (

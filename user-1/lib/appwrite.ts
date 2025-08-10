@@ -69,6 +69,73 @@ export const databases = new Databases(client);
 export const storage = new Storage(client);
 export const functions = new Functions(client);
 
+// Stream Chat token generation function (moved from test-stream-token.ts to avoid circular dependency)
+export async function testStreamTokenGeneration() {
+    try {
+        console.log('Starting token generation test...');
+
+        // First ensure we're logged in
+        console.log('Checking current user...');
+        const currentUser = await account.get();
+        if (!currentUser) {
+            throw new Error("User not authenticated");
+        }
+        console.log('Current user found:', currentUser.$id);
+
+        // Initialize Functions service
+        console.log('Initializing Functions service...');
+        const functions = new Functions(client);
+
+        // Call the Appwrite function
+        console.log('Calling Appwrite function...');
+        try {
+            const response = await functions.createExecution(
+                process.env.EXPO_PUBLIC_STREAM_TOKEN_FUNCTION_ID,
+                '', // No need to send session token in body
+                false,
+                '/generate-token',
+                ExecutionMethod.POST,
+                {
+                    'Content-Type': 'application/json'
+                }
+            );
+            console.log('Function response received:', response);
+
+            if (!response.responseBody) {
+                throw new Error('Empty response from function');
+            }
+
+            const result = JSON.parse(response.responseBody);
+            console.log('Parsed response:', result);
+
+            if (!result.success) {
+                throw new Error(result.error || 'Unknown error from function');
+            }
+
+            return result;
+        } catch (executionError: any) {
+            console.error('Function execution error details:', {
+                name: executionError?.name,
+                message: executionError?.message,
+                code: executionError?.code,
+                type: executionError?.type,
+                response: executionError?.response
+            });
+            throw new Error(`Function execution failed: ${executionError?.message || 'Unknown error'}`);
+        }
+    } catch (error) {
+        console.error('Error testing Stream Chat token generation:', error);
+        if (error instanceof Error) {
+            console.error('Error details:', {
+                name: error.name,
+                message: error.message,
+                stack: error.stack
+            });
+        }
+        throw error;
+    }
+}
+
 export const createUser = async (email: string, password: string, username: string) => {
     try {
         const newAccount = await account.create(ID.unique(), email, password, username);
@@ -274,6 +341,7 @@ export const getUserProfile = async (userId: string) => {
 
 interface ProfileData {
     userId: string;
+    streamChatToken?: string | null;
     [key: string]: any;
 }
 
@@ -314,6 +382,7 @@ export const updateUserProfile = async (userId: string, data: ProfileData): Prom
         if (data.gender !== undefined) fieldsToUpdate.gender = data.gender;
         if (data.phoneNumber !== undefined) fieldsToUpdate.phoneNumber = data.phoneNumber;
         if (data.profileImageUri !== undefined) fieldsToUpdate.profileImageUri = data.profileImageUri;
+        if (data.streamChatToken !== undefined) fieldsToUpdate.streamChatToken = data.streamChatToken;
 
         const updatedUser = await databases.updateDocument(
             config.databaseId!,
@@ -330,6 +399,58 @@ export const updateUserProfile = async (userId: string, data: ProfileData): Prom
             throw new Error(error.message || "Failed to update profile");
         }
         throw new Error("Failed to update profile");
+    }
+};
+
+// Get or generate Stream Chat token with caching
+export const getOrGenerateStreamChatToken = async (userId: string): Promise<string> => {
+    try {
+        console.log('🎫 Getting or generating Stream Chat token for user:', userId);
+
+        // First, check if we have a cached token
+        const userProfile = await getUserProfile(userId);
+        if (userProfile?.streamChatToken) {
+            console.log('✅ Found cached Stream Chat token');
+            return userProfile.streamChatToken;
+        }
+
+        console.log('❌ No cached token found, generating new one...');
+
+        // Generate new token using the existing function
+        const tokenResult = await testStreamTokenGeneration();
+        if (!tokenResult.success || !tokenResult.token) {
+            throw new Error('Failed to generate Stream Chat token');
+        }
+
+        console.log('✅ New Stream Chat token generated');
+
+        // Cache the token in the user document
+        await updateUserProfile(userId, { 
+            userId, 
+            streamChatToken: tokenResult.token 
+        });
+
+        console.log('💾 Stream Chat token cached successfully');
+
+        return tokenResult.token;
+    } catch (error) {
+        console.error('❌ Error getting/generating Stream Chat token:', error);
+        throw error;
+    }
+};
+
+// Clear cached Stream Chat token (useful for logout or token refresh)
+export const clearStreamChatToken = async (userId: string): Promise<void> => {
+    try {
+        console.log('🗑️ Clearing cached Stream Chat token for user:', userId);
+        await updateUserProfile(userId, { 
+            userId, 
+            streamChatToken: null 
+        });
+        console.log('✅ Stream Chat token cleared');
+    } catch (error) {
+        console.error('❌ Error clearing Stream Chat token:', error);
+        throw error;
     }
 };
 

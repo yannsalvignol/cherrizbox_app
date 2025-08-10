@@ -4,6 +4,7 @@ import React from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   RefreshControl,
   Text,
   View
@@ -61,9 +62,12 @@ export const ChannelList: React.FC<ChannelListProps> = ({
         justifyContent: 'center',
         backgroundColor: '#DCDEDF'
       }}>
-        <ActivityIndicator size="large" color="#FB2355" />
+        <Image 
+          source={require('../../../assets/icon/loading-icon.png')} 
+          style={{ width: 80, height: 80, marginBottom: 16 }} 
+        />
         <Text style={{ 
-          color: '#FB2355', 
+          color: 'black', 
           fontSize: 18, 
           marginTop: 12,
           fontFamily: 'Urbanist-Bold'
@@ -130,8 +134,9 @@ export const ChannelList: React.FC<ChannelListProps> = ({
             {isFirstDM && !searchQuery && (
               <View style={{
                 paddingHorizontal: 20,
-                paddingVertical: 12,
+                paddingVertical: 20,
                 backgroundColor: '#DCDEDF',
+                marginTop: 16,
               }}>
                 <Text style={{
                   color: '#888888',
@@ -150,8 +155,9 @@ export const ChannelList: React.FC<ChannelListProps> = ({
             {isGroupChat && index === 0 && !searchQuery && (
               <View style={{
                 paddingHorizontal: 20,
-                paddingVertical: 12,
+                paddingVertical: 8,
                 backgroundColor: '#DCDEDF',
+                marginBottom: 8,
               }}>
                 <Text style={{
                   color: 'black',
@@ -203,7 +209,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
         if (isLoadingMore) {
           return (
             <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-              <ActivityIndicator size="small" color="#FB2355" />
+              <ActivityIndicator size="small" color="black" />
               <Text style={{ color: '#888888', fontFamily: 'Urbanist-Regular', fontSize: 14, marginTop: 8 }}>
                 Loading more chats...
               </Text>

@@ -1357,7 +1357,7 @@ export default function Index() {
                     style={{ width: 80, height: 80, marginBottom: 16 }} 
                   />
                   <Text style={{ 
-                    color: '#FB2355', 
+                    color: 'black', 
                     fontSize: 18, 
                     fontFamily: 'Urbanist-Bold',
                     marginBottom: 12,
@@ -1365,7 +1365,7 @@ export default function Index() {
                   }}>
                     Checking requirements...
                   </Text>
-                  <ActivityIndicator size="large" color="#FB2355" />
+                  <ActivityIndicator size="large" color="black" />
                 </>
               ) : showInlineVerification ? (
                 <SocialMediaVerificationModal
@@ -1391,12 +1391,12 @@ export default function Index() {
               ) : missingChannelConditions.length > 0 ? (
                 <>
                   <View style={{
-                    backgroundColor: 'rgba(251, 35, 85, 0.05)',
+                    backgroundColor: 'rgba(175, 137, 146, 0.05)',
                     borderRadius: 20,
                     padding: 28,
                     marginBottom: 24,
                     borderWidth: 2,
-                    borderColor: 'rgba(251, 35, 85, 0.2)',
+                    borderColor: 'rgba(0, 0, 0, 0.2)',
                     width: '100%',
                     alignItems: 'center'
                   }}>
@@ -1581,12 +1581,12 @@ export default function Index() {
           {/* Subscriptions Section */}
           <View style={{ width: '100%', flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
             <View style={{ flex: 1, height: 1, backgroundColor: '#23232B', marginRight: 8 }} />
-            <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 18, letterSpacing: 1, textAlign: 'center' }}>Subscriptions</Text>
+            <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 18, letterSpacing: 1, textAlign: 'center' }}>Subscriptions</Text>
             <View style={{ flex: 1, height: 1, backgroundColor: '#23232B', marginLeft: 8 }} />
           </View>
           {/* Big Total Subscribers Card with gradient border */}
           <LinearGradient
-            colors={["#fff", "#FB2355"]}
+            colors={["black", "#FB2355"]}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
             style={{
               borderRadius: 22,
@@ -1596,7 +1596,7 @@ export default function Index() {
             }}
           >
             <View style={{
-              backgroundColor: '#18181B',
+              backgroundColor: 'white',
               borderRadius: 18,
               minHeight: 110,
               paddingVertical: 18,
@@ -1609,12 +1609,12 @@ export default function Index() {
               elevation: 3,
             }}>
               <View style={{ alignItems: 'center', marginBottom: 6 }}>
-                <View style={{ backgroundColor: '#fff2', borderRadius: 24, padding: 10, marginBottom: 8 }}>
+                <View style={{ backgroundColor: '#2e6f40', borderRadius: 24, padding: 10, marginBottom: 8 }}>
                   <Ionicons name="star" size={32} color="#fff" />
                 </View>
-                <Text style={{ color: '#fff', fontFamily: 'Urbanist-Bold', fontSize: 16, letterSpacing: 0.5 }}>Total Subscribers</Text>
+                <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 16, letterSpacing: 0.5 }}>Total Current Subscribers</Text>
               </View>
-              <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 40, marginBottom: 0, textAlign: 'center' }}>
+              <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 40, marginBottom: 0, textAlign: 'center' }}>
                 {(typeof creatorFinancials?.number_of_monthly_subscribers === 'number' || typeof creatorFinancials?.number_of_yearly_subscriptions === 'number')
                   ? ((creatorFinancials?.number_of_monthly_subscribers || 0) + (creatorFinancials?.number_of_yearly_subscriptions || 0))
                   : '—'}
@@ -1625,10 +1625,10 @@ export default function Index() {
           <View style={{ width: '100%', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
             {/* Monthly */}
             <View style={{
-              backgroundColor: '#18181B',
+              backgroundColor: 'white',
               borderRadius: 16,
               borderWidth: 2,
-              borderColor: '#fff',
+              borderColor: 'black',
               width: '48%',
               minHeight: 80,
               paddingVertical: 14,
@@ -1640,18 +1640,18 @@ export default function Index() {
               shadowRadius: 6,
               elevation: 3,
             }}>
-              <View style={{ backgroundColor: '#FFD70022', borderRadius: 20, padding: 8, marginBottom: 6 }}>
+              <View style={{ backgroundColor: 'black', borderRadius: 20, padding: 8, marginBottom: 6 }}>
                 <Ionicons name="people" size={22} color="#fff" />
               </View>
-              <Text style={{ color: '#fff', fontFamily: 'Urbanist-Bold', fontSize: 14, marginBottom: 2 }}>Monthly</Text>
-              <Text style={{ color: '#fff', fontFamily: 'Urbanist-Bold', fontSize: 26 }}>{creatorFinancials?.number_of_monthly_subscribers ?? '—'}</Text>
+              <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 14, marginBottom: 2 }}>Monthly</Text>
+              <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 26 }}>{creatorFinancials?.number_of_monthly_subscribers ?? '—'}</Text>
             </View>
             {/* Yearly */}
             <View style={{
-              backgroundColor: '#18181B',
+              backgroundColor: 'white',
               borderRadius: 16,
               borderWidth: 2,
-              borderColor: '#fff',
+              borderColor: 'black',
               width: '48%',
               minHeight: 80,
               paddingVertical: 14,
@@ -1663,18 +1663,18 @@ export default function Index() {
               shadowRadius: 6,
               elevation: 3,
             }}>
-              <View style={{ backgroundColor: '#4CAF5022', borderRadius: 20, padding: 8, marginBottom: 6 }}>
+              <View style={{ backgroundColor: 'black', borderRadius: 20, padding: 8, marginBottom: 6 }}>
                 <MaterialCommunityIcons name="calendar-star" size={22} color="#fff" />
               </View>
-              <Text style={{ color: '#fff', fontFamily: 'Urbanist-Bold', fontSize: 14, marginBottom: 2 }}>Yearly</Text>
-              <Text style={{ color: '#fff', fontFamily: 'Urbanist-Bold', fontSize: 26 }}>{creatorFinancials?.number_of_yearly_subscriptions ?? '—'}</Text>
+              <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 14, marginBottom: 2 }}>Yearly</Text>
+              <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 26 }}>{creatorFinancials?.number_of_yearly_subscriptions ?? '—'}</Text>
             </View>
           </View>
           {/* Cancelled Row */}
           <View style={{ width: '100%', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 18 }}>
             {/* Cancelled Monthly */}
             <View style={{
-              backgroundColor: '#18181B',
+              backgroundColor: 'white',
               borderRadius: 16,
               borderWidth: 2,
               borderColor: '#FB2355',
@@ -1689,7 +1689,7 @@ export default function Index() {
               shadowRadius: 6,
               elevation: 3,
             }}>
-              <View style={{ backgroundColor: '#FF980022', borderRadius: 20, padding: 8, marginBottom: 6 }}>
+              <View style={{ backgroundColor: 'white', borderRadius: 20, padding: 8, marginBottom: 6 }}>
                 <Ionicons name="close-circle" size={22} color="#FB2355" />
               </View>
               <Text style={{ color: '#FB2355', fontFamily: 'Urbanist-Bold', fontSize: 14, marginBottom: 2 }}>Cancelled Monthly</Text>
@@ -1697,7 +1697,7 @@ export default function Index() {
             </View>
             {/* Cancelled Yearly */}
             <View style={{
-              backgroundColor: '#18181B',
+              backgroundColor: 'white',
               borderRadius: 16,
               borderWidth: 2,
               borderColor: '#FB2355',
@@ -1712,7 +1712,7 @@ export default function Index() {
               shadowRadius: 6,
               elevation: 3,
             }}>
-              <View style={{ backgroundColor: '#F4433622', borderRadius: 20, padding: 8, marginBottom: 6 }}>
+              <View style={{ backgroundColor: 'white', borderRadius: 20, padding: 8, marginBottom: 6 }}>
                 <Ionicons name="close-circle-outline" size={22} color="#FB2355" />
               </View>
               <Text style={{ color: '#FB2355', fontFamily: 'Urbanist-Bold', fontSize: 14, marginBottom: 2 }}>Cancelled Yearly</Text>
@@ -1723,16 +1723,16 @@ export default function Index() {
           {/* Purchases Section */}
           <View style={{ width: '100%', flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
             <View style={{ flex: 1, height: 1, backgroundColor: '#23232B', marginRight: 8 }} />
-            <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 18, letterSpacing: 1, textAlign: 'center' }}>Purchases</Text>
+            <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 18, letterSpacing: 1, textAlign: 'center' }}>Purchases</Text>
             <View style={{ flex: 1, height: 1, backgroundColor: '#23232B', marginLeft: 8 }} />
           </View>
           <View style={{ width: '100%', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 18 }}>
             {/* Photos */}
               <View style={{
-              backgroundColor: '#18181B',
+              backgroundColor: 'white',
                 borderRadius: 16,
                 borderWidth: 1,
-              borderColor: '#23232B',
+              borderColor: 'white',
               width: '32%',
               minHeight: 80,
               paddingVertical: 14,
@@ -1744,18 +1744,18 @@ export default function Index() {
               shadowRadius: 6,
               elevation: 3,
             }}>
-                <View style={{ backgroundColor: '#fff2', borderRadius: 20, padding: 8, marginBottom: 6 }}>
+                <View style={{ backgroundColor: 'black', borderRadius: 20, padding: 8, marginBottom: 6 }}>
                   <Ionicons name="image" size={22} color="#fff" />
                 </View>
-                <Text style={{ color: '#fff', fontFamily: 'Urbanist-Bold', fontSize: 14, marginBottom: 2 }}>Photos</Text>
-                <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 26 }}>{creatorFinancials?.number_of_photos ?? '—'}</Text>
+                <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 14, marginBottom: 2 }}>Photos</Text>
+                <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 26 }}>{creatorFinancials?.number_of_photos ?? '—'}</Text>
               </View>
               {/* Videos */}
               <View style={{
-                backgroundColor: '#18181B',
+                backgroundColor: 'white',
                 borderRadius: 16,
                 borderWidth: 1,
-                borderColor: '#23232B',
+                borderColor: 'white',
                 width: '32%',
                 minHeight: 80,
                 paddingVertical: 14,
@@ -1767,18 +1767,18 @@ export default function Index() {
                 shadowRadius: 6,
                 elevation: 3,
               }}>
-                <View style={{ backgroundColor: '#fff2', borderRadius: 20, padding: 8, marginBottom: 6 }}>
+                <View style={{ backgroundColor: 'black', borderRadius: 20, padding: 8, marginBottom: 6 }}>
                   <Ionicons name="videocam" size={22} color="#fff" />
                 </View>
-                <Text style={{ color: '#fff', fontFamily: 'Urbanist-Bold', fontSize: 14, marginBottom: 2 }}>Videos</Text>
-                <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 26 }}>{creatorFinancials?.number_of_videos ?? '—'}</Text>
+                <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 14, marginBottom: 2 }}>Videos</Text>
+                <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 26 }}>{creatorFinancials?.number_of_videos ?? '—'}</Text>
               </View>
               {/* Files */}
               <View style={{
-                backgroundColor: '#18181B',
+                backgroundColor: 'white',
                 borderRadius: 16,
                 borderWidth: 1,
-                borderColor: '#23232B',
+                borderColor: 'white',
                 width: '32%',
                 minHeight: 80,
                 paddingVertical: 14,
@@ -1790,11 +1790,11 @@ export default function Index() {
                 shadowRadius: 6,
                 elevation: 3,
               }}>
-                <View style={{ backgroundColor: '#fff2', borderRadius: 20, padding: 8, marginBottom: 6 }}>
+                <View style={{ backgroundColor: 'black', borderRadius: 20, padding: 8, marginBottom: 6 }}>
                   <Ionicons name="document" size={22} color="#fff" />
                 </View>
-                <Text style={{ color: '#fff', fontFamily: 'Urbanist-Bold', fontSize: 14, marginBottom: 2 }}>Files</Text>
-                <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 26 }}>{creatorFinancials?.number_of_files ?? '—'}</Text>
+                <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 14, marginBottom: 2 }}>Files</Text>
+                <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 26 }}>{creatorFinancials?.number_of_files ?? '—'}</Text>
               </View>
           </View>
 
@@ -1827,18 +1827,18 @@ export default function Index() {
       {selectedTab === 'audience' && (
         <View style={{ flex: 1, backgroundColor: '#DCDEDF' }}>
           {/* Fixed Header with Search and Filters */}
-          <View style={{ paddingHorizontal: 16, paddingTop: 24, paddingBottom: 16 }}>
+          <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 16 }}>
             {/* Search Bar */}
             <View style={{ width: '100%', marginBottom: 12 }}>
                 <View style={{
-                backgroundColor: '#23232B',
+                backgroundColor: 'white',
                 borderRadius: 12,
                 flexDirection: 'row',
                 alignItems: 'center',
                 paddingHorizontal: 12,
                 paddingVertical: 8,
               }}>
-                <Ionicons name="search" size={20} color="#888" style={{ marginRight: 8 }} />
+                <Ionicons name="search" size={20} color="black" style={{ marginRight: 4 }} />
                 <TextInput
                   style={{
                     flex: 1,
@@ -1849,7 +1849,7 @@ export default function Index() {
                     padding: 0,
                     letterSpacing: 0.2,
                   }}
-                  placeholder="Search by email or username..."
+                  placeholder="Search by username..."
                   placeholderTextColor="#888"
                   value={audienceSearch}
                   onChangeText={setAudienceSearch}
@@ -1874,17 +1874,17 @@ export default function Index() {
                   key={tag.key}
                   onPress={() => setAudienceFilter(tag.key as 'recent' | 'income_high' | 'income_low')}
                   style={{
-                    backgroundColor: audienceFilter === tag.key ? '#FB2355' : '#23232B',
+                    backgroundColor: audienceFilter === tag.key ? 'white' : '#DCDEDF',
                     borderRadius: 20,
                     paddingVertical: 7,
                     paddingHorizontal: 16,
                     marginHorizontal: 2,
                     borderWidth: audienceFilter === tag.key ? 1.5 : 1,
-                    borderColor: audienceFilter === tag.key ? '#FB2355' : '#333',
+                    borderColor: audienceFilter === tag.key ? 'black' : '#333',
                   }}
                 >
                   <Text style={{
-                    color: audienceFilter === tag.key ? 'white' : '#888',
+                    color: audienceFilter === tag.key ? 'black' : '#888',
                     fontFamily: audienceFilter === tag.key ? 'Urbanist-Bold' : 'Urbanist-Regular',
                     fontSize: 14,
                   }}>{tag.label}</Text>
@@ -1910,8 +1910,8 @@ export default function Index() {
               <RefreshControl
                 refreshing={refreshing || isLoadingAudience}
                 onRefresh={onRefresh}
-                tintColor="#FB2355"
-                colors={["#FB2355"]}
+                tintColor="black"
+                colors={["black"]}
                 progressBackgroundColor="#DCDEDF"
               />
             }
@@ -1919,8 +1919,8 @@ export default function Index() {
             {/* Loading indicator moved below search and filters */}
             {isLoadingAudience ? (
               <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 32 }}>
-                <ActivityIndicator size="large" color="#FB2355" />
-                <Text style={{ color: '#FB2355', fontFamily: 'Urbanist-Bold', fontSize: 16, marginTop: 12 }}>Loading subscribers...</Text>
+                <ActivityIndicator size="large" color="black" />
+                <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 16, marginTop: 12 }}>Loading subscribers...</Text>
               </View>
             ) : filteredAudience.length === 0 ? (
               <Text style={{ 
@@ -1945,7 +1945,7 @@ export default function Index() {
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    backgroundColor: '#18181B',
+                    backgroundColor: 'white',
                     borderRadius: 14,
                     padding: 14,
                     marginBottom: 12,
@@ -1966,19 +1966,19 @@ export default function Index() {
                     width: 48,
                     height: 48,
                     borderRadius: 24,
-                    backgroundColor: '#FB2355',
+                    backgroundColor: '#d3d3d3',
                     alignItems: 'center',
                     justifyContent: 'center',
                     marginRight: 16,
                     overflow: 'hidden',
                   }}>
-                    <Text style={{ color: 'white', fontSize: 22, fontWeight: 'bold', fontFamily: 'Urbanist-Bold' }}>
+                    <Text style={{ color: 'black', fontSize: 22, fontWeight: 'bold', fontFamily: 'Urbanist-Bold' }}>
                       {sub.userName ? sub.userName[0]?.toUpperCase() : (sub.customerEmail ? sub.customerEmail[0]?.toUpperCase() : 'U')}
                 </Text>
               </View>
                   {/* Info */}
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 17 }}>
+                    <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 17 }}>
                       {sub.userName || sub.customerEmail || 'No name'}
                     </Text>
                     <Text style={{ color: '#CCCCCC', fontFamily: 'Urbanist-Regular', fontSize: 14 }}>
@@ -1987,7 +1987,7 @@ export default function Index() {
                   </View>
                   {/* Plan info */}
                   <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={{ color: '#FB2355', fontFamily: 'Urbanist-Bold', fontSize: 14 }}>
+                    <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 14 }}>
                       {sub.planInterval ? sub.planInterval.charAt(0).toUpperCase() + sub.planInterval.slice(1) : ''}
                     </Text>
                     <Text style={{ color: '#FFD700', fontFamily: 'Urbanist-Bold', fontSize: 14 }}>
@@ -2021,12 +2021,12 @@ export default function Index() {
             {/* Lifetime Volume */}
             {creatorFinancials?.lifetimeVolume !== undefined && (
               <View style={{
-                backgroundColor: '#2A1A2A',
+                backgroundColor: 'black',
                 borderRadius: 16,
                 padding: 20,
                 marginBottom: 20,
                 borderWidth: 1,
-                borderColor: '#FB2355'
+                borderColor: '#008000'
               }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, position: 'relative' }}>
                 <Text style={{
@@ -2091,7 +2091,7 @@ export default function Index() {
             {/* Balance and Payouts Display */}
             {creatorFinancials && (
                 <View style={{
-                  backgroundColor: '#1A1A1A',
+                  backgroundColor: 'white',
                   borderRadius: 16,
                   padding: 20,
                   marginBottom: 20,
@@ -2099,7 +2099,7 @@ export default function Index() {
                   borderColor: '#333333'
                 }}>
                   <Text style={{
-                    color: 'white',
+                    color: 'black',
                     fontSize: 18,
                     fontWeight: 'bold',
                     fontFamily: 'Urbanist-Bold',
@@ -2112,7 +2112,7 @@ export default function Index() {
                 <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
                   <Text style={{
-                    color: '#888888',
+                    color: 'black',
                       fontSize: 14,
                     fontFamily: 'Urbanist-Regular',
                       marginRight: 6
@@ -2160,7 +2160,7 @@ export default function Index() {
                 <View style={{ marginBottom: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
                   <Text style={{
-                    color: '#888888',
+                    color: 'black',
                       fontSize: 14,
                     fontFamily: 'Urbanist-Regular',
                       marginRight: 6
@@ -2199,15 +2199,15 @@ export default function Index() {
                       </View>
                     )}
                   </View>
-                  <Text style={{ color: '#FF9800', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>
+                  <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>
                     {formatPrice(creatorFinancials.stripeBalancePending || 0, userCurrency)}
                   </Text>
                 </View>
 
                 {/* Payouts Section */}
-                <View style={{ borderTopColor: '#333', borderTopWidth: 1, paddingTop: 16 }}>
+                <View style={{ borderTopColor: 'black', borderTopWidth: 1, paddingTop: 16 }}>
                   {/* Payout Tabs */}
-                  <View style={{ flexDirection: 'row', marginBottom: 12, backgroundColor: '#222', borderRadius: 8, padding: 4 }}>
+                  <View style={{ flexDirection: 'row', marginBottom: 12, backgroundColor: '#FFFAFA', borderRadius: 8, padding: 4 }}>
                     {['inTransit', 'pending'].map(tab => (
                       <TouchableOpacity
                         key={tab}
@@ -2216,11 +2216,11 @@ export default function Index() {
           flex: 1, 
                           paddingVertical: 8,
                           borderRadius: 6,
-                          backgroundColor: payoutTab === tab ? '#FB2355' : 'transparent',
+                          backgroundColor: payoutTab === tab ? '#d3d3d3' : 'transparent',
                         }}
         >
                   <Text style={{
-            color: 'white', 
+            color: 'black', 
             fontFamily: 'Urbanist-Bold',
             textAlign: 'center',
                           fontSize: 13,
@@ -2236,20 +2236,20 @@ export default function Index() {
                    <View style={{ marginBottom: 6, paddingVertical: 4 }}>
                       {payoutTab === 'inTransit' && (
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-                          <Text style={{ color: '#E0E0E0', fontFamily: 'Urbanist-Bold', fontSize: 14 }}>
+                          <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 14 }}>
                             In Transit Amount
                           </Text>
-                          <Text style={{ color: '#BDBDBD', fontFamily: 'Urbanist-Regular', fontSize: 13 }}>
+                          <Text style={{ color: 'black', fontFamily: 'Urbanist-Regular', fontSize: 13 }}>
                              {formatPrice(creatorFinancials.payoutsInTransitAmount || 0, userCurrency)}
                           </Text>
               </View>
                       )}
                       {payoutTab === 'pending' && (
                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-                          <Text style={{ color: '#E0E0E0', fontFamily: 'Urbanist-Bold', fontSize: 14 }}>
+                          <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 14 }}>
                             Pending Amount
                           </Text>
-                          <Text style={{ color: '#BDBDBD', fontFamily: 'Urbanist-Regular', fontSize: 13 }}>
+                          <Text style={{ color: 'black', fontFamily: 'Urbanist-Regular', fontSize: 13 }}>
                              {formatPrice(creatorFinancials.payoutsPendingAmount || 0, userCurrency)}
                           </Text>
                         </View>
@@ -2280,7 +2280,7 @@ export default function Index() {
             {/* Stripe Status Display */}
             {creatorFinancials?.stripeConnectSetupComplete ? (
                 <View style={{
-                  backgroundColor: '#1A1A1A',
+                  backgroundColor: 'white',
                   borderRadius: 16,
                   padding: 20,
                 width: '100%',
@@ -2289,7 +2289,7 @@ export default function Index() {
                 marginTop: 20
                 }}>
                   <Text style={{
-                    color: 'white',
+                    color: 'black',
                     fontSize: 18,
                     fontWeight: 'bold',
                     fontFamily: 'Urbanist-Bold',
@@ -2301,14 +2301,14 @@ export default function Index() {
                 <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <Ionicons name="shield-checkmark-outline" size={20} color="#4CAF50" style={{ marginRight: 10 }} />
-                    <Text style={{ color: '#CCCCCC', fontFamily: 'Urbanist-Regular' }}>Setup Complete</Text>
+                    <Text style={{ color: 'black', fontFamily: 'Urbanist-Regular' }}>Setup Complete</Text>
                   </View>
                   <Text style={{ color: '#4CAF50', fontFamily: 'Urbanist-Bold' }}>Yes</Text>
                 </View>
                 <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <Ionicons name={creatorFinancials.stripeConnectEnabled ? "card-outline" : "alert-circle-outline"} size={20} color={creatorFinancials.stripeConnectEnabled ? '#4CAF50' : '#F44336'} style={{ marginRight: 10 }} />
-                    <Text style={{ color: '#CCCCCC', fontFamily: 'Urbanist-Regular' }}>Payments Active</Text>
+                    <Text style={{ color: 'black', fontFamily: 'Urbanist-Regular' }}>Payments Active</Text>
                   </View>
                   <Text style={{ color: creatorFinancials.stripeConnectEnabled ? '#4CAF50' : '#F44336', fontFamily: 'Urbanist-Bold' }}>
                     {creatorFinancials.stripeConnectEnabled ? 'Yes' : 'No'}
@@ -2317,7 +2317,7 @@ export default function Index() {
                 <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <Ionicons name={creatorFinancials.stripeConnectPayoutsEnabled ? "cash-outline" : "alert-circle-outline"} size={20} color={creatorFinancials.stripeConnectPayoutsEnabled ? '#4CAF50' : '#F44336'} style={{ marginRight: 10 }} />
-                    <Text style={{ color: '#CCCCCC', fontFamily: 'Urbanist-Regular' }}>Payouts Active</Text>
+                    <Text style={{ color: 'black', fontFamily: 'Urbanist-Regular' }}>Payouts Active</Text>
                   </View>
                   <Text style={{ color: creatorFinancials.stripeConnectPayoutsEnabled ? '#4CAF50' : '#F44336', fontFamily: 'Urbanist-Bold' }}>
                     {creatorFinancials.stripeConnectPayoutsEnabled ? 'Yes' : 'No'}

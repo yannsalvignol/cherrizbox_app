@@ -1,4 +1,3 @@
-import { dataCache } from '@/lib/data-cache';
 import { useGlobalContext } from '@/lib/global-provider';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -18,20 +17,23 @@ import {
 } from 'react-native';
 import { useMessageContext } from 'stream-chat-react-native';
 import { checkPaidContentPurchase } from '../../../lib/appwrite';
-import { PaidContentPaymentModal } from '../modals/PaidContentPaymentModal';
 
 interface BlurryFileAttachmentProps {
-  attachment: any;
+  attachment?: any;
+  userCurrency?: string;
+  formatPrice?: (price: number, currency?: string) => string;
+  [key: string]: any; // For additional props
 }
 
-export const BlurryFileAttachment: React.FC<BlurryFileAttachmentProps> = ({ attachment }) => {
+const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
+  const { attachment, userCurrency, formatPrice } = props;
   const { user } = useGlobalContext();
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [fileDimensions, setFileDimensions] = useState({ width: 300, height: 200 });
   const [isPortraitMode, setIsPortraitMode] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
+
 
   // Get message context to access message sender info
   const messageContext = useMessageContext();
@@ -46,12 +48,10 @@ export const BlurryFileAttachment: React.FC<BlurryFileAttachmentProps> = ({ atta
   // Check if user has purchased this content
   useEffect(() => {
     const checkPurchaseStatus = async () => {
-      // Check multiple possible field names for the content ID
-      const contentId = attachment?.paid_content_id || attachment?.file_id || attachment?.content_id;
-      if (!user?.$id || !contentId) return;
+      if (!user?.$id || !attachment?.paid_content_id) return;
       
       try {
-        const hasPurchased = await checkPaidContentPurchase(user.$id, contentId);
+        const hasPurchased = await checkPaidContentPurchase(user.$id, attachment.paid_content_id);
         setIsUnlocked(hasPurchased);
       } catch (error) {
         console.error('Error checking file purchase status:', error);
@@ -60,7 +60,7 @@ export const BlurryFileAttachment: React.FC<BlurryFileAttachmentProps> = ({ atta
     };
 
     checkPurchaseStatus();
-  }, [attachment?.paid_content_id, attachment?.file_id, attachment?.content_id, user?.$id]);
+  }, [attachment?.paid_content_id, user?.$id]);
 
   // Try to guess file format from URL or attachment data
   useEffect(() => {
@@ -86,44 +86,16 @@ export const BlurryFileAttachment: React.FC<BlurryFileAttachmentProps> = ({ atta
   const handleUnlock = async () => {
     if (isUnlocking) return;
     
-    // Check multiple possible field names for the content ID
-    const contentId = attachment?.paid_content_id || attachment?.file_id || attachment?.content_id;
-    
-    console.log('Opening payment modal for file with data:', {
-      contentId: contentId,
-      creatorId: messageSender?.id,
-      creatorName: messageSender?.name,
-      price: attachment?.price,
-      attachment: attachment // Debug: log full attachment
-    });
-    
-    setShowPaymentModal(true);
-  };
-
-  const handlePaymentSuccess = async () => {
-    console.log('💳 [PaidFile] Payment successful for paid file');
-    
-    // Check multiple possible field names for the content ID
-    const contentId = attachment?.paid_content_id || attachment?.file_id || attachment?.content_id;
-    console.log('💳 [PaidFile] Invalidating cache for contentId:', contentId);
-    
-    // Clear the purchase status from cache to force refresh
-    if (user?.$id && contentId) {
-      dataCache.delete(`purchase_${user.$id}_${contentId}`);
-      console.log('✅ [PaidFile] Cache invalidated - next check will query database');
-    }
-    
+    console.log('Unlocking file directly');
     setIsUnlocked(true);
-    setShowPaymentModal(false);
     
+    // Haptic feedback
     if (Platform.OS === 'ios') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
   };
 
-  const handlePaymentClose = () => {
-    setShowPaymentModal(false);
-  };
+
 
   const handleDownload = async () => {
     if (isDownloading) return;
@@ -171,10 +143,16 @@ export const BlurryFileAttachment: React.FC<BlurryFileAttachmentProps> = ({ atta
       height: fileDimensions.height,
       borderRadius: 12,
       marginVertical: 8,
-      marginLeft: 0,
-      marginRight: 12,
       position: 'relative',
+      borderWidth: 1,
+      borderColor: '#E0E0E0',
       overflow: 'hidden',
+      backgroundColor: '#FFFFFF',
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 4,
     }}>
       
       {/* Content */}
@@ -184,29 +162,22 @@ export const BlurryFileAttachment: React.FC<BlurryFileAttachmentProps> = ({ atta
         alignItems: 'center',
         padding: 16,
       }}>
-        {/* PDF icon with lock */}
+        {/* File icon with lock */}
         <View style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          backgroundColor: 'transparent',
           borderRadius: 40,
-          width: 70,
-          height: 70,
+          width: 80,
+          height: 80,
           justifyContent: 'center',
           alignItems: 'center',
           marginBottom: 12,
-          borderWidth: 2,
-          borderColor: 'rgba(255, 255, 255, 1)',
           position: 'relative',
-          shadowColor: '#000000',
-          shadowOffset: { width: 0, height: 3 },
-          shadowOpacity: 0.3,
-          shadowRadius: 6,
-          elevation: 6,
         }}>
-          <Image 
-            source={require('../../../assets/icon/pdf.png')}
+          <Image
+            source={require('@/assets/icon/pdf.png')}
             style={{
-              width: 40,
-              height: 40,
+              width: 64,
+              height: 64,
               resizeMode: 'contain',
             }}
           />
@@ -214,7 +185,7 @@ export const BlurryFileAttachment: React.FC<BlurryFileAttachmentProps> = ({ atta
             position: 'absolute',
             bottom: -3,
             right: -3,
-            backgroundColor: '#1565C0',
+            backgroundColor: '#666666',
             borderRadius: 12,
             width: 26,
             height: 26,
@@ -229,29 +200,22 @@ export const BlurryFileAttachment: React.FC<BlurryFileAttachmentProps> = ({ atta
         
         {/* File title */}
         <Text style={{
-          color: '#FFFFFF',
+          color: '#333333',
           fontSize: 18,
           fontWeight: '700',
           textAlign: 'center',
           marginBottom: 4,
-          fontFamily: 'questrial',
-          textShadowColor: 'rgba(0, 0, 0, 0.4)',
-          textShadowOffset: { width: 0, height: 1 },
-          textShadowRadius: 3,
+          fontFamily: 'Urbanist-Bold',
         }}>
           {title}
         </Text>
         
         <Text style={{
-          color: '#FFFFFF',
+          color: '#666666',
           fontSize: 14,
           textAlign: 'center',
           marginBottom: 16,
-          fontFamily: 'questrial',
-          opacity: 0.9,
-          textShadowColor: 'rgba(0, 0, 0, 0.4)',
-          textShadowOffset: { width: 0, height: 1 },
-          textShadowRadius: 3,
+          fontFamily: 'Urbanist-Medium',
         }}>
           Premium File Content
         </Text>
@@ -259,26 +223,25 @@ export const BlurryFileAttachment: React.FC<BlurryFileAttachmentProps> = ({ atta
         <TouchableOpacity
           onPress={onUnlock}
           style={{
-            backgroundColor: '#FFFFFF',
+            backgroundColor: '#999999',
             paddingHorizontal: 24,
-            paddingVertical: 10,
+            paddingVertical: 12,
             borderRadius: 25,
             shadowColor: '#000000',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.3,
-            shadowRadius: 8,
-            elevation: 8,
-            borderWidth: 2,
-            borderColor: '#1976D2',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+            elevation: 4,
+            marginTop: -8,  // Move button up slightly towards the middle
           }}
         >          
           <Text style={{
-            color: '#1565C0',
+            color: '#FFFFFF',
             fontSize: 16,
             fontWeight: '700',
-            fontFamily: 'questrial',
+            fontFamily: 'Urbanist-Bold',
           }}>
-            Unlock for ${price.toFixed(2)}
+            Unlock for {formatPrice ? formatPrice(price, userCurrency) : `$${price.toFixed(2)}`}
           </Text>
         </TouchableOpacity>
       </View>
@@ -290,25 +253,40 @@ export const BlurryFileAttachment: React.FC<BlurryFileAttachmentProps> = ({ atta
           position: 'absolute',
           top: 8,
           right: 8,
-          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          backgroundColor: 'rgba(0, 0, 0, 0.1)',
           borderRadius: 20,
           width: 40,
           height: 40,
           justifyContent: 'center',
           alignItems: 'center',
-          shadowColor: '#000000',
-          shadowOffset: { width: 0, height: 3 },
-          shadowOpacity: 0.3,
-          shadowRadius: 6,
-          elevation: 6,
         }}
       >
         <Ionicons 
           name={isPortraitMode ? "phone-portrait" : "phone-landscape"} 
           size={20} 
-          color="#1976D2" 
+          color="#666666" 
         />
       </TouchableOpacity>
+
+      {/* Timestamp in bottom right corner */}
+      {message?.created_at && (
+        <Text style={{
+          position: 'absolute',
+          bottom: 8,
+          right: 8,
+          color: '#666666',
+          fontSize: 12,
+          fontWeight: '600',
+          fontFamily: 'questrial',
+          opacity: 0.8,
+        }}>
+          {new Date(message.created_at).toLocaleTimeString([], { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: true 
+          })}
+        </Text>
+      )}
     </View>
   );
 
@@ -344,26 +322,25 @@ export const BlurryFileAttachment: React.FC<BlurryFileAttachmentProps> = ({ atta
         width: fileDimensions.width,
         height: fileDimensions.height,
         borderRadius: 12,
-        backgroundColor: '#1A1A1A',
+        backgroundColor: '#FFFFFF',
         marginVertical: 8,
-        marginLeft: 0,
-        marginRight: 12,
         position: 'relative',
         borderWidth: 1,
-        borderColor: '#4CAF50',
+        borderColor: '#E0E0E0',
         overflow: 'hidden',
         shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 8,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 4,
       }}>
         {/* File content preview */}
         <View style={{
           flex: 1,
           justifyContent: 'center',
           alignItems: 'center',
-          backgroundColor: '#2A2A2A',
+          backgroundColor: '#FFFFFF',
+          padding: 16,
         }}>
           {isImage ? (
             <Image 
@@ -374,98 +351,90 @@ export const BlurryFileAttachment: React.FC<BlurryFileAttachmentProps> = ({ atta
                 resizeMode: 'cover',
               }}
             />
-                     ) : isPDF ? (
+          ) : isPDF ? (
             <View style={{
               width: '100%',
               height: '100%',
               justifyContent: 'center',
               alignItems: 'center',
-              backgroundColor: '#F8F9FA',
+              backgroundColor: '#FFFFFF',
               position: 'relative',
             }}>
-              {/* PDF Preview Container */}
-              <View style={{
-                width: '100%',
-                height: '100%',
-                backgroundColor: '#FFFFFF',
-                borderRadius: 8,
-                overflow: 'hidden',
-                shadowColor: '#000000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.1,
-                shadowRadius: 4,
-                elevation: 3,
+              {/* PDF Icon and Open Button */}
+              <Image
+                source={require('@/assets/icon/pdf.png')}
+                style={{
+                  width: 64,
+                  height: 64,
+                  resizeMode: 'contain',
+                  marginBottom: 12,
+                }}
+              />
+              
+              <Text style={{
+                color: '#333333',
+                fontSize: 16,
+                fontWeight: '700',
+                textAlign: 'center',
+                marginBottom: 6,
+                fontFamily: 'Urbanist-Bold',
               }}>
-                {/* PDF Icon and Info */}
-                <View style={{
-                  flex: 1,
-                  justifyContent: 'center',
+                {title || 'PDF Document'}
+              </Text>
+              
+              <Text style={{
+                color: '#666666',
+                fontSize: 13,
+                textAlign: 'center',
+                marginBottom: 16,
+                fontFamily: 'Urbanist-Medium',
+              }}>
+                PDF File Ready
+              </Text>
+              
+              <TouchableOpacity
+                onPress={async () => {
+                  try {
+                    const supported = await Linking.canOpenURL(fileUri);
+                    if (supported) {
+                      await Linking.openURL(fileUri);
+                    } else {
+                      if (await Sharing.isAvailableAsync()) {
+                        await Sharing.shareAsync(fileUri, {
+                          dialogTitle: 'Open PDF with...',
+                          UTI: 'com.adobe.pdf',
+                        });
+                      }
+                    }
+                  } catch (error) {
+                    console.error('Error opening PDF:', error);
+                    Alert.alert('Error', 'Could not open PDF file');
+                  }
+                }}
+                style={{
+                  backgroundColor: '#333333',
+                  paddingHorizontal: 28,
+                  paddingVertical: 12,
+                  borderRadius: 22,
+                  flexDirection: 'row',
                   alignItems: 'center',
-                  padding: 20,
+                  shadowColor: '#000000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 4,
+                  elevation: 4,
+                }}
+              >
+                <Ionicons name="open-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Text style={{
+                  color: '#FFFFFF',
+                  fontSize: 15,
+                  fontWeight: '700',
+                  fontFamily: 'Urbanist-Bold',
                 }}>
-                  <Text style={{
-                    color: '#2C3E50',
-                    fontSize: 16,
-                    fontWeight: 'bold',
-                    textAlign: 'center',
-                    marginBottom: 20,
-                    fontFamily: 'questrial',
-                  }}>
-                    {title}
-                  </Text>
-                  
-                  {/* PDF Access Information */}
-                  <View style={{
-                    backgroundColor: 'rgba(251, 35, 85, 0.1)',
-                        borderRadius: 8,
-                    padding: 12,
-                    marginTop: 12,
-                    borderWidth: 1,
-                    borderColor: 'rgba(251, 35, 85, 0.2)',
-                    maxWidth: '100%',
-                    alignSelf: 'stretch',
-                  }}>
-                    <View style={{
-                        flexDirection: 'row',
-                      alignItems: 'flex-start',
-                      marginBottom: 6,
-                    }}>
-                      <Text style={{
-                        fontSize: 16,
-                        marginRight: 6,
-                      }}>
-                        💡
-                      </Text>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{
-                          color: '#2C3E50',
-                          fontSize: 13,
-                          fontWeight: '600',
-                        fontFamily: 'questrial',
-                          marginBottom: 4,
-                      }}>
-                          Hey! Your file is safely stored 📁
-                      </Text>
-                        
-                      <Text style={{
-                          color: '#4A5568',
-                          fontSize: 12,
-                          lineHeight: 16,
-                        fontFamily: 'questrial',
-                      }}>
-                          Check out your{' '}
-                          <Text style={{ fontWeight: '600', color: '#FB2355' }}>
-                            Profile → Paid Content
-                      </Text>
-                          {' '}to find this PDF and all your other purchased files! 😊
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                  
-                  
-                </View>
-              </View>
+                  Open File
+                </Text>
+              </TouchableOpacity>
             </View>
           ) : isText ? (
             <ScrollView 
@@ -489,7 +458,7 @@ export const BlurryFileAttachment: React.FC<BlurryFileAttachmentProps> = ({ atta
                     color: '#666666',
                     fontSize: 12,
                     marginTop: 8,
-                    fontFamily: 'questrial',
+                    fontFamily: 'Urbanist-Regular',
                   }}>
                     Loading text...
                   </Text>
@@ -498,7 +467,7 @@ export const BlurryFileAttachment: React.FC<BlurryFileAttachmentProps> = ({ atta
                 <Text style={{
                   color: '#000000',
                   fontSize: 12,
-                  fontFamily: 'questrial',
+                  fontFamily: 'Urbanist-Regular',
                   lineHeight: 16,
                 }}>
                   {fileContent || 'Unable to load file content'}
@@ -520,7 +489,7 @@ export const BlurryFileAttachment: React.FC<BlurryFileAttachmentProps> = ({ atta
                 fontWeight: 'bold',
                 marginTop: 8,
                 textAlign: 'center',
-                fontFamily: 'questrial',
+                fontFamily: 'Urbanist-SemiBold',
               }}>
                 Audio File
               </Text>
@@ -529,7 +498,7 @@ export const BlurryFileAttachment: React.FC<BlurryFileAttachmentProps> = ({ atta
                 fontSize: 10,
                 marginTop: 4,
                 textAlign: 'center',
-                fontFamily: 'questrial',
+                fontFamily: 'Urbanist-Regular',
               }}>
                 {fileExtension.toUpperCase()}
               </Text>
@@ -574,7 +543,7 @@ export const BlurryFileAttachment: React.FC<BlurryFileAttachmentProps> = ({ atta
                   fontSize: 12,
                   fontWeight: 'bold',
                   marginLeft: 4,
-                  fontFamily: 'questrial',
+                  fontFamily: 'Urbanist-SemiBold',
                 }}>
                   Play Audio
                 </Text>
@@ -593,7 +562,7 @@ export const BlurryFileAttachment: React.FC<BlurryFileAttachmentProps> = ({ atta
                 fontWeight: 'bold',
                 marginTop: 8,
                 textAlign: 'center',
-                fontFamily: 'questrial',
+                fontFamily: 'Urbanist-SemiBold',
               }}>
                 {fileExtension.toUpperCase()} File
               </Text>
@@ -602,7 +571,7 @@ export const BlurryFileAttachment: React.FC<BlurryFileAttachmentProps> = ({ atta
                 fontSize: 10,
                 marginTop: 4,
                 textAlign: 'center',
-                fontFamily: 'questrial',
+                fontFamily: 'Urbanist-Regular',
               }}>
                 Tap "Open File" to view
               </Text>
@@ -628,7 +597,7 @@ export const BlurryFileAttachment: React.FC<BlurryFileAttachmentProps> = ({ atta
             fontSize: 12,
             fontWeight: 'bold',
             marginLeft: 4,
-            fontFamily: 'questrial',
+            fontFamily: 'Urbanist-SemiBold',
           }}>
             Unlocked
           </Text>
@@ -642,23 +611,20 @@ export const BlurryFileAttachment: React.FC<BlurryFileAttachmentProps> = ({ atta
             position: 'absolute',
             top: 8,
             right: 8,
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            backgroundColor: 'rgba(0, 0, 0, 0.05)',
             borderRadius: 20,
             width: 36,
             height: 36,
             justifyContent: 'center',
             alignItems: 'center',
-            shadowColor: '#000000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.2,
-            shadowRadius: 4,
-            elevation: 4,
+            borderWidth: 1,
+            borderColor: '#E0E0E0',
           }}
         >
           {isDownloading ? (
-            <ActivityIndicator size="small" color="#1A1A1A" />
+            <ActivityIndicator size="small" color="#333333" />
           ) : (
-            <Ionicons name="download" size={18} color="#1A1A1A" />
+            <Ionicons name="download" size={18} color="#333333" />
           )}
         </TouchableOpacity>
         
@@ -676,7 +642,7 @@ export const BlurryFileAttachment: React.FC<BlurryFileAttachmentProps> = ({ atta
               color: 'white',
               fontSize: 14,
               fontWeight: '600',
-              fontFamily: 'questrial',
+              fontFamily: 'Urbanist-SemiBold',
             }}>
               {title}
             </Text>
@@ -741,7 +707,7 @@ export const BlurryFileAttachment: React.FC<BlurryFileAttachmentProps> = ({ atta
                 color: 'white',
                 fontSize: 12,
                 fontWeight: 'bold',
-                fontFamily: 'questrial',
+                fontFamily: 'Urbanist-SemiBold',
               }}>
                 Open File
               </Text>
@@ -770,105 +736,63 @@ export const BlurryFileAttachment: React.FC<BlurryFileAttachmentProps> = ({ atta
             color="#FFFFFF" 
           />
         </TouchableOpacity>
+
+        {/* Timestamp in bottom right corner */}
+        {message?.created_at && (
+          <Text style={{
+            position: 'absolute',
+            bottom: 8,
+            right: 8,
+            color: '#666666',
+            fontSize: 12,
+            fontWeight: '600',
+            fontFamily: 'questrial',
+            opacity: 0.8,
+          }}>
+            {new Date(message.created_at).toLocaleTimeString([], { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              hour12: true 
+            })}
+          </Text>
+        )}
       </View>
     );
   };
 
   return (
-    <View style={attachmentStyles.container}>
-      {attachment.is_blurred && !isUnlocked ? (
-        <BlurredFileContent 
-          onUnlock={handleUnlock}
-          price={parseFloat(attachment.price || '0')}
-          title={attachment.title || 'Paid File'}
-        />
-      ) : (
-        <UnlockedFileContent 
-          title={attachment.title || 'Paid File'}
-          fileUri={attachment.local_file_uri || attachment.image_url || ''}
-        />
-      )}
-
-      {/* Payment Modal */}
-      <PaidContentPaymentModal
-        visible={showPaymentModal}
-        onClose={handlePaymentClose}
-        onSuccess={handlePaymentSuccess}
-        amount={parseFloat(attachment?.price || '5.99')}
-        contentTitle={attachment?.title || 'Premium File'}
-        contentId={attachment?.paid_content_id || attachment?.file_id || attachment?.content_id}
-        creatorId={messageSender?.id}
-        creatorName={messageSender?.name}
-        imageUrl={attachment?.image_url}
-        contentType="file"
-      />
+    <View style={{
+      alignItems: 'flex-end',  // Align to the right
+      width: '100%',
+      marginRight: -5,  // Use margin for negative values
+    }}>
+      <View style={styles.container}>
+        {attachment.is_blurred && !isUnlocked ? (
+          <BlurredFileContent 
+            onUnlock={handleUnlock}
+            price={parseFloat(attachment.price || '0')}
+            title={attachment.title || 'Paid File'}
+          />
+        ) : (
+          <UnlockedFileContent 
+            title={attachment.title || 'Paid File'}
+            fileUri={attachment.local_file_uri || attachment.image_url || ''}
+          />
+        )}
+      </View>
     </View>
   );
 };
 
-// Attachment styles for blurry files
-const attachmentStyles = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     marginVertical: 8,
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#2A2A2A',
-  },
-  image: {
-    width: 250,
-    height: 200,
-  },
-  blurOverlay: {
-    position: 'relative',
-  },
-  overlayContent: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  lockIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#FB2355',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  lockText: {
-    fontSize: 24,
-    color: 'white',
-  },
-  priceText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FB2355',
-    marginBottom: 8,
-    fontFamily: 'questrial',
-  },
-  titleText: {
-    fontSize: 16,
-    color: 'white',
-    marginBottom: 16,
-    textAlign: 'center',
-    fontFamily: 'questrial',
-  },
-  unlockButton: {
-    backgroundColor: '#FB2355',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 25,
-  },
-  unlockButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-    fontFamily: 'questrial',
+    backgroundColor: 'transparent',
   },
 });
+
+BlurryFileAttachment.displayName = 'BlurryFileAttachment';
+
+export default BlurryFileAttachment;
