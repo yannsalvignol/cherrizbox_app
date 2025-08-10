@@ -4,13 +4,14 @@ import { useGlobalContext } from '@/lib/global-provider';
 import { imageCache } from '@/lib/image-cache';
 import { client, connectUser } from '@/lib/stream-chat';
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Image, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { Client, Databases, Query } from 'react-native-appwrite';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Channel, Chat, MessageAvatar, MessageList, OverlayProvider, ReactionData, useMessageContext } from 'stream-chat-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Channel, Chat, MessageList, OverlayProvider, ReactionData } from 'stream-chat-react-native';
 import loadingIcon from '../../assets/icon/loading-icon.png';
 import { config } from '../../lib/appwrite';
 
@@ -20,6 +21,7 @@ import { FullScreenProfileModal } from '@/app/components/modals/FullScreenProfil
 
 import { CustomMessageInput } from '@/app/components/CustomMessageInput';
 import { CustomMessageSimple } from '@/app/components/CustomMessageSimple';
+import CustomReactionList from '@/app/components/CustomReactionList';
 import { CustomThread } from '@/app/components/CustomThread';
 
 // Declare global interface for chat screen handlers
@@ -36,109 +38,9 @@ const profileImageCache = new Map<string, string>();
 
 // Custom Avatar component that fetches profile images
 export const CustomMessageAvatar = (props: any) => {
-  const [profileImage, setProfileImage] = useState<string | null>(null);
-  
-  // Get message from MessageContext instead of props
-  const messageContext = useMessageContext();
-  const message = messageContext?.message || props.message;
-  const channel = messageContext?.channel;
-  
-
-  
-
-  
-  useEffect(() => {
-    const fetchProfileImage = async () => {
-      if (!message || !message.user || !message.user.id) {
-        return;
-      }
-      
-      const userId = message.user.id;
-      
-      console.log(`👤 [CustomMessageAvatar] Loading avatar for user: ${userId.substring(0, 8)}...`);
-      
-      // Check dataCache first
-      const cachedProfileData = dataCache.get(`profile_${userId}`) as {profileImageUri: string} | null;
-      if (cachedProfileData && cachedProfileData.profileImageUri) {
-        console.log(`✅ [CustomMessageAvatar] Profile data cache HIT`);
-        const cachedImageUri = await imageCache.getCachedImageUri(cachedProfileData.profileImageUri);
-        setProfileImage(cachedImageUri);
-        console.log(`✅ [CustomMessageAvatar] Avatar loaded from cache`);
-          return;
-      }
-      
-      console.log(`❌ [CustomMessageAvatar] Profile data cache MISS - querying database...`);
-      
-      try {
-        if (!config.endpoint || !config.projectId || !config.databaseId || !config.profileCollectionId) {
-          return;
-        }
-
-        const appwriteClient = new Client()
-          .setEndpoint(config.endpoint)
-          .setProject(config.projectId);
-        
-        const databases = new Databases(appwriteClient);
-        
-        // Query profiles collection for the user's profile image
-        const profiles = await databases.listDocuments(
-          config.databaseId,
-          config.profileCollectionId,
-          [Query.equal('userId', userId)]
-        );
-        
-        if (profiles.documents.length > 0) {
-          const profileImageUri = profiles.documents[0].compressed_thumbnail;
-          if (profileImageUri) {
-            console.log(`📊 [CustomMessageAvatar] Database result: Found profile image`);
-            
-            // Cache the profile data
-            dataCache.set(`profile_${userId}`, { profileImageUri }, 10 * 60 * 1000); // 10 minutes
-            console.log(`💾 [CustomMessageAvatar] Cached profile data for 10 minutes`);
-            
-            // Get cached image URI and set it
-            const cachedImageUri = await imageCache.getCachedImageUri(profileImageUri);
-            setProfileImage(cachedImageUri);
-            console.log(`✅ [CustomMessageAvatar] Avatar loaded from database and cached`);
-          } else {
-            console.log(`⚠️ [CustomMessageAvatar] No profile image found for user`);
-          }
-        } else {
-          console.log(`⚠️ [CustomMessageAvatar] No profile document found for user`);
-        }
-      } catch (error) {
-        console.error('Error fetching user profile image:', error);
-      }
-    };
-    
-    fetchProfileImage();
-  }, [message?.user?.id]);
-
-  // If we have a custom profile image, render it
-  if (profileImage) {
-    return (
-      <View style={{
-        width: props.size || 32,
-        height: props.size || 32,
-        borderRadius: (props.size || 32) / 2,
-        marginRight: 8,
-        overflow: 'hidden',
-        backgroundColor: '#2A2A2A',
-      }}>
-        <Image
-          source={{ uri: profileImage }}
-          style={{
-            width: '100%',
-            height: '100%',
-          }}
-          resizeMode="cover"
-        />
-      </View>
-    );
-  }
-
-  // Fall back to default MessageAvatar if no custom image
-  return <MessageAvatar {...props} />;
+  // Simply return null to hide all message avatars
+  // Caching infrastructure is preserved elsewhere for header avatar functionality
+  return null;
 };
 
 // Custom MessageStatus component that hides the default timestamp completely
@@ -163,6 +65,7 @@ const customReactions: ReactionData[] = [
 export default function ChatScreen() {
   const { channelId, creatorName, chatType } = useLocalSearchParams();
   const { user, isStreamConnected, setIsStreamConnected, posts } = useGlobalContext();
+  const insets = useSafeAreaInsets();
   const [groupChannel, setGroupChannel] = useState<any>(null);
   const [dmChannel, setDmChannel] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -251,6 +154,8 @@ export default function ChatScreen() {
 
   // Get the current active channel based on chat type
   const currentChannel = currentChatType === 'group' ? groupChannel : dmChannel;
+  
+
 
   // Handle long press on message
   const handleLongPressMessage = (payload: any) => {
@@ -441,7 +346,7 @@ export default function ChatScreen() {
             console.error('❌ Failed to connect to Stream Chat:', error);
             setError('Failed to connect to chat. Please try again.');
             setLoading(false);
-            return;
+          return;
           }
         }
 
@@ -544,7 +449,7 @@ export default function ChatScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#1A1A1A' }}>
+      <View style={{ flex: 1, backgroundColor: '#DCDEDF', paddingTop: insets.top }}>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <Animated.Image
@@ -552,26 +457,26 @@ export default function ChatScreen() {
             style={{ width: 60, height: 60, marginBottom: 16, transform: [{ translateY: bounceAnim }] }}
             resizeMode="contain"
           />
-          <Text style={{ color: '#FFFFFF', fontSize: 16, fontFamily: 'questrial' }}>
+          <Text style={{ color: '#1A1A1A', fontSize: 16, fontFamily: 'questrial' }}>
             Loading chat...
           </Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (error || !currentChannel) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#1A1A1A' }}>
+      <View style={{ flex: 1, backgroundColor: '#DCDEDF', paddingTop: insets.top }}>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 }}>
-          <Text style={{ color: '#FFFFFF', fontSize: 18, fontFamily: 'questrial', textAlign: 'center', marginBottom: 16 }}>
+          <Text style={{ color: '#1A1A1A', fontSize: 18, fontFamily: 'questrial', textAlign: 'center', marginBottom: 16 }}>
             {error || 'Channel not found'}
           </Text>
           <TouchableOpacity
             onPress={() => router.back()}
             style={{
-              backgroundColor: '#FB2355',
+              backgroundColor: '',
               paddingHorizontal: 24,
               paddingVertical: 12,
               borderRadius: 8,
@@ -582,12 +487,12 @@ export default function ChatScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#1A1A1A' }}>
+      <View style={{ flex: 1, backgroundColor: '#DCDEDF', paddingTop: insets.top }}>
         <Stack.Screen options={{ headerShown: false }} />
       <StatusBar style="light" />
         
@@ -611,6 +516,8 @@ export default function ChatScreen() {
               MessageSimple={(props: any) => <CustomMessageSimple {...props} client={client} />}
             MessageAvatar={CustomMessageAvatar}
             MessageStatus={CustomMessageStatus}
+            ReactionListTop={CustomReactionList}
+            ReactionListBottom={() => null}
             ShowThreadMessageInChannelButton={() => null}
             supportedReactions={customReactions}
             messageActions={() => []} // Disable default message actions
@@ -622,7 +529,7 @@ export default function ChatScreen() {
               justifyContent: 'center',
               paddingHorizontal: 16,
               paddingVertical: 16,
-              backgroundColor: '#1A1A1A',
+              backgroundColor: '#DCDEDF',
               position: 'relative'
             }}>
               {/* Thread back button */}
@@ -634,11 +541,11 @@ export default function ChatScreen() {
                     left: 16,
                     zIndex: 10,
                     padding: 8,
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    backgroundColor: '#DCDEDF',
                     borderRadius: 20,
                 }}
               >
-                  <Ionicons name="chevron-back-outline" size={24} color="white" />
+                  <Ionicons name="chevron-back-outline" size={24} color="black" />
               </TouchableOpacity>
               )}
               
@@ -675,7 +582,7 @@ export default function ChatScreen() {
                 <Text style={{ 
                   fontSize: thread ? 20 : 40,
                   fontWeight: 'bold',
-                  color: 'white', 
+                  color: 'black', 
                   fontFamily: thread ? 'questrial' : 'MuseoModerno-Regular'
                 }}>
                   {thread ? 'Thread' : 'cherrizbox'}
@@ -723,89 +630,7 @@ export default function ChatScreen() {
               )}
             </View>
             
-            {/* Chat Type Toggle - Only show when not in thread */}
-            {!thread && (
-              <View style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                paddingHorizontal: 16,
-                paddingVertical: 16,
-                backgroundColor: '#1A1A1A',
-                borderBottomWidth: 1,
-                borderBottomColor: '#2A2A2A'
-              }}>
-                <View style={{
-                  flexDirection: 'row',
-                  backgroundColor: '#1A1A1A',
-                  borderRadius: 25,
-                  borderWidth: 1,
-                  borderColor: '#fff',
-                  width: '100%',
-                  height: 40,
-                  overflow: 'hidden',
-                }}>
-                  {/* Group Chat Button */}
-                  <TouchableOpacity
-                    onPress={() => currentChatType !== 'group' && switchChatType()}
-                    style={{
-                      flex: 1,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexDirection: 'row',
-                      gap: 6,
-                      backgroundColor: currentChatType === 'group' ? '#fff' : 'transparent',
-                      borderRadius: 25,
-                      height: '100%',
-                    }}
-                    activeOpacity={0.85}
-                  >
-                    <Ionicons 
-                      name="people" 
-                      size={16} 
-                      color={currentChatType === 'group' ? '#18181b' : '#888'} 
-                    />
-                    <Text style={{
-                      color: currentChatType === 'group' ? '#18181b' : '#888',
-                      fontSize: 13,
-                      fontFamily: 'questrial',
-                      fontWeight: currentChatType === 'group' ? 'bold' : '500'
-                    }}>
-                      {creatorName}'s Box
-                    </Text>
-                  </TouchableOpacity>
-                  {/* Direct Message Button */}
-                  <TouchableOpacity
-                    onPress={() => currentChatType !== 'direct' && switchChatType()}
-                    style={{
-                      flex: 1,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexDirection: 'row',
-                      gap: 6,
-                      backgroundColor: currentChatType === 'direct' ? '#fff' : 'transparent',
-                      borderRadius: 25,
-                      height: '100%',
-                    }}
-                    activeOpacity={0.85}
-                  >
-                    <Ionicons 
-                      name="chatbubble-ellipses" 
-                      size={16} 
-                      color={currentChatType === 'direct' ? '#18181b' : '#888'} 
-                    />
-                    <Text style={{
-                      color: currentChatType === 'direct' ? '#18181b' : '#888',
-                      fontSize: 13,
-                      fontFamily: 'questrial',
-                      fontWeight: currentChatType === 'direct' ? 'bold' : '500'
-                    }}>
-                      One on One
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
+
             
             {/* Conditional rendering based on thread state */}
             {thread ? (
@@ -825,22 +650,204 @@ export default function ChatScreen() {
               />
             ) : (
               <>
-                <MessageList 
-                  DateHeader={() => null}
-                  EmptyStateIndicator={() => (
-                    <View style={{ flex: 1, backgroundColor: '#DCDEDF', justifyContent: 'center', alignItems: 'center', padding: 32 }}>
-                      <Image
-                        source={loadingIcon}
-                        style={{ width: 60, height: 60, marginBottom: 18, opacity: 0.8 }}
-                        resizeMode="contain"
-                      />
-                      <Text style={{ color: '#1A1A1A', fontSize: 18, fontFamily: 'questrial', textAlign: 'center', opacity: 0.7 }}>
-                        No messages yet. Start the conversation!
+                <View style={{ flex: 1, position: 'relative' }}>
+                  <MessageList 
+                    DateHeader={() => null}
+                    EmptyStateIndicator={() => (
+                      <View style={{ flex: 1, backgroundColor: '#DCDEDF', justifyContent: 'center', alignItems: 'center', padding: 32 }}>
+                        <Image
+                          source={loadingIcon}
+                          style={{ width: 60, height: 60, marginBottom: 18, opacity: 0.8 }}
+                          resizeMode="contain"
+                        />
+                        <Text style={{ color: '#1A1A1A', fontSize: 18, fontFamily: 'questrial', textAlign: 'center', opacity: 0.7 }}>
+                          No messages yet. Start the conversation!
+                        </Text>
+                      </View>
+                    )}
+                    onThreadSelect={setThread}
+                  />
+                  
+                  {/* Creator Name Banner with Toggle - Floating on top */}
+                  <View style={{
+                    position: 'absolute',
+                    top: 4,
+                    left: '5%',
+                    width: '90%',
+                    backgroundColor: 'white',
+                    paddingHorizontal: 16,
+                    paddingVertical: 16,
+                    borderRadius: 20,
+                    shadowColor: '#000',
+                    shadowOffset: {
+                      width: 0,
+                      height: 2,
+                    },
+                    shadowOpacity: 0.25,
+                    shadowRadius: 8,
+                    elevation: 6,
+                    alignItems: 'center',
+                    zIndex: 15,
+                  }}>
+                    {/* Top row - Creator info */}
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                      marginBottom: 12,
+                    }}>
+                      {/* Creator Thumbnail */}
+                      <TouchableOpacity 
+                        onPress={() => setShowFullScreenProfile(true)}
+                        style={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: 24,
+                backgroundColor: '#1A1A1A',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          overflow: 'hidden',
+                          marginRight: 12,
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        {creatorThumbnail ? (
+                          <Image
+                            source={{ uri: creatorThumbnail }}
+                            style={{ width: '100%', height: '100%' }}
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <Text style={{
+                            color: 'white',
+                            fontSize: 14,
+                            fontWeight: 'bold',
+                          }}>
+                            {(creatorName as string)?.charAt(0)?.toUpperCase() || 'C'}
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                      
+                      {/* Creator Name */}
+                      <Text style={{
+                        color: '#1A1A1A',
+                        fontSize: 24,
+                        fontWeight: 'bold',
+                        fontFamily: 'MuseoModerno-Regular',
+                      }}>
+                        {creatorName || 'Creator'}
                       </Text>
                     </View>
+
+                    {/* Bottom row - Chat Type Toggle */}
+                <View style={{
+                      width: '80%',
+                      backgroundColor: '#F5F5F5',
+                  borderRadius: 25,
+                  height: 40,
+                  overflow: 'hidden',
+                      flexDirection: 'row',
+                      padding: 4,
+                }}>
+                  {/* Group Chat Button */}
+                  <TouchableOpacity
+                    onPress={() => currentChatType !== 'group' && switchChatType()}
+                    style={{
+                      flex: 1,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexDirection: 'row',
+                      gap: 6,
+                          backgroundColor: currentChatType === 'group' ? 'white' : 'transparent',
+                          borderRadius: 20,
+                      height: '100%',
+                          borderWidth: currentChatType === 'group' ? 1 : 0,
+                          borderColor: currentChatType === 'group' ? '#E0E0E0' : 'transparent',
+                          shadowColor: currentChatType === 'group' ? '#000' : 'transparent',
+                          shadowOffset: { width: 0, height: 1 },
+                          shadowOpacity: currentChatType === 'group' ? 0.1 : 0,
+                          shadowRadius: 2,
+                          elevation: currentChatType === 'group' ? 2 : 0,
+                    }}
+                    activeOpacity={0.85}
+                  >
+                    <Ionicons 
+                      name="people" 
+                      size={16} 
+                      color={currentChatType === 'group' ? '#18181b' : '#888'} 
+                    />
+                    <Text style={{
+                          color: currentChatType === 'group' ? 'black' : 'black',
+                      fontSize: 13,
+                          fontFamily: 'MuseoModerno-Regular',
+                      fontWeight: currentChatType === 'group' ? 'bold' : '500'
+                    }}>
+                          Box
+                    </Text>
+                  </TouchableOpacity>
+                  {/* Direct Message Button */}
+                  <TouchableOpacity
+                    onPress={() => currentChatType !== 'direct' && switchChatType()}
+                    style={{
+                      flex: 1,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexDirection: 'row',
+                      gap: 6,
+                          backgroundColor: currentChatType === 'direct' ? 'white' : 'transparent',
+                          borderRadius: 20,
+                      height: '100%',
+                          borderWidth: currentChatType === 'direct' ? 1 : 0,
+                          borderColor: currentChatType === 'direct' ? '#E0E0E0' : 'transparent',
+                          shadowColor: currentChatType === 'direct' ? '#000' : 'transparent',
+                          shadowOffset: { width: 0, height: 1 },
+                          shadowOpacity: currentChatType === 'direct' ? 0.1 : 0,
+                          shadowRadius: 2,
+                          elevation: currentChatType === 'direct' ? 2 : 0,
+                    }}
+                    activeOpacity={0.85}
+                  >
+                    <Ionicons 
+                      name="chatbubble-ellipses" 
+                      size={16} 
+                      color={currentChatType === 'direct' ? '#18181b' : '#888'} 
+                    />
+                    <Text style={{
+                          color: currentChatType === 'direct' ? 'black' : 'black',
+                      fontSize: 13,
+                          fontFamily: 'MuseoModerno-Regular',
+                      fontWeight: currentChatType === 'direct' ? 'bold' : '500'
+                    }}>
+                      One on One
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+                  
+                  {/* Bottom blur zone with rounded top corners - only show in group chat (box) */}
+                  {currentChatType === 'group' && (
+                    <View style={{
+                      position: 'absolute',
+                      bottom: -100,
+                      left: 0,
+                      right: 0,
+                      height: 130,
+                      borderTopLeftRadius: 40,
+                      borderTopRightRadius: 40,
+                      overflow: 'hidden',
+                      pointerEvents: 'none',
+                    }}>
+                      <BlurView
+                        intensity={25}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                        }}
+                      />
+                    </View>
                   )}
-                  onThreadSelect={setThread}
-                />
+                    </View>
+                
                 <CustomMessageInput 
                   currentChatType={currentChatType as string}
                   setSelectedAttachment={setSelectedAttachment}
@@ -876,6 +883,6 @@ export default function ChatScreen() {
         creatorName={creatorName as string}
       />
             
-    </SafeAreaView>
+    </View>
   );
 } 

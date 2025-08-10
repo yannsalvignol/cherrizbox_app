@@ -9,7 +9,9 @@ import * as ImagePicker from 'expo-image-picker';
 import React, { useState } from 'react';
 import { Alert, Image, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { MessageInput } from 'stream-chat-react-native';
+import { MessageSentAnimation } from './MessageSentAnimation';
 import StripePaymentSheet from './StripePaymentSheet';
+import { UploadAnimation } from './UploadAnimation';
 
 interface CustomMessageInputProps {
   currentChatType: string;
@@ -41,6 +43,11 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
   const [showAttachmentModal, setShowAttachmentModal] = useState(false);
   const [showStripeSheet, setShowStripeSheet] = useState(false);
   const [pendingMessageData, setPendingMessageData] = useState<any>(null);
+  const [showUploadAnimation, setShowUploadAnimation] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadFileName, setUploadFileName] = useState('');
+  const [showMessageSentAnimation, setShowMessageSentAnimation] = useState(false);
+  const [sentTipAmount, setSentTipAmount] = useState('');
 
   // Import tip payment logic from separate file
   const createTipPaymentIntentWrapper = async (amount: number, interval: string, creatorName: string, currency?: string) => {
@@ -63,14 +70,18 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
       
       console.log('✅ Message sent successfully after payment');
       
+      // Store tip amount for success animation
+      const tipAmountFormatted = formatPrice(pendingMessageData.attachments[0].tip_amount.toFixed(2), pendingMessageData.attachments[0].currency);
+      setSentTipAmount(tipAmountFormatted);
+      
       // Reset state
       setPendingMessageData(null);
       setSelectedAttachment(null);
       setTipAmount(5);
       setShowStripeSheet(false);
       
-      // Success feedback
-      Alert.alert('Success', `Message sent with ${formatPrice(pendingMessageData.attachments[0].tip_amount.toFixed(2), pendingMessageData.attachments[0].currency)} tip!`);
+      // Show custom success animation instead of alert
+      setShowMessageSentAnimation(true);
       
     } catch (error) {
       console.error('❌ Error sending message after payment:', error);
@@ -83,6 +94,44 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
     console.log('💳 Payment cancelled or failed');
     setShowStripeSheet(false);
     // Keep pending message data in case user wants to try again
+  };
+
+  // Custom upload function with progress animation
+  const uploadWithAnimation = async (fileUri: string, fileName: string, mimeType: string): Promise<string> => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        // Start upload animation
+        setUploadFileName(fileName);
+        setUploadProgress(0);
+        setShowUploadAnimation(true);
+        setShowAttachmentModal(false); // Close attachment modal during upload
+
+        // Simulate progress updates
+        const progressInterval = setInterval(() => {
+          setUploadProgress(prev => {
+            const newProgress = Math.min(prev + Math.random() * 15 + 5, 95);
+            return newProgress;
+          });
+        }, 200);
+
+        // Start actual upload
+        const uploadResult = await uploadFileToAppwrite(fileUri, fileName, mimeType);
+        
+        // Complete progress
+        clearInterval(progressInterval);
+        setUploadProgress(100);
+        
+        // Wait a moment to show completion
+        setTimeout(() => {
+          setShowUploadAnimation(false);
+          resolve(uploadResult);
+        }, 800);
+
+      } catch (error) {
+        setShowUploadAnimation(false);
+        reject(error);
+      }
+    });
   };
 
     const handleImagePicker = async () => {
@@ -275,51 +324,31 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
   if (currentChatType === 'group' && !isThreadInput) {
     return (
       <View style={{
-        backgroundColor: '#1A1A1A',
+        backgroundColor: 'transparent',
+        borderRadius: 16,
         paddingHorizontal: 16,
-        paddingVertical: 20,
-        borderTopWidth: 1,
-        borderTopColor: '#2A2A2A',
+        paddingVertical: 0,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginHorizontal: 16,
+        marginVertical: 16,
+        flexDirection: 'row',
       }}>
-        <View style={{
-          backgroundColor: '#DCDEDF',
-          borderRadius: 20,
-          paddingHorizontal: 16,
-          paddingVertical: 16,
-          alignItems: 'center',
-          flexDirection: 'row',
-        }}>
-          <Ionicons 
-            name="chatbubble-outline" 
-            size={20} 
-            color="#FB2355" 
-            style={{ marginRight: 12 }}
-          />
-          <Text style={{
-            color: '#FFFFFF',
-            fontSize: 16,
-            fontFamily: 'questrial',
-            flex: 1,
-            textAlign: 'center',
-          }}>
-            Tap on any message to reply in a thread
-          </Text>
-          <Ionicons 
-            name="arrow-up-circle-outline" 
-            size={20} 
-            color="#FB2355" 
-            style={{ marginLeft: 12 }}
-          />
-        </View>
+        <Ionicons 
+          name="arrow-up-circle-outline" 
+          size={30} 
+          color="#1A1A1A" 
+          style={{ marginRight: 8, marginTop: -30 }} 
+        />
         <Text style={{
-          color: '#666666',
-          fontSize: 12,
-          fontFamily: 'questrial',
+          color: '#1A1A1A',
+          fontSize: 25,
+          fontFamily: 'MuseoModerno-Regular',
           textAlign: 'center',
-          marginTop: 8,
-          fontStyle: 'italic',
+          fontWeight: '600',
+          marginTop: -30,
         }}>
-          Group chats are thread-only to keep conversations organized
+          Tap to reply in a thread
         </Text>
       </View>
     );
@@ -346,7 +375,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
   
   // For direct messages, use custom message input with attachment button
   return (
-    <View style={{ backgroundColor: '#1A1A1A' }}>
+    <View style={{ backgroundColor: '#000000' }}>
             <MessageInput 
         InputButtons={() => (
           <TouchableOpacity
@@ -355,13 +384,13 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
               width: 40,
               height: 40,
               borderRadius: 20,
-              backgroundColor: '#FB2355',
+              backgroundColor: '',
               justifyContent: 'center',
               alignItems: 'center',
               marginRight: 8,
             }}
           >
-            <Ionicons name="add" size={24} color="#FFFFFF" />
+            <Ionicons name="add-circle-outline" size={36} color="#000000" />
           </TouchableOpacity>
         )}
       />
@@ -439,7 +468,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                       borderRadius: 12,
                     }}
                   >
-                    <Ionicons name="camera" size={24} color="#FB2355" style={{ marginRight: 16 }} />
+                    <Ionicons name="camera" size={24} color="" style={{ marginRight: 16 }} />
                     <Text style={{
                       color: '#FFFFFF',
                       fontSize: 16,
@@ -462,7 +491,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                       borderRadius: 12,
                     }}
                   >
-                    <Ionicons name="images" size={24} color="#FB2355" style={{ marginRight: 16 }} />
+                    <Ionicons name="images" size={24} color="" style={{ marginRight: 16 }} />
                     <Text style={{
                       color: '#FFFFFF',
                       fontSize: 16,
@@ -485,7 +514,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                       borderRadius: 12,
                     }}
                   >
-                    <Ionicons name="document" size={24} color="#FB2355" style={{ marginRight: 16 }} />
+                    <Ionicons name="document" size={24} color="" style={{ marginRight: 16 }} />
                     <Text style={{
                       color: '#FFFFFF',
                       fontSize: 16,
@@ -503,7 +532,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                   style={{
                     marginTop: 30,
                     paddingVertical: 16,
-                    backgroundColor: '#FB2355',
+                    backgroundColor: '',
                     borderRadius: 12,
                 alignItems: 'center',
                   }}
@@ -558,7 +587,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
               alignItems: 'center',
                       backgroundColor: '#1A1A1A',
             }}>
-                      <Ionicons name="document" size={48} color="#FB2355" />
+                      <Ionicons name="document" size={48} color="" />
               <Text style={{
                 color: '#FFFFFF',
                         fontSize: 16,
@@ -667,9 +696,9 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                           paddingHorizontal: 12,
                           paddingVertical: 8,
                 borderRadius: 8,
-                          backgroundColor: tipAmount === amount ? '#FB2355' : '#1A1A1A',
+                          backgroundColor: tipAmount === amount ? '' : '#1A1A1A',
                           borderWidth: 1,
-                          borderColor: tipAmount === amount ? '#FB2355' : '#666666',
+                          borderColor: tipAmount === amount ? '' : '#666666',
                         }}
                       >
                         <Text style={{
@@ -697,7 +726,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                     alignItems: 'flex-start',
                     marginBottom: 8,
                   }}>
-                    <Ionicons name="information-circle" size={20} color="#FB2355" style={{ marginRight: 8, marginTop: 2 }} />
+                    <Ionicons name="information-circle" size={20} color="" style={{ marginRight: 8, marginTop: 2 }} />
                   <Text style={{
                     color: '#FFFFFF',
                     fontSize: 14,
@@ -756,16 +785,13 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                           Alert.alert('No attachment', 'Please select an attachment to send with your tip.');
                           return;
                         }
-
-                        // Show loading state
-                        Alert.alert('Uploading', 'Uploading file to server...', [], { cancelable: false });
                         
-                        // Upload file to Appwrite storage first
+                        // Upload file with custom animation
                         const mimeType = selectedAttachment.type === 'video' ? 'video/mp4' : 
                                         selectedAttachment.type === 'document' ? (selectedAttachment.mimeType || 'application/octet-stream') : 'image/jpeg';
                         
-                        console.log('⬆️ Uploading file to Appwrite storage...');
-                        const appwriteFileUrl = await uploadFileToAppwrite(
+                        console.log('⬆️ Uploading file to Appwrite storage with animation...');
+                        const appwriteFileUrl = await uploadWithAnimation(
                           selectedAttachment.uri,
                           selectedAttachment.fileName || 'attachment',
                           mimeType
@@ -797,8 +823,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                         // Store message data for after successful payment
                         setPendingMessageData(messageData);
                         
-                        // Close attachment modal and open Stripe payment sheet
-                        setShowAttachmentModal(false);
+                        // Open Stripe payment sheet (attachment modal already closed by uploadWithAnimation)
                         setShowStripeSheet(true);
                         
                       } catch (error) {
@@ -809,7 +834,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                     style={{
                       flex: 1,
                       paddingVertical: 16,
-                      backgroundColor: '#FB2355',
+                      backgroundColor: '',
                       borderRadius: 12,
                       alignItems: 'center',
                     }}
@@ -829,6 +854,21 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                 </View>
               </View>
       </Modal>
+
+      {/* Upload Animation */}
+      <UploadAnimation 
+        visible={showUploadAnimation}
+        fileName={uploadFileName}
+        progress={uploadProgress}
+      />
+
+      {/* Message Sent Success Animation */}
+      <MessageSentAnimation 
+        visible={showMessageSentAnimation}
+        tipAmount={sentTipAmount}
+        currency={creatorCurrency}
+        onComplete={() => setShowMessageSentAnimation(false)}
+      />
 
       {/* Stripe Payment Sheet for Tips */}
       <StripePaymentSheet

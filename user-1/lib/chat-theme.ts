@@ -6,35 +6,35 @@ export const getTheme = (): DeepPartial<Theme> => ({
   colors: {
     black: '#1A1A1A',        // Main dark background color
     white: '#FFFFFF',        // Text color on dark backgrounds
-    primary: '#FB2355',      // Primary accent color (cherry red)
+    primary: 'black',      // Primary accent color (cherry red)
     grey: '#2A2A2A',         // Secondary background color
     grey_whisper: '#404040', // Tertiary background color
     grey_gainsboro: '#666666', // Medium grey for borders/separators
     grey_light: '#999999',   // Light grey for secondary text
     grey_medium: '#CCCCCC',  // Medium grey for disabled elements
     grey_dark: '#FFFFFF',    // Dark grey (currently white - might be a typo)
-    accent_blue: '#FB2355',  // Blue accent (currently using primary red)
-    accent_green: '#FB2355', // Green accent (currently using primary red)
-    accent_red: '#FB2355',   // Red accent (currently using primary red)
+    accent_blue: 'black',  // Blue accent (currently using primary red)
+    accent_green: 'black', // Green accent (currently using primary red)
+    accent_red: 'black',   // Red accent (currently using primary red)
   },
   
   // Message input area styling
   messageInput: {
     container: {
-      backgroundColor: '#1A1A1A', // Background of the entire input area
+      backgroundColor: 'white', // Background of the entire input area
     },
     inputBoxContainer: {
       backgroundColor: '#FFFFFF', // Background of the text input box
     },
     inputBox: {
-      color: '#FFFFFF', // Text color in the input box
+      color: '#000000', // Text color in the input box - black for visibility
     },
   },
   
   // Main chat message list area
   messageList: {
     container: {
-      backgroundColor: '#DCDEDF', // Main chat background - CHANGE THIS to modify the overall chat background
+      backgroundColor: '#DCDEDF', // Main chat background - light gray theme
     },
   },
   
@@ -66,6 +66,16 @@ export const getTheme = (): DeepPartial<Theme> => ({
     },
   },
   
+  // Hide default reaction list since we're using custom reactions
+  reactionList: {
+    container: {
+      display: 'none', // Hide the default reaction list completely
+      height: 0,
+      width: 0,
+      opacity: 0,
+    },
+  },
+  
   // Style for quoted reply previews (both in MessageInput header and in chat bubbles)
   reply: {
     container: {
@@ -92,11 +102,11 @@ export const getTheme = (): DeepPartial<Theme> => ({
 // - Modify messageInput.inputBoxContainer.backgroundColor (currently '#2A2A2A')
 // 
 // To change message bubble backgrounds:
-// - Modify messageSimple.content.containerInner.backgroundColor (currently '#FB2355')
-// - Modify messageSimple.content.textContainer.backgroundColor (currently '#FB2355')
+// - Modify messageSimple.content.containerInner.backgroundColor (currently 'black')
+// - Modify messageSimple.content.textContainer.backgroundColor (currently 'black')
 // 
 // To change reply preview backgrounds:
-// - Modify reply.container.backgroundColor (currently '#FB2355')
+// - Modify reply.container.backgroundColor (currently 'black')
 // 
 // To change the overall color scheme:
 // - Modify the colors object at the top of the theme

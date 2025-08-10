@@ -221,7 +221,7 @@ export const PaidVideoAttachment: React.FC<PaidVideoAttachmentProps> = ({ attach
                 activeOpacity={0.8}
               >
                 <View style={{
-                  backgroundColor: 'rgba(251, 35, 85, 0.9)',
+                  backgroundColor: 'rgba(104, 98, 99, 0.9)',
                   borderRadius: 50,
                   width: 80,
                   height: 80,

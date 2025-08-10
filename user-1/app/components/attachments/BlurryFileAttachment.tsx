@@ -764,7 +764,8 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
     <View style={{
       alignItems: 'flex-end',  // Align to the right
       width: '100%',
-      marginRight: -5,  // Use margin for negative values
+      marginRight: -20,  // Move further to the right
+      paddingRight: 16,  // Add padding to prevent touching screen edge
     }}>
       <View style={styles.container}>
         {attachment.is_blurred && !isUnlocked ? (

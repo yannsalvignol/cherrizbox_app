@@ -83,27 +83,21 @@ export const CustomTipAttachment: React.FC<CustomTipAttachmentProps> = ({ attach
         // For images, show full screen modal
         setShowFullScreenImage(true);
       } else if (attachment.attachment_type === 'document') {
-        // For documents, try to open with default app first (works for URLs)
-        try {
-          await Linking.openURL(fileUri);
-        } catch (error) {
-          console.warn('Failed to open document with default app:', error);
-          // Fallback to sharing if it's a local file
-          if (attachment.local_uri && !attachment.appwrite_url) {
-            const isSharingAvailable = await Sharing.isAvailableAsync();
-            if (isSharingAvailable) {
-              try {
-                await Sharing.shareAsync(attachment.local_uri);
-              } catch (shareError) {
-                console.warn('Failed to share document:', shareError);
-                Alert.alert('Error', 'Unable to open or share this document.');
-              }
-            } else {
-              Alert.alert('Error', 'Unable to open this document.');
-            }
-          } else {
-            Alert.alert('Error', 'Unable to open this document.');
+        // For documents, always use Apple share function
+        const isSharingAvailable = await Sharing.isAvailableAsync();
+        if (isSharingAvailable) {
+          try {
+            console.log('📄 [CustomTipAttachment] Opening share sheet for document:', fileUri);
+            await Sharing.shareAsync(fileUri, {
+              dialogTitle: 'Open or share document',
+              UTI: 'public.item', // Universal Type Identifier for any file
+            });
+          } catch (shareError) {
+            console.warn('Failed to share document:', shareError);
+            Alert.alert('Error', 'Unable to share this document.');
           }
+        } else {
+          Alert.alert('Error', 'Sharing is not available on this device.');
         }
       } else {
         // For other file types, try to open with default app

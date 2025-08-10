@@ -82,6 +82,7 @@ export const CustomPhotoAttachment: React.FC<CustomPhotoAttachmentProps> = (prop
         backgroundColor: 'transparent',
         marginVertical: 4,
         marginHorizontal: 8,
+        marginLeft: 5,  // Move the entire photo attachment to the right
       }}
             >
                 <View style={{
@@ -106,7 +107,7 @@ export const CustomPhotoAttachment: React.FC<CustomPhotoAttachmentProps> = (prop
             borderRadius: 12,
             zIndex: 2,
           }}>
-            <ActivityIndicator size="large" color="#FB2355" />
+            <ActivityIndicator size="large" color="black" />
                 </View>
               )}
 
@@ -164,6 +165,35 @@ export const CustomPhotoAttachment: React.FC<CustomPhotoAttachmentProps> = (prop
           </Text>
         </View>
       )}
+
+        {/* Timestamp in horizontal black footer */}
+        {message?.created_at && (
+          <View style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderBottomLeftRadius: 12,
+            borderBottomRightRadius: 12,
+          }}>
+            <Text style={{
+              color: 'black',
+              fontSize: 12,
+              fontWeight: '600',
+              fontFamily: 'questrial',
+              textAlign: 'right',
+            }}>
+              {new Date(message.created_at).toLocaleTimeString([], { 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                hour12: true 
+              })}
+            </Text>
+          </View>
+        )}
     </View>
     </TouchableOpacity>
   );

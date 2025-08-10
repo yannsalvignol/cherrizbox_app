@@ -155,7 +155,8 @@ export const CustomPollComponent: React.FC<CustomPollComponentProps> = ({ messag
       borderRadius: 16,
       padding: 20,
       marginVertical: 10,
-      marginHorizontal: 16,
+      marginHorizontal: 50,
+      marginLeft: 2,  // Move the entire poll component to the right
       shadowColor: '#000000',
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.1,

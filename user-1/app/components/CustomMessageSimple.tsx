@@ -9,6 +9,7 @@ import { CustomTipAttachment } from './attachments/CustomTipAttachment';
 import { PaidContentAttachment } from './attachments/PaidContentAttachment';
 import { PaidVideoAttachment } from './attachments/PaidVideoAttachment';
 import { CustomPollComponent } from './CustomPollComponent';
+import CustomReactionList from './CustomReactionList';
 
 // Import components from main chat file and attachments
 import { CustomMessageAvatar } from '../(root)/chat';
@@ -58,6 +59,8 @@ export const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = ({ client
   // Check if message has custom tip attachments
   const hasCustomTipAttachment = message?.attachments?.some((attachment: any) => attachment?.type === 'custom_attachment');
 
+
+
   // Check if message has paid content attachments
   const hasPaidContent = message?.attachments?.some((attachment: any) => attachment?.type === 'paid_content');
   
@@ -92,21 +95,28 @@ export const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = ({ client
           flex: 1,
           maxWidth: '80%',
           marginLeft: -4,
+          position: 'relative',
         }}>
           {message.attachments?.map((attachment: any, index: number) => {
             if (attachment?.type === 'custom_audio') {
               return (
-                <CustomAudioAttachment 
-                  key={`custom-audio-${index}`}
-                  attachment={attachment}
-                />
+                <View key={`custom-audio-container-${index}`} style={{ marginTop: 8, marginBottom: 12, position: 'relative' }}>
+                  <CustomAudioAttachment 
+                    key={`custom-audio-${index}`}
+                    attachment={attachment}
+                  />
+                  <CustomReactionList isAttachment={true} />
+                </View>
               );
             } else if (attachment?.type === 'custom_photo') {
               return (
-                <CustomPhotoAttachment 
-                  key={`custom-photo-${index}`}
-                  attachment={attachment}
-                />
+                <View key={`custom-photo-container-${index}`} style={{ position: 'relative' }}>
+                  <CustomPhotoAttachment 
+                    key={`custom-photo-${index}`}
+                    attachment={attachment}
+                  />
+                  <CustomReactionList isAttachment={true} />
+                </View>
               );
             }
             return null;
@@ -133,13 +143,17 @@ export const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = ({ client
           flex: 1,
           maxWidth: '80%',
           marginLeft: -4,
+          position: 'relative',
         }}>
           {message.attachments?.map((attachment: any, index: number) => (
             attachment?.type === 'custom_attachment' ? (
-              <CustomTipAttachment 
-                key={`custom-tip-${index}`}
-                attachment={attachment}
-              />
+              <View key={`custom-tip-container-${index}`} style={{ position: 'relative' }}>
+                <CustomTipAttachment 
+                  key={`custom-tip-${index}`}
+                  attachment={attachment}
+                />
+                <CustomReactionList />
+              </View>
             ) : null
           ))}
 
@@ -169,13 +183,17 @@ export const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = ({ client
           flex: 1,
           maxWidth: '80%',
           marginLeft: -4,
+          position: 'relative',
         }}>
           {message.attachments?.map((attachment: any, index: number) => (
             attachment?.type === 'paid_video' ? (
-              <PaidVideoAttachment 
-                key={`paid-video-${index}`}
-                attachment={attachment} 
-              />
+              <View key={`paid-video-container-${index}`} style={{ position: 'relative' }}>
+                <PaidVideoAttachment 
+                  key={`paid-video-${index}`}
+                  attachment={attachment} 
+                />
+                <CustomReactionList />
+              </View>
             ) : null
           ))}
 
@@ -189,29 +207,28 @@ export const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = ({ client
       <View style={{ 
         flexDirection: 'row', 
         alignItems: 'flex-end',
-        justifyContent: 'flex-start',
+        justifyContent: 'flex-end',  // Changed to flex-end to align right
         marginVertical: 4,
         paddingHorizontal: 5,
       }}>
-        {/* Avatar */}
-        <View style={{ marginRight: 2, marginLeft: -6 }}>
-          <CustomMessageAvatar size={32} />
-        </View>
-        
         {/* Message content */}
         <View style={{ 
           flexDirection: 'column',
-          alignItems: 'flex-start',
+          alignItems: 'flex-end',  // Changed to flex-end to align right
           flex: 1,
-          maxWidth: '80%',
-          marginLeft: -4,
+          maxWidth: '10%',  // Increased maxWidth for better positioning
+          marginRight:80,  // Add right margin for spacing from edge
+          position: 'relative',
         }}>
           {message.attachments?.map((attachment: any, index: number) => (
             attachment?.type === 'blurry_file' ? (
-              <BlurryFileAttachment 
-                key={`blurry-file-${index}`}
-                attachment={attachment} 
-              />
+              <View key={`blurry-file-container-${index}`} style={{ position: 'relative' }}>
+                <BlurryFileAttachment 
+                  key={`blurry-file-${index}`}
+                  attachment={attachment} 
+                />
+                <CustomReactionList />
+              </View>
             ) : null
           ))}
 
@@ -241,14 +258,18 @@ export const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = ({ client
           flex: 1,
           maxWidth: '80%',
           marginLeft: -4,
+          position: 'relative',
         }}>
           {/* Render paid content attachments only (no text message) */}
           {message.attachments?.map((attachment: any, index: number) => (
             attachment?.type === 'paid_content' ? (
-              <PaidContentAttachment 
-                key={`paid-content-${index}`}
-                attachment={attachment} 
-              />
+              <View key={`paid-content-container-${index}`} style={{ position: 'relative' }}>
+                <PaidContentAttachment 
+                  key={`paid-content-${index}`}
+                  attachment={attachment} 
+                />
+                <CustomReactionList />
+              </View>
             ) : null
           ))}
 
@@ -257,6 +278,7 @@ export const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = ({ client
     );
   }
   
+  // For regular text messages, let Channel-level ReactionListTop handle reactions
   return <MessageSimple {...props} />;
 };
 
