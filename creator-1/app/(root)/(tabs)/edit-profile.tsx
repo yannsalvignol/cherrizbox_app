@@ -263,7 +263,7 @@ export default function EditProfile() {
               try {
                 const userDocs = await databases.listDocuments(
                   config.databaseId,
-                  config.userCollectionId,
+                  config.creatorCollectionId,
                   [Query.equal('creatoraccountid', globalUser.$id)]
                 );
                 

@@ -134,7 +134,7 @@ const getCachedUserDoc = async (userId: string, forceRefresh = false) => {
   
   const userDocs = await databases.listDocuments(
     config.databaseId,
-    config.userCollectionId,
+    config.creatorCollectionId,
     [Query.equal('creatoraccountid', userId)]
   );
   
@@ -215,7 +215,7 @@ const getOrGenerateToken = async (userId: string): Promise<string> => {
       const { databases, config } = await import('./appwrite');
       await databases.updateDocument(
         config.databaseId,
-        config.userCollectionId,
+        config.creatorCollectionId,
         userDoc.$id,
         { streamChatToken: tokenResult.token }
       );
@@ -362,14 +362,14 @@ export const clearTokenCache = async (clearBackend = false, clearStorage = true)
       
       const userDocs = await databases.listDocuments(
         config.databaseId,
-        config.userCollectionId,
+        config.creatorCollectionId,
         [Query.equal('creatoraccountid', connectedUserId)]
       );
       
       if (userDocs.documents.length > 0) {
         await databases.updateDocument(
           config.databaseId,
-          config.userCollectionId,
+          config.creatorCollectionId,
           userDocs.documents[0].$id,
           { streamChatToken: null }
         );

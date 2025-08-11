@@ -162,7 +162,7 @@ export default function Index() {
       
       const userDocs = await databases.listDocuments(
         config.databaseId,
-        config.userCollectionId,
+        config.creatorCollectionId,
         [Query.equal('creatoraccountid', user.$id)]
       );
       
@@ -605,7 +605,7 @@ export default function Index() {
         
         const userResponse = await databases.listDocuments(
           config.databaseId,
-          process.env.EXPO_PUBLIC_APPWRITE_USER_USER_COLLECTION_ID!,
+          process.env.EXPO_PUBLIC_APPWRITE_USER_COLLECTION_ID!,
           [Query.equal('accountId', batch), Query.limit(batchSize)]
         );
         
@@ -675,7 +675,7 @@ export default function Index() {
       // Get user document to check the social_media_number
       const userDocs = await databases.listDocuments(
         config.databaseId,
-        config.userCollectionId,
+        config.creatorCollectionId,
         [Query.equal('creatoraccountid', user.$id)]
       );
       
@@ -687,7 +687,7 @@ export default function Index() {
             // Code matches, update both social_media_number_correct and account_state
             await databases.updateDocument(
               config.databaseId,
-              config.userCollectionId,
+              config.creatorCollectionId,
               userDoc.$id,
               {
                 social_media_number_correct: true,
@@ -790,7 +790,7 @@ export default function Index() {
       // Get user document to get social media info
       const userDocs = await databases.listDocuments(
         config.databaseId,
-        config.userCollectionId,
+        config.creatorCollectionId,
         [Query.equal('creatoraccountid', user.$id)]
       );
       
@@ -894,7 +894,7 @@ export default function Index() {
       
       const creatorResponse = await databases.listDocuments(
         config.databaseId,
-        process.env.EXPO_PUBLIC_APPWRITE_USER_COLLECTION_ID!,
+        process.env.EXPO_PUBLIC_APPWRITE_CREATOR_COLLECTION_ID!,
         [Query.equal('creatoraccountid', user.$id)]
       );
 

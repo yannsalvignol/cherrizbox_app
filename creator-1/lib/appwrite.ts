@@ -18,6 +18,7 @@ export const config = {
     endpoint: process.env.EXPO_PUBLIC_APPWRITE_ENDPOINT!,
     projectId: process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID!,
     databaseId: process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!,
+    creatorCollectionId: process.env.EXPO_PUBLIC_APPWRITE_CREATOR_COLLECTION_ID!,
     userCollectionId: process.env.EXPO_PUBLIC_APPWRITE_USER_COLLECTION_ID!,
     profileCollectionId: process.env.EXPO_PUBLIC_APPWRITE_PROFILE_COLLECTION_ID!,
     videoCollectionId: process.env.EXPO_PUBLIC_APPWRITE_VIDEO_COLLECTION_ID!,
@@ -68,7 +69,7 @@ export const createUser = async (email: string, password: string, username: stri
 
         const newUser = await databases.createDocument(
             config.databaseId,
-            config.userCollectionId,
+            config.creatorCollectionId,
             ID.unique(),
             userData
         );
@@ -153,12 +154,21 @@ export async function login(socialMedia?: string, socialMediaUsername?: string, 
         await account.createSession(userId, secret);
         console.log("[Google OAuth] Session created successfully for user", userId);
 
+        // Check if user email exists in user collection before proceeding
+        const user = await account.get();
+        const emailExistsInUserCollection = await checkEmailExistsInUserCollection(user.email);
+        if (emailExistsInUserCollection) {
+            // Delete the session we just created
+            await account.deleteSession("current");
+            console.log("[Google OAuth] Email exists in user collection, blocking login");
+            return { success: false, error: 'EMAIL_EXISTS_IN_USER_COLLECTION' };
+        }
+
         // Ensure a corresponding user document exists in Appwrite collection
         try {
-            const user = await account.get();
             const existingUser = await databases.listDocuments(
                 config.databaseId,
-                config.userCollectionId,
+                config.creatorCollectionId,
                 [Query.equal('creatoraccountid', user.$id)]
             );
 
@@ -166,7 +176,7 @@ export async function login(socialMedia?: string, socialMediaUsername?: string, 
                 const avatarUrl = avatars.getInitials(user.name);
                 await databases.createDocument(
                     config.databaseId,
-                    config.userCollectionId,
+                    config.creatorCollectionId,
                     ID.unique(),
                     {
                         creatoraccountid: user.$id,
@@ -224,12 +234,21 @@ export async function loginWithApple(socialMedia?: string, socialMediaUsername?:
         await account.createSession(userId, secret);
         console.log("[Apple OAuth] Session created successfully for user", userId);
 
+        // Check if user email exists in user collection before proceeding
+        const user = await account.get();
+        const emailExistsInUserCollection = await checkEmailExistsInUserCollection(user.email);
+        if (emailExistsInUserCollection) {
+            // Delete the session we just created
+            await account.deleteSession("current");
+            console.log("[Apple OAuth] Email exists in user collection, blocking login");
+            return { success: false, error: 'EMAIL_EXISTS_IN_USER_COLLECTION' };
+        }
+
         // Ensure a corresponding user document exists in Appwrite collection
         try {
-            const user = await account.get();
             const existingUser = await databases.listDocuments(
                 config.databaseId,
-                config.userCollectionId,
+                config.creatorCollectionId,
                 [Query.equal('creatoraccountid', user.$id)]
             );
 
@@ -237,7 +256,7 @@ export async function loginWithApple(socialMedia?: string, socialMediaUsername?:
                 const avatarUrl = avatars.getInitials(user.name);
                 await databases.createDocument(
                     config.databaseId,
-                    config.userCollectionId,
+                    config.creatorCollectionId,
                     ID.unique(),
                     {
                         creatoraccountid: user.$id,
@@ -312,8 +331,30 @@ export async function logout() {
         return false;
     }
 }
+// Check if email exists in user collection
+export const checkEmailExistsInUserCollection = async (email: string): Promise<boolean> => {
+    try {
+        const existingUsers = await databases.listDocuments(
+            config.databaseId,
+            config.userCollectionId,
+            [Query.equal('email', email)]
+        );
+        
+        return existingUsers.documents.length > 0;
+    } catch (error) {
+        console.error('Error checking email in user collection:', error);
+        return false;
+    }
+};
+
 export async function SignIn(email: string, password: string) {
     try {
+        // Check if email exists in the user collection
+        const emailExistsInUserCollection = await checkEmailExistsInUserCollection(email);
+        if (emailExistsInUserCollection) {
+            throw new Error('EMAIL_EXISTS_IN_USER_COLLECTION');
+        }
+
         // First, clear any existing Stream Chat connection and caches
         try {
             const { disconnectUser, clearTokenCache } = await import('./stream-chat');
@@ -431,14 +472,14 @@ export const updateUserProfile = async (userId: string, data: any): Promise<any>
                 try {
                     const userDocs = await databases.listDocuments(
                         config.databaseId,
-                        config.userCollectionId,
+                        config.creatorCollectionId,
                         [Query.equal('creatoraccountid', userId)]
                     );
                     if (userDocs.documents.length > 0) {
                         const userDocId = userDocs.documents[0].$id;
                         await databases.updateDocument(
                             config.databaseId,
-                            config.userCollectionId,
+                            config.creatorCollectionId,
                             userDocId,
                             { creators_public_name: data.creatorsname }
                         );
@@ -474,14 +515,14 @@ export const updateUserProfile = async (userId: string, data: any): Promise<any>
                 try {
                     const userDocs = await databases.listDocuments(
                         config.databaseId,
-                        config.userCollectionId,
+                        config.creatorCollectionId,
                         [Query.equal('creatoraccountid', userId)]
                     );
                     if (userDocs.documents.length > 0) {
                         const userDocId = userDocs.documents[0].$id;
                         await databases.updateDocument(
                             config.databaseId,
-                            config.userCollectionId,
+                            config.creatorCollectionId,
                             userDocId,
                             { creators_public_name: data.creatorsname }
                         );
@@ -965,7 +1006,7 @@ export const getUserByAccountId = async (accountId: string) => {
     try {
         const users = await databases.listDocuments(
             config.databaseId,
-            config.userCollectionId,
+            config.creatorCollectionId,
             [Query.equal('creatoraccountid', accountId)]
         );
         

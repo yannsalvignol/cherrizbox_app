@@ -1,17 +1,17 @@
 import {
-    type Channel,
-    formatLastMessageTime,
-    formatPrice,
-    getChannelAvatar,
-    getChannelDisplayName
+  type Channel,
+  formatLastMessageTime,
+  formatPrice,
+  getChannelAvatar,
+  getChannelDisplayName
 } from '@/lib/index-utils';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
-    Image,
-    Text,
-    TouchableOpacity,
-    View
+  Image,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 interface ChannelItemProps {
@@ -69,7 +69,7 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
               // Set cashed_tip_amount to the current uncashed_tip_amount value, then reset uncashed to 0
               await databases.updateDocument(
                 config.databaseId,
-                process.env.EXPO_PUBLIC_APPWRITE_USER_USER_COLLECTION_ID!,
+                process.env.EXPO_PUBLIC_APPWRITE_USER_COLLECTION_ID!,
                 cachedProfile.documentId,
                 {
                   cashed_tip_amount: uncashedTipAmount,

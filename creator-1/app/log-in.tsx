@@ -19,22 +19,42 @@ const LoginScreen = () => {
     const [showPassword, setShowPassword] = useState(false);
 
     const handleLogin = async () => {
-        const result = await login();
-        if(result){
-            await refetch();
-            router.replace('/welcome');
-        } else{
-            console.log('Login Failed');
+        try {
+            const result = await login();
+            if (result === true) {
+                await refetch();
+                router.replace('/welcome');
+            } else if (result && typeof result === 'object' && result.error === 'EMAIL_EXISTS_IN_USER_COLLECTION') {
+                router.replace('/email-exists-error');
+            } else {
+                console.log('Login Failed');
+            }
+        } catch (error: any) {
+            if (error.message === 'EMAIL_EXISTS_IN_USER_COLLECTION') {
+                router.replace('/email-exists-error');
+            } else {
+                console.log('Login Failed:', error);
+            }
         }
     };
 
     const handleAppleLogin = async () => {
-        const result = await loginWithApple();
-        if(result){
-            await refetch();
-            router.replace('/welcome');
-        } else {
-            console.log('Apple Login Failed');
+        try {
+            const result = await loginWithApple();
+            if (result === true) {
+                await refetch();
+                router.replace('/welcome');
+            } else if (result && typeof result === 'object' && result.error === 'EMAIL_EXISTS_IN_USER_COLLECTION') {
+                router.replace('/email-exists-error');
+            } else {
+                console.log('Apple Login Failed');
+            }
+        } catch (error: any) {
+            if (error.message === 'EMAIL_EXISTS_IN_USER_COLLECTION') {
+                router.replace('/email-exists-error');
+            } else {
+                console.log('Apple Login Failed:', error);
+            }
         }
     };
 
@@ -51,7 +71,11 @@ const LoginScreen = () => {
             await refetch(); // Refresh the global state to update login status
             router.replace('/welcome');
         } catch (error: any) {
-            setError('Invalid email or password');
+            if (error.message === 'EMAIL_EXISTS_IN_USER_COLLECTION') {
+                router.replace('/email-exists-error');
+            } else {
+                setError('Invalid email or password');
+            }
         } finally {
             setIsSubmitting(false);
         }

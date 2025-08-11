@@ -45,7 +45,7 @@ const ChangeUsernameScreen = () => {
         // Find the user document
         const userDocs = await databases.listDocuments(
           config.databaseId,
-          config.userCollectionId,
+          config.creatorCollectionId,
           [Query.equal('creatoraccountid', user.$id)]
         );
         
@@ -55,7 +55,7 @@ const ChangeUsernameScreen = () => {
           // Update the user's social media information
           await databases.updateDocument(
             config.databaseId,
-            config.userCollectionId,
+            config.creatorCollectionId,
             userDocId,
             {
               social_media: selectedNetwork,

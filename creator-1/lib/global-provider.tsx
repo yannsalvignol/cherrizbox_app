@@ -236,7 +236,7 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
       
       const userDocs = await databases.listDocuments(
         config.databaseId,
-        config.userCollectionId,
+        config.creatorCollectionId,
         [Query.equal('creatoraccountid', user.$id)]
       );
       
@@ -392,7 +392,7 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
           
           const userDocs = await databases.listDocuments(
             config.databaseId,
-            config.userCollectionId,
+            config.creatorCollectionId,
             [Query.equal('creatoraccountid', user.$id)]
           );
           
