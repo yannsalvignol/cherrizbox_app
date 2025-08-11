@@ -62,11 +62,26 @@ export default function EmailExistsError() {
         </Text>
 
         {/* Cherry Logo */}
-        <Image 
-          source={require('../assets/images/cherry-icon.png')}
-          style={{ width: 64, height: 64, marginBottom: 32 }}
-          resizeMode="contain"
-        />
+        <View style={{
+          width: 84,
+          height: 84,
+          borderRadius: 20,
+          backgroundColor: '#FFFFFF',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: 32,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+          elevation: 4,
+        }}>
+          <Image 
+            source={require('../assets/images/icon.png')}
+            style={{ width: 64, height: 64 }}
+            resizeMode="contain"
+          />
+        </View>
 
         {/* Action Buttons */}
         <View style={{ width: '100%', gap: 16 }}>
