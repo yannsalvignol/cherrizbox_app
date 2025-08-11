@@ -2313,11 +2313,11 @@ export default function EditProfile() {
                 padding: 10
               }}
             >
-              <Ionicons name="close" size={24} color="black" />
+              <Ionicons name="close" size={24} color="white" />
             </TouchableOpacity>
             
                  <Text style={{ 
-                   color: 'black', 
+                   color: 'white', 
               fontSize: 18, 
               fontFamily: 'Nunito-Bold',
               backgroundColor: 'rgba(0, 0, 0, 0.5)',

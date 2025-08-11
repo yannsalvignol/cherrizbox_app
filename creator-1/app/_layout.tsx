@@ -44,7 +44,9 @@ export default function RootLayout() {
           screenOptions={{ 
             headerShown: false,
           }} 
-        />
+        >
+          <Stack.Screen name="chat/[id]" />
+        </Stack>
       </GlobalProvider>
       </StripeProvider>
     </GestureHandlerRootView>

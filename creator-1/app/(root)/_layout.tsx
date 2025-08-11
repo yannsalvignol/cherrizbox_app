@@ -9,8 +9,6 @@ export default function Layout() {
             }}
         >
             <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="chat" />
-            <Stack.Screen name="properties/[id]" />
         </Stack>
     );
 }

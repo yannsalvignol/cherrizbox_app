@@ -1,4 +1,4 @@
-import React, { createContext, ReactNode, useContext, useEffect, useRef } from "react";
+import React, { createContext, ReactNode, useCallback, useContext, useEffect, useRef } from "react";
 
 import { getCurrentUser } from "./appwrite";
 import { connectUser, disconnectUser } from "./stream-chat";
@@ -69,7 +69,7 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
   // Cache duration: 5 minutes
   const CACHE_DURATION = 5 * 60 * 1000;
 
-  const preloadProfileData = async () => {
+  const preloadProfileData = useCallback(async () => {
     if (!user?.$id) return;
     
     try {
@@ -101,7 +101,7 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
     } catch (error) {
       console.error('❌ [Profile Cache] Error preloading profile data:', error);
     }
-  };
+  }, [user?.$id]);
 
   const getCachedProfile = (): ProfileCache | null => {
     if (!profileCache) return null;

@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Image, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGlobalContext } from '../lib/global-provider';
@@ -12,14 +12,38 @@ const WelcomeScreen = () => {
     const dot1Animation = useRef(new Animated.Value(0)).current;
     const dot2Animation = useRef(new Animated.Value(0)).current;
     const dot3Animation = useRef(new Animated.Value(0)).current;
+    
+    const [minimumTimeElapsed, setMinimumTimeElapsed] = useState(false);
+    const [preloadCompleted, setPreloadCompleted] = useState(false);
 
     useEffect(() => {
+        let isMounted = true;
+        
+        // Set minimum display time
+        const minimumTimer = setTimeout(() => {
+            if (isMounted) {
+                setMinimumTimeElapsed(true);
+            }
+        }, 2000); // 2 seconds minimum display time
+
         // Preload profile data early if user is logged in
         if (user) {
             console.log('🚀 [Welcome] Preloading profile data during welcome screen');
-            preloadProfileData().catch(error => {
-                console.error('❌ [Welcome] Error preloading profile data:', error);
-            });
+            preloadProfileData()
+                .then(() => {
+                    if (isMounted) {
+                        console.log('✅ [Welcome] Profile data preloading completed');
+                        setPreloadCompleted(true);
+                    }
+                })
+                .catch(error => {
+                    if (isMounted) {
+                        console.error('❌ [Welcome] Error preloading profile data:', error);
+                        setPreloadCompleted(true); // Continue anyway
+                    }
+                });
+        } else {
+            setPreloadCompleted(true); // No user, no need to preload
         }
 
         // Start logo animation immediately
@@ -88,17 +112,21 @@ const WelcomeScreen = () => {
             ).start();
         }, 1500);
 
-        // Navigate to main app after 4 seconds total
-        const navigationTimer = setTimeout(() => {
-            router.replace('/(root)/(tabs)');
-        }, 4000);
-
         return () => {
+            isMounted = false;
+            clearTimeout(minimumTimer);
             clearTimeout(textTimer);
             clearTimeout(dotsTimer);
-            clearTimeout(navigationTimer);
         };
-    }, [user, preloadProfileData]);
+    }, [user]); // Removed preloadProfileData from dependencies to prevent infinite loop
+
+    // Navigate when both minimum time has elapsed and preloading is complete
+    useEffect(() => {
+        if (minimumTimeElapsed && preloadCompleted) {
+            console.log('🚀 [Welcome] Minimum time elapsed and preload completed, navigating...');
+            router.replace('/(root)/(tabs)');
+        }
+    }, [minimumTimeElapsed, preloadCompleted, router]);
 
     const logoTranslateY = logoAnimation.interpolate({
         inputRange: [0, 1],
@@ -143,7 +171,6 @@ const WelcomeScreen = () => {
                 >
                     <Text style={styles.welcomeText}>Welcome to</Text>
                     <Text style={styles.cherrizboxText}>cherrizbox</Text>
-                    <Text style={styles.subtitleText}>Loading your experience...</Text>
                 </Animated.View>
 
                 {/* Loading Dots */}

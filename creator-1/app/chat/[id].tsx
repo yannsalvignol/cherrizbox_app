@@ -9,13 +9,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  Channel,
-  Chat,
-  MessageList,
-  OverlayProvider
+    Channel,
+    Chat,
+    MessageList,
+    OverlayProvider
 } from 'stream-chat-react-native';
 import {
-  getUserProfile
+    getUserProfile
 } from '../../lib/appwrite';
 import BlurryFileAttachment from '../components/chat/attachments/BlurryFileAttachment';
 import CustomAttachment from '../components/chat/attachments/CustomAttachment';
@@ -45,12 +45,12 @@ import VideoUploadModal from '../components/chat/modals/VideoUploadModal';
 
 // Enhanced profile image caching using our data cache system
 import {
-  handleCreatePoll,
-  handleLongPressMessage,
-  handleSendAudio,
-  handleThreadReply,
-  preloadAllThreadMessages,
-  preloadVisibleImages
+    handleCreatePoll,
+    handleLongPressMessage,
+    handleSendAudio,
+    handleThreadReply,
+    preloadAllThreadMessages,
+    preloadVisibleImages
 } from '../../lib/chat-functions';
 import { customReactions } from '../../lib/chat-reactions';
 import { getChatTheme } from '../../lib/chat-theme';

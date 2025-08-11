@@ -54,6 +54,7 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
   })();
 
   const handlePress = async () => {
+
     // Reset uncashed tip amount when opening a DM channel with tips
     if (isDM && hasTip) {
       try {
@@ -77,27 +78,25 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
                 }
               );
               
-              console.log(`💰 [Tips] Updated tip amounts for user ${otherMemberId}: cashed=${uncashedTipAmount}, uncashed=0`);
-              
               // Update cache to reflect the change
               userProfileCache.current.set(otherMemberId, {
                 ...cachedProfile,
                 uncashedTipAmount: 0
               });
-            } else {
-              console.log(`⚠️ [Tips] No document ID found for user ${otherMemberId}`);
             }
           }
         }
       } catch (error) {
-        console.error('❌ [Tips] Error resetting tip amounts:', error);
+        // Silently handle tip reset errors
       }
     }
+    
+    const targetRoute = `/chat/${channel.id}`;
     
     if (onChannelPress) {
       onChannelPress(channel.id);
     } else {
-      router.push(`/(root)/chat/${channel.id}` as any);
+      router.push(targetRoute as any);
     }
   };
 
@@ -107,12 +106,12 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
         flexDirection: 'row',
         alignItems: 'center',
         padding: isGroupChat ? 16 : 12,
-        backgroundColor: isGroupChat ? 'white' : (hasTip ? '#1A2A1A' : '#FFFFFF'), // Pale green for tipped DMs
+        backgroundColor: isGroupChat ? 'white' : (hasTip ? 'rgba(40, 158, 65, 0.36)' : '#FFFFFF'), // Pale green for tipped DMs
         marginHorizontal: 16,
         marginVertical: isGroupChat ? 4 : 2,
         borderRadius: isGroupChat ? 16 : 8,
         borderWidth: isGroupChat ? 2 : 1,
-        borderColor: isGroupChat ? '#676767' : (hasTip ? '#2A4A2A' : '#333333'), // Darker green border for tipped DMs
+        borderColor: isGroupChat ? '#676767' : (hasTip ? 'rgba(67, 255, 107, 0.16)' : '#333333'), // Darker green border for tipped DMs
         shadowColor: isGroupChat ? 'black' : 'transparent',
         shadowOffset: isGroupChat ? { width: 0, height: 2 } : { width: 0, height: 0 },
         shadowOpacity: isGroupChat ? 0.3 : 0,
@@ -244,7 +243,7 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
       {/* Arrow or Unread Count Badge */}
       {channel.unreadCount > 0 ? (
         <View style={{
-          backgroundColor: '#c1c2c0',
+          backgroundColor: 'rgba(20, 20, 20, 0.62)',
           borderRadius: 12,
           minWidth: 24,
           height: 24,
@@ -253,7 +252,7 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
           paddingHorizontal: 8,
         }}>
           <Text style={{
-            color: 'black',
+            color: 'white',
             fontSize: 12,
             fontWeight: 'bold',
             fontFamily: 'Urbanist-Bold',

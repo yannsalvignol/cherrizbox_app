@@ -97,13 +97,10 @@ const PhotoCard = ({ photo, index = 0, scrollY, isSubscribed = false, isCancelle
         // If it's the creator's own content or user is subscribed and not cancelled
         if (photo.creatorId === user?.$id || (isSubscribed && !isCancelled)) {
             // Navigate to chat
-            router.push({
-                pathname: '/(root)/chat',
-                params: {
-                    channelId: `creator-${photo.creatorId}`,
-                    creatorName: photoTitle
-                }
-            });
+            // Navigate to the specific creator chat channel
+            const channelId = `creator-${photo.creatorId}`;
+            console.log('🚀 [PhotoCard] Navigating to chat channel:', channelId);
+            router.push(`/chat/${channelId}` as any);
         } else {
             // Navigate to properties if not subscribed
             router.push(`/properties/${photo.$id}`);

@@ -189,7 +189,11 @@ export const ChannelList: React.FC<ChannelListProps> = ({
               userName={userName}
               userCurrency={userCurrency}
               userProfileCache={userProfileCache}
-              onChannelPress={onChannelPress}
+              onChannelPress={(channelId) => {
+                if (onChannelPress) {
+                  onChannelPress(channelId);
+                }
+              }}
             />
           </View>
         );

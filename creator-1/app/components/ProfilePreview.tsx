@@ -171,32 +171,7 @@ const ProfilePreview: React.FC<ProfilePreviewProps> = ({
               }}>
                 No Profile Photo Yet
               </Text>
-              <Text style={{ 
-                color: 'rgba(255, 255, 255, 0.8)', 
-                fontSize: 16, 
-                textAlign: 'center', 
-                marginBottom: 30,
-                lineHeight: 24,
-                fontFamily: 'questrial'
-              }}>
-                Swipe up to edit your info and choose a profile picture
-              </Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Ionicons 
-                  name="arrow-up" 
-                  size={24} 
-                  color="#FD6F3E" 
-                  style={{ marginRight: 8 }}
-                />
-                <Text style={{ 
-                  color: '#FD6F3E', 
-                  fontSize: 16, 
-                  fontWeight: 'bold',
-                  fontFamily: 'questrial'
-                }}>
-                  Swipe Up
-                </Text>
-              </View>
+
             </View>
           </View>
         )}

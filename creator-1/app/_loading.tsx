@@ -1,15 +1,40 @@
 import { useGlobalContext } from '@/lib/global-provider';
 import * as Font from 'expo-font';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { Image, ImageBackground, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Image, ImageBackground, StyleSheet, Text, View } from 'react-native';
 
 const LoadingScreen = () => {
   const router = useRouter();
   const { user, isStreamConnected } = useGlobalContext();
-  const [loadingText, setLoadingText] = useState('Initializing...');
+
   const [minimumTimeElapsed, setMinimumTimeElapsed] = useState(false);
   const [assetsLoaded, setAssetsLoaded] = useState(false);
+  
+  // Animation for background zoom
+  const scaleAnimation = useRef(new Animated.Value(1)).current;
+
+  // Start background zoom animation
+  useEffect(() => {
+    const zoomAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(scaleAnimation, {
+          toValue: 1.1,
+          duration: 3000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnimation, {
+          toValue: 1,
+          duration: 3000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    
+    zoomAnimation.start();
+    
+    return () => zoomAnimation.stop();
+  }, [scaleAnimation]);
 
   // Preload assets and restore connection state early for faster startup
   useEffect(() => {
@@ -25,7 +50,6 @@ const LoadingScreen = () => {
             const restored = await restoreConnectionState();
             
             if (restored.isValid && restored.userId) {
-              setLoadingText('Restoring session...');
               await preloadStreamConnection(restored.userId);
             }
           } catch (error) {
@@ -100,70 +124,67 @@ const LoadingScreen = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Navigate when user state is determined, minimum time elapsed, AND assets loaded
+      // Navigate when user state is determined, minimum time elapsed, AND assets loaded
   useEffect(() => {
     if (user === undefined || !minimumTimeElapsed || !assetsLoaded) return;
     
     // Navigate immediately when ready
     if (user) {
-      // If Stream is connected, show ready state briefly
-      if (isStreamConnected) {
-        setLoadingText('Ready!');
-        // Small delay just for the "Ready!" to be visible
-        setTimeout(() => router.replace('/(root)/(tabs)'), 100);
-      } else {
-        // Navigate anyway, connection will happen in background
-        router.replace('/(root)/(tabs)');
-      }
+      router.replace('/(root)/(tabs)');
     } else {
       router.replace('/landing');
     }
   }, [router, user, isStreamConnected, minimumTimeElapsed, assetsLoaded]);
 
-  // Update loading text based on connection status and asset loading
-  useEffect(() => {
-    if (!assetsLoaded) {
-      setLoadingText('Loading resources...');
-    } else if (user && isStreamConnected) {
-      setLoadingText('Ready!');
-    } else if (user) {
-      setLoadingText('Connecting to chat...');
-    } else if (user === null) {
-      setLoadingText('Welcome!');
-    } else {
-      setLoadingText('Loading...');
-    }
-  }, [user, isStreamConnected, assetsLoaded]);
+
 
   return (
-    <ImageBackground
-      source={require('../assets/images/cherry.png')}
-      style={styles.background}
-      resizeMode="cover"
-    >
+    <View style={styles.container}>
+      <Animated.View
+        style={[
+          styles.backgroundContainer,
+          {
+            transform: [{ scale: scaleAnimation }],
+          },
+        ]}
+      >
+        <ImageBackground
+          source={require('../assets/images/cherry.png')}
+          style={styles.background}
+          resizeMode="cover"
+        />
+      </Animated.View>
       <View style={styles.overlay}>
-      <View style={styles.textRow}>
+        <View style={styles.textRow}>
           <Text style={styles.cherrizbox}>Cherrizbox</Text>
         </View>
-        <Text style={styles.loadingText}>{loadingText}</Text>
       </View>
-    </ImageBackground>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  backgroundContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
   background: {
     flex: 1,
     width: '100%',
     height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   overlay: {
     position: 'absolute',
     top: '66%',
     width: '100%',
     alignItems: 'center',
+    zIndex: 1,
   },
   textRow: {
     flexDirection: 'row',
@@ -174,14 +195,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: 'white',
     fontFamily: 'MuseoModerno-Regular',
-  },
-
-  loadingText: {
-    fontSize: 16,
-    color: 'white',
-    fontFamily: 'questrial',
-    marginTop: 10,
-    opacity: 0.8,
   },
 });
 

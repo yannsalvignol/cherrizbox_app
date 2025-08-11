@@ -1,5 +1,6 @@
 import { useGlobalContext } from '@/lib/global-provider';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Image, ImageBackground, KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -29,6 +30,9 @@ const LandingScreen = () => {
 
   const handleContinue = () => {
     if (username.trim()) {
+      // Trigger haptic feedback
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      
       // Generate a 6-digit code
       const socialMediaNumber = Math.floor(100000 + Math.random() * 900000).toString();
       
