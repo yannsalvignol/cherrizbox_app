@@ -36,8 +36,8 @@ export default function About() {
               className="w-24 h-24 mb-4"
               resizeMode="contain"
             />
-            <Text style={{ color: 'black', fontSize: 24, fontFamily: 'questrial', marginBottom: 8 }}>
-              Cherrybox<Text style={{ color: '#FD6F3E' }}>.</Text>
+            <Text style={{ color: 'black', fontSize: 24, fontFamily: 'MuseoModerno-Regular', marginBottom: 8 }}>
+              cherrizbox
             </Text>
             <Text style={{ color: '#888888', fontFamily: 'questrial', fontSize: 16, textAlign: 'center' }}>
               Version 1.0.0
@@ -49,7 +49,7 @@ export default function About() {
               Who We Are
             </Text>
             <Text style={{ color: 'black', fontFamily: 'questrial', fontSize: 16, lineHeight: 24 }}>
-              Cherrybox is a French SAS (Société par Actions Simplifiée) founded by a passionate team of 4 people. We are officially registered in France and operate with the support of Legal Place, the leading French business structure service, ensuring full compliance with French business regulations and standards.
+              Cherrizbox is a French SAS (Société par Actions Simplifiée) founded by a passionate team of 4 people. We are officially registered in France and operate with the support of Legal Place, the leading French business structure service, ensuring full compliance with French business regulations and standards.
             </Text>
           </View>
 
@@ -58,7 +58,7 @@ export default function About() {
               Our Mission
             </Text>
             <Text style={{ color: 'black', fontFamily: 'questrial', fontSize: 16, lineHeight: 24 }}>
-              Cherrybox is dedicated to creating a safe and engaging platform for content creators and their audiences. We strive to provide innovative tools and features that enhance the connection between creators and their community while empowering them to monetize their content effectively.
+              Cherrizbox is dedicated to creating a safe and engaging platform for content creators and their audiences. We strive to provide innovative tools and features that enhance the connection between creators and their community while empowering them to monetize their content effectively.
             </Text>
           </View>
 
@@ -89,7 +89,7 @@ export default function About() {
               Company Information
             </Text>
             <Text style={{ color: 'black', fontFamily: 'questrial', fontSize: 16, lineHeight: 24 }}>
-              <Text style={{ fontWeight: 'bold' }}>Company:</Text> Cherrybox SAS{'\n'}
+              <Text style={{ fontWeight: 'bold' }}>Company:</Text> cherrizbox SAS{'\n'}
               <Text style={{ fontWeight: 'bold' }}>Legal Structure:</Text> French SAS (Société par Actions Simplifiée){'\n'}
               <Text style={{ fontWeight: 'bold' }}>Registration:</Text> Incorporated in France{'\n'}
               <Text style={{ fontWeight: 'bold' }}>Business Support:</Text> Legal Place (French business structure service){'\n'}
@@ -103,9 +103,9 @@ export default function About() {
             </Text>
             <Text style={{ color: 'black', fontFamily: 'questrial', fontSize: 16, lineHeight: 24 }}>
               Have questions or suggestions? We'd love to hear from you.{'\n\n'}
-              <Text style={{ fontWeight: 'bold' }}>Support:</Text> support@cherrybox.app{'\n'}
-              <Text style={{ fontWeight: 'bold' }}>Business:</Text> hello@cherrybox.app{'\n'}
-              <Text style={{ fontWeight: 'bold' }}>Legal:</Text> legal@cherrybox.app{'\n\n'}
+              <Text style={{ fontWeight: 'bold' }}>Support:</Text> support@cherrizbox.app{'\n'}
+              <Text style={{ fontWeight: 'bold' }}>Business:</Text> hello@cherrizbox.app{'\n'}
+              <Text style={{ fontWeight: 'bold' }}>Legal:</Text> legal@cherrizbox.app{'\n\n'}
               Or reach out through our support channels within the application.
             </Text>
           </View>

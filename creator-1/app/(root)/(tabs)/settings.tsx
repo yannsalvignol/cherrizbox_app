@@ -43,10 +43,11 @@ export default function Settings() {
     title: string,
     onPress: ((event: GestureResponderEvent) => void) | null | undefined,
     hasSwitch = false,
-    isLogout = false
+    isLogout = false,
+    isLast = false
   ) => (
     <TouchableOpacity 
-      className={`flex-row items-center justify-between py-5 ${!isLogout ? 'border-b border-[#E0E0E0]' : ''}`}
+      className={`flex-row items-center justify-between py-5 ${!isLogout && !isLast ? 'border-b border-[#E0E0E0]' : ''}`}
       onPress={onPress || undefined}
       disabled={hasSwitch}
     >
@@ -110,7 +111,7 @@ export default function Settings() {
           <View style={{ backgroundColor: '#FFFFFF', borderRadius: 8, paddingHorizontal: 16 }}>
             {renderSettingItem('About us', () => router.push('/about'))}
             {renderSettingItem('Privacy Policy', () => router.push('/privacy-policy'))}
-            {renderSettingItem('Terms and Conditions', () => router.push('/terms'))}
+            {renderSettingItem('Terms and Conditions', () => router.push('/terms'), false, false, true)}
           </View>
         </View>
       </View>

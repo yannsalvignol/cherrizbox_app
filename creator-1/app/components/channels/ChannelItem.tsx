@@ -1,17 +1,17 @@
 import {
-  type Channel,
-  formatLastMessageTime,
-  formatPrice,
-  getChannelAvatar,
-  getChannelDisplayName
+    type Channel,
+    formatLastMessageTime,
+    formatPrice,
+    getChannelAvatar,
+    getChannelDisplayName
 } from '@/lib/index-utils';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
-  Image,
-  Text,
-  TouchableOpacity,
-  View
+    Image,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 interface ChannelItemProps {
@@ -97,7 +97,7 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
     if (onChannelPress) {
       onChannelPress(channel.id);
     } else {
-      router.push(`/chat/${channel.id}` as any);
+      router.push(`/(root)/chat/${channel.id}` as any);
     }
   };
 

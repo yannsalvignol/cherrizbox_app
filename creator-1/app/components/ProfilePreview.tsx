@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { Dimensions, Image, ImageBackground, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, ImageBackground, Text, TouchableOpacity, View } from 'react-native';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -207,7 +207,7 @@ const ProfilePreview: React.FC<ProfilePreviewProps> = ({
             </Text>
             <View style={{ alignSelf: 'flex-start', marginTop: 5 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: 'rgba(255, 255, 255, 0.2)', paddingBottom: 8 }}>
-                <Image source={require('../../assets/icon/localisation.png')} style={{ width: 16, height: 20, tintColor: 'white', marginRight: 10 }} />
+                <Ionicons name="location-sharp" size={20} color="white" style={{ marginRight: 10 }} />
                 <Text style={{ color: 'white', fontSize: 18, textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }}>
                   {location || 'N/A'}
                 </Text>

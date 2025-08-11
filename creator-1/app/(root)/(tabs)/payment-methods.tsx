@@ -242,7 +242,7 @@ export default function PaymentMethods() {
             fontFamily: 'Urbanist-Regular',
             lineHeight: 22
           }}>
-            Having trouble with payments? Contact our support team at support@cherrybox.app or through the app's support channels.
+            Having trouble with payments? Contact our support team at support@cherrizbox.app or through the app's support channels.
           </Text>
         </View>
       </ScrollView>

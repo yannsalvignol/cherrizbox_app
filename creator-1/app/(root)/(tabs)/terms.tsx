@@ -39,7 +39,7 @@ export default function Terms() {
               1. Acceptance of Terms
             </Text>
             <Text style={{ color: 'black', fontFamily: 'questrial', fontSize: 16, lineHeight: 24 }}>
-              By accessing and using Cherrybox ("Service"), you agree to be bound by these Terms and Conditions ("Terms"). If you do not agree to these terms, please do not use our service. These Terms apply to all users of the Service, including creators and subscribers.
+              By accessing and using cherrizbox ("Service"), you agree to be bound by these Terms and Conditions ("Terms"). If you do not agree to these terms, please do not use our service. These Terms apply to all users of the Service, including creators and subscribers.
             </Text>
           </View>
 
@@ -48,7 +48,7 @@ export default function Terms() {
               2. Description of Service
             </Text>
             <Text style={{ color: 'black', fontFamily: 'questrial', fontSize: 16, lineHeight: 24 }}>
-              Cherrybox is a platform that allows content creators to share exclusive content with subscribers through paid subscriptions. The Service includes messaging, content sharing, payment processing, and related features.
+              cherrizbox is a platform that allows content creators to share exclusive content with subscribers through paid subscriptions. The Service includes messaging, content sharing, payment processing, and related features.
             </Text>
           </View>
 
@@ -93,7 +93,7 @@ export default function Terms() {
               7. Intellectual Property Rights
             </Text>
             <Text style={{ color: 'black', fontFamily: 'questrial', fontSize: 16, lineHeight: 24 }}>
-              All content on Cherrybox, including text, graphics, logos, and software, is protected by intellectual property laws. Users retain ownership of their content but grant us a license to display and distribute it on the platform. Users must not infringe on others' intellectual property rights.
+              All content on cherrizbox, including text, graphics, logos, and software, is protected by intellectual property laws. Users retain ownership of their content but grant us a license to display and distribute it on the platform. Users must not infringe on others' intellectual property rights.
             </Text>
           </View>
 
@@ -156,7 +156,7 @@ export default function Terms() {
               14. Contact Information
             </Text>
             <Text style={{ color: 'black', fontFamily: 'questrial', fontSize: 16, lineHeight: 24 }}>
-              If you have questions about these Terms, please contact us at legal@cherrybox.app or through our support channels within the application.
+              If you have questions about these Terms, please contact us at legal@cherrizbox.app or through our support channels within the application.
             </Text>
           </View>
 

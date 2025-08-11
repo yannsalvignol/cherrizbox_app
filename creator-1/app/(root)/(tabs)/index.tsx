@@ -1920,8 +1920,12 @@ export default function Index() {
             {/* Loading indicator moved below search and filters */}
             {isLoadingAudience ? (
               <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 32 }}>
-                <ActivityIndicator size="large" color="black" />
-                <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 16, marginTop: 12 }}>Loading subscribers...</Text>
+                <Image 
+                  source={require('../../../assets/icon/loading-icon.png')} 
+                  style={{ width: 48, height: 48, marginBottom: 12 }}
+                  resizeMode="contain"
+                />
+                <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>Loading subscribers...</Text>
               </View>
             ) : filteredAudience.length === 0 ? (
               <Text style={{ 

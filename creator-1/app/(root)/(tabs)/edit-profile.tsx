@@ -667,7 +667,12 @@ export default function EditProfile() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: '#DCDEDF' }} edges={[]}>
         <View className="flex-1 items-center justify-center">
-          <Text className="text-black">Loading...</Text>
+          <Image 
+            source={require('../../../assets/icon/loading-icon.png')} 
+            style={{ width: 48, height: 48, marginBottom: 16 }}
+            resizeMode="contain"
+          />
+          <Text style={{ color: 'black', fontSize: 16, fontFamily: 'Urbanist-Medium' }}>Loading...</Text>
         </View>
       </SafeAreaView>
     );

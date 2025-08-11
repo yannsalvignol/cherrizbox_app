@@ -39,7 +39,7 @@ export default function PrivacyPolicy() {
               1. Introduction
             </Text>
             <Text style={{ color: 'black', fontFamily: 'questrial', fontSize: 16, lineHeight: 24 }}>
-              Welcome to Cherrybox ("we," "our," or "us"). This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application and services. Please read this privacy policy carefully. If you do not agree with the terms of this privacy policy, please do not access the application.
+              Welcome to cherrizbox ("we," "our," or "us"). This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application and services. Please read this privacy policy carefully. If you do not agree with the terms of this privacy policy, please do not access the application.
             </Text>
           </View>
 
@@ -198,8 +198,8 @@ export default function PrivacyPolicy() {
             </Text>
             <Text style={{ color: 'black', fontFamily: 'questrial', fontSize: 16, lineHeight: 24 }}>
               If you have questions about this Privacy Policy or our data practices, please contact us at:{'\n'}
-              Email: privacy@cherrybox.app{'\n'}
-              Address: Legal Department, Cherrybox Inc.{'\n'}
+              Email: privacy@cherrizbox.app{'\n'}
+              Address: Legal Department, cherrizbox Inc.{'\n'}
               Or through our support channels within the application.
             </Text>
           </View>
