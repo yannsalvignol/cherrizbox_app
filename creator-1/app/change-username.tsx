@@ -115,7 +115,7 @@ const ChangeUsernameScreen = () => {
                     key={network.name}
                     onPress={() => setSelectedNetwork(network.name)}
                     style={{
-                      backgroundColor: selectedNetwork === network.name ? '#FB2355' : 'rgba(255, 255, 255, 0.2)',
+                      backgroundColor: selectedNetwork === network.name ? '#FD6F3E' : 'rgba(255, 255, 255, 0.2)',
                       borderRadius: 18,
                       paddingVertical: 12,
                       paddingHorizontal: 16,
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   ctaButton: {
-    backgroundColor: '#FB2355',
+    backgroundColor: '#FD6F3E',
     paddingVertical: 18,
     paddingHorizontal: 40,
     borderRadius: 30,
@@ -424,14 +424,14 @@ const styles = StyleSheet.create({
     minWidth: 220,
   },
   modalButton: {
-    backgroundColor: '#FB2355',
+    backgroundColor: '#FD6F3E',
     borderRadius: 16,
     paddingVertical: 16,
     paddingHorizontal: 32,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#FB2355',
+    shadowColor: '#FD6F3E',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

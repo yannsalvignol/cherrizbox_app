@@ -2,9 +2,11 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
 import { Animated, Image, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useGlobalContext } from '../lib/global-provider';
 
 const WelcomeScreen = () => {
     const router = useRouter();
+    const { user, preloadProfileData } = useGlobalContext();
     const logoAnimation = useRef(new Animated.Value(0)).current;
     const textAnimation = useRef(new Animated.Value(0)).current;
     const dot1Animation = useRef(new Animated.Value(0)).current;
@@ -12,6 +14,14 @@ const WelcomeScreen = () => {
     const dot3Animation = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
+        // Preload profile data early if user is logged in
+        if (user) {
+            console.log('🚀 [Welcome] Preloading profile data during welcome screen');
+            preloadProfileData().catch(error => {
+                console.error('❌ [Welcome] Error preloading profile data:', error);
+            });
+        }
+
         // Start logo animation immediately
         Animated.loop(
             Animated.sequence([
@@ -88,7 +98,7 @@ const WelcomeScreen = () => {
             clearTimeout(dotsTimer);
             clearTimeout(navigationTimer);
         };
-    }, []);
+    }, [user, preloadProfileData]);
 
     const logoTranslateY = logoAnimation.interpolate({
         inputRange: [0, 1],
@@ -209,7 +219,7 @@ const styles = StyleSheet.create({
         width: 120,
         height: 120,
         borderRadius: 20,
-        shadowColor: '#FB2355',
+        shadowColor: '#FD6F3E',
         shadowOffset: {
             width: 0,
             height: 4,
@@ -250,7 +260,7 @@ const styles = StyleSheet.create({
         width: 8,
         height: 8,
         borderRadius: 4,
-        backgroundColor: '#FB2355',
+        backgroundColor: '#FD6F3E',
         marginHorizontal: 4,
     },
     dot1: {

@@ -350,7 +350,7 @@ export default function Profile() {
                         width: '100%',
                       }}>
                         <LinearGradient
-                          colors={['#FB2355', '#FFD700', '#FB2355']}
+                          colors={['#FD6F3E', '#FFD700', '#FD6F3E']}
                           start={{ x: 0, y: 0 }}
                           end={{ x: 1, y: 1 }}
                           style={{
@@ -373,7 +373,7 @@ export default function Profile() {
                                 </Text>
                               </View>
                               <TouchableOpacity 
-                                className="bg-[#FB2355] px-3 py-1 rounded-full"
+                                className="bg-[#FD6F3E] px-3 py-1 rounded-full"
                                 onPress={() => handleUnsubscribe(subscription.creatorName, subscription.stripeSubscriptionId)}
                               >
                                 <Text style={{ color: 'white', fontFamily: 'questrial' }}>Unsubscribe</Text>
@@ -623,10 +623,10 @@ export default function Profile() {
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: 0 }}>
           <Text style={{ color: 'white', fontSize: 38, fontWeight: 'bold', textAlign: 'center', fontFamily: 'questrial' }}>
             Cherrizbox
-            <Text style={{ color: '#FB2355', fontFamily: 'questrial' }}>.</Text>
+            <Text style={{ color: '#FD6F3E', fontFamily: 'questrial' }}>.</Text>
           </Text>
           <Text style={{
-            color: '#FB2355',
+            color: '#FD6F3E',
             fontSize: 18,
             fontFamily: 'questrial',
             textAlign: 'center',
@@ -706,7 +706,7 @@ export default function Profile() {
             style={{ 
               backgroundColor: hasExistingGroup ? '#1A1A1A' : '#1A1A1A', 
               borderWidth: 2, 
-              borderColor: hasExistingGroup ? '#666' : '#FB2355' 
+              borderColor: hasExistingGroup ? '#666' : '#FD6F3E' 
             }}
             onPress={handleCreateGroup}
           >
@@ -714,7 +714,7 @@ export default function Profile() {
               <Ionicons 
                 name="chatbubble-ellipses-outline" 
                 size={22} 
-                color={hasExistingGroup ? '#666' : '#FB2355'} 
+                color={hasExistingGroup ? '#666' : '#FD6F3E'} 
                 style={{ marginRight: 10 }} 
               />
               <Text style={{ 
@@ -727,7 +727,7 @@ export default function Profile() {
               <Ionicons 
                 name="chatbubble-ellipses-outline" 
                 size={22} 
-                color={hasExistingGroup ? '#666' : '#FB2355'} 
+                color={hasExistingGroup ? '#666' : '#FD6F3E'} 
                 style={{ marginLeft: 10 }} 
               />
             </View>
@@ -750,7 +750,7 @@ export default function Profile() {
               left: `${(100 / 3) * toggleIndex}%`,
               width: '33.33%',
               height: 28,
-              backgroundColor: '#FB2355',
+              backgroundColor: '#FD6F3E',
               borderRadius: 999,
               zIndex: 1,
             }} />

@@ -3,18 +3,18 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    Modal,
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Modal,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-    codeBasedPasswordReset,
-    logout,
-    verifyCodeAndResetPassword
+  codeBasedPasswordReset,
+  logout,
+  verifyCodeAndResetPassword
 } from "../../../lib/appwrite";
 import FormField from "../../components/FormField";
 import OtpInput from "../../components/OtpInput";
@@ -202,7 +202,7 @@ const ForgotPasswordLoggedIn = () => {
                 />
                 <TouchableOpacity
                   onPress={handleRequestCode}
-                  className="w-full bg-[#FB2355] py-4 rounded-full mt-8"
+                  className="w-full bg-[#FD6F3E] py-4 rounded-full mt-8"
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -224,7 +224,7 @@ const ForgotPasswordLoggedIn = () => {
                 />
                 <TouchableOpacity
                   onPress={handleVerifyCode}
-                  className="w-full bg-[#FB2355] py-4 rounded-full mt-8"
+                  className="w-full bg-[#FD6F3E] py-4 rounded-full mt-8"
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -258,7 +258,7 @@ const ForgotPasswordLoggedIn = () => {
                     />
                     <TouchableOpacity 
                   onPress={handleResetPassword}
-                  className="w-full bg-[#FB2355] py-4 rounded-full mt-8"
+                  className="w-full bg-[#FD6F3E] py-4 rounded-full mt-8"
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -292,7 +292,7 @@ const ForgotPasswordLoggedIn = () => {
                         </Text>
             <TouchableOpacity
               onPress={handleLogout}
-              className="w-full bg-[#FB2355] py-3 rounded-full mt-8"
+              className="w-full bg-[#FD6F3E] py-3 rounded-full mt-8"
             >
               <Text style={{ color: 'white' }} className="text-center font-['Urbanist-Bold'] text-lg">
                 Log Out

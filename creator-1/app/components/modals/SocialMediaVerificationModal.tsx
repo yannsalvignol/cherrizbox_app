@@ -2,12 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
-    Image,
-    Keyboard,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Image,
+  Keyboard,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 interface NetworkType {
@@ -52,12 +52,12 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
 
   return (
     <View style={{
-      backgroundColor: 'rgba(251, 35, 85, 0.05)',
+      backgroundColor: '#FFFFFF',
       borderRadius: 20,
       padding: 28,
       marginBottom: 24,
       borderWidth: 2,
-      borderColor: 'rgba(251, 35, 85, 0.2)',
+      borderColor: '#FD6F3E',
       width: '100%',
       alignItems: 'center'
     }}>
@@ -69,15 +69,15 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
         width: '100%'
       }}>
         <View style={{
-          backgroundColor: 'rgba(251, 35, 85, 0.15)',
+          backgroundColor: '#FD6F3E',
           borderRadius: 8,
           padding: 6,
           marginRight: 10
         }}>
-          <Ionicons name="shield-checkmark" size={16} color="#FB2355" />
+          <Ionicons name="shield-checkmark" size={16} color="white" />
         </View>
         <Text style={{ 
-          color: 'white', 
+          color: 'black', 
           fontSize: 16, 
           fontFamily: 'Urbanist-Bold',
           flex: 1
@@ -88,12 +88,12 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
 
       {/* Social Media Info */}
       <View style={{
-        backgroundColor: 'rgba(251, 35, 85, 0.08)',
+        backgroundColor: 'rgba(253, 111, 62, 0.1)',
         borderRadius: 12,
         padding: 12,
         marginBottom: 16,
         borderWidth: 1,
-        borderColor: 'rgba(251, 35, 85, 0.2)',
+        borderColor: '#FD6F3E',
         alignItems: 'center',
         width: '100%'
       }}>
@@ -107,12 +107,12 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
                 <Ionicons 
                   name={network?.icon as any} 
                   size={20} 
-                  color={network?.color || '#FB2355'} 
+                  color={network?.color || '#FD6F3E'} 
                   style={{ marginRight: 8 }}
                 />
               )}
               <Text style={{
-                color: '#FB2355',
+                color: '#FD6F3E',
                 fontSize: 16,
                 fontFamily: 'Urbanist-Bold'
               }}>
@@ -122,7 +122,7 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
           );
         })()}
         <Text style={{
-          color: 'rgba(255,255,255,0.7)',
+          color: 'rgba(0,0,0,0.7)',
           fontSize: 12,
           fontFamily: 'Urbanist-Regular'
         }}>
@@ -137,20 +137,20 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
       }}>
         <TextInput
           style={{
-            backgroundColor: 'rgba(255,255,255,0.08)',
+            backgroundColor: '#F8F8F8',
             borderRadius: 12,
             padding: 16,
-            color: 'white',
+            color: 'black',
             fontSize: 20,
             fontFamily: 'Urbanist-Bold',
             textAlign: 'center',
             letterSpacing: 4,
-            borderWidth: 1,
-            borderColor: verificationError ? '#FB2355' : 'rgba(255,255,255,0.2)',
+            borderWidth: 2,
+            borderColor: verificationError ? '#FD6F3E' : '#FD6F3E',
             width: '100%'
           }}
           placeholder="000000"
-          placeholderTextColor="rgba(255,255,255,0.4)"
+          placeholderTextColor="rgba(0,0,0,0.4)"
           value={socialMediaCode}
           onChangeText={(text) => {
             // Only allow numbers and limit to 6 digits
@@ -171,7 +171,7 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
         />
         {verificationError ? (
           <Text style={{ 
-            color: '#FB2355', 
+            color: '#FD6F3E', 
             fontSize: 12, 
             marginTop: 4,
             fontFamily: 'Urbanist-Regular',
@@ -185,13 +185,13 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
       {/* Single Action Button */}
       <TouchableOpacity 
         style={{ 
-          backgroundColor: socialMediaCode.length === 6 ? '#FB2355' : 'rgba(251, 35, 85, 0.4)', 
+          backgroundColor: socialMediaCode.length === 6 ? '#FD6F3E' : 'rgba(253, 111, 62, 0.4)', 
           borderRadius: 12, 
           paddingVertical: 14, 
           paddingHorizontal: 32,
           width: '100%',
           alignItems: 'center',
-          shadowColor: socialMediaCode.length === 6 ? '#FB2355' : 'transparent',
+          shadowColor: socialMediaCode.length === 6 ? '#FD6F3E' : 'transparent',
           shadowOffset: { width: 0, height: 4 },
           shadowOpacity: socialMediaCode.length === 6 ? 0.3 : 0,
           shadowRadius: 8,
@@ -223,14 +223,14 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
           paddingVertical: 8,
           paddingHorizontal: 12,
           borderRadius: 8,
-          backgroundColor: 'rgba(251, 35, 85, 0.1)',
+          backgroundColor: 'rgba(253, 111, 62, 0.1)',
           borderWidth: 1,
-          borderColor: 'rgba(251, 35, 85, 0.3)',
+          borderColor: '#FD6F3E',
           alignItems: 'center'
         }}
       >
         <Text style={{
-          color: '#FB2355',
+          color: '#FD6F3E',
           fontSize: 12,
           fontFamily: 'Urbanist-Medium',
           textDecorationLine: 'underline'
@@ -241,7 +241,7 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
 
       {/* Code Delivery Time Info */}
       <Text style={{
-        color: 'rgba(255, 255, 255, 0.6)',
+        color: 'rgba(0, 0, 0, 0.6)',
         fontSize: 15,
         fontFamily: 'Urbanist-Regular',
         textAlign: 'center',
@@ -259,14 +259,14 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
           paddingVertical: 8,
           paddingHorizontal: 16,
           borderRadius: 20,
-          backgroundColor: 'rgba(251, 35, 85, 0.1)',
+          backgroundColor: 'rgba(253, 111, 62, 0.1)',
           borderWidth: 1,
-          borderColor: 'rgba(251, 35, 85, 0.3)',
+          borderColor: '#FD6F3E',
           alignSelf: 'center'
         }}
       >
         <Text style={{
-          color: '#FB2355',
+          color: '#FD6F3E',
           fontSize: 12,
           fontFamily: 'Urbanist-Regular',
           textAlign: 'center'

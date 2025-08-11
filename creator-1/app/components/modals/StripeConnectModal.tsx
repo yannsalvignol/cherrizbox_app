@@ -1,10 +1,11 @@
 import React from 'react';
 import {
-    ActivityIndicator,
-    Modal,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Image,
+  Modal,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
@@ -30,7 +31,7 @@ export const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
     <Modal
       visible={visible}
       animationType="slide"
-      presentationStyle="pageSheet"
+      presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
       <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }}>
@@ -45,14 +46,20 @@ export const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
           borderBottomWidth: 1,
           borderBottomColor: '#333333'
         }}>
-          <Text style={{ 
-            color: 'white', 
-            fontSize: 18,
-            fontWeight: 'bold',
-            fontFamily: 'Urbanist-Bold'
-          }}>
-            Stripe Connect Setup
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Image
+              source={require('../../../assets/icon/loading-icon.png')}
+              style={{ width: 32, height: 32, marginRight: 8, resizeMode: 'contain' }}
+            />
+            <Text style={{ 
+              color: 'white', 
+              fontSize: 18,
+              fontWeight: 'bold',
+              fontFamily: 'Urbanist-Bold'
+            }}>
+              Stripe Connect Setup
+            </Text>
+          </View>
           <TouchableOpacity
             onPress={onClose}
             style={{
@@ -85,7 +92,7 @@ export const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
                 alignItems: 'center',
                 backgroundColor: 'white'
               }}>
-                <ActivityIndicator size="large" color="#FB2355" />
+                <ActivityIndicator size="large" color="#FD6F3E" />
                 <Text style={{ 
                   color: '#666666',
                   fontSize: 16,
@@ -107,7 +114,7 @@ export const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
             alignItems: 'center',
             backgroundColor: 'white'
           }}>
-            <ActivityIndicator size="large" color="#FB2355" />
+            <ActivityIndicator size="large" color="#FD6F3E" />
             <Text style={{ 
               color: '#666666',
               fontSize: 16, 

@@ -76,7 +76,7 @@ const trendingTopics = [
 
 export default function EditProfile() {
   const router = useRouter();
-  const { user: globalUser, refreshChannelConditions, userCurrency } = useGlobalContext();
+  const { user: globalUser, refreshChannelConditions, userCurrency, getCachedProfile, preloadProfileData } = useGlobalContext();
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [name, setName] = useState('');
@@ -190,13 +190,30 @@ export default function EditProfile() {
 
   useEffect(() => {
     const loadUserData = async () => {
+      let cached = null;
       try {
         if (globalUser) {
           setName(globalUser.name || '');
           setEmail(globalUser.email || '');
           
-          // Load profile data from Appwrite
-          const profile = await getUserProfile(globalUser.$id);
+          // Try to use cached profile data first
+          cached = getCachedProfile();
+          let profile, userPhoto;
+          
+          if (cached) {
+            console.log('✅ [Edit Profile] Using cached profile data');
+            profile = cached.profile;
+            userPhoto = cached.userPhoto;
+            setLoading(false); // Set loading false immediately for cached data
+          } else {
+            console.log('🔄 [Edit Profile] Loading profile data from API');
+            // Load profile data from Appwrite
+            [profile, userPhoto] = await Promise.all([
+              getUserProfile(globalUser.$id),
+              getUserPhoto(globalUser.$id)
+            ]);
+          }
+          
           if (profile) {
             // Set profile image if exists
             if (profile.profileImageUri) {
@@ -265,7 +282,7 @@ export default function EditProfile() {
             if (profile.topics) {
               setTopics(
                 typeof profile.topics === 'string'
-                  ? profile.topics.split(',').map(t => t.trim()).filter(Boolean)
+                  ? profile.topics.split(',').map((t: string) => t.trim()).filter(Boolean)
                   : Array.isArray(profile.topics)
                     ? profile.topics
                     : []
@@ -277,28 +294,25 @@ export default function EditProfile() {
               setBio(profile.ProfilesBio);
             }
 
-            // Load user's photo from photos collection
-            if (globalUser?.$id) {
-              const userPhoto = await getUserPhoto(globalUser.$id);
-              if (userPhoto && userPhoto.thumbnail) {
-                setUserPhotoThumbnail(userPhoto.thumbnail);
-                setCompressedThumbnail(userPhoto.compressed_thumbnail);
-                setPhotoTitle(userPhoto.title);
-                setPhotoState(userPhoto.state || '');
-              }
-              // Extract pricing from payment attribute
-              if (userPhoto && userPhoto.payment) {
-                try {
-                  const paymentData = JSON.parse(userPhoto.payment);
-                  if (paymentData.monthlyPrice) {
-                    setMonthlyPrice(paymentData.monthlyPrice.toString());
-                  }
-                  if (paymentData.yearlyPrice) {
-                    setYearlyPrice(paymentData.yearlyPrice.toString());
-                  }
-                } catch (error) {
-                  console.error('Error parsing payment data:', error);
+            // Load user's photo from photos collection (use cached userPhoto)
+            if (userPhoto && userPhoto.thumbnail) {
+              setUserPhotoThumbnail(userPhoto.thumbnail);
+              setCompressedThumbnail(userPhoto.compressed_thumbnail);
+              setPhotoTitle(userPhoto.title);
+              setPhotoState(userPhoto.state || '');
+            }
+            // Extract pricing from payment attribute
+            if (userPhoto && userPhoto.payment) {
+              try {
+                const paymentData = JSON.parse(userPhoto.payment);
+                if (paymentData.monthlyPrice) {
+                  setMonthlyPrice(paymentData.monthlyPrice.toString());
                 }
+                if (paymentData.yearlyPrice) {
+                  setYearlyPrice(paymentData.yearlyPrice.toString());
+                }
+              } catch (error) {
+                console.error('Error parsing payment data:', error);
               }
             }
           }
@@ -306,7 +320,9 @@ export default function EditProfile() {
       } catch (error) {
         console.error('Error loading user data:', error);
       } finally {
-        setLoading(false);
+        if (!cached) {
+          setLoading(false);
+        }
       }
     };
 
@@ -586,6 +602,9 @@ export default function EditProfile() {
       // Refresh channel conditions to update the missing info modal on index.tsx
       await refreshChannelConditions();
       
+      // Preload fresh profile data to update cache
+      await preloadProfileData();
+      
       // Hide success message after 2 seconds
       setTimeout(() => {
         setSuccessMessage(null);
@@ -646,40 +665,41 @@ export default function EditProfile() {
 
   if (loading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }} edges={[]}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#DCDEDF' }} edges={[]}>
         <View className="flex-1 items-center justify-center">
-          <Text className="text-white">Loading...</Text>
+          <Text className="text-black">Loading...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }} edges={[]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#DCDEDF' }} edges={[]}>
       {/* Header with back and settings */}
       <View style={{ 
         paddingTop: 60,
         paddingHorizontal: 16,
         paddingBottom: 16,
-        backgroundColor: 'black'
+        backgroundColor: '#DCDEDF'
       }}>
         <View className="flex-row items-center">
         <TouchableOpacity onPress={() => router.back()} className="flex-row items-center">
-          <Image 
-            source={require('../../../assets/icon/back.png')}
-            className="w-8 h-8"
-            resizeMode="contain"
+          <Ionicons 
+            name="chevron-back-outline" 
+            size={32} 
+            color="black" 
+            style={{ marginRight: 4 }}
           />
-          <Text style={{ color: 'white', fontSize: 21, marginLeft: 12, fontFamily: 'Nunito-Bold' }}>
+          <Text style={{ color: 'black', fontSize: 21, marginLeft: 8, fontFamily: 'Nunito-Bold' }}>
               Edit Profile
           </Text>
         </TouchableOpacity>
         <View className="flex-1" />
         <TouchableOpacity onPress={() => router.push('/settings')}>
-          <Image 
-            source={require('../../../assets/icon/settings.png')}
-            className="w-8 h-8"
-            resizeMode="contain"
+          <Ionicons 
+            name="settings-outline" 
+            size={32} 
+            color="black"
           />
         </TouchableOpacity>
         </View>
@@ -697,10 +717,10 @@ export default function EditProfile() {
         {/* Avatar with Preview Button */}
         <View className="w-full mb-4 relative">
           {/* Centered Profile Picture */}
-          <View className="w-36 h-36 rounded-full bg-[#1A1A1A] items-center justify-center relative mx-auto">
+          <View className="w-36 h-36 rounded-full bg-[#676767] items-center justify-center relative mx-auto">
             {isUploadingImage ? (
               <View className="w-full h-full items-center justify-center">
-                <ActivityIndicator size="large" color="#FB2355" />
+                <ActivityIndicator size="large" color="#FD6F3E" />
               </View>
             ) : profileImage ? (
               <Image 
@@ -709,7 +729,7 @@ export default function EditProfile() {
                 style={{ resizeMode: 'cover' }}
               />
             ) : (
-              <Text className="text-2xl text-white font-bold">{name?.[0] || 'U'}</Text>
+              <Text className="text-2xl text-black font-bold">{name?.[0] || 'U'}</Text>
             )}
             <TouchableOpacity 
               className="absolute bottom-0 right-0"
@@ -732,19 +752,19 @@ export default function EditProfile() {
               left: 16,
               top: '100%',
               transform: [{ translateY: -20 }],
-              backgroundColor: '#222',
+              backgroundColor: 'white',
               borderRadius: 12,
               paddingHorizontal: 16,
               paddingVertical: 10,
               flexDirection: 'row',
               alignItems: 'center',
               borderWidth: 1,
-              borderColor: '#444'
+              borderColor: '#676767'
             }}
           >
-            <Ionicons name="eye-outline" size={20} color="#FB2355" />
+            <Ionicons name="eye-outline" size={20} color="#FD6F3E" />
             <Text style={{ 
-              color: 'white', 
+              color: 'black', 
               fontSize: 14, 
               fontFamily: 'questrial',
               marginLeft: 8,
@@ -758,59 +778,60 @@ export default function EditProfile() {
         {/* Form Fields */}
         <View className="mt-8">
           {/* Name */}
-          <View className={`flex-row items-center bg-[#1A1A1A] rounded-lg px-5 py-4 mb-2 ${
-            focusedInput === 'name' ? 'border border-[#FB2355]' : ''
-          }`}>
+          <View className={`flex-row items-center rounded-lg px-5 py-4 mb-2 ${
+            focusedInput === 'name' ? 'border border-[#FD6F3E]' : ''
+          }`} style={{ backgroundColor: '#FFFFFF' }}>
             <Ionicons 
               name="person-outline" 
               size={24} 
-              color={focusedInput === 'name' ? '#FB2355' : '#666'} 
+              color={focusedInput === 'name' ? '#FD6F3E' : '#666'} 
               style={{ marginRight: 12 }}
             />
             <TextInput
-              className="flex-1 text-white font-questrial text-lg h-9"
+              className="flex-1 text-black font-questrial text-lg h-9"
               value={name}
               editable={false}
-              style={{ textAlignVertical: 'center', color: 'white', paddingBottom: 12 }}
+              style={{ textAlignVertical: 'center', color: 'black', paddingBottom: 12 }}
             />
           </View>
 
           {/* Birth Date */}
           <TouchableOpacity 
             onPress={() => setShowDatePicker(true)}
-            className={`flex-row items-center bg-[#1A1A1A] rounded-lg px-5 py-4 mb-2 ${
-              focusedInput === 'birthDate' ? 'border border-[#FB2355]' : ''
+            className={`flex-row items-center rounded-lg px-5 py-4 mb-2 ${
+              focusedInput === 'birthDate' ? 'border border-[#FD6F3E]' : ''
             }`}
+            style={{ backgroundColor: '#FFFFFF' }}
           >
             <Ionicons 
               name="calendar-outline" 
               size={24} 
-              color={focusedInput === 'birthDate' ? '#FB2355' : '#666'} 
+              color={focusedInput === 'birthDate' ? '#FD6F3E' : '#666'} 
               style={{ marginRight: 12 }}
             />
             <TextInput
-              className="flex-1 text-white font-questrial text-lg h-9"
+              className="flex-1 text-black font-questrial text-lg h-9"
               value={`${selectedMonth}/${selectedDay}/${selectedYear}`}
               editable={false}
-              style={{ textAlignVertical: 'center', color: 'white', paddingBottom: 12 }}
+              style={{ textAlignVertical: 'center', color: 'black', paddingBottom: 12 }}
             />
           </TouchableOpacity>
 
           {/* Email */}
-          <View className={`flex-row items-center bg-[#1A1A1A] rounded-lg px-5 py-4 mb-2 ${
-            focusedInput === 'email' ? 'border border-[#FB2355]' : ''
-          }`}>
+          <View className={`flex-row items-center rounded-lg px-5 py-4 mb-2 ${
+            focusedInput === 'email' ? 'border border-[#FD6F3E]' : ''
+          }`} style={{ backgroundColor: '#FFFFFF' }}>
             <Ionicons 
               name="mail-outline" 
               size={24} 
-              color={focusedInput === 'email' ? '#FB2355' : '#666'} 
+              color={focusedInput === 'email' ? '#FD6F3E' : '#666'} 
               style={{ marginRight: 12 }}
             />
             <TextInput
-              className="flex-1 text-white font-questrial text-lg h-9"
+              className="flex-1 text-black font-questrial text-lg h-9"
               value={email}
               editable={false}
-              style={{ textAlignVertical: 'center', color: 'white', paddingBottom: 17 }}
+              style={{ textAlignVertical: 'center', color: 'black', paddingBottom: 17 }}
             />
           </View>
 
@@ -818,16 +839,18 @@ export default function EditProfile() {
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
             <TouchableOpacity 
               onPress={() => setShowCountryPicker(true)}
-              className={`flex-row items-center bg-[#1A1A1A] rounded-lg px-5 py-5 w-24 mr-2 ${
-                focusedInput === 'countryCode' ? 'border border-[#FB2355]' : ''
+              className={`flex-row items-center rounded-lg px-5 py-5 w-24 mr-2 ${
+                focusedInput === 'countryCode' ? 'border border-[#FD6F3E]' : ''
               }`}
+              style={{ backgroundColor: '#FFFFFF' }}
               activeOpacity={0.7}
             >
-              <Text style={{ color: 'white', fontSize: 20, marginRight: 8 }}>{selectedCountry.flag}</Text>
-              <Text style={{ color: 'white', fontFamily: 'questrial', fontSize: 16 }}>{selectedCountry.code}</Text>
+              <Text style={{ color: 'black', fontSize: 20, marginRight: 8 }}>{selectedCountry.flag}</Text>
+              <Text style={{ color: 'black', fontFamily: 'questrial', fontSize: 16 }}>{selectedCountry.code}</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              className="flex-row items-center bg-[#1A1A1A] rounded-lg px-5 py-5 flex-1"
+              className="flex-row items-center rounded-lg px-5 py-5 flex-1"
+              style={{ backgroundColor: '#FFFFFF' }}
               activeOpacity={0.8}
               onPress={() => {
                 setTempPhoneNumber(phoneNumber);
@@ -840,7 +863,7 @@ export default function EditProfile() {
                 color="#666" 
                 style={{ marginRight: 12 }}
               />
-              <Text style={{ color: 'white', fontFamily: 'Nunito-Regular', fontSize: 17, flex: 1 }}>
+              <Text style={{ color: 'black', fontFamily: 'Nunito-Regular', fontSize: 17, flex: 1 }}>
                 {phoneNumber ? phoneNumber : 'Enter phone number'}
               </Text>
               <Ionicons name="chevron-forward" size={20} color="#666" />
@@ -851,24 +874,24 @@ export default function EditProfile() {
           <View style={{ marginBottom: 8 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
               {genders.map((gender) => (
-                <TouchableOpacity
-                  key={gender.value}
-                  onPress={() => setSelectedGender(gender)}
-                  style={{
-                    backgroundColor: selectedGender?.value === gender.value ? '#FB2355' : '#222',
-                    borderRadius: 18,
-                    paddingVertical: 12,
-                    paddingHorizontal: 0,
-                    marginHorizontal: 0,
-                    flex: 1,
-                    marginRight: gender.value !== 'other' ? 12 : 0,
-                    borderWidth: selectedGender?.value === gender.value ? 0 : 1,
-                    borderColor: '#444',
-                    alignItems: 'center',
-                  }}
-                >
+                                  <TouchableOpacity
+                    key={gender.value}
+                    onPress={() => setSelectedGender(gender)}
+                    style={{
+                      backgroundColor: selectedGender?.value === gender.value ? '#FD6F3E' : '#FFFFFF',
+                      borderRadius: 18,
+                      paddingVertical: 12,
+                      paddingHorizontal: 0,
+                      marginHorizontal: 0,
+                      flex: 1,
+                      marginRight: gender.value !== 'other' ? 12 : 0,
+                      borderWidth: selectedGender?.value === gender.value ? 1 : 0,
+                      borderColor: selectedGender?.value === gender.value ? '#FD6F3E' : 'transparent',
+                      alignItems: 'center',
+                    }}
+                  >
                   <Text style={{ 
-                    color: selectedGender?.value === gender.value ? 'white' : '#aaa', 
+                    color: selectedGender?.value === gender.value ? 'black' : 'black', 
                     fontFamily: 'questrial', 
                     fontSize: 17,
                     textAlign: 'center',
@@ -883,7 +906,8 @@ export default function EditProfile() {
           {/* Creator's Name - Modal Style */}
           <View style={{ marginBottom: 8 }}>
             <TouchableOpacity
-              className="bg-[#1A1A1A] rounded-lg px-5 py-5 flex-row items-center"
+              className="rounded-lg px-5 py-5 flex-row items-center"
+              style={{ backgroundColor: '#FFFFFF' }}
               activeOpacity={0.8}
               onPress={() => {
                 setTempCreatorName(creatorName);
@@ -893,7 +917,7 @@ export default function EditProfile() {
             >
               <Ionicons name="person-circle-outline" size={22} color={showCreatorNameWarning ? "#444" : "#666"} style={{ marginRight: 10 }} />
               <Text style={{ 
-                color: showCreatorNameWarning ? '#666' : 'white', 
+                color: showCreatorNameWarning ? '#666' : 'black', 
                 fontFamily: 'Nunito-Regular', 
                 fontSize: 18, 
                 flex: 1 
@@ -908,7 +932,7 @@ export default function EditProfile() {
                   paddingVertical: 4 
                 }}>
                   <Text style={{ 
-                    color: 'white', 
+                    color: 'black', 
                     fontSize: 12, 
                     fontFamily: 'Urbanist-Light',
                     fontWeight: '600'
@@ -949,7 +973,8 @@ export default function EditProfile() {
           {/* Bio - Modal Style */}
           <View style={{ marginBottom: 8 }}>
             <TouchableOpacity
-              className="bg-[#1A1A1A] rounded-lg px-5 py-4 flex-row items-center"
+              className="rounded-lg px-5 py-4 flex-row items-center"
+              style={{ backgroundColor: '#FFFFFF' }}
               activeOpacity={0.8}
               onPress={() => {
                 setTempBio(bio);
@@ -958,7 +983,7 @@ export default function EditProfile() {
             >
               <Ionicons name="document-text-outline" size={22} color="#666" style={{ marginRight: 10 }} />
               <View className="flex-1">
-                <Text style={{ color: 'white', fontFamily: 'Nunito-Regular', fontSize: 18 }}>
+                <Text style={{ color: 'black', fontFamily: 'Nunito-Regular', fontSize: 18 }}>
                   {bio ? bio : 'Tell us about yourself'}
                 </Text>
                 {bio && (
@@ -974,7 +999,8 @@ export default function EditProfile() {
           {/* Location - Modal Style */}
           <View style={{ marginBottom: 8 }}>
             <TouchableOpacity
-              className="bg-[#1A1A1A] rounded-lg px-5 py-5 flex-row items-center"
+              className="rounded-lg px-5 py-5 flex-row items-center"
+              style={{ backgroundColor: '#FFFFFF' }}
               activeOpacity={0.8}
               onPress={() => {
                 setTempLocation(location);
@@ -982,7 +1008,7 @@ export default function EditProfile() {
               }}
             >
               <Ionicons name="location-outline" size={22} color="#666" style={{ marginRight: 10 }} />
-              <Text style={{ color: 'white', fontFamily: 'Nunito-Regular', fontSize: 18, flex: 1 }}>
+              <Text style={{ color: 'black', fontFamily: 'Nunito-Regular', fontSize: 18, flex: 1 }}>
                 {location ? location : 'Enter your location'}
               </Text>
               <Ionicons name="chevron-forward" size={20} color="#666" />
@@ -993,12 +1019,13 @@ export default function EditProfile() {
           <View style={{ marginBottom: 16 }}>
            
             <TouchableOpacity
-              className="bg-[#1A1A1A] rounded-lg px-5 py-5 mb-2 flex-row items-center"
+              className="rounded-lg px-5 py-5 mb-2 flex-row items-center"
+              style={{ backgroundColor: '#FFFFFF' }}
               activeOpacity={0.8}
               onPress={() => setShowTopicsModal(true)}
             >
-              <Ionicons name="chatbubble-ellipses-outline" size={22} color="#FB2355" style={{ marginRight: 10 }} />
-              <Text style={{ color: 'white', fontFamily: 'Nunito-Regular', fontSize: 18 }}>
+              <Ionicons name="chatbubble-ellipses-outline" size={22} color="#FD6F3E" style={{ marginRight: 10 }} />
+              <Text style={{ color: 'black', fontFamily: 'Nunito-Regular', fontSize: 18 }}>
                 {topics.length > 0 ? topics.join(', ') : 'Choose topics'}
               </Text>
             </TouchableOpacity>
@@ -1009,8 +1036,8 @@ export default function EditProfile() {
               onRequestClose={() => setShowTopicsModal(false)}
             >
               <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' }}>
-                <View style={{ backgroundColor: '#181818', borderRadius: 24, padding: 24, width: '90%' }}>
-                  <Text style={{ color: '#fff', fontSize: 18, fontFamily: 'questrial', marginBottom: 16, textAlign: 'center' }}>
+                <View style={{ backgroundColor: 'white', borderRadius: 24, padding: 24, width: '90%' }}>
+                  <Text style={{ color: 'black', fontSize: 18, fontFamily: 'questrial', marginBottom: 16, textAlign: 'center' }}>
                     Choose your topics
                   </Text>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -1027,16 +1054,16 @@ export default function EditProfile() {
                             );
                           }}
                           style={{
-                            backgroundColor: selected ? '#FB2355' : '#222',
+                            backgroundColor: selected ? '#FD6F3E' : '#FFFFFF',
                             borderRadius: 18,
                             paddingVertical: 7,
                             paddingHorizontal: 16,
                             margin: 4,
-                            borderWidth: selected ? 0 : 1,
-                            borderColor: '#444',
+                            borderWidth: 1,
+                            borderColor: selected ? '#FD6F3E' : '#676767',
                           }}
                         >
-                          <Text style={{ color: selected ? 'white' : '#aaa', fontFamily: 'questrial', fontSize: 15 }}>
+                          <Text style={{ color: selected ? 'black' : 'black', fontFamily: 'questrial', fontSize: 15 }}>
                             {topic}
                           </Text>
                         </TouchableOpacity>
@@ -1044,10 +1071,10 @@ export default function EditProfile() {
                     })}
                   </View>
                   <TouchableOpacity
-                    style={{ marginTop: 24, backgroundColor: '#FB2355', borderRadius: 16, paddingVertical: 12 }}
+                    style={{ marginTop: 24, backgroundColor: '#FD6F3E', borderRadius: 16, paddingVertical: 12 }}
                     onPress={() => setShowTopicsModal(false)}
                   >
-                    <Text style={{ color: 'white', fontSize: 16, fontFamily: 'questrial', textAlign: 'center', fontWeight: 'bold' }}>
+                    <Text style={{ color: 'black', fontSize: 16, fontFamily: 'questrial', textAlign: 'center', fontWeight: 'bold' }}>
                       Done
                     </Text>
                   </TouchableOpacity>
@@ -1056,15 +1083,16 @@ export default function EditProfile() {
             </Modal>
             {/* Subscriptions Button */}
             <TouchableOpacity 
-              className="bg-[#222] rounded-lg py-4 mb-1 flex-row items-center justify-center"
+              className="rounded-lg py-4 mb-1 flex-row items-center justify-center"
+              style={{ backgroundColor: '#FFFFFF' }}
               activeOpacity={0.8}
               onPress={async () => {
                 await loadExistingPaymentData();
                 setShowSubscriptionsModal(true);
               }}
             >
-              <Ionicons name="card-outline" size={22} color="#FB2355" style={{ marginRight: 10 }} />
-              <Text style={{ color: 'white', textAlign: 'center', fontFamily: 'questrial', fontSize: 18 }}>
+              <Ionicons name="card-outline" size={22} color="#FD6F3E" style={{ marginRight: 10 }} />
+              <Text style={{ color: 'black', textAlign: 'center', fontFamily: 'questrial', fontSize: 18 }}>
                 Subscriptions
               </Text>
             </TouchableOpacity>
@@ -1072,18 +1100,18 @@ export default function EditProfile() {
 
           {/* Update Button */}
           <TouchableOpacity 
-            className={`bg-[#FB2355] rounded-lg py-4 mt-2 mb-2${!profileImage ? ' opacity-50' : ''}`}
+            className={`bg-[#FD6F3E] rounded-lg py-4 mt-2 mb-2${!profileImage ? ' opacity-50' : ''}`}
             activeOpacity={0.8}
             onPress={handleUpdateProfile}
             disabled={saving || !profileImage}
           >
-            <Text className="text-white text-center font-questrial text-lg">
+            <Text className="text-black text-center font-questrial text-lg">
               {saving ? 'Updating...' : 'Update Profile'}
             </Text>
           </TouchableOpacity>
           {/* Show a message if no profile image */}
           {!profileImage && (
-            <Text style={{ color: '#FB2355', textAlign: 'center', marginBottom: 8, fontFamily: 'questrial', fontWeight: '600' }}>
+            <Text style={{ color: '#FD6F3E', textAlign: 'center', marginBottom: 8, fontFamily: 'questrial', fontWeight: '600' }}>
               Please add a profile picture to update your profile.
             </Text>
           )}
@@ -1104,17 +1132,17 @@ export default function EditProfile() {
           onRequestClose={() => setShowDatePicker(false)}
         >
           <View className="flex-1 bg-black/50 justify-end">
-            <View className="bg-[#1A1A1A] rounded-t-3xl p-4">
+            <View className="rounded-t-3xl p-4" style={{ backgroundColor: '#FFFFFF' }}>
               <View className="flex-row justify-between items-center mb-4">
-                <Text className="text-white text-xl font-bold">Select Birth Date</Text>
+                <Text className="text-black text-xl font-bold">Select Birth Date</Text>
                 <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                  <Ionicons name="close" size={30} color="#FB2355" />
+                  <Ionicons name="close" size={30} color="#FD6F3E" />
                 </TouchableOpacity>
               </View>
               <View className="flex-row justify-between">
                 {/* Month Picker */}
                 <View className="flex-1">
-                  <Text className="text-white text-center mb-2">Month</Text>
+                  <Text className="text-black text-center mb-2">Month</Text>
                   <Picker
                     selectedValue={selectedMonth}
                     onValueChange={(value) => {
@@ -1125,33 +1153,33 @@ export default function EditProfile() {
                         setSelectedDay(daysInMonth.toString());
                       }
                     }}
-                    style={{ color: 'white' }}
-                    itemStyle={{ color: 'white' }}
+                    style={{ color: 'black' }}
+                    itemStyle={{ color: 'black' }}
                   >
                     {months.map((month) => (
-                      <Picker.Item key={month} label={month} value={month} color="white" />
+                      <Picker.Item key={month} label={month} value={month} color="black" />
                     ))}
                   </Picker>
                 </View>
 
                 {/* Day Picker */}
                 <View className="flex-1">
-                  <Text className="text-white text-center mb-2">Day</Text>
+                  <Text className="text-black text-center mb-2">Day</Text>
                   <Picker
                     selectedValue={selectedDay}
                     onValueChange={setSelectedDay}
-                    style={{ color: 'white' }}
-                    itemStyle={{ color: 'white' }}
+                    style={{ color: 'black' }}
+                    itemStyle={{ color: 'black' }}
                   >
                     {days.map((day) => (
-                      <Picker.Item key={day} label={day} value={day} color="white" />
+                      <Picker.Item key={day} label={day} value={day} color="black" />
                     ))}
                   </Picker>
                 </View>
 
                 {/* Year Picker */}
                 <View className="flex-1">
-                  <Text className="text-white text-center mb-2">Year</Text>
+                  <Text className="text-black text-center mb-2">Year</Text>
                   <Picker
                     selectedValue={selectedYear}
                     onValueChange={(value) => {
@@ -1162,11 +1190,11 @@ export default function EditProfile() {
                         setSelectedDay(daysInMonth.toString());
                       }
                     }}
-                    style={{ color: 'white' }}
-                    itemStyle={{ color: 'white' }}
+                    style={{ color: 'black' }}
+                    itemStyle={{ color: 'black' }}
                   >
                     {years.map((year) => (
-                      <Picker.Item key={year} label={year} value={year} color="white" />
+                      <Picker.Item key={year} label={year} value={year} color="black" />
                     ))}
                   </Picker>
                 </View>
@@ -1191,7 +1219,7 @@ export default function EditProfile() {
               backdropFilter: 'blur(10px)'
             }}>
               <Animated.View style={{
-                backgroundColor: '#1a1a1a',
+                backgroundColor: 'white',
                 borderRadius: 24,
                 padding: 32,
                 width: '90%',
@@ -1203,7 +1231,7 @@ export default function EditProfile() {
                 shadowRadius: 40,
                 elevation: 20,
                 borderWidth: 1,
-                borderColor: 'rgba(255,255,255,0.1)',
+                borderColor: '#676767',
                 alignItems: 'center',
               }}>
                 <View style={{ 
@@ -1221,10 +1249,10 @@ export default function EditProfile() {
                     padding: 8,
                     marginRight: 12
                   }}>
-                    <Ionicons name="globe-outline" size={24} color="#FB2355" />
+                    <Ionicons name="globe-outline" size={24} color="#FD6F3E" />
                   </View>
                   <Text style={{ 
-                    color: 'white', 
+                    color: 'black', 
                     fontSize: 20, 
                     fontWeight: '600', 
                     fontFamily: 'questrial',
@@ -1258,19 +1286,19 @@ export default function EditProfile() {
                       }}
                       activeOpacity={0.7}
                     >
-                      <View style={{
-                        backgroundColor: 'rgba(255,255,255,0.1)',
-                        borderRadius: 12,
-                        padding: 8,
-                        marginRight: 16,
-                        minWidth: 40,
-                        alignItems: 'center'
-                      }}>
-                        <Text style={{ fontSize: 20 }}>{item.flag}</Text>
-                      </View>
+                                              <View style={{
+                          backgroundColor: '#676767',
+                          borderRadius: 12,
+                          padding: 8,
+                          marginRight: 16,
+                          minWidth: 40,
+                          alignItems: 'center'
+                        }}>
+                          <Text style={{ fontSize: 20 }}>{item.flag}</Text>
+                        </View>
                       <View style={{ flex: 1 }}>
                         <Text style={{ 
-                          color: 'white', 
+                          color: 'black', 
                           fontSize: 16, 
                           fontFamily: 'questrial',
                           fontWeight: '500'
@@ -1280,16 +1308,16 @@ export default function EditProfile() {
                       </View>
                       <View style={{
                         backgroundColor: selectedCountry.code === item.code && selectedCountry.name === item.name 
-                          ? '#FB2355' 
-                          : 'rgba(255,255,255,0.1)',
+                          ? '#FD6F3E' 
+                          : '#676767',
                         borderRadius: 8,
                         paddingHorizontal: 12,
                         paddingVertical: 6
                       }}>
                         <Text style={{ 
                           color: selectedCountry.code === item.code && selectedCountry.name === item.name 
-                            ? 'white' 
-                            : 'rgba(255,255,255,0.8)', 
+                            ? 'black' 
+                            : 'white', 
                           fontSize: 14, 
                           fontFamily: 'questrial',
                           fontWeight: '600'
@@ -1303,19 +1331,19 @@ export default function EditProfile() {
                 
                 <TouchableOpacity 
                   style={{ 
-                    backgroundColor: 'rgba(255,255,255,0.1)', 
+                    backgroundColor: '#676767', 
                     borderRadius: 16, 
                     paddingVertical: 16, 
                     paddingHorizontal: 32,
                     marginTop: 24,
                     borderWidth: 1,
-                    borderColor: 'rgba(255,255,255,0.1)',
+                    borderColor: '#676767',
                     alignSelf: 'center'
                   }}
                   onPress={() => setShowCountryPicker(false)}
                 >
                   <Text style={{ 
-                    color: 'rgba(255,255,255,0.8)', 
+                    color: 'white', 
                     fontSize: 16, 
                     fontFamily: 'questrial',
                     fontWeight: '500'
@@ -1334,11 +1362,11 @@ export default function EditProfile() {
           onRequestClose={() => setShowGenderPicker(false)}
         >
           <View className="flex-1 bg-black/50 justify-end">
-            <View className="bg-[#1A1A1A] rounded-t-3xl p-4">
+            <View className="bg-[#676767] rounded-t-3xl p-4">
               <View className="flex-row justify-between items-center mb-4">
-                <Text className="text-white text-xl font-bold">Select Gender</Text>
+                <Text className="text-black text-xl font-bold">Select Gender</Text>
                 <TouchableOpacity onPress={() => setShowGenderPicker(false)}>
-                  <Ionicons name="close" size={32} color="#FB2355" />
+                  <Ionicons name="close" size={32} color="#FD6F3E" />
                 </TouchableOpacity>
               </View>
               <FlatList
@@ -1352,8 +1380,8 @@ export default function EditProfile() {
                       setShowGenderPicker(false);
                     }}
                   >
-                    <Text className="text-white text-xl mr-3">{item.icon}</Text>
-                    <Text className="text-white text-lg">{item.label}</Text>
+                    <Text className="text-black text-xl mr-3">{item.icon}</Text>
+                    <Text className="text-black text-lg">{item.label}</Text>
                   </TouchableOpacity>
                 )}
               />
@@ -1369,11 +1397,11 @@ export default function EditProfile() {
           onRequestClose={() => setShowSubscriptionsModal(false)}
         >
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' }}>
-            <View style={{ backgroundColor: '#181818', borderRadius: 24, padding: 24, width: '90%', maxHeight: '80%' }}>
+            <View style={{ backgroundColor: 'white', borderRadius: 24, padding: 24, width: '90%', maxHeight: '80%' }}>
               <View className="flex-row justify-between items-center mb-4">
-                <Text className="text-white text-xl font-bold">Subscription Pricing</Text>
+                <Text className="text-black text-xl font-bold">Subscription Pricing</Text>
                 <TouchableOpacity onPress={() => setShowSubscriptionsModal(false)}>
-                  <Ionicons name="close" size={24} color="#FB2355" />
+                  <Ionicons name="close" size={24} color="#FD6F3E" />
                 </TouchableOpacity>
               </View>
 
@@ -1381,7 +1409,7 @@ export default function EditProfile() {
                 {/* Currency Picker */}
                 <View className="mb-4">
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <Text style={{ color: 'white', fontSize: 18 }}>Currency</Text>
+                    <Text style={{ color: 'black', fontSize: 18 }}>Currency</Text>
                     {showCreatorNameWarning && (
                       <View style={{ 
                         backgroundColor: '#FFA500', 
@@ -1390,7 +1418,7 @@ export default function EditProfile() {
                         paddingVertical: 4 
                       }}>
                         <Text style={{ 
-                          color: 'white', 
+                          color: 'black', 
                           fontSize: 12, 
                           fontFamily: 'questrial',
                           fontWeight: '600'
@@ -1409,20 +1437,20 @@ export default function EditProfile() {
                           onPress={() => !showCreatorNameWarning && setSelectedCurrency(currency.code)}
                           disabled={showCreatorNameWarning}
                           style={{
-                            backgroundColor: selectedCurrency === currency.code ? '#FB2355' : '#222',
+                            backgroundColor: selectedCurrency === currency.code ? '#FD6F3E' : 'white',
                             borderRadius: 18,
                             paddingVertical: 12,
                             paddingHorizontal: 8,
                             marginHorizontal: 2,
                             flex: 1,
-                            borderWidth: selectedCurrency === currency.code ? 0 : 1,
-                            borderColor: '#444',
+                            borderWidth: 1,
+                            borderColor: selectedCurrency === currency.code ? '#FD6F3E' : '#676767',
                             alignItems: 'center',
                             opacity: showCreatorNameWarning ? 0.6 : 1,
                           }}
                         >
                           <Text style={{ 
-                            color: selectedCurrency === currency.code ? 'white' : '#aaa', 
+                            color: selectedCurrency === currency.code ? 'black' : 'black', 
                             fontFamily: 'questrial', 
                             fontSize: 14,
                             textAlign: 'center',
@@ -1440,20 +1468,20 @@ export default function EditProfile() {
                           onPress={() => !showCreatorNameWarning && setSelectedCurrency(currency.code)}
                           disabled={showCreatorNameWarning}
                           style={{
-                            backgroundColor: selectedCurrency === currency.code ? '#FB2355' : '#222',
+                            backgroundColor: selectedCurrency === currency.code ? '#FD6F3E' : 'white',
                             borderRadius: 18,
                             paddingVertical: 12,
                             paddingHorizontal: 8,
                             marginHorizontal: 2,
                             flex: 1,
-                            borderWidth: selectedCurrency === currency.code ? 0 : 1,
-                            borderColor: '#444',
+                            borderWidth: 1,
+                            borderColor: selectedCurrency === currency.code ? '#FD6F3E' : '#676767',
                             alignItems: 'center',
                             opacity: showCreatorNameWarning ? 0.6 : 1,
                           }}
                         >
                           <Text style={{ 
-                            color: selectedCurrency === currency.code ? 'white' : '#aaa', 
+                            color: selectedCurrency === currency.code ? 'black' : 'black', 
                             fontFamily: 'questrial', 
                             fontSize: 14,
                             textAlign: 'center',
@@ -1491,67 +1519,79 @@ export default function EditProfile() {
 
                 {/* Monthly Price Input */}
                 <View className="mb-4">
-                  <Text style={{ color: 'white', fontSize: 18, marginBottom: 8, fontFamily: 'questrial' }}>
+                  <Text style={{ color: 'black', fontSize: 18, marginBottom: 8, fontFamily: 'questrial' }}>
                     Monthly Price ({currencies.find(c => c.code === selectedCurrency)?.symbol})
                   </Text>
                   <TextInput
-                    className="bg-[#222] rounded-lg px-4 py-3"
                     value={monthlyPrice}
                     onChangeText={setMonthlyPrice}
                     keyboardType="decimal-pad"
                     placeholder="Enter monthly price"
-                    placeholderTextColor="rgba(255,255,255,0.5)"
+                    placeholderTextColor="rgba(0,0,0,0.5)"
                     style={{ 
-                      color: 'white',
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: 8,
+                      paddingHorizontal: 16,
+                      paddingVertical: 12,
+                      borderWidth: 1,
+                      borderColor: '#676767',
+                      color: 'black',
                       fontSize: 16,
                       fontFamily: 'questrial',
                       letterSpacing: 0,
-                      textAlign: 'center'
+                      textAlign: 'center',
+                      marginHorizontal: 8
                     }}
                   />
                   {monthlyPrice && (
-                    <View className="mt-2 bg-[#222] rounded-lg p-3">
-                      <Text style={{ color: 'white', fontSize: 14, fontFamily: 'questrial' }}>Price Breakdown (Monthly):</Text>
-                      <Text style={{ color: 'white', marginTop: 4, fontFamily: 'questrial' }}>Store Fee (20%): {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(monthlyPrice).storeFee.toFixed(2)}</Text>
-                      <Text style={{ color: 'white', marginTop: 4, fontFamily: 'questrial' }}>Stripe Fee (2.9% + {currencies.find(c => c.code === selectedCurrency)?.symbol}0.30): {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(monthlyPrice).stripeFee.toFixed(2)}</Text>
-                      <Text style={{ color: '#FB2355', fontWeight: 'bold', marginTop: 4, fontFamily: 'questrial' }}>Your Earnings: {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(monthlyPrice).creatorEarnings.toFixed(2)}</Text>
+                    <View className="mt-2 rounded-lg p-3" style={{ backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#676767' }}>
+                      <Text style={{ color: 'black', fontSize: 14, fontFamily: 'questrial' }}>Price Breakdown (Monthly):</Text>
+                      <Text style={{ color: 'black', marginTop: 4, fontFamily: 'questrial' }}>Store Fee (20%): {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(monthlyPrice).storeFee.toFixed(2)}</Text>
+                      <Text style={{ color: 'black', marginTop: 4, fontFamily: 'questrial' }}>Stripe Fee (2.9% + {currencies.find(c => c.code === selectedCurrency)?.symbol}0.30): {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(monthlyPrice).stripeFee.toFixed(2)}</Text>
+                      <Text style={{ color: '#FD6F3E', fontWeight: 'bold', marginTop: 4, fontFamily: 'questrial' }}>Your Earnings: {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(monthlyPrice).creatorEarnings.toFixed(2)}</Text>
                     </View>
                   )}
                 </View>
 
                 {/* Yearly Price Input */}
                 <View className="mb-4">
-                  <Text style={{ color: 'white', fontSize: 18, marginBottom: 8, fontFamily: 'questrial' }}>
+                  <Text style={{ color: 'black', fontSize: 18, marginBottom: 8, fontFamily: 'questrial' }}>
                     Yearly Price ({currencies.find(c => c.code === selectedCurrency)?.symbol})
                   </Text>
                   <TextInput
-                    className="bg-[#222] rounded-lg px-4 py-3"
                     value={yearlyPrice}
                     onChangeText={setYearlyPrice}
                     keyboardType="decimal-pad"
                     placeholder="Enter yearly price"
-                    placeholderTextColor="rgba(255,255,255,0.5)"
+                    placeholderTextColor="rgba(0,0,0,0.5)"
                     style={{ 
-                      color: 'white',
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: 8,
+                      paddingHorizontal: 16,
+                      paddingVertical: 12,
+                      borderWidth: 1,
+                      borderColor: '#676767',
+                      color: 'black',
                       fontSize: 16,
                       fontFamily: 'questrial',
                       letterSpacing: 0,
-                      textAlign: 'center'
+                      textAlign: 'center',
+                      marginHorizontal: 8
                     }}
                   />
                   {yearlyPrice && (
-                    <View className="mt-2 bg-[#222] rounded-lg p-3">
-                      <Text style={{ color: 'white', fontSize: 14, fontFamily: 'questrial' }}>Price Breakdown (Yearly):</Text>
-                      <Text style={{ color: 'white', marginTop: 4, fontFamily: 'questrial' }}>Store Fee (20%): {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(yearlyPrice).storeFee.toFixed(2)}</Text>
-                      <Text style={{ color: 'white', marginTop: 4, fontFamily: 'questrial' }}>Stripe Fee (2.9% + {currencies.find(c => c.code === selectedCurrency)?.symbol}0.30): {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(yearlyPrice).stripeFee.toFixed(2)}</Text>
-                      <Text style={{ color: '#FB2355', fontWeight: 'bold', marginTop: 4, fontFamily: 'questrial' }}>Your Earnings: {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(yearlyPrice).creatorEarnings.toFixed(2)}</Text>
+                    <View className="mt-2 rounded-lg p-3" style={{ backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#676767' }}>
+                      <Text style={{ color: 'black', fontSize: 14, fontFamily: 'questrial' }}>Price Breakdown (Yearly):</Text>
+                      <Text style={{ color: 'black', marginTop: 4, fontFamily: 'questrial' }}>Store Fee (20%): {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(yearlyPrice).storeFee.toFixed(2)}</Text>
+                      <Text style={{ color: 'black', marginTop: 4, fontFamily: 'questrial' }}>Stripe Fee (2.9% + {currencies.find(c => c.code === selectedCurrency)?.symbol}0.30): {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(yearlyPrice).stripeFee.toFixed(2)}</Text>
+                      <Text style={{ color: '#FD6F3E', fontWeight: 'bold', marginTop: 4, fontFamily: 'questrial' }}>Your Earnings: {currencies.find(c => c.code === selectedCurrency)?.symbol}{calculatePriceBreakdown(yearlyPrice).creatorEarnings.toFixed(2)}</Text>
                     </View>
                   )}
                 </View>
 
                 {/* Save Button */}
                 <TouchableOpacity 
-                  className={`bg-[#FB2355] rounded-lg py-4 mt-4 ${savingPrices ? 'opacity-50' : ''}`}
+                  className={`bg-[#FD6F3E] rounded-lg py-4 mt-4 ${savingPrices ? 'opacity-50' : ''}`}
                   onPress={async () => {
                     try {
                       setSavingPrices(true);
@@ -1605,7 +1645,7 @@ export default function EditProfile() {
                   }}
                   disabled={savingPrices}
                 >
-                  <Text className="text-white text-center font-questrial text-lg">
+                  <Text className="text-black text-center font-questrial text-lg">
                     {savingPrices ? 'Saving...' : 'Save Prices'}
                   </Text>
                 </TouchableOpacity>
@@ -1651,7 +1691,7 @@ export default function EditProfile() {
             backdropFilter: 'blur(10px)'
           }}>
             <Animated.View style={{
-              backgroundColor: '#1a1a1a',
+              backgroundColor: '#FFFFFF',
               borderRadius: 24,
               padding: 32,
               width: '90%',
@@ -1662,7 +1702,7 @@ export default function EditProfile() {
               shadowRadius: 40,
               elevation: 20,
               borderWidth: 1,
-              borderColor: 'rgba(255,255,255,0.1)',
+              borderColor: '#676767',
               alignItems: 'center',
             }}>
               <View style={{ 
@@ -1671,7 +1711,7 @@ export default function EditProfile() {
                 marginBottom: 24,
                 paddingBottom: 16,
                 borderBottomWidth: 1,
-                borderBottomColor: 'rgba(255,255,255,0.1)',
+                borderBottomColor: '#E0E0E0',
                 width: '100%'
               }}>
                 <View style={{
@@ -1680,10 +1720,10 @@ export default function EditProfile() {
                   padding: 8,
                   marginRight: 12
                 }}>
-                  <Ionicons name="person-circle-outline" size={24} color="#FB2355" />
+                  <Ionicons name="person-circle-outline" size={24} color="#FD6F3E" />
                 </View>
                 <Text style={{ 
-                  color: 'white', 
+                  color: 'black', 
                   fontSize: 20, 
                   fontWeight: '600', 
                   fontFamily: 'questrial',
@@ -1695,14 +1735,14 @@ export default function EditProfile() {
               
               <TextInput
                 style={{
-                  backgroundColor: '#2a2a2a',
-                  color: 'white',
+                  backgroundColor: '#F8F8F8',
+                  color: 'black',
                   borderRadius: 16,
                   paddingHorizontal: 20,
                   paddingVertical: 16,
                   fontSize: 16,
                   borderWidth: 1,
-                  borderColor: creatorNameError ? '#F44336' : 'rgba(255,255,255,0.1)',
+                  borderColor: creatorNameError ? '#F44336' : '#676767',
                   marginBottom: 8,
                   width: '100%',
                   textAlign: 'center',
@@ -1714,7 +1754,7 @@ export default function EditProfile() {
                   setCreatorNameError(null); // Clear error when user types
                 }}
                 placeholder="Enter your creator name..."
-                placeholderTextColor="rgba(255,255,255,0.5)"
+                placeholderTextColor="rgba(0,0,0,0.5)"
                 returnKeyType="done"
                 blurOnSubmit={true}
                 onSubmitEditing={async () => {
@@ -1752,7 +1792,7 @@ export default function EditProfile() {
                   justifyContent: 'center',
                   marginBottom: 16
                 }}>
-                  <ActivityIndicator size="small" color="#FB2355" style={{ marginRight: 8 }} />
+                  <ActivityIndicator size="small" color="#FD6F3E" style={{ marginRight: 8 }} />
                   <Text style={{ 
                     color: 'rgba(255,255,255,0.7)', 
                     fontSize: 14,
@@ -1772,12 +1812,12 @@ export default function EditProfile() {
                 <TouchableOpacity 
                   style={{ 
                     flex: 1, 
-                    backgroundColor: 'rgba(255,255,255,0.1)', 
+                    backgroundColor: '#676767', 
                     borderRadius: 16, 
                     paddingVertical: 16, 
                     alignItems: 'center',
                     borderWidth: 1,
-                    borderColor: 'rgba(255,255,255,0.1)'
+                    borderColor: '#676767'
                   }}
                   onPress={() => {
                     Keyboard.dismiss();
@@ -1785,7 +1825,7 @@ export default function EditProfile() {
                   }}
                 >
                   <Text style={{ 
-                    color: 'rgba(255,255,255,0.8)', 
+                    color: 'white', 
                     fontSize: 16, 
                     fontFamily: 'questrial',
                     fontWeight: '500'
@@ -1794,11 +1834,11 @@ export default function EditProfile() {
                 <TouchableOpacity 
                   style={{ 
                     flex: 1, 
-                    backgroundColor: creatorNameError || checkingCreatorName ? '#666' : '#FB2355', 
+                    backgroundColor: creatorNameError || checkingCreatorName ? '#666' : '#FD6F3E', 
                     borderRadius: 16, 
                     paddingVertical: 16, 
                     alignItems: 'center',
-                    shadowColor: '#FB2355',
+                    shadowColor: '#FD6F3E',
                     shadowOffset: { width: 0, height: 4 },
                     shadowOpacity: 0.3,
                     shadowRadius: 8,
@@ -1834,7 +1874,7 @@ export default function EditProfile() {
                   disabled={!!creatorNameError || checkingCreatorName || !tempCreatorName.trim()}
                 >
                   <Text style={{ 
-                    color: 'white', 
+                    color: 'black', 
                     fontSize: 16, 
                     fontFamily: 'questrial', 
                     fontWeight: '600'
@@ -1867,7 +1907,7 @@ export default function EditProfile() {
             backdropFilter: 'blur(10px)'
           }}>
             <Animated.View style={{
-              backgroundColor: '#1a1a1a',
+              backgroundColor: '#FFFFFF',
               borderRadius: 24,
               padding: 32,
               width: '90%',
@@ -1878,7 +1918,7 @@ export default function EditProfile() {
               shadowRadius: 40,
               elevation: 20,
               borderWidth: 1,
-              borderColor: 'rgba(255,255,255,0.1)',
+              borderColor: '#676767',
               alignItems: 'center',
             }}>
               <View style={{ 
@@ -1887,7 +1927,7 @@ export default function EditProfile() {
                 marginBottom: 24,
                 paddingBottom: 16,
                 borderBottomWidth: 1,
-                borderBottomColor: 'rgba(255,255,255,0.1)',
+                borderBottomColor: '#E0E0E0',
                 width: '100%'
               }}>
                 <View style={{
@@ -1896,10 +1936,10 @@ export default function EditProfile() {
                   padding: 8,
                   marginRight: 12
                 }}>
-                  <Ionicons name="document-text-outline" size={24} color="#FB2355" />
+                  <Ionicons name="document-text-outline" size={24} color="#FD6F3E" />
                 </View>
                 <Text style={{ 
-                  color: 'white', 
+                  color: 'black', 
                   fontSize: 20, 
                   fontWeight: '600', 
                   fontFamily: 'questrial',
@@ -1909,14 +1949,14 @@ export default function EditProfile() {
               
               <TextInput
                 style={{
-                  backgroundColor: '#2a2a2a',
-                  color: 'white',
+                  backgroundColor: '#F8F8F8',
+                  color: 'black',
                   borderRadius: 16,
                   paddingHorizontal: 20,
                   paddingVertical: 16,
                   fontSize: 16,
                   borderWidth: 1,
-                  borderColor: 'rgba(255,255,255,0.1)',
+                  borderColor: '#676767',
                   marginBottom: 8,
                   width: '100%',
                   minHeight: 120,
@@ -1926,7 +1966,7 @@ export default function EditProfile() {
                 value={tempBio}
                 onChangeText={setTempBio}
                 placeholder="Tell us about yourself..."
-                placeholderTextColor="rgba(255,255,255,0.5)"
+                placeholderTextColor="rgba(0,0,0,0.5)"
                 multiline
                 maxLength={300}
                 returnKeyType="done"
@@ -1939,7 +1979,7 @@ export default function EditProfile() {
               />
               
               <Text style={{ 
-                color: 'rgba(255,255,255,0.6)', 
+                color: 'black', 
                 fontSize: 14, 
                 alignSelf: 'flex-end', 
                 marginBottom: 24,
@@ -1955,12 +1995,12 @@ export default function EditProfile() {
                 <TouchableOpacity 
                   style={{ 
                     flex: 1, 
-                    backgroundColor: 'rgba(255,255,255,0.1)', 
+                    backgroundColor: '#676767', 
                     borderRadius: 16, 
                     paddingVertical: 16, 
                     alignItems: 'center',
                     borderWidth: 1,
-                    borderColor: 'rgba(255,255,255,0.1)'
+                    borderColor: '#676767'
                   }}
                   onPress={() => {
                     Keyboard.dismiss();
@@ -1968,7 +2008,7 @@ export default function EditProfile() {
                   }}
                 >
                   <Text style={{ 
-                    color: 'rgba(255,255,255,0.8)', 
+                    color: 'white', 
                     fontSize: 16, 
                     fontFamily: 'questrial',
                     fontWeight: '500'
@@ -1977,11 +2017,11 @@ export default function EditProfile() {
                 <TouchableOpacity 
                   style={{ 
                     flex: 1, 
-                    backgroundColor: '#FB2355', 
+                    backgroundColor: '#FD6F3E', 
                     borderRadius: 16, 
                     paddingVertical: 16, 
                     alignItems: 'center',
-                    shadowColor: '#FB2355',
+                    shadowColor: '#FD6F3E',
                     shadowOffset: { width: 0, height: 4 },
                     shadowOpacity: 0.3,
                     shadowRadius: 8,
@@ -1994,7 +2034,7 @@ export default function EditProfile() {
                   }}
                 >
                   <Text style={{ 
-                    color: 'white', 
+                    color: 'black', 
                     fontSize: 16, 
                     fontFamily: 'questrial', 
                     fontWeight: '600'
@@ -2025,7 +2065,7 @@ export default function EditProfile() {
             backdropFilter: 'blur(10px)'
           }}>
             <Animated.View style={{
-              backgroundColor: '#1a1a1a',
+              backgroundColor: '#FFFFFF',
               borderRadius: 24,
               padding: 32,
               width: '90%',
@@ -2036,7 +2076,7 @@ export default function EditProfile() {
               shadowRadius: 40,
               elevation: 20,
               borderWidth: 1,
-              borderColor: 'rgba(255,255,255,0.1)',
+              borderColor: '#676767',
               alignItems: 'center',
             }}>
               <View style={{ 
@@ -2045,7 +2085,7 @@ export default function EditProfile() {
                 marginBottom: 24,
                 paddingBottom: 16,
                 borderBottomWidth: 1,
-                borderBottomColor: 'rgba(255,255,255,0.1)',
+                borderBottomColor: '#E0E0E0',
                 width: '100%'
               }}>
                 <View style={{
@@ -2054,10 +2094,10 @@ export default function EditProfile() {
                   padding: 8,
                   marginRight: 12
                 }}>
-                  <Ionicons name="location-outline" size={24} color="#FB2355" />
+                  <Ionicons name="location-outline" size={24} color="#FD6F3E" />
                 </View>
                 <Text style={{ 
-                  color: 'white', 
+                  color: 'black', 
                   fontSize: 20, 
                   fontWeight: '600', 
                   fontFamily: 'questrial',
@@ -2067,14 +2107,14 @@ export default function EditProfile() {
               
               <TextInput
                 style={{
-                  backgroundColor: '#2a2a2a',
-                  color: 'white',
+                  backgroundColor: '#F8F8F8',
+                  color: 'black',
                   borderRadius: 16,
                   paddingHorizontal: 20,
                   paddingVertical: 16,
                   fontSize: 16,
                   borderWidth: 1,
-                  borderColor: 'rgba(255,255,255,0.1)',
+                  borderColor: '#676767',
                   marginBottom: 24,
                   width: '100%',
                   textAlign: 'center',
@@ -2083,7 +2123,7 @@ export default function EditProfile() {
                 value={tempLocation}
                 onChangeText={setTempLocation}
                 placeholder="Enter your location..."
-                placeholderTextColor="rgba(255,255,255,0.5)"
+                placeholderTextColor="rgba(0,0,0,0.5)"
                 returnKeyType="done"
                 blurOnSubmit={true}
                 onSubmitEditing={() => {
@@ -2102,12 +2142,12 @@ export default function EditProfile() {
                 <TouchableOpacity 
                   style={{ 
                     flex: 1, 
-                    backgroundColor: 'rgba(255,255,255,0.1)', 
+                    backgroundColor: '#676767', 
                     borderRadius: 16, 
                     paddingVertical: 16, 
                     alignItems: 'center',
                     borderWidth: 1,
-                    borderColor: 'rgba(255,255,255,0.1)'
+                    borderColor: '#676767'
                   }}
                   onPress={() => {
                     Keyboard.dismiss();
@@ -2115,7 +2155,7 @@ export default function EditProfile() {
                   }}
                 >
                   <Text style={{ 
-                    color: 'rgba(255,255,255,0.8)', 
+                    color: 'white', 
                     fontSize: 16, 
                     fontFamily: 'questrial',
                     fontWeight: '500'
@@ -2124,11 +2164,11 @@ export default function EditProfile() {
                 <TouchableOpacity 
                   style={{ 
                     flex: 1, 
-                    backgroundColor: '#FB2355', 
+                    backgroundColor: '#FD6F3E', 
                     borderRadius: 16, 
                     paddingVertical: 16, 
                     alignItems: 'center',
-                    shadowColor: '#FB2355',
+                    shadowColor: '#FD6F3E',
                     shadowOffset: { width: 0, height: 4 },
                     shadowOpacity: 0.3,
                     shadowRadius: 8,
@@ -2141,7 +2181,7 @@ export default function EditProfile() {
                   }}
                 >
                   <Text style={{ 
-                    color: 'white', 
+                    color: 'black', 
                     fontSize: 16, 
                     fontFamily: 'questrial', 
                     fontWeight: '600'
@@ -2161,19 +2201,19 @@ export default function EditProfile() {
         onRequestClose={() => setShowPhoneNumberModal(false)}
       >
         <View className="flex-1 bg-black/80 justify-center items-center">
-          <View className="bg-[#1A1A1A] rounded-3xl w-[90%] max-w-md overflow-hidden" style={{ borderWidth: 2, borderColor: '#FB2355' }}>
+          <View className="rounded-3xl w-[90%] max-w-md overflow-hidden" style={{ backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: '#FD6F3E' }}>
               {/* Header */}
-            <View className="bg-gradient-to-r from-[#FB2355] to-[#FF6B9D] p-6">
+            <View className="bg-gradient-to-r from-[#FD6F3E] to-[#FF6B9D] p-6">
               <View className="flex-row justify-between items-center">
                 <View>
-                  <Text style={{ color: 'white', fontSize: 24, fontFamily: 'questrial', fontWeight: 'bold' }}>Phone Number</Text>
+                  <Text style={{ color: 'black', fontSize: 24, fontFamily: 'questrial', fontWeight: 'bold' }}>Phone Number</Text>
                   <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, fontFamily: 'questrial', marginTop: 4 }}>Enter your contact number</Text>
                 </View>
               <TouchableOpacity 
                   onPress={() => setShowPhoneNumberModal(false)}
-                  className="w-10 h-10 bg-white/20 rounded-full items-center justify-center"
+                  className="w-10 h-10 bg-black/20 rounded-full items-center justify-center"
                 >
-                  <Ionicons name="close" size={20} color="white" />
+                  <Ionicons name="close" size={20} color="black" />
               </TouchableOpacity>
           </View>
               </View>
@@ -2182,22 +2222,22 @@ export default function EditProfile() {
             <View className="p-6">
               {/* Country Code Display */}
               <View className="flex-row items-center justify-center mb-6">
-                <View className="bg-[#2A2A2A] rounded-xl px-4 py-3 mr-3">
-                  <Text style={{ color: 'white', fontSize: 24 }}>{selectedCountry.flag}</Text>
+                <View className="rounded-xl px-4 py-3 mr-3 border border-[#676767]" style={{ backgroundColor: '#F8F8F8' }}>
+                  <Text style={{ color: 'black', fontSize: 24 }}>{selectedCountry.flag}</Text>
                  </View>
-                <View className="bg-[#2A2A2A] rounded-xl px-4 py-3">
-                  <Text style={{ color: 'white', fontSize: 18, fontFamily: 'questrial', fontWeight: '600' }}>{selectedCountry.code}</Text>
+                <View className="rounded-xl px-4 py-3 border border-[#676767]" style={{ backgroundColor: '#F8F8F8' }}>
+                  <Text style={{ color: 'black', fontSize: 18, fontFamily: 'questrial', fontWeight: '600' }}>{selectedCountry.code}</Text>
                 </View>
                </View>
 
               {/* Phone Number Input */}
               <View className="mb-6">
-                <Text style={{ color: 'white', fontSize: 14, fontFamily: 'Nunito-Regular', marginBottom: 12, textAlign: 'center' }}>Enter your phone number</Text>
-                <View className="bg-[#2A2A2A] rounded-xl px-4 py-4 border-2 border-[#FB2355]/30">
+                <Text style={{ color: 'black', fontSize: 14, fontFamily: 'Nunito-Regular', marginBottom: 12, textAlign: 'center' }}>Enter your phone number</Text>
+                <View className="rounded-xl px-4 py-4 border-2 border-[#676767]" style={{ backgroundColor: '#F8F8F8' }}>
                   <TextInput
-                    className="text-white text-3xl Nunito-Regular text-center"
+                    className="text-black text-3xl Nunito-Regular text-center"
                     placeholder={selectedCountry.format}
-                    placeholderTextColor="rgba(255,255,255,0.5)"
+                    placeholderTextColor="rgba(0,0,0,0.5)"
                     value={tempPhoneNumber}
                     onChangeText={(text) => {
                       // Remove formatting to get raw digits
@@ -2213,7 +2253,7 @@ export default function EditProfile() {
                       setShowPhoneNumberModal(false);
                     }}
                     style={{ 
-                      color: 'white', 
+                      color: 'black', 
                       letterSpacing: 2,
                    textAlign: 'center', 
                       fontSize: 28,
@@ -2225,13 +2265,13 @@ export default function EditProfile() {
 
               {/* Save Button */}
               <TouchableOpacity 
-                className="bg-[#FB2355] rounded-xl py-4 items-center"
+                className="bg-[#FD6F3E] rounded-xl py-4 items-center"
                 onPress={() => {
                   setPhoneNumber(tempPhoneNumber);
                   setShowPhoneNumberModal(false);
                 }}
               >
-                <Text style={{ color: 'white', fontSize: 18, fontFamily: 'questrial', fontWeight: '600' }}>Save Phone Number</Text>
+                <Text style={{ color: 'black', fontSize: 18, fontFamily: 'questrial', fontWeight: '600' }}>Save Phone Number</Text>
               </TouchableOpacity>
           </View>
           </View>
@@ -2268,11 +2308,11 @@ export default function EditProfile() {
                 padding: 10
               }}
             >
-              <Ionicons name="close" size={24} color="white" />
+              <Ionicons name="close" size={24} color="black" />
             </TouchableOpacity>
             
                  <Text style={{ 
-                   color: 'white', 
+                   color: 'black', 
               fontSize: 18, 
               fontFamily: 'Nunito-Bold',
               backgroundColor: 'rgba(0, 0, 0, 0.5)',

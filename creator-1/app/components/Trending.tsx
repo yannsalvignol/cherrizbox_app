@@ -47,7 +47,7 @@ const Trending = ({ onTrendsChange }: TrendingProps) => {
                     onPress={() => handleTrendPress(topic)}
                     className={`py-2 px-4 rounded-full mr-2 border ${
                       isSelected 
-                        ? 'bg-[#FB2355] border-[#FB2355]' 
+                        ? 'bg-[#FD6F3E] border-[#FD6F3E]' 
                         : 'bg-[#1A1A1A] border-gray-600'
                     }`}
                   >

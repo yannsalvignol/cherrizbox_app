@@ -41,7 +41,7 @@ export default function Goodbye() {
         </Text>
 
         <Text style={{ 
-          color: '#FB2355', 
+          color: '#FD6F3E', 
           fontSize: 18, 
           fontFamily: 'questrial',
           textAlign: 'center',

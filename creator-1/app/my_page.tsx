@@ -35,7 +35,7 @@ export default function MyPage() {
 
           <TouchableOpacity 
             style={{
-              backgroundColor: '#FB2355',
+              backgroundColor: '#FD6F3E',
               padding: 16,
               borderRadius: 12,
               width: '100%',

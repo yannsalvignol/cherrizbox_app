@@ -214,7 +214,7 @@ const App = () => {
                             ) : null}
 
                             <TouchableOpacity 
-                                className={`w-full bg-[#FB2355] py-5 rounded-full mt-12 ${isSubmitting ? 'opacity-50' : ''}`}
+                                className={`w-full bg-[#FD6F3E] py-5 rounded-full mt-12 ${isSubmitting ? 'opacity-50' : ''}`}
                                 onPress={handleVerifyAndCreateAccount}
                                 disabled={isSubmitting || verificationCode.length !== 6}
                             >
@@ -226,7 +226,7 @@ const App = () => {
                             <View className="flex-row items-center mt-6">
                                 <Text className="text-gray-500 font-['Urbanist-Regular']">Didn't receive a code?</Text>
                                 <TouchableOpacity onPress={handleSendVerification} disabled={resendDisabled || timer > 0}>
-                                    <Text className={`font-['Urbanist-Bold'] ml-2 ${resendDisabled || timer > 0 ? 'text-gray-400' : 'text-[#FB2355]'}`}>
+                                    <Text className={`font-['Urbanist-Bold'] ml-2 ${resendDisabled || timer > 0 ? 'text-gray-400' : 'text-[#FD6F3E]'}`}>
                                         Resend {timer > 0 ? `(${Math.floor(timer / 60)}:${(timer % 60).toString().padStart(2, '0')})` : ''}
                                     </Text>
                                 </TouchableOpacity>
@@ -235,7 +235,7 @@ const App = () => {
                     ) : (
                         <>
                             <Text className="text-black font-['Urbanist-Bold'] text-4xl mt-4">    
-                                Hello! Register to Cherrizbox <Text style={{ color: '#FB2355' }}>Creator</Text>.
+                                Hello! Register to Cherrizbox <Text style={{ color: '#FD6F3E' }}>Creator</Text>.
                             </Text>
                             <FormField 
                                 title="Username" 
@@ -306,7 +306,7 @@ const App = () => {
                                 </TouchableOpacity>
                             </View>
                             <TouchableOpacity 
-                                className={`w-full bg-[#FB2355] py-6 rounded-full mt-7 ${isSubmitting ? 'opacity-50' : ''}`}
+                                className={`w-full bg-[#FD6F3E] py-6 rounded-full mt-7 ${isSubmitting ? 'opacity-50' : ''}`}
                                 onPress={handleSendVerification}
                                 disabled={isSubmitting}
                             >

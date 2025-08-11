@@ -37,7 +37,7 @@ export const NetworkErrorModal: React.FC<NetworkErrorModalProps> = ({
           maxWidth: 400, 
           alignItems: 'center', 
           borderWidth: 1, 
-          borderColor: '#FB2355' 
+          borderColor: '#FD6F3E' 
         }}>
           <View style={{ 
             backgroundColor: 'rgba(251, 35, 85, 0.1)', 
@@ -45,7 +45,7 @@ export const NetworkErrorModal: React.FC<NetworkErrorModalProps> = ({
             padding: 12, 
             marginBottom: 16 
           }}>
-            <Ionicons name="wifi-outline" size={32} color="#FB2355" />
+            <Ionicons name="wifi-outline" size={32} color="#FD6F3E" />
           </View>
           <Text style={{ 
             color: 'white', 
@@ -69,7 +69,7 @@ export const NetworkErrorModal: React.FC<NetworkErrorModalProps> = ({
           <TouchableOpacity
             onPress={onClose}
             style={{ 
-              backgroundColor: '#FB2355', 
+              backgroundColor: '#FD6F3E', 
               borderRadius: 10, 
               paddingVertical: 12, 
               paddingHorizontal: 32 

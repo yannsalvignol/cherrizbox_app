@@ -93,7 +93,7 @@ const LandingScreen = () => {
                     key={network.name}
                     onPress={() => handleNetworkSelection(network.name)}
                     style={{
-                      backgroundColor: selectedNetwork === network.name ? '#FB2355' : 'rgba(255, 255, 255, 0.2)',
+                      backgroundColor: selectedNetwork === network.name ? '#FD6F3E' : 'rgba(255, 255, 255, 0.2)',
                       borderRadius: 18,
                       paddingVertical: 12,
                       paddingHorizontal: 16,
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   ctaButton: {
-    backgroundColor: '#FB2355',
+    backgroundColor: '#FD6F3E',
     paddingVertical: 18,
     paddingHorizontal: 40,
     borderRadius: 30,
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   modalCtaButton: {
-    backgroundColor: '#FB2355',
+    backgroundColor: '#FD6F3E',
     paddingVertical: 18,
     paddingHorizontal: 40,
     borderRadius: 30,

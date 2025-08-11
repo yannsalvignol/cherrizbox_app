@@ -21,7 +21,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, FlatList, Image, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, FlatList, Image, KeyboardAvoidingView, Modal, Platform, RefreshControl, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 
@@ -97,6 +97,7 @@ export default function Index() {
   const [notificationType, setNotificationType] = useState<'success' | 'error'>('success');
   const [showNetworkErrorModal, setShowNetworkErrorModal] = useState(false);
   const [userCurrency, setUserCurrency] = useState('USD');
+  const [showPaymentStatusInfo, setShowPaymentStatusInfo] = useState(false);
 
 
 
@@ -1179,7 +1180,7 @@ export default function Index() {
           useNativeDriver: true,
         }),
       ]),
-      { iterations: 3 } // Animate 3 times then stop
+      { iterations: 10 } // Animate 10 times then stop
     ).start(() => {
       // Reset highlight after animation completes
       setTimeout(() => {
@@ -1259,7 +1260,7 @@ export default function Index() {
                 borderRadius: 25,
                 backgroundColor: selectedTab === item.id ? 'white' : '#DCDEDF',
                 borderWidth: 1,
-                borderColor: selectedTab === item.id ? 'black' : 'black',
+                borderColor: selectedTab === item.id ? 'transparent' : '#676767',
                 alignItems: 'center',
                 justifyContent: 'center',
                 minWidth: 80,
@@ -1344,8 +1345,8 @@ export default function Index() {
                 <RefreshControl
                   refreshing={refreshing}
                   onRefresh={onRefresh}
-                  tintColor="#FB2355"
-                  colors={["#FB2355"]}
+                  tintColor="#676767"
+                  colors={["#676767"]}
                   progressBackgroundColor="#DCDEDF"
                 />
               }
@@ -1413,7 +1414,7 @@ export default function Index() {
                     </View>
                     
                     <Text style={{ 
-                      color: '#FB2355', 
+                      color: 'black', 
                       fontSize: 22, 
                       fontFamily: 'Urbanist-Bold',
                       marginBottom: 8,
@@ -1423,7 +1424,7 @@ export default function Index() {
                     </Text>
                     
                     <Text style={{ 
-                      color: 'rgba(255, 255, 255, 0.9)', 
+                      color: 'black', 
                       fontSize: 16, 
                       textAlign: 'center',
                       fontFamily: 'Urbanist-Regular',
@@ -1436,9 +1437,9 @@ export default function Index() {
                     {missingChannelConditions.map((condition, index) => {
                       // Determine icon and colors based on condition
                       let iconName = 'checkmark-outline';
-                      let iconColor = '#FB2355';
-                      let backgroundColor = 'rgba(251, 35, 85, 0.2)';
-                      let borderColor = 'rgba(251, 35, 85, 0.3)';
+                      let iconColor = 'white';
+                      let backgroundColor = 'rgb(255, 0, 0)';
+                      let borderColor = 'rgb(255, 0, 0)';
                       
                       if (condition === 'Payment setup incomplete') {
                         iconName = 'card-outline';
@@ -1472,7 +1473,7 @@ export default function Index() {
                             <Ionicons name={iconName as any} size={14} color={iconColor} />
                           </View>
                           <Text style={{ 
-                            color: 'rgba(255, 255, 255, 0.9)', 
+                            color: 'black', 
                             fontSize: 15, 
                             fontFamily: 'Urbanist-Medium',
                             flex: 1
@@ -1495,14 +1496,14 @@ export default function Index() {
                         }
                       }}
                       style={{
-                        backgroundColor: missingChannelConditions.length === 1 && missingChannelConditions[0] === 'Payment setup incomplete' ? '#4CAF50' : '#FB2355',
+                        backgroundColor: missingChannelConditions.length === 1 && missingChannelConditions[0] === 'Payment setup incomplete' ? '#4CAF50' : '#676767',
                         borderRadius: 16,
                         paddingVertical: 16,
                         paddingHorizontal: 32,
                         alignItems: 'center',
                         marginTop: 8,
                         width: '100%',
-                        shadowColor: missingChannelConditions.length === 1 && missingChannelConditions[0] === 'Payment setup incomplete' ? '#4CAF50' : '#FB2355',
+                        shadowColor: missingChannelConditions.length === 1 && missingChannelConditions[0] === 'Payment setup incomplete' ? '#4CAF50' : '#676767',
                         shadowOffset: { width: 0, height: 4 },
                         shadowOpacity: 0.3,
                         shadowRadius: 8,
@@ -1514,18 +1515,18 @@ export default function Index() {
                           <Ionicons name="cash-outline" size={20} color="white" style={{ marginRight: 8 }} />
                         )}
                         <Text style={{ 
-                          color: 'white', 
+                          color: 'black', 
                           fontSize: 17, 
                           fontFamily: 'Urbanist-Bold'
                         }}>
-                          Complete Setup {missingChannelConditions.length === 1 && missingChannelConditions[0] === 'Payment setup incomplete' ? '' : '✨'}
+                          Complete Setup {missingChannelConditions.length === 1 && missingChannelConditions[0] === 'Payment setup incomplete' ? '' : ''}
                         </Text>
                       </View>
                     </TouchableOpacity>
                   </View>
                   
                   <Text style={{ 
-                    color: 'rgba(255, 255, 255, 0.7)', 
+                    color: 'black', 
                     fontSize: 14, 
                     textAlign: 'center',
                     fontFamily: 'Urbanist-Regular',
@@ -1586,7 +1587,7 @@ export default function Index() {
           </View>
           {/* Big Total Subscribers Card with gradient border */}
           <LinearGradient
-            colors={["black", "#FB2355"]}
+            colors={["black", "#676767"]}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
             style={{
               borderRadius: 22,
@@ -1677,7 +1678,7 @@ export default function Index() {
               backgroundColor: 'white',
               borderRadius: 16,
               borderWidth: 2,
-              borderColor: '#FB2355',
+              borderColor: '#676767',
               width: '48%',
               minHeight: 80,
               paddingVertical: 14,
@@ -1690,17 +1691,17 @@ export default function Index() {
               elevation: 3,
             }}>
               <View style={{ backgroundColor: 'white', borderRadius: 20, padding: 8, marginBottom: 6 }}>
-                <Ionicons name="close-circle" size={22} color="#FB2355" />
+                <Ionicons name="close-circle" size={22} color="#676767" />
               </View>
-              <Text style={{ color: '#FB2355', fontFamily: 'Urbanist-Bold', fontSize: 14, marginBottom: 2 }}>Cancelled Monthly</Text>
-              <Text style={{ color: '#FB2355', fontFamily: 'Urbanist-Bold', fontSize: 26 }}>{creatorFinancials?.number_of_cancelled_monthly_sub ?? '—'}</Text>
+              <Text style={{ color: '#676767', fontFamily: 'Urbanist-Bold', fontSize: 14, marginBottom: 2 }}>Cancelled Monthly</Text>
+              <Text style={{ color: '#676767', fontFamily: 'Urbanist-Bold', fontSize: 26 }}>{creatorFinancials?.number_of_cancelled_monthly_sub ?? '—'}</Text>
             </View>
             {/* Cancelled Yearly */}
             <View style={{
               backgroundColor: 'white',
               borderRadius: 16,
               borderWidth: 2,
-              borderColor: '#FB2355',
+              borderColor: '#676767',
               width: '48%',
               minHeight: 80,
               paddingVertical: 14,
@@ -1713,10 +1714,10 @@ export default function Index() {
               elevation: 3,
             }}>
               <View style={{ backgroundColor: 'white', borderRadius: 20, padding: 8, marginBottom: 6 }}>
-                <Ionicons name="close-circle-outline" size={22} color="#FB2355" />
+                <Ionicons name="close-circle-outline" size={22} color="#676767" />
               </View>
-              <Text style={{ color: '#FB2355', fontFamily: 'Urbanist-Bold', fontSize: 14, marginBottom: 2 }}>Cancelled Yearly</Text>
-              <Text style={{ color: '#FB2355', fontFamily: 'Urbanist-Bold', fontSize: 26 }}>{creatorFinancials?.number_of_cancelled_yearly_sub ?? '—'}</Text>
+              <Text style={{ color: '#676767', fontFamily: 'Urbanist-Bold', fontSize: 14, marginBottom: 2 }}>Cancelled Yearly</Text>
+              <Text style={{ color: '#676767', fontFamily: 'Urbanist-Bold', fontSize: 26 }}>{creatorFinancials?.number_of_cancelled_yearly_sub ?? '—'}</Text>
             </View>
           </View>
 
@@ -2288,15 +2289,41 @@ export default function Index() {
                 borderColor: '#333333',
                 marginTop: 20
                 }}>
-                  <Text style={{
-                    color: 'black',
-                    fontSize: 18,
-                    fontWeight: 'bold',
-                    fontFamily: 'Urbanist-Bold',
-                    marginBottom: 16
+                  <View style={{ 
+                    flexDirection: 'row', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    marginBottom: 16 
                   }}>
-                  Payment Status
-                  </Text>
+                    <Text style={{
+                      color: 'black',
+                      fontSize: 18,
+                      fontWeight: 'bold',
+                      fontFamily: 'Urbanist-Bold'
+                    }}>
+                      Payment Status
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => setShowPaymentStatusInfo(true)}
+                      style={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: 12,
+                        backgroundColor: '#E0E0E0',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <Text style={{
+                        color: 'black',
+                        fontSize: 14,
+                        fontWeight: 'bold',
+                        fontFamily: 'Urbanist-Bold'
+                      }}>
+                        i
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 {/* Status Items */}
                 <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -2326,7 +2353,7 @@ export default function Index() {
                 <View style={{ marginBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <Ionicons name={creatorFinancials.stripeConnectVerified ? "person-circle-outline" : "alert-circle-outline"} size={20} color={creatorFinancials.stripeConnectVerified ? '#4CAF50' : '#FF9800'} style={{ marginRight: 10 }} />
-                    <Text style={{ color: '#CCCCCC', fontFamily: 'Urbanist-Regular' }}>Account Verified</Text>
+                    <Text style={{ color: 'black', fontFamily: 'Urbanist-Regular' }}>Account Verified</Text>
                   </View>
                   <Text style={{ color: creatorFinancials.stripeConnectVerified ? '#4CAF50' : '#FF9800', fontFamily: 'Urbanist-Bold' }}>
                     {creatorFinancials.stripeConnectVerified ? 'Yes' : 'Pending'}
@@ -2372,10 +2399,10 @@ export default function Index() {
                 borderColor: 'rgba(251, 35, 85, 0.3)',
                 marginTop: 20
                 }}>
-                <Ionicons name="information-circle-outline" size={32} color="#FB2355" style={{ marginRight: 16 }} />
+                <Ionicons name="information-circle-outline" size={32} color="#676767" style={{ marginRight: 16 }} />
                 <View style={{ flex: 1 }}>
                   <Text style={{
-                    color: 'white',
+                    color: 'black',
                     fontSize: 16,
                     fontFamily: 'Urbanist-Bold',
                     marginBottom: 4
@@ -2383,7 +2410,7 @@ export default function Index() {
                     Get Paid
                   </Text>
                   <Text style={{
-                    color: '#CCCCCC',
+                    color: 'black',
                     fontSize: 14,
                     fontFamily: 'Urbanist-Regular',
                     lineHeight: 20
@@ -2405,14 +2432,14 @@ export default function Index() {
             >
               <TouchableOpacity
                 style={{
-                  backgroundColor: creatorFinancials?.stripeConnectSetupComplete ? '#333' : (shouldHighlightSetup ? '#FF4081' : '#FB2355'),
+                  backgroundColor: creatorFinancials?.stripeConnectSetupComplete ? '#333' : (shouldHighlightSetup ? '#FD6F3E' : '#676767'),
                   paddingVertical: 16,
                   borderRadius: 16,
                   flexDirection: 'row',
             alignItems: 'center', 
             justifyContent: 'center',
                   width: '100%',
-                  shadowColor: creatorFinancials?.stripeConnectSetupComplete ? 'transparent' : (shouldHighlightSetup ? '#FF4081' : '#FB2355'),
+                  shadowColor: creatorFinancials?.stripeConnectSetupComplete ? 'transparent' : (shouldHighlightSetup ? '#FD6F3E' : '#676767'),
                   shadowOffset: { width: 0, height: 4 },
                   shadowOpacity: shouldHighlightSetup ? 0.6 : 0.4,
                   shadowRadius: shouldHighlightSetup ? 15 : 10,
@@ -2533,6 +2560,119 @@ export default function Index() {
           visible={showNetworkErrorModal}
           onClose={() => setShowNetworkErrorModal(false)}
         />
+
+        {/* Payment Status Info Modal */}
+        <Modal
+          visible={showPaymentStatusInfo}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowPaymentStatusInfo(false)}
+        >
+          <View style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.75)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingHorizontal: 20
+          }}>
+            <View style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 20,
+              padding: 24,
+              width: '100%',
+              maxWidth: 400,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 10 },
+              shadowOpacity: 0.3,
+              shadowRadius: 20,
+              elevation: 10
+            }}>
+              {/* Header */}
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 20
+              }}>
+                <Text style={{
+                  color: 'black',
+                  fontSize: 20,
+                  fontWeight: 'bold',
+                  fontFamily: 'Urbanist-Bold'
+                }}>
+                  Payment Status Help
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setShowPaymentStatusInfo(false)}
+                  style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: 15,
+                    backgroundColor: '#F0F0F0',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <Ionicons name="close" size={18} color="black" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Content */}
+              <View style={{ marginBottom: 20 }}>
+                <Text style={{
+                  color: 'black',
+                  fontSize: 16,
+                  fontFamily: 'Urbanist-Regular',
+                  lineHeight: 24,
+                  marginBottom: 16
+                }}>
+                  If any of your payment statuses show as inactive or pending, you can resolve the issues by accessing your Stripe dashboard.
+                </Text>
+                
+                <Text style={{
+                  color: 'black',
+                  fontSize: 16,
+                  fontFamily: 'Urbanist-Bold',
+                  marginBottom: 8
+                }}>
+                  What to do:
+                </Text>
+                
+                <Text style={{
+                  color: 'black',
+                  fontSize: 15,
+                  fontFamily: 'Urbanist-Regular',
+                  lineHeight: 22
+                }}>
+                  1. Press the "View Dashboard" button below{'\n'}
+                  2. Complete any required verification steps{'\n'}
+                  3. Provide any missing information{'\n'}
+                  4. Return to the app and refresh your earnings data
+                </Text>
+              </View>
+
+              {/* Close Button */}
+              <TouchableOpacity
+                onPress={() => setShowPaymentStatusInfo(false)}
+                style={{
+                  backgroundColor: '#FD6F3E',
+                  borderRadius: 12,
+                  paddingVertical: 14,
+                  alignItems: 'center'
+                }}
+              >
+                <Text style={{
+                  color: 'white',
+                  fontSize: 16,
+                  fontWeight: 'bold',
+                  fontFamily: 'Urbanist-Bold'
+                }}>
+                  Got it!
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
 
         </SafeAreaView>
     );

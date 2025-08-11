@@ -103,13 +103,13 @@ const LoginScreen = () => {
                         className="self-end mt-2"
                         onPress={() => router.push('/forgot_password_loged_out')}
                     >
-                        <Text className="text-[#FB2355] font-['Urbanist-Bold']">
+                        <Text className="text-[#FD6F3E] font-['Urbanist-Bold']">
                             Forgot Password?
                         </Text>
                     </TouchableOpacity>
                     
                     <TouchableOpacity 
-                        className={`w-full bg-[#FB2355] py-6 rounded-full mt-7 ${isSubmitting ? 'opacity-50' : ''}`}
+                        className={`w-full bg-[#FD6F3E] py-6 rounded-full mt-7 ${isSubmitting ? 'opacity-50' : ''}`}
                         onPress={submit}
                         disabled={isSubmitting}
                     >
@@ -159,7 +159,7 @@ const LoginScreen = () => {
                             Don't have an account?{' '}
                         </Text>
                         <TouchableOpacity onPress={() => router.push('/landing')}>
-                            <Text className="text-[#FB2355] font-['Urbanist-Bold']">
+                            <Text className="text-[#FD6F3E] font-['Urbanist-Bold']">
                                 Register Now
                             </Text>
                         </TouchableOpacity>

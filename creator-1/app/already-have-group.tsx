@@ -26,7 +26,7 @@ export default function AlreadyHaveGroup() {
           width: 80, 
           height: 80, 
           borderRadius: 40, 
-          backgroundColor: '#FB2355', 
+          backgroundColor: '#FD6F3E', 
           alignItems: 'center', 
           justifyContent: 'center',
           marginBottom: 20
@@ -45,7 +45,7 @@ export default function AlreadyHaveGroup() {
         </Text>
 
         <Text style={{ 
-          color: '#FB2355', 
+          color: '#FD6F3E', 
           fontSize: 18, 
           fontFamily: 'questrial',
           textAlign: 'center',

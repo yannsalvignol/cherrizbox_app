@@ -87,9 +87,9 @@ const styles = StyleSheet.create({
         backgroundColor: '#F9FAFB',
     },
     inputFocused: {
-        borderColor: '#FB2355',
+        borderColor: '#FD6F3E',
         borderWidth: 2,
-        shadowColor: '#FB2355',
+        shadowColor: '#FD6F3E',
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.25,
         shadowRadius: 4,

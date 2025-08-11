@@ -126,7 +126,7 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
         width: isGroupChat ? 48 : 40,
         height: isGroupChat ? 48 : 40,
         borderRadius: isGroupChat ? 24 : 20,
-        backgroundColor: isGroupChat ? '#FB2355' : 'transparent',
+        backgroundColor: isGroupChat ? '#FD6F3E' : 'transparent',
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: isGroupChat ? 14 : 10,

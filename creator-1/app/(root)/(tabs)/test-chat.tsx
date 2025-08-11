@@ -73,7 +73,7 @@ export default function TestChat() {
         
         <View className="flex-row space-x-4">
           <TouchableOpacity
-            className="bg-[#FB2355] px-6 py-3 rounded-full"
+            className="bg-[#FD6F3E] px-6 py-3 rounded-full"
             onPress={testConnection}
           >
             <Text className="text-white font-['Urbanist-Bold']">

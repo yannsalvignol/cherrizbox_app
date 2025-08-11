@@ -129,7 +129,7 @@ const Property = () => {
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: 'black', justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#FB2355" />
+        <ActivityIndicator size="large" color="#FD6F3E" />
       </View>
     );
   }
@@ -139,7 +139,7 @@ const Property = () => {
       <View style={{ flex: 1, backgroundColor: 'black', justifyContent: 'center', alignItems: 'center' }}>
         <Text style={{ color: 'white' }}>Post not found</Text>
         <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 20 }}>
-          <Text style={{ color: '#FB2355', fontSize: 18 }}>Go Back</Text>
+          <Text style={{ color: '#FD6F3E', fontSize: 18 }}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -205,7 +205,7 @@ const Property = () => {
                         <TouchableOpacity onPress={() => setShowBioModal(false)}>
                           <Image 
                             source={require('../../../assets/icon/close.png')} 
-                            style={{ width: 24, height: 24, tintColor: '#FB2355' }} 
+                            style={{ width: 24, height: 24, tintColor: '#FD6F3E' }} 
                           />
                         </TouchableOpacity>
                       </View>
@@ -217,7 +217,7 @@ const Property = () => {
                       </ScrollView>
 
                       <TouchableOpacity 
-                        className="bg-[#FB2355] rounded-lg px-6 py-3 mt-4"
+                        className="bg-[#FD6F3E] rounded-lg px-6 py-3 mt-4"
                         onPress={() => setShowBioModal(false)}
                       >
                         <Text className="text-white font-questrial text-center">Close</Text>
@@ -288,17 +288,17 @@ const Property = () => {
                         onPress={() => setSelectedPricing('yearly')}
                         style={{ 
                           borderWidth: selectedPricing === 'yearly' ? 3 : 2,
-                          borderColor: selectedPricing === 'yearly' ? '#FB2355' : 'rgba(251, 35, 85, 0.3)',
+                          borderColor: selectedPricing === 'yearly' ? '#FD6F3E' : 'rgba(251, 35, 85, 0.3)',
                           borderRadius: 16,
                           padding: 8,
                           backgroundColor: selectedPricing === 'yearly' ? 'rgba(251, 35, 85, 0.1)' : 'transparent',
                           transform: [{ scale: selectedPricing === 'yearly' ? 1.05 : 1 }]
                         }}
                       >
-                        <Text style={{ color: '#FB2355', fontSize: 28, fontWeight: 'bold', textShadowColor: 'rgba(251, 35, 85, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }}>
+                        <Text style={{ color: '#FD6F3E', fontSize: 28, fontWeight: 'bold', textShadowColor: 'rgba(251, 35, 85, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }}>
                           ${JSON.parse(post.payment).yearlyPrice}
                         </Text>
-                        <Text style={{ color: '#FB2355', fontSize: 16, textShadowColor: 'rgba(251, 35, 85, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial', marginTop: 4 }}>
+                        <Text style={{ color: '#FD6F3E', fontSize: 16, textShadowColor: 'rgba(251, 35, 85, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial', marginTop: 4 }}>
                           per year
                         </Text>
                       </TouchableOpacity>
@@ -308,7 +308,7 @@ const Property = () => {
                 <TouchableOpacity 
                   style={{ 
                     marginTop: 30, 
-                    backgroundColor: '#FB2355', 
+                    backgroundColor: '#FD6F3E', 
                     borderRadius: 20, 
                     paddingVertical: 12, 
                     paddingHorizontal: 100,

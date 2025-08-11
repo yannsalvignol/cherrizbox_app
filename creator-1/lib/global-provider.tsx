@@ -4,6 +4,12 @@ import { getCurrentUser } from "./appwrite";
 import { connectUser, disconnectUser } from "./stream-chat";
 import { useAppwrite } from "./useAppwrite";
 
+interface ProfileCache {
+  profile: any;
+  userPhoto: any;
+  timestamp: number;
+}
+
 interface GlobalContextType {
   isLogged: boolean;
   user: User | null;
@@ -21,6 +27,9 @@ interface GlobalContextType {
   setSocialMediaUsername: (username: string) => void;
   userCurrency: string;
   setUserCurrency: (currency: string) => void;
+  profileCache: ProfileCache | null;
+  preloadProfileData: () => Promise<void>;
+  getCachedProfile: () => ProfileCache | null;
 }
 
 interface User {
@@ -51,10 +60,65 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
   const [socialMediaPlatform, setSocialMediaPlatform] = React.useState('');
   const [socialMediaUsername, setSocialMediaUsername] = React.useState('');
   const [userCurrency, setUserCurrency] = React.useState('USD');
+  const [profileCache, setProfileCache] = React.useState<ProfileCache | null>(null);
 
   const previousUserId = useRef<string | null>(null);
 
   const isLogged = !!user;
+
+  // Cache duration: 5 minutes
+  const CACHE_DURATION = 5 * 60 * 1000;
+
+  const preloadProfileData = async () => {
+    if (!user?.$id) return;
+    
+    try {
+      console.log('🔄 [Profile Cache] Preloading profile data for user:', user.$id);
+      
+      const { getUserProfile, getUserPhoto } = await import('./appwrite');
+      
+      // Load both profile and photo data in parallel
+      const [profile, userPhoto] = await Promise.all([
+        getUserProfile(user.$id),
+        getUserPhoto(user.$id)
+      ]);
+      
+      if (profile) {
+        const cacheData: ProfileCache = {
+          profile,
+          userPhoto,
+          timestamp: Date.now()
+        };
+        
+        setProfileCache(cacheData);
+        console.log('✅ [Profile Cache] Profile data cached successfully');
+        
+        // Also update currency if available
+        if (profile.currency) {
+          setUserCurrency(profile.currency);
+        }
+      }
+    } catch (error) {
+      console.error('❌ [Profile Cache] Error preloading profile data:', error);
+    }
+  };
+
+  const getCachedProfile = (): ProfileCache | null => {
+    if (!profileCache) return null;
+    
+    // Check if cache is still valid
+    const now = Date.now();
+    const isExpired = now - profileCache.timestamp > CACHE_DURATION;
+    
+    if (isExpired) {
+      console.log('⏰ [Profile Cache] Cache expired, clearing');
+      setProfileCache(null);
+      return null;
+    }
+    
+    console.log('✅ [Profile Cache] Returning cached profile data');
+    return profileCache;
+  };
 
   const refreshChannelConditions = async () => {
     console.log('🚀 [Global Currency] refreshChannelConditions called for user:', user?.$id);
@@ -64,10 +128,32 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
     }
     
     try {
-      // First check if all profile fields are filled (same as handleGoLive validation)
-      console.log('🔄 [Global Currency] Loading user profile...');
-      const { getUserProfile, getUserPhoto } = await import('./appwrite');
-      const profile = await getUserProfile(user.$id);
+      // Try to use cached data first
+      let profile, userPhoto;
+      const cached = getCachedProfile();
+      
+      if (cached) {
+        console.log('🔄 [Global Currency] Using cached profile data...');
+        profile = cached.profile;
+        userPhoto = cached.userPhoto;
+      } else {
+        // First check if all profile fields are filled (same as handleGoLive validation)
+        console.log('🔄 [Global Currency] Loading user profile from API...');
+        const { getUserProfile, getUserPhoto } = await import('./appwrite');
+        [profile, userPhoto] = await Promise.all([
+          getUserProfile(user.$id),
+          getUserPhoto(user.$id)
+        ]);
+        
+        // Cache the data for future use
+        if (profile) {
+          setProfileCache({
+            profile,
+            userPhoto,
+            timestamp: Date.now()
+          });
+        }
+      }
       
       if (!profile) {
         console.log('❌ [Global Currency] No profile found');
@@ -123,8 +209,7 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
         missingProfileFields.push('Date of Birth');
       }
 
-      // Check if user has set up pricing
-      const userPhoto = await getUserPhoto(user.$id);
+      // Check if user has set up pricing (use cached userPhoto if available)
       if (!userPhoto || !userPhoto.payment) {
         missingProfileFields.push('Subscription Pricing');
       } else {
@@ -206,6 +291,9 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
     const connectToStream = async () => {
       if (user) {
         try {
+          // Preload profile data immediately when user logs in
+          await preloadProfileData();
+          
           // Preload Stream connection data early
           const { preloadStreamConnection } = await import('./stream-chat');
           preloadStreamConnection(user.$id); // Fire and forget for early cache warming
@@ -390,6 +478,9 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
         setSocialMediaUsername,
         userCurrency,
         setUserCurrency,
+        profileCache,
+        preloadProfileData,
+        getCachedProfile,
       }}
     >
       {children}

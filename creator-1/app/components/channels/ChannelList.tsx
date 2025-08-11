@@ -102,9 +102,19 @@ export const ChannelList: React.FC<ChannelListProps> = ({
           fontSize: 16, 
           fontFamily: 'Urbanist-Regular',
           textAlign: 'center',
-          lineHeight: 24
+          lineHeight: 24,
+          marginBottom: 16
         }}>
           Start chatting with your fans and subscribers to build your community
+        </Text>
+        <Text style={{ 
+          color: '#FD6F3E', 
+          fontSize: 14, 
+          fontFamily: 'Urbanist-Medium',
+          textAlign: 'center',
+          lineHeight: 20
+        }}>
+          Pull down to reload and see your channels
         </Text>
       </View>
     );
@@ -119,8 +129,8 @@ export const ChannelList: React.FC<ChannelListProps> = ({
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
-          tintColor="#FB2355"
-          colors={["#FB2355"]}
+          tintColor="#FD6F3E"
+          colors={["#FD6F3E"]}
           progressBackgroundColor="#DCDEDF"
         />
       }

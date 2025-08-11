@@ -35,7 +35,7 @@ module.exports = {
         secondary: "#111111",
         tertiary: "#222222",
         quaternary: "#333333",
-        "rose-cherry": "#FB2355",
+        "rose-cherry": "#FD6F3E",
       },
     },
   },

@@ -185,11 +185,11 @@ const ProfilePreview: React.FC<ProfilePreviewProps> = ({
                 <Ionicons 
                   name="arrow-up" 
                   size={24} 
-                  color="#FB2355" 
+                  color="#FD6F3E" 
                   style={{ marginRight: 8 }}
                 />
                 <Text style={{ 
-                  color: '#FB2355', 
+                  color: '#FD6F3E', 
                   fontSize: 16, 
                   fontWeight: 'bold',
                   fontFamily: 'questrial'
@@ -251,17 +251,17 @@ const ProfilePreview: React.FC<ProfilePreviewProps> = ({
                     onPress={() => setSelectedPricing('yearly')}
                     style={{ 
                       borderWidth: selectedPricing === 'yearly' ? 3 : 2,
-                      borderColor: selectedPricing === 'yearly' ? '#FB2355' : 'rgba(251, 35, 85, 0.3)',
+                      borderColor: selectedPricing === 'yearly' ? '#FD6F3E' : 'rgba(251, 35, 85, 0.3)',
                       borderRadius: 16,
                       padding: 8,
                       backgroundColor: selectedPricing === 'yearly' ? 'rgba(251, 35, 85, 0.1)' : 'transparent',
                       transform: [{ scale: selectedPricing === 'yearly' ? 1.05 : 1 }]
                     }}
                   >
-                    <Text style={{ color: '#FB2355', fontSize: 28, fontWeight: 'bold', textShadowColor: 'rgba(251, 35, 85, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }}>
+                    <Text style={{ color: '#FD6F3E', fontSize: 28, fontWeight: 'bold', textShadowColor: 'rgba(251, 35, 85, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }}>
                       {formatPrice(yearlyPrice)}
                     </Text>
-                    <Text style={{ color: '#FB2355', fontSize: 16, textShadowColor: 'rgba(251, 35, 85, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial', marginTop: 4 }}>
+                    <Text style={{ color: '#FD6F3E', fontSize: 16, textShadowColor: 'rgba(251, 35, 85, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial', marginTop: 4 }}>
                       per year
                     </Text>
                   </TouchableOpacity>
@@ -271,7 +271,7 @@ const ProfilePreview: React.FC<ProfilePreviewProps> = ({
             <TouchableOpacity 
               style={{ 
                 marginTop: 30, 
-                backgroundColor: '#FB2355', 
+                backgroundColor: '#FD6F3E', 
                 borderRadius: 20, 
                 paddingVertical: 12, 
                 paddingHorizontal: 20,
