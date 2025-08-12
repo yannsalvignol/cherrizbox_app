@@ -34,18 +34,20 @@ export const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
       presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }}>
-        {/* Header */}
-        <View style={{ 
-          flexDirection: 'row',
-          alignItems: 'center', 
-          justifyContent: 'space-between',
-          paddingHorizontal: 16,
-          paddingVertical: 12,
-          backgroundColor: 'black',
-          borderBottomWidth: 1,
-          borderBottomColor: '#333333'
-        }}>
+      <View style={{ flex: 1, backgroundColor: 'black' }}>
+        <SafeAreaView style={{ flex: 1 }}>
+          {/* Header */}
+          <View style={{ 
+            flexDirection: 'row',
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            paddingHorizontal: 16,
+            paddingVertical: 16,
+            backgroundColor: 'black',
+            borderBottomWidth: 1,
+            borderBottomColor: '#333333',
+            minHeight: 60
+          }}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Image
               source={require('../../../assets/icon/loading-icon.png')}
@@ -63,69 +65,74 @@ export const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
           <TouchableOpacity
             onPress={onClose}
             style={{
-              padding: 8,
+              padding: 12,
               backgroundColor: '#333333',
-              borderRadius: 8
+              borderRadius: 8,
+              minWidth: 44,
+              minHeight: 44,
+              justifyContent: 'center',
+              alignItems: 'center'
             }}
           >
             <Text style={{ 
               color: 'white',
-              fontSize: 16, 
+              fontSize: 18, 
               fontWeight: 'bold',
               fontFamily: 'Urbanist-Bold'
             }}>
               ✕
             </Text>
           </TouchableOpacity>
-        </View>
-
-        {/* WebView */}
-        {stripeConnectUrl ? (
-          <WebView
-            source={{ uri: stripeConnectUrl }}
-            style={{ flex: 1, backgroundColor: 'white' }}
-            startInLoadingState={true}
-            renderLoading={() => (
-              <View style={{ 
-                flex: 1, 
-                justifyContent: 'center',
-                alignItems: 'center',
-                backgroundColor: 'white'
-              }}>
-                <ActivityIndicator size="large" color="#FD6F3E" />
-                <Text style={{ 
-                  color: '#666666',
-                  fontSize: 16,
-                  fontFamily: 'Urbanist-Regular',
-                  marginTop: 16
-                }}>
-                  Loading Stripe Connect...
-                </Text>
-              </View>
-            )}
-            onNavigationStateChange={onNavigationStateChange}
-            onError={onError}
-            onHttpError={onHttpError}
-          />
-        ) : (
-          <View style={{
-            flex: 1,
-            justifyContent: 'center',
-            alignItems: 'center',
-            backgroundColor: 'white'
-          }}>
-            <ActivityIndicator size="large" color="#FD6F3E" />
-            <Text style={{ 
-              color: '#666666',
-              fontSize: 16, 
-              fontFamily: 'Urbanist-Regular',
-              marginTop: 16
-            }}>
-              Preparing Stripe Connect...
-            </Text>
           </View>
-        )}
-      </SafeAreaView>
+
+          {/* WebView */}
+          {stripeConnectUrl ? (
+            <WebView
+              source={{ uri: stripeConnectUrl }}
+              style={{ flex: 1, backgroundColor: 'white' }}
+              startInLoadingState={true}
+              renderLoading={() => (
+                <View style={{ 
+                  flex: 1, 
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  backgroundColor: 'white'
+                }}>
+                  <ActivityIndicator size="large" color="#FD6F3E" />
+                  <Text style={{ 
+                    color: '#666666',
+                    fontSize: 16,
+                    fontFamily: 'Urbanist-Regular',
+                    marginTop: 16
+                  }}>
+                    Loading Stripe Connect...
+                  </Text>
+                </View>
+              )}
+              onNavigationStateChange={onNavigationStateChange}
+              onError={onError}
+              onHttpError={onHttpError}
+            />
+          ) : (
+            <View style={{
+              flex: 1,
+              justifyContent: 'center',
+              alignItems: 'center',
+              backgroundColor: 'white'
+            }}>
+              <ActivityIndicator size="large" color="#FD6F3E" />
+              <Text style={{ 
+                color: '#666666',
+                fontSize: 16, 
+                fontFamily: 'Urbanist-Regular',
+                marginTop: 16
+              }}>
+                Preparing Stripe Connect...
+              </Text>
+            </View>
+          )}
+        </SafeAreaView>
+      </View>
     </Modal>
   );
 };

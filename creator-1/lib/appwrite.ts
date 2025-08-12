@@ -316,9 +316,19 @@ export async function logout() {
             ];
             
             await AsyncStorage.multiRemove(keysToRemove);
-            console.log('✅ App caches cleared');
+            console.log('✅ App caches cleared from AsyncStorage');
         } catch (cacheError) {
             console.error('Error clearing app caches:', cacheError);
+        }
+
+        // Clear in-memory profile cache from global provider
+        try {
+            console.log('🔄 Clearing in-memory profile cache...');
+            const { clearProfileCache } = await import('./global-provider');
+            clearProfileCache();
+            console.log('✅ In-memory profile cache cleared');
+        } catch (profileCacheError) {
+            console.error('Error clearing profile cache:', profileCacheError);
         }
         
         // Finally, delete the Appwrite session

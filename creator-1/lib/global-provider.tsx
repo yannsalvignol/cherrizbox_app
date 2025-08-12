@@ -64,6 +64,11 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
 
   const previousUserId = useRef<string | null>(null);
 
+  // Register the profile cache setter for logout clearing
+  React.useEffect(() => {
+    registerProfileCacheSetter(setProfileCache);
+  }, []);
+
   const isLogged = !!user;
 
   // Cache duration: 5 minutes
@@ -493,6 +498,24 @@ export const useGlobalContext = (): GlobalContextType => {
   if (!context)
     throw new Error("useGlobalContext must be used within a GlobalProvider");
   return context;
+};
+
+// Export function to clear profile cache (used during logout)
+let globalProfileCacheSetter: React.Dispatch<React.SetStateAction<ProfileCache | null>> | null = null;
+
+// Function to register the cache setter (called from within the provider)
+export const registerProfileCacheSetter = (setter: React.Dispatch<React.SetStateAction<ProfileCache | null>>) => {
+  globalProfileCacheSetter = setter;
+};
+
+// Function to clear profile cache (used during logout)
+export const clearProfileCache = () => {
+  if (globalProfileCacheSetter) {
+    globalProfileCacheSetter(null);
+    console.log('✅ [Profile Cache] Cleared in-memory cache');
+  } else {
+    console.warn('⚠️ [Profile Cache] Cache setter not registered, cannot clear');
+  }
 };
 
 export default GlobalProvider;
