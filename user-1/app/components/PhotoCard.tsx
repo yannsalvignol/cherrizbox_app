@@ -257,6 +257,7 @@ const PhotoCard = ({ photo, index = 0, scrollY, isSubscribed = false, isCancelle
                                 textShadowColor: 'rgba(0,0,0,0.3)',
                                 textShadowOffset: { width: 0, height: 1 },
                                 textShadowRadius: 4,
+                                fontFamily: 'MuseoModerno-Regular',
                             }} numberOfLines={1}>
                                 {photoTitle}
                             </Text>

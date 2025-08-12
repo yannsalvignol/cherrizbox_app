@@ -1,13 +1,14 @@
 import { type Channel } from '@/lib/index-utils';
+import { client } from '@/lib/stream-chat';
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  RefreshControl,
-  Text,
-  View
+    ActivityIndicator,
+    FlatList,
+    Image,
+    RefreshControl,
+    Text,
+    View
 } from 'react-native';
 import { ChannelItem } from './ChannelItem';
 
@@ -34,6 +35,7 @@ interface ChannelListProps {
   onRefresh: () => void;
   onLoadMore: () => void;
   onChannelPress?: (channelId: string) => void;
+  onChannelUpdate?: (channelId: string, updates: Partial<Channel>) => void;
 }
 
 export const ChannelList: React.FC<ChannelListProps> = ({
@@ -52,8 +54,160 @@ export const ChannelList: React.FC<ChannelListProps> = ({
   userProfileCache,
   onRefresh,
   onLoadMore,
-  onChannelPress
+  onChannelPress,
+  onChannelUpdate
 }) => {
+  // Local state for real-time unread counts
+  const [liveUnreadCounts, setLiveUnreadCounts] = useState<Map<string, number>>(new Map());
+
+  // Set up Stream Chat listeners for real-time updates (hybrid approach)
+  useEffect(() => {
+    if (!currentUserId || channels.length === 0) return;
+
+    console.log('🔄 [ChannelList] Setting up Stream Chat listeners for', channels.length, 'channels');
+    
+    const unsubscribeFunctions: (() => void)[] = [];
+    const watchedChannels = new Map<string, any>(); // Store channel instances
+
+    // Process channels in smaller batches to avoid rate limits
+    const BATCH_SIZE = 5;
+    const BATCH_DELAY = 500; // 500ms between batches
+    
+    const processBatch = async (batch: any[], batchIndex: number) => {
+      console.log(`🔄 [ChannelList] Processing batch ${batchIndex + 1} with ${batch.length} channels`);
+      
+      const batchPromises = batch.map(async (channel, index) => {
+        // Add small delay within batch
+        await new Promise(resolve => setTimeout(resolve, index * 50));
+        
+        try {
+          const streamChannel = client.channel('messaging', channel.id);
+          
+          // Set up individual channel listeners
+          const handleNewMessage = (event: any) => {
+            if (event.user?.id !== currentUserId) {
+              console.log(`📨 [ChannelList] New message in ${channel.id}, updating unread count`);
+              setLiveUnreadCounts(prev => {
+                const currentCount = prev.get(channel.id) || channel.unreadCount || 0;
+                const newMap = new Map(prev);
+                newMap.set(channel.id, currentCount + 1);
+                return newMap;
+              });
+              
+              // Notify parent component
+              if (onChannelUpdate) {
+                onChannelUpdate(channel.id, {
+                  unreadCount: (liveUnreadCounts.get(channel.id) || channel.unreadCount || 0) + 1,
+                  lastMessage: event.message?.text || '',
+                  lastMessageAt: event.message?.created_at || new Date().toISOString()
+                });
+              }
+            }
+          };
+
+          const handleMessageRead = (event: any) => {
+            if (event.user?.id === currentUserId) {
+              console.log(`👀 [ChannelList] Messages read in ${channel.id}, resetting unread count`);
+              setLiveUnreadCounts(prev => {
+                const newMap = new Map(prev);
+                newMap.set(channel.id, 0);
+                return newMap;
+              });
+              
+              // Notify parent component
+              if (onChannelUpdate) {
+                onChannelUpdate(channel.id, { unreadCount: 0 });
+              }
+            }
+          };
+
+          // Subscribe to channel-specific events
+          streamChannel.on('message.new', handleNewMessage);
+          streamChannel.on('message.read', handleMessageRead);
+
+          // Store unsubscribe functions
+          unsubscribeFunctions.push(() => {
+            streamChannel.off('message.new', handleNewMessage);
+            streamChannel.off('message.read', handleMessageRead);
+          });
+
+          // Watch the channel if not already watched
+          if (!streamChannel.initialized && !watchedChannels.has(channel.id)) {
+            await streamChannel.watch();
+            watchedChannels.set(channel.id, streamChannel);
+            console.log(`✅ [ChannelList] Successfully watching channel ${channel.id}`);
+          }
+          
+        } catch (error: any) {
+          console.warn(`⚠️ [ChannelList] Failed to set up channel ${channel.id}:`, error.message);
+          // Continue with other channels
+        }
+      });
+
+      // Wait for all channels in this batch to complete
+      await Promise.allSettled(batchPromises);
+    };
+
+    // Process channels in batches
+    const processChannelsInBatches = async () => {
+      // Prioritize group chats and channels with unread messages
+      const prioritizedChannels = [...channels].sort((a, b) => {
+        // Group chats first
+        if (a.id.startsWith('creator-') && !b.id.startsWith('creator-')) return -1;
+        if (!a.id.startsWith('creator-') && b.id.startsWith('creator-')) return 1;
+        
+        // Then channels with unread messages
+        const aUnread = a.unreadCount || 0;
+        const bUnread = b.unreadCount || 0;
+        if (aUnread > 0 && bUnread === 0) return -1;
+        if (aUnread === 0 && bUnread > 0) return 1;
+        
+        return 0;
+      });
+
+      for (let i = 0; i < prioritizedChannels.length; i += BATCH_SIZE) {
+        const batch = prioritizedChannels.slice(i, i + BATCH_SIZE);
+        const batchIndex = Math.floor(i / BATCH_SIZE);
+        
+        try {
+          await processBatch(batch, batchIndex);
+          
+          // Wait between batches to avoid rate limits
+          if (i + BATCH_SIZE < prioritizedChannels.length) {
+            await new Promise(resolve => setTimeout(resolve, BATCH_DELAY));
+          }
+        } catch (error) {
+          console.error(`❌ [ChannelList] Error processing batch ${batchIndex}:`, error);
+        }
+      }
+      
+      console.log(`✅ [ChannelList] Completed setup for ${watchedChannels.size} channels`);
+    };
+
+    // Start processing channels
+    processChannelsInBatches();
+
+    // Cleanup function
+    return () => {
+      console.log('🧹 [ChannelList] Cleaning up Stream Chat listeners');
+      unsubscribeFunctions.forEach(unsubscribe => {
+        try {
+          unsubscribe();
+        } catch (error) {
+          console.error('❌ [ChannelList] Error during listener cleanup:', error);
+        }
+      });
+    };
+  }, [channels, currentUserId, onChannelUpdate]);
+
+  // Initialize live unread counts from channels data
+  useEffect(() => {
+    const initialCounts = new Map();
+    channels.forEach(channel => {
+      initialCounts.set(channel.id, channel.unreadCount || 0);
+    });
+    setLiveUnreadCounts(initialCounts);
+  }, [channels]);
   if (isLoading) {
     return (
       <View style={{ 
@@ -183,13 +337,32 @@ export const ChannelList: React.FC<ChannelListProps> = ({
             )}
             
             <ChannelItem
-              channel={item}
+              channel={{
+                ...item,
+                unreadCount: liveUnreadCounts.get(item.id) ?? item.unreadCount
+              }}
               currentUserId={currentUserId}
               profileImage={profileImage}
               userName={userName}
               userCurrency={userCurrency}
               userProfileCache={userProfileCache}
               onChannelPress={(channelId) => {
+                // Optimistically update unread count immediately for better UX
+                setLiveUnreadCounts(prev => {
+                  const newMap = new Map(prev);
+                  newMap.set(channelId, 0);
+                  return newMap;
+                });
+                
+                // Notify parent component immediately
+                if (onChannelUpdate) {
+                  onChannelUpdate(channelId, { unreadCount: 0 });
+                }
+                
+                // Mark as read in background (let ChatScreen handle the actual markRead call)
+                // This avoids duplicate API calls and rate limiting
+                console.log(`📱 [ChannelList] Optimistically marked ${channelId} as read`);
+                
                 if (onChannelPress) {
                   onChannelPress(channelId);
                 }

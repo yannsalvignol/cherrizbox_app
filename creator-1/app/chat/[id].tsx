@@ -6,16 +6,16 @@ import { BlurView } from 'expo-blur';
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { ActivityIndicator, Image, Keyboard, KeyboardAvoidingView, Platform, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-    Channel,
-    Chat,
-    MessageList,
-    OverlayProvider
+  Channel,
+  Chat,
+  MessageList,
+  OverlayProvider
 } from 'stream-chat-react-native';
 import {
-    getUserProfile
+  getUserProfile
 } from '../../lib/appwrite';
 import BlurryFileAttachment from '../components/chat/attachments/BlurryFileAttachment';
 import CustomAttachment from '../components/chat/attachments/CustomAttachment';
@@ -45,12 +45,12 @@ import VideoUploadModal from '../components/chat/modals/VideoUploadModal';
 
 // Enhanced profile image caching using our data cache system
 import {
-    handleCreatePoll,
-    handleLongPressMessage,
-    handleSendAudio,
-    handleThreadReply,
-    preloadAllThreadMessages,
-    preloadVisibleImages
+  handleCreatePoll,
+  handleLongPressMessage,
+  handleSendAudio,
+  handleThreadReply,
+  preloadAllThreadMessages,
+  preloadVisibleImages
 } from '../../lib/chat-functions';
 import { customReactions } from '../../lib/chat-reactions';
 import { getChatTheme } from '../../lib/chat-theme';
@@ -154,6 +154,14 @@ export default function ChatScreen() {
         // Get the channel
         const channelInstance = client.channel('messaging', channelId);
         await channelInstance.watch();
+
+        // Mark all messages as read when opening the channel
+        try {
+          await channelInstance.markRead();
+          console.log(`✅ [ChatScreen] Marked channel ${channelId} as read`);
+        } catch (markReadError) {
+          console.error(`❌ [ChatScreen] Failed to mark channel ${channelId} as read:`, markReadError);
+        }
 
         setChannel(channelInstance);
       } catch (err) {
@@ -542,8 +550,8 @@ export default function ChatScreen() {
                       </Text>
                     </View>
                     
-                    {/* Dollar Sign Button - Floating in chat area */}
-                    {!showPaidButtons && (
+                    {/* Dollar Sign Button - Floating in chat area (hidden for DM chats) */}
+                    {!showPaidButtons && !(channelId?.startsWith('dm-')) && (
                       <TouchableOpacity
                         style={{
                           position: 'absolute',
@@ -565,7 +573,10 @@ export default function ChatScreen() {
                           elevation: 5,
                           zIndex: 10,
                         }}
-                        onPress={() => setShowPaidButtons(true)}
+                        onPress={() => {
+                          Keyboard.dismiss();
+                          setShowPaidButtons(true);
+                        }}
                       >
                         <Text style={{
                           color: '#1A1A1A',
@@ -590,7 +601,7 @@ export default function ChatScreen() {
                   />
                   
                   {/* Paid Content Modal Overlay */}
-                  {showPaidButtons && (
+                  {showPaidButtons && !(channelId?.startsWith('dm-')) && (
                     <View style={{
                       position: 'absolute',
                       top: 0,

@@ -1,22 +1,22 @@
 import {
-    CardField,
-    StripeProvider,
-    useStripe
+  CardField,
+  StripeProvider,
+  useStripe
 } from '@stripe/stripe-react-native';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Animated,
-    Dimensions,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Animated,
+  Dimensions,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { initiatePaymentIntent } from '../../lib/subscription';
 
@@ -133,7 +133,7 @@ const PaymentController: React.FC<{
         console.log('Payment confirmed successfully!');
         if (Platform.OS === 'ios') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         onClose();
-        router.push({ pathname: '/payment-success', params: { creatorName } });
+        router.replace({ pathname: '/payment-success', params: { creatorName } });
       }
     } catch (err) {
       console.error('Payment confirmation exception:', err);
@@ -218,7 +218,7 @@ const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
           >
             {isLoading && (
               <View style={styles.loaderContainer}>
-                <ActivityIndicator size="large" color="#FB2355" />
+                <ActivityIndicator size="large" color="#FD6F3E" />
                 <Text style={styles.loaderText}>Initializing Secure Payment...</Text>
               </View>
             )}
@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   amountValueProfessional: {
-    color: '#FB2355',
+    color: '#FD6F3E',
     fontSize: 20,
     fontWeight: 'bold',
     fontFamily: 'questrial',
@@ -395,11 +395,11 @@ const styles = StyleSheet.create({
     width: '100%',
     marginTop: 8,
     borderRadius: 12,
-    backgroundColor: '#FB2355',
+    backgroundColor: '#FD6F3E',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 16,
-    shadowColor: '#FB2355',
+    shadowColor: '#FD6F3E',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.18,
     shadowRadius: 8,

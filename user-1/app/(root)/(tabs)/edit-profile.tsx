@@ -262,34 +262,35 @@ export default function EditProfile() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#DCDEDF' }} edges={['top']}>
       {/* Header with back and settings */}
       <View className="flex-row items-center px-4 pt-2 pb-4">
         <TouchableOpacity onPress={() => router.back()} className="flex-row items-center">
-          <Image 
-            source={require('../../../assets/icon/back.png')}
-            className="w-8 h-8"
-            resizeMode="contain"
+          <Ionicons 
+            name="chevron-back-outline" 
+            size={32} 
+            color="black" 
+            style={{ marginRight: 4 }}
           />
-          <Text style={{ color: 'white', fontSize: 21, marginLeft: 12, fontFamily: 'Nunito-Bold' }}>
+          <Text style={{ color: 'black', fontSize: 21, marginLeft: 8, fontFamily: 'Nunito-Bold' }}>
             Edit Profile
           </Text>
         </TouchableOpacity>
         <View className="flex-1" />
         <TouchableOpacity onPress={() => router.push('/settings')}>
-          <Image 
-            source={require('../../../assets/icon/settings.png')}
-            className="w-8 h-8"
-            resizeMode="contain"
+          <Ionicons 
+            name="settings-sharp" 
+            size={28} 
+            color="black" 
           />
         </TouchableOpacity>
       </View>
 
       {/* Avatar */}
       <View className="items-center mt-8 mb-4">
-        <View className="w-36 h-36 rounded-full bg-[#1A1A1A] items-center justify-center relative">
+        <View className="w-36 h-36 rounded-full bg-[#FD6F3E] items-center justify-center relative">
           {isUploadingImage ? (
-            <View className="w-36 h-36 rounded-full bg-[#1A1A1A] items-center justify-center">
+            <View className="w-36 h-36 rounded-full bg-[#FFFFFF] items-center justify-center">
               <Image source={require('../../../assets/icon/loading-icon.png')} style={{ width: 48, height: 48 }} />
               <Text className="text-white text-sm mt-2 font-questrial">Uploading...</Text>
             </View>
@@ -317,59 +318,59 @@ export default function EditProfile() {
         {/* Form Fields */}
         <View className="mt-8">
           {/* Name */}
-          <View className={`flex-row items-center bg-[#1A1A1A] rounded-lg px-5 py-4 mb-2 ${
-            focusedInput === 'name' ? 'border border-[#FB2355]' : ''
+          <View className={`flex-row items-center bg-[#FFFFFF] rounded-lg px-5 py-4 mb-2 ${
+            focusedInput === 'name' ? 'border border-[#FFFFFF]' : ''
           }`}>
             <Ionicons 
               name="person-outline" 
               size={24} 
-              color={focusedInput === 'name' ? '#FB2355' : '#666'} 
+              color={focusedInput === 'name' ? '#FD6F3E' : '#666'} 
               style={{ marginRight: 12 }}
             />
             <TextInput
               className="flex-1 text-white font-questrial text-lg h-9"
               value={name}
               editable={false}
-              style={{ textAlignVertical: 'center', color: 'white', paddingBottom: 12 }}
+              style={{ textAlignVertical: 'center', color: 'black', paddingBottom: 12 }}
             />
           </View>
 
           {/* Birth Date */}
           <TouchableOpacity 
             onPress={() => setShowDatePicker(true)}
-            className={`flex-row items-center bg-[#1A1A1A] rounded-lg px-5 py-4 mb-2 ${
-              focusedInput === 'birthDate' ? 'border border-[#FB2355]' : ''
+            className={`flex-row items-center bg-[#FFFFFF] rounded-lg px-5 py-4 mb-2 ${
+              focusedInput === 'birthDate' ? 'border border-[#FFFFFF]' : ''
             }`}
           >
             <Ionicons 
               name="calendar-outline" 
               size={24} 
-              color={focusedInput === 'birthDate' ? '#FB2355' : '#666'} 
+              color={focusedInput === 'birthDate' ? '#FD6F3E' : '#666'} 
               style={{ marginRight: 12 }}
             />
             <TextInput
               className="flex-1 text-white font-questrial text-lg h-9"
               value={`${selectedMonth}/${selectedDay}/${selectedYear}`}
               editable={false}
-              style={{ textAlignVertical: 'center', color: 'white', paddingBottom: 12 }}
+              style={{ textAlignVertical: 'center', color: 'black', paddingBottom: 12 }}
             />
           </TouchableOpacity>
 
           {/* Email */}
-          <View className={`flex-row items-center bg-[#1A1A1A] rounded-lg px-5 py-4 mb-2 ${
-            focusedInput === 'email' ? 'border border-[#FB2355]' : ''
+          <View className={`flex-row items-center bg-[#FFFFFF] rounded-lg px-5 py-4 mb-2 ${
+            focusedInput === 'email' ? 'border border-[#FFFFFF]' : ''
           }`}>
             <Ionicons 
               name="mail-outline" 
               size={24} 
-              color={focusedInput === 'email' ? '#FB2355' : '#666'} 
+              color={focusedInput === 'email' ? '#FD6F3E' : '#666'} 
               style={{ marginRight: 12 }}
             />
             <TextInput
               className="flex-1 text-white font-questrial text-lg h-9"
               value={email}
               editable={false}
-              style={{ textAlignVertical: 'center', color: 'white', paddingBottom: 17 }}
+              style={{ textAlignVertical: 'center', color: 'black', paddingBottom: 17 }}
             />
           </View>
 
@@ -377,28 +378,28 @@ export default function EditProfile() {
           <View className="flex-row items-center mb-2">
             <TouchableOpacity 
               onPress={() => setShowCountryPicker(true)}
-              className={`flex-row items-center bg-[#1A1A1A] rounded-lg px-5 py-4 w-24 mr-2 ${
-                focusedInput === 'countryCode' ? 'border border-[#FB2355]' : ''
+              className={`flex-row items-center bg-[#FFFFFF] rounded-lg px-5 py-4 w-24 mr-2 ${
+                focusedInput === 'countryCode' ? 'border border-[#FFFFFF]' : ''
               }`}
               activeOpacity={0.7}
             >
-              <Text className="text-white font-questrial text-lg mr-2" style={{ color: 'white' }}>{selectedCountry.flag}</Text>
-              <Text className="text-white font-questrial text-lg" style={{ color: 'white' }}>{selectedCountry.code}</Text>
+              <Text className="text-white font-questrial text-lg mr-2" style={{ color: 'black' }}>{selectedCountry.flag}</Text>
+              <Text className="text-white font-questrial text-lg" style={{ color: 'black' }}>{selectedCountry.code}</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               onPress={() => setShowPhoneModal(true)}
-              className={`flex-row items-center bg-[#1A1A1A] rounded-lg px-5 py-4 flex-1 ${
-                focusedInput === 'phoneNumber' ? 'border border-[#FB2355]' : ''
+              className={`flex-row items-center bg-[#FFFFFF] rounded-lg px-5 py-4 flex-1 ${
+                focusedInput === 'phoneNumber' ? 'border border-[#FFFFFF]' : ''
               }`}
               activeOpacity={0.7}
             >
               <Ionicons 
                 name="call-outline" 
                 size={24} 
-                color={focusedInput === 'phoneNumber' ? '#FB2355' : '#666'} 
+                color={focusedInput === 'phoneNumber' ? '#FD6F3E' : '#666'} 
                 style={{ marginRight: 12 }}
               />
-              <Text className="flex-1 text-white font-questrial text-lg" style={{ color: 'white' }}>
+              <Text className="flex-1 text-white font-questrial text-lg" style={{ color: 'black' }}>
                 {phoneNumber || 'Enter your phone number'}
               </Text>
               <Ionicons name="chevron-forward" size={20} color="#666" />
@@ -413,7 +414,7 @@ export default function EditProfile() {
                   key={gender.value}
                   onPress={() => setSelectedGender(gender)}
                   style={{
-                    backgroundColor: selectedGender?.value === gender.value ? '#FB2355' : '#222',
+                    backgroundColor: selectedGender?.value === gender.value ? '#FD6F3E' : 'white',
                     borderRadius: 18,
                     paddingVertical: 12,
                     paddingHorizontal: 0,
@@ -421,12 +422,12 @@ export default function EditProfile() {
                     flex: 1,
                     marginRight: gender.value !== 'other' ? 12 : 0,
                     borderWidth: selectedGender?.value === gender.value ? 0 : 1,
-                    borderColor: '#444',
+                    borderColor: '#FFFFFF',
                     alignItems: 'center',
                   }}
                 >
                   <Text style={{ 
-                    color: selectedGender?.value === gender.value ? 'white' : '#aaa', 
+                    color: selectedGender?.value === gender.value ? 'white' : 'black', 
                     fontFamily: 'questrial', 
                     fontSize: 17,
                     textAlign: 'center',
@@ -440,7 +441,7 @@ export default function EditProfile() {
 
           {/* Update Button */}
           <TouchableOpacity 
-            className="bg-[#FB2355] rounded-lg py-4 mt-2 mb-2"
+            className="bg-[#FD6F3E] rounded-lg py-4 mt-2 mb-2"
             activeOpacity={0.8}
             onPress={handleUpdateProfile}
             disabled={saving}
@@ -473,11 +474,11 @@ export default function EditProfile() {
           onRequestClose={() => setShowDatePicker(false)}
         >
           <View className="flex-1 bg-black/50 justify-end">
-            <View className="bg-[#1A1A1A] rounded-t-3xl p-4">
+            <View className="bg-[#FFFFFF] rounded-t-3xl p-4">
               <View className="flex-row justify-between items-center mb-4">
                 <Text className="text-white text-xl font-bold">Select Birth Date</Text>
                 <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                  <Ionicons name="close" size={30} color="#FB2355" />
+                  <Ionicons name="close" size={30} color="#FD6F3E" />
                 </TouchableOpacity>
               </View>
               <View className="flex-row justify-between">
@@ -552,7 +553,7 @@ export default function EditProfile() {
           onRequestClose={() => setShowCountryPicker(false)}
         >
           <View className="flex-1 bg-black/70 justify-end">
-            <View className="bg-[#1A1A1A] rounded-t-3xl max-h-[80%]">
+            <View className="bg-[#FFFFFF] rounded-t-3xl max-h-[80%]">
               {/* Header */}
               <View className="flex-row justify-between items-center p-6 border-b border-gray-800">
                 <Text className="text-white text-2xl font-bold font-questrial">Select Country</Text>
@@ -561,7 +562,7 @@ export default function EditProfile() {
                     setShowCountryPicker(false);
                     setShowOtherCountries(false);
                   }}
-                  className="w-10 h-10 bg-[#FB2355] rounded-full items-center justify-center"
+                  className="w-10 h-10 bg-[#FD6F3E] rounded-full items-center justify-center"
                 >
                   <Ionicons name="close" size={20} color="white" />
                 </TouchableOpacity>
@@ -575,7 +576,7 @@ export default function EditProfile() {
                 contentContainerStyle={{ paddingBottom: 20 }}
                 renderItem={({ item }) => (
                   <TouchableOpacity
-                    className="flex-row items-center py-4 px-6 mx-4 mb-2 rounded-xl bg-[#2A2A2A] active:bg-[#FB2355]/20"
+                    className="flex-row items-center py-4 px-6 mx-4 mb-2 rounded-xl bg-[#2A2A2A] active:bg-[#FD6F3E]/20"
                     onPress={() => {
                       setSelectedCountry(item);
                       setShowCountryPicker(false);
@@ -590,7 +591,7 @@ export default function EditProfile() {
                       <Text className="text-white text-lg font-questrial font-semibold">{item.name}</Text>
                       <Text className="text-gray-400 text-sm font-questrial">Country Code: {item.code} • {item.format}</Text>
                     </View>
-                    <View className="w-8 h-8 bg-[#FB2355] rounded-full items-center justify-center">
+                    <View className="w-8 h-8 bg-[#FD6F3E] rounded-full items-center justify-center">
                       <Ionicons name="chevron-forward" size={16} color="white" />
                     </View>
                   </TouchableOpacity>
@@ -598,7 +599,7 @@ export default function EditProfile() {
                 ListFooterComponent={
                   !showOtherCountries ? (
                     <TouchableOpacity
-                      className="flex-row items-center justify-center py-4 mx-4 mb-4 rounded-xl bg-[#FB2355]"
+                      className="flex-row items-center justify-center py-4 mx-4 mb-4 rounded-xl bg-[#FD6F3E]"
                       onPress={() => setShowOtherCountries(true)}
                       activeOpacity={0.8}
                     >
@@ -629,9 +630,9 @@ export default function EditProfile() {
           onRequestClose={() => setShowPhoneModal(false)}
         >
           <View className="flex-1 bg-black/80 justify-center items-center">
-            <View className="bg-[#1A1A1A] rounded-3xl w-[90%] max-w-md overflow-hidden">
+            <View className="bg-[#FFFFFF] rounded-3xl w-[90%] max-w-md overflow-hidden">
               {/* Header */}
-              <View className="bg-gradient-to-r from-[#FB2355] to-[#FF6B9D] p-6">
+              <View className="bg-gradient-to-r from-[#FD6F3E] to-[#FF6B9D] p-6">
                 <View className="flex-row justify-between items-center">
                   <View>
                     <Text className="text-white text-2xl font-bold font-questrial">Phone Number</Text>
@@ -661,7 +662,7 @@ export default function EditProfile() {
                 {/* Phone Number Input */}
                 <View className="mb-6">
                   <Text className="text-white text-sm font-questrial mb-3 text-center">Enter your phone number</Text>
-                  <View className="bg-[#2A2A2A] rounded-xl px-4 py-4 border-2 border-[#FB2355]/30">
+                  <View className="bg-[#2A2A2A] rounded-xl px-4 py-4 border-2 border-[#FD6F3E]/30">
                     <TextInput
                       className="text-white text-3xl font-questrial text-center"
                       placeholder={selectedCountry.format}

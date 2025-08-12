@@ -2,6 +2,7 @@ import {
   ChannelList,
   SearchBar
 } from '@/app/components/channels';
+import { BatchTipUpdater } from '@/app/components/channels/ChannelItem';
 import {
   CustomNotificationModal,
   NetworkErrorModal,
@@ -18,9 +19,10 @@ import {
 } from '@/lib/index-utils';
 import { client, connectUser } from '@/lib/stream-chat';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, FlatList, Image, KeyboardAvoidingView, Modal, Platform, RefreshControl, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, AppState, FlatList, Image, KeyboardAvoidingView, Modal, Platform, RefreshControl, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 
@@ -67,9 +69,32 @@ export default function Index() {
       socialMediaUsername,
       setSocialMediaUsername
     } = useGlobalContext();
-    const [channels, setChannels] = useState<Channel[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [profileImage, setProfileImage] = useState<string | null>(null);
+      const [channels, setChannels] = useState<Channel[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  
+  // Handle live channel updates from Stream Chat
+  const handleChannelUpdate = (channelId: string, updates: Partial<Channel>) => {
+    console.log(`🔄 [Index] Updating channel ${channelId} with:`, updates);
+    setChannels(prevChannels => 
+      prevChannels.map(channel => 
+        channel.id === channelId 
+          ? { ...channel, ...updates }
+          : channel
+      )
+    );
+    
+    // Also update filtered channels if search is active
+    if (searchQuery) {
+      setFilteredChannels(prevFiltered => 
+        prevFiltered.map(channel => 
+          channel.id === channelId 
+            ? { ...channel, ...updates }
+            : channel
+        )
+      );
+    }
+  };
     const [selectedTab, setSelectedTab] = useState('chats');
     const [refreshing, setRefreshing] = useState(false);
     const [isLoadingStripeConnect, setIsLoadingStripeConnect] = useState(false);
@@ -1163,6 +1188,24 @@ export default function Index() {
     setFilteredAudience(filtered);
   }, [audience, audienceSearch, audienceFilter]);
 
+  // Handle app state changes to flush pending batch updates
+  useEffect(() => {
+    const handleAppStateChange = async (nextAppState: string) => {
+      if (nextAppState === 'background' || nextAppState === 'inactive') {
+        console.log('🔄 [BatchTipUpdater] App going to background, flushing pending updates...');
+        const batchUpdater = BatchTipUpdater.getInstance();
+        await batchUpdater.flushPendingUpdates();
+        console.log('✅ [BatchTipUpdater] Pending updates flushed');
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    
+    return () => {
+      subscription?.remove();
+    };
+  }, []);
+
   // Handle highlighting setup button when navigating from payment setup incomplete
   useEffect(() => {
     // Check if we should highlight the setup button when other tab is selected
@@ -1216,11 +1259,13 @@ export default function Index() {
             
             {/* Header */}
             <View className="flex-row items-center justify-between px-4 py-2 bg-#DCDEDF">
-                <Image 
-                    source={require('../../../assets/images/cherry-icon.png')}
-                    className="w-16 h-16 rounded-lg"
-                    resizeMode="contain"
-                />
+                <TouchableOpacity onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)} activeOpacity={0.8}>
+                  <Image 
+                      source={require('../../../assets/images/cherry-icon.png')}
+                      className="w-16 h-16 rounded-lg"
+                      resizeMode="contain"
+                  />
+                </TouchableOpacity>
                 
                 <View className="flex-row items-center">
                     <View style={{ alignItems: 'center', justifyContent: 'center' }}>
@@ -1349,6 +1394,7 @@ export default function Index() {
               onChannelPress={(channelId) => {
                 router.push(`/chat/${channelId}` as any);
               }}
+              onChannelUpdate={handleChannelUpdate}
             />
           ) : (
             <ScrollView
@@ -1586,7 +1632,7 @@ export default function Index() {
       {selectedTab === 'insights' && (
         <ScrollView 
           style={{ 
-            flex: 1, 
+              flex: 1, 
             backgroundColor: '#DCDEDF'
           }}
           contentContainerStyle={{
@@ -1607,8 +1653,8 @@ export default function Index() {
             </Text>
           </View>
           {/* Total Subscribers Card */}
-          <View style={{
-            backgroundColor: 'white',
+            <View style={{
+              backgroundColor: 'white',
             borderRadius: 16,
             padding: 20,
             marginBottom: 20,
@@ -1618,7 +1664,7 @@ export default function Index() {
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
               <View style={{ backgroundColor: '#FD6F3E', borderRadius: 12, padding: 8, marginRight: 12 }}>
                 <Ionicons name="star" size={24} color="white" />
-              </View>
+                </View>
               <Text style={{ 
                 color: 'black', 
                 fontFamily: 'Urbanist-Bold', 
@@ -1627,18 +1673,18 @@ export default function Index() {
               }}>
                 Total Current Subscribers
               </Text>
-            </View>
+              </View>
             <Text style={{ 
               color: '#FD6F3E', 
               fontFamily: 'Urbanist-Bold', 
               fontSize: 36, 
               textAlign: 'left' 
             }}>
-              {(typeof creatorFinancials?.number_of_monthly_subscribers === 'number' || typeof creatorFinancials?.number_of_yearly_subscriptions === 'number')
-                ? ((creatorFinancials?.number_of_monthly_subscribers || 0) + (creatorFinancials?.number_of_yearly_subscriptions || 0))
-                : '—'}
-            </Text>
-          </View>
+                {(typeof creatorFinancials?.number_of_monthly_subscribers === 'number' || typeof creatorFinancials?.number_of_yearly_subscriptions === 'number')
+                  ? ((creatorFinancials?.number_of_monthly_subscribers || 0) + (creatorFinancials?.number_of_yearly_subscriptions || 0))
+                  : '—'}
+              </Text>
+            </View>
           {/* Monthly/Yearly Row */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
             {/* Monthly */}
@@ -1653,7 +1699,7 @@ export default function Index() {
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
                 <View style={{ backgroundColor: '#777777', borderRadius: 8, padding: 6, marginRight: 8 }}>
                   <Ionicons name="people" size={16} color="white" />
-                </View>
+              </View>
                 <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 14 }}>Monthly</Text>
               </View>
               <Text style={{ color: '#333333', fontFamily: 'Urbanist-Bold', fontSize: 24 }}>
@@ -1672,7 +1718,7 @@ export default function Index() {
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
                 <View style={{ backgroundColor: '#777777', borderRadius: 8, padding: 6, marginRight: 8 }}>
                   <MaterialCommunityIcons name="calendar-star" size={16} color="white" />
-                </View>
+              </View>
                 <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 14 }}>Yearly</Text>
               </View>
               <Text style={{ color: '#333333', fontFamily: 'Urbanist-Bold', fontSize: 24 }}>
@@ -1694,7 +1740,7 @@ export default function Index() {
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
                 <View style={{ backgroundColor: '#999999', borderRadius: 8, padding: 6, marginRight: 8 }}>
                   <Ionicons name="close-circle" size={16} color="white" />
-                </View>
+              </View>
                 <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 14 }}>Cancelled Monthly</Text>
               </View>
               <Text style={{ color: '#666666', fontFamily: 'Urbanist-Bold', fontSize: 24 }}>
@@ -1713,7 +1759,7 @@ export default function Index() {
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
                 <View style={{ backgroundColor: '#999999', borderRadius: 8, padding: 6, marginRight: 8 }}>
                   <Ionicons name="close-circle-outline" size={16} color="white" />
-                </View>
+              </View>
                 <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 14 }}>Cancelled Yearly</Text>
               </View>
               <Text style={{ color: '#666666', fontFamily: 'Urbanist-Bold', fontSize: 24 }}>
@@ -1737,9 +1783,9 @@ export default function Index() {
           
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 32 }}>
             {/* Photos */}
-            <View style={{
+              <View style={{
               backgroundColor: 'white',
-              borderRadius: 16,
+                borderRadius: 16,
               width: '32%',
               padding: 12,
               borderWidth: 1,
@@ -1754,12 +1800,12 @@ export default function Index() {
               <Text style={{ color: '#333333', fontFamily: 'Urbanist-Bold', fontSize: 20, textAlign: 'center' }}>
                 {creatorFinancials?.number_of_photos ?? '—'}
               </Text>
-            </View>
-            {/* Videos */}
-            <View style={{
-              backgroundColor: 'white',
-              borderRadius: 16,
-              width: '32%',
+              </View>
+              {/* Videos */}
+              <View style={{
+                backgroundColor: 'white',
+                borderRadius: 16,
+                width: '32%',
               padding: 12,
               borderWidth: 1,
               borderColor: '#E0E0E0'
@@ -1773,12 +1819,12 @@ export default function Index() {
               <Text style={{ color: '#333333', fontFamily: 'Urbanist-Bold', fontSize: 20, textAlign: 'center' }}>
                 {creatorFinancials?.number_of_videos ?? '—'}
               </Text>
-            </View>
-            {/* Files */}
-            <View style={{
-              backgroundColor: 'white',
-              borderRadius: 16,
-              width: '32%',
+              </View>
+              {/* Files */}
+              <View style={{
+                backgroundColor: 'white',
+                borderRadius: 16,
+                width: '32%',
               padding: 12,
               borderWidth: 1,
               borderColor: '#E0E0E0'
@@ -1792,7 +1838,7 @@ export default function Index() {
               <Text style={{ color: '#333333', fontFamily: 'Urbanist-Bold', fontSize: 20, textAlign: 'center' }}>
                 {creatorFinancials?.number_of_files ?? '—'}
               </Text>
-            </View>
+              </View>
           </View>
 
           {/* Update Insights Button */}
@@ -2055,14 +2101,14 @@ export default function Index() {
                 borderColor: '#FD6F3E'
               }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, position: 'relative' }}>
-                  <Text style={{
+                <Text style={{
                     color: 'black',
                     fontSize: 16,
                     fontFamily: 'Urbanist-Bold',
                     marginRight: 6
-                  }}>
+                }}>
                     Current Period Earnings
-                  </Text>
+                </Text>
                   <TouchableOpacity onPress={() => setOpenInfoBubble(openInfoBubble === 'current' ? null : 'current')}>
                     <Ionicons
                       name="information-circle-outline"
@@ -2072,7 +2118,7 @@ export default function Index() {
                     />
                   </TouchableOpacity>
                   {openInfoBubble === 'current' && (
-                    <View style={{
+              <View style={{
                       position: 'absolute',
                       top: 22,
                       left: 0,
@@ -2081,7 +2127,7 @@ export default function Index() {
                       padding: 10,
                       minWidth: 180,
                       zIndex: 10,
-                      borderWidth: 1,
+                  borderWidth: 1,
                       borderColor: '#444',
                       shadowColor: '#000',
                       shadowOffset: { width: 0, height: 2 },
@@ -2091,7 +2137,7 @@ export default function Index() {
                     }}>
                       <Text style={{ color: '#fff', fontSize: 13, fontFamily: 'Urbanist-Regular' }}>
                         Your earnings since the last payout (resets every 2 weeks when Stripe transfers to your personal account).
-                      </Text>
+                  </Text>
                     </View>
                   )}
                 </View>
@@ -2104,7 +2150,7 @@ export default function Index() {
                   {formatPrice(creatorFinancials.currentPeriodGross, userCurrency)}
                 </Text>
                 <Text style={{
-                  color: '#888888',
+                    color: '#888888',
                   fontSize: 12,
                   fontFamily: 'Urbanist-Regular',
                   marginTop: 4
@@ -2504,15 +2550,15 @@ export default function Index() {
                     justifyContent: 'space-between', 
                     alignItems: 'center',
                     marginBottom: 16 
-                  }}>
-                    <Text style={{
-                      color: 'black',
-                      fontSize: 18,
-                      fontWeight: 'bold',
+                }}>
+                  <Text style={{
+                    color: 'black',
+                    fontSize: 18,
+                    fontWeight: 'bold',
                       fontFamily: 'Urbanist-Bold'
-                    }}>
-                      Payment Status
-                    </Text>
+                  }}>
+                  Payment Status
+                  </Text>
                     <TouchableOpacity
                       onPress={() => setShowPaymentStatusInfo(true)}
                       style={{

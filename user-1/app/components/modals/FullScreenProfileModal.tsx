@@ -8,17 +8,17 @@ import * as Sharing from 'expo-sharing';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    Alert,
-    Animated,
-    Dimensions,
-    Image,
-    ImageBackground,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  Animated,
+  Dimensions,
+  Image,
+  ImageBackground,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { Client, Databases, Query } from 'react-native-appwrite';
 import { config } from '../../../lib/appwrite';
@@ -572,7 +572,7 @@ export const FullScreenProfileModal: React.FC<FullScreenProfileModalProps> = ({
                       width: 48,
                       height: 48,
                       borderRadius: 24,
-                      backgroundColor: '#FB2355',
+                      backgroundColor: '#FD6F3E',
                       justifyContent: 'center',
                       alignItems: 'center',
                       marginBottom: 12
@@ -615,7 +615,7 @@ export const FullScreenProfileModal: React.FC<FullScreenProfileModalProps> = ({
                       width: 40,
                       height: 40,
                       borderRadius: 20,
-                      backgroundColor: '#FB2355',
+                      backgroundColor: '#FD6F3E',
                       justifyContent: 'center',
                       alignItems: 'center',
                       marginBottom: 16
@@ -730,7 +730,7 @@ export const FullScreenProfileModal: React.FC<FullScreenProfileModalProps> = ({
                       width: 64,
                       height: 64,
                       borderRadius: 32,
-                      backgroundColor: '#FB2355',
+                      backgroundColor: '#FD6F3E',
                       justifyContent: 'center',
                       alignItems: 'center',
                       marginBottom: 16
@@ -903,7 +903,7 @@ export const FullScreenProfileModal: React.FC<FullScreenProfileModalProps> = ({
                 <View style={{ padding: 16 }}>
                   <TouchableOpacity
                     style={{
-                      backgroundColor: isProcessing ? '#999' : '#FB2355',
+                      backgroundColor: isProcessing ? '#999' : '#FD6F3E',
                       padding: 16,
                       borderRadius: 8,
                       alignItems: 'center'

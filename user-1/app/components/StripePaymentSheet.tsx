@@ -87,7 +87,7 @@ const InnerSheet: React.FC<StripePaymentSheetProps & {clientSecret: string; stri
       }
       onSuccess();
       if (navigateOnSuccess !== false) {
-        router.push({ pathname: '/payment-success', params: { creatorName } });
+        router.replace({ pathname: '/payment-success', params: { creatorName } });
       }
     })();
   }, []);
@@ -95,7 +95,7 @@ const InnerSheet: React.FC<StripePaymentSheetProps & {clientSecret: string; stri
   if (initializing) {
     return (
       <View style={{flex:1,justifyContent:'center',alignItems:'center'}}>
-        <ActivityIndicator size="large" color="#FB2355" />
+        <ActivityIndicator size="large" color="#FD6F3E" />
         <Text style={{color:'white',marginTop:20}}>Preparing payment…</Text>
       </View>
     );

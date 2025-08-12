@@ -1,6 +1,7 @@
 import { useGlobalContext } from '@/lib/global-provider';
 import { client } from '@/lib/stream-chat';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Text, TouchableOpacity, View } from 'react-native';
@@ -32,6 +33,8 @@ export const CustomMessageModal: React.FC<CustomMessageModalProps> = ({
   // Animate modal appearance
   useEffect(() => {
     if (visible) {
+      // Subtle haptic on open
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
       // Reset animations
       fadeAnim.setValue(0);
       scaleAnim.setValue(0.8);
@@ -127,6 +130,8 @@ export const CustomMessageModal: React.FC<CustomMessageModalProps> = ({
 
   // Handle reaction selection
   const handleReaction = async (reactionType: string) => {
+    // Immediate subtle feedback on tap
+    Haptics.selectionAsync().catch(() => {});
     handleClose();
     
     try {
@@ -146,6 +151,8 @@ export const CustomMessageModal: React.FC<CustomMessageModalProps> = ({
         } else {
           // Add the reaction if it doesn't exist
           await channel.sendReaction(message.id, { type: reactionType });
+          // Light confirmation when reaction is added
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
         }
       }
     } catch (error) {
@@ -168,7 +175,7 @@ export const CustomMessageModal: React.FC<CustomMessageModalProps> = ({
           marginVertical: 8,
           borderWidth: 2,
           borderColor: '#404040',
-          shadowColor: '#FB2355',
+          shadowColor: '#FD6F3E',
           shadowOffset: { width: 0, height: 2 },
           shadowOpacity: 0.2,
           shadowRadius: 4,
@@ -266,7 +273,7 @@ export const CustomMessageModal: React.FC<CustomMessageModalProps> = ({
                 activeOpacity={0.8}
               >
                 <View style={{
-                  backgroundColor: '#FB2355',
+                  backgroundColor: '#FD6F3E',
                   borderRadius: 16,
                   width: 32,
                   height: 32,

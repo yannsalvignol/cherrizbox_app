@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons'
 import { Models } from 'appwrite'
 import * as FileSystem from 'expo-file-system'
 import { Image as ExpoImage } from 'expo-image'
@@ -597,7 +598,7 @@ export default function Profile() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#DCDEDF' }} edges={['top']}>
       {/* Header with cherry icon and title */}
       <View className="flex-row items-center px-4 pt-2 pb-4">
         <TouchableOpacity 
@@ -610,20 +611,20 @@ export default function Profile() {
               width: 56,
               height: 56,
               borderRadius: 10, // Slightly rounded corners
-              backgroundColor: 'white',
+              backgroundColor: 'black',
             }}
             resizeMode="contain"
           />
         </TouchableOpacity>
         
-        <Text style={{ color: 'white', fontSize: 38, fontWeight: 'bold', textAlign: 'center', flex: 1, fontFamily: 'MuseoModerno-Regular', letterSpacing: 1, marginTop: 8 }}>
+        <Text style={{ color: 'black', fontSize: 40, fontWeight: 'bold', textAlign: 'center', flex: 1, fontFamily: 'MuseoModerno-Regular', letterSpacing: 1, marginTop: 8 }}>
           cherrizbox
         </Text>
       </View>
 
       {/* Profile Picture Section - Fixed */}
       <View className="items-center mb-5">
-        <View className="w-32 h-32 rounded-full bg-[#1A1A1A] items-center justify-center mb-3 overflow-hidden">
+        <View className="w-32 h-32 rounded-full bg-[#FFFFFF] items-center justify-center mb-3 overflow-hidden">
           {profileImage ? (
             <ExpoImage
               source={{ uri: profileImage }}
@@ -634,27 +635,22 @@ export default function Profile() {
               transition={200}
             />
           ) : (
-            <Text style={{ color: 'white', fontSize: 32, fontWeight: 'bold' }}>{user?.name?.[0] || 'P'}</Text>
+            <Text style={{ color: 'black', fontSize: 32, fontWeight: 'bold' }}>{user?.name?.[0] || 'P'}</Text>
           )}
         </View>
         <View className="w-full px-6 relative">
-          <Text style={{ color: 'white', fontSize: 20, textAlign: 'center', fontFamily: 'questrial' }}>
+          <Text style={{ color: 'black', fontSize: 20, textAlign: 'center', fontFamily: 'questrial' }}>
             {user?.name || 'Profile Name'}
           </Text>
           <TouchableOpacity 
             onPress={() => router.push('/(root)/(tabs)/settings')} 
             className="absolute right-12 top-3"
           >
-            <Image 
-              source={require('../../../assets/icon/settings.png')}
-              className="w-9 h-9"
-              resizeMode="contain"
-              style={{ tintColor: 'white' }}
-            />
+            <Ionicons name="settings-sharp" size={28} color="#676767" />
           </TouchableOpacity>
         </View>
         <View className="flex-row items-center justify-center mb-4">
-          <Text style={{ color: 'white', fontSize: 14, fontFamily: 'questrial' }}>
+          <Text style={{ color: 'black', fontSize: 14, fontFamily: 'questrial' }}>
             {user?.email || 'email@example.com'}
           </Text>
           <Image 
@@ -668,31 +664,26 @@ export default function Profile() {
         {/* Action Buttons */}
         <View className="w-full px-4">
           <TouchableOpacity 
-            className="w-full bg-[#1A1A1A] py-2 rounded-lg items-center flex-row justify-center mb-1"
+            className="w-full bg-[#FFFFFF] py-2 rounded-lg items-center flex-row justify-center mb-1"
             onPress={() => router.push('/edit-profile')}
           >
-            <Text style={{ color: 'white', fontFamily: 'questrial' }}>Edit Profile</Text>
-            <Image 
-              source={require('../../../assets/icon/down_arrow.png')}
-              className="w-5 h-5 ml-2"
-              resizeMode="contain"
-              style={{ tintColor: 'white' }}
-            />
+            <Text style={{ color: 'black', fontFamily: 'questrial' }}>Edit Profile</Text>
+            <Ionicons name="chevron-down-outline" size={16} color="black" style={{ marginLeft: 8 }} />
           </TouchableOpacity>
           
           <TouchableOpacity 
-            className="w-full bg-[#1A1A1A] py-3 rounded-lg items-center flex-row justify-center mb-2"
+            className="w-full bg-[#FFFFFF] py-3 rounded-lg items-center flex-row justify-center mb-2"
             onPress={() => router.push('/payment-methods')}
           >
-            <Text style={{ color: 'white', fontFamily: 'questrial' }}>Add Payment Methods</Text>
+            <Text style={{ color: 'black', fontFamily: 'questrial' }}>Payment Methods</Text>
           </TouchableOpacity>
           
           {/* Custom Content Type Toggle */}
           <View className="w-full items-center">
-            <View className="flex-row bg-[#1A1A1A] rounded-full overflow-hidden relative p-1">
+            <View className="flex-row bg-[#FFFFFF] rounded-full overflow-hidden relative p-1">
               {/* Sliding pink background */}
               <View 
-                className={`absolute w-1/2 h-full rounded-full bg-[#FB2355] top-1 ${
+                className={`absolute w-1/2 h-full rounded-full bg-[#FD6F3E] top-1 ${
                   isPaidContent ? 'right-1' : 'left-1'
                 }`}
               />
@@ -702,7 +693,7 @@ export default function Profile() {
                 onPress={() => setIsPaidContent(false)}
                 className="flex-1 py-2 px-8 items-center z-10"
               >
-                <Text className={`font-questrial ${!isPaidContent ? 'text-white' : 'text-gray-400'}`}>
+                <Text className={`font-questrial ${!isPaidContent ? 'text-black' : 'text-gray-400'}`}>
                   My Creators
                 </Text>
               </Pressable>
@@ -710,7 +701,7 @@ export default function Profile() {
                 onPress={() => setIsPaidContent(true)}
                 className="flex-1 py-2 px-8 items-center z-10"
               >
-                <Text className={`font-questrial ${isPaidContent ? 'text-white' : 'text-gray-400'}`}>
+                <Text className={`font-questrial ${isPaidContent ? 'text-black' : 'text-gray-400'}`}>
                   Paid Content
                 </Text>
               </Pressable>
@@ -742,9 +733,9 @@ export default function Profile() {
               return (
                 <View 
                   key={subscription.$id}
-                  className={`bg-[#1A1A1A] rounded-lg p-4 mb-3 ${
+                  className={`bg-[#FFFFFF] rounded-lg p-4 mb-3 ${
                     isCancelled ? 'border border-red-500' : 
-                    isActive ? 'border border-[#FB2355]' : ''
+                    isActive ? 'border border-[#FD6F3E]' : ''
                   }`}
                 >
                   <View className="flex-row justify-between items-start mb-2">
@@ -753,7 +744,7 @@ export default function Profile() {
                         { fontSize: 18, fontFamily: 'questrial', fontWeight: 'bold' },
                         { 
                           color: isCancelled ? '#F44336' : 
-                                 isActive ? '#FB2355' : 'white' 
+                                 isActive ? '#FD6F3E' : 'black' 
                         }
                       ]}>
                         {subscription.creatorName}
@@ -771,20 +762,20 @@ export default function Profile() {
                     </View>
                     {isActive && (
                       <TouchableOpacity 
-                        className="bg-[#FB2355] px-3 py-1 rounded-full"
+                        className="bg-[#FD6F3E] px-3 py-1 rounded-full"
                         onPress={() => handleUnsubscribe(subscription.creatorName, subscription.stripeSubscriptionId)}
                       >
-                        <Text style={{ color: 'white', fontFamily: 'questrial' }}>Unsubscribe</Text>
+                        <Text style={{ color: 'black', fontFamily: 'questrial' }}>Unsubscribe</Text>
                       </TouchableOpacity>
                     )}
                     {isCancelled && !isExpired && (
                       <View className="bg-[#F44336] px-3 py-1 rounded-full">
-                        <Text style={{ color: 'white', fontFamily: 'questrial' }}>Cancelled</Text>
+                        <Text style={{ color: 'black', fontFamily: 'questrial' }}>Cancelled</Text>
                       </View>
                     )}
                     {isCancelled && isExpired && (
                       <View className="bg-[#F44336] px-3 py-1 rounded-full">
-                        <Text style={{ color: 'white', fontFamily: 'questrial' }}>Expired</Text>
+                        <Text style={{ color: 'black', fontFamily: 'questrial' }}>Expired</Text>
                       </View>
                     )}
                   </View>
@@ -794,7 +785,7 @@ export default function Profile() {
                       { fontFamily: 'questrial' },
                       { 
                         color: isCancelled ? '#F44336' : 
-                               isActive ? '#FB2355' : 'white' 
+                               isActive ? '#FD6F3E' : 'black' 
                       }
                     ]}>
                       {subscription.planInterval}ly ({subscription.planCurrency})
@@ -806,7 +797,7 @@ export default function Profile() {
                       { fontFamily: 'questrial' },
                       { 
                         color: isCancelled ? '#F44336' : 
-                               isActive ? '#FB2355' : 'white' 
+                               isActive ? '#FD6F3E' : 'black' 
                       }
                     ]}>
                       {formatDate(subscription.createdAt)}
@@ -815,7 +806,7 @@ export default function Profile() {
                   {isActive && (
                     <View className="flex-row justify-between">
                       <Text style={{ color: '#888', fontFamily: 'questrial' }}>Renews:</Text>
-                      <Text style={{ color: '#FB2355', fontFamily: 'questrial' }}>
+                      <Text style={{ color: '#FD6F3E', fontFamily: 'questrial' }}>
                         {formatDate(subscription.renewalDate || '')}
                       </Text>
                     </View>
@@ -833,7 +824,7 @@ export default function Profile() {
             })
           ) : (
             <View className="items-center justify-center py-8">
-              <Text style={{ color: 'white', fontSize: 16, fontFamily: 'questrial', textAlign: 'center' }}>
+              <Text style={{ color: 'black', fontSize: 16, fontFamily: 'questrial', textAlign: 'center' }}>
                 You haven't subscribed to any creators yet
               </Text>
             </View>
@@ -854,16 +845,18 @@ export default function Profile() {
                     key={contentType}
                     onPress={() => setSelectedContentType(contentType)}
                     style={{
-                      backgroundColor: selectedContentType === contentType ? 'white' : '#1A1A1A',
+                      backgroundColor: selectedContentType === contentType ? '#DCDEDF' : '#FFFFFF',
                       paddingHorizontal: 24,
                       paddingVertical: 12,
                       borderRadius: 25,
                       flex: 1,
                       marginHorizontal: 4,
-                      alignItems: 'center'
+                      alignItems: 'center',
+                      borderWidth: 1,
+                      borderColor: selectedContentType === contentType ? '#676767' : '#E0E0E0'
                     }}
                   >
-                    <Text style={{ color: selectedContentType === contentType ? 'black' : 'white', fontFamily: 'questrial', fontSize: 16 }}>
+                    <Text style={{ color: selectedContentType === contentType ? 'black' : 'black', fontFamily: 'questrial', fontSize: 16 }}>
                       {contentType}
                     </Text>
                   </Pressable>
@@ -883,14 +876,16 @@ export default function Profile() {
                 <Pressable 
                   onPress={() => setSelectedCreatorId('all')}
                   style={{
-                    backgroundColor: selectedCreatorId === 'all' ? 'white' : '#1A1A1A',
+                    backgroundColor: selectedCreatorId === 'all' ? '#DCDEDF' : '#FFFFFF',
                     paddingHorizontal: 24,
                     paddingVertical: 12,
                     borderRadius: 25,
-                    marginRight: 12
+                    marginRight: 12,
+                    borderWidth: 1,
+                    borderColor: selectedCreatorId === 'all' ? '#676767' : '#E0E0E0'
                   }}
                 >
-                  <Text style={{ color: selectedCreatorId === 'all' ? 'black' : 'white', fontFamily: 'questrial', fontSize: 16 }}>
+                  <Text style={{ color: selectedCreatorId === 'all' ? 'black' : 'black', fontFamily: 'questrial', fontSize: 16 }}>
                     All creators
                   </Text>
                 </Pressable>
@@ -903,14 +898,16 @@ export default function Profile() {
                       key={subscription.$id}
                       onPress={() => setSelectedCreatorId(subscription.creatorAccountId)}
                       style={{
-                        backgroundColor: selectedCreatorId === subscription.creatorAccountId ? 'white' : '#1A1A1A',
+                        backgroundColor: selectedCreatorId === subscription.creatorAccountId ? 'black' : '#FFFFFF',
                         paddingHorizontal: 24,
                         paddingVertical: 12,
                         borderRadius: 25,
-                        marginRight: 12
+                        marginRight: 12,
+                        borderWidth: 1,
+                        borderColor: selectedCreatorId === subscription.creatorAccountId ? '#FD6F3E' : '#E0E0E0'
                       }}
                     >
-                      <Text style={{ color: selectedCreatorId === subscription.creatorAccountId ? 'black' : 'white', fontFamily: 'questrial', fontSize: 16 }}>
+                      <Text style={{ color: selectedCreatorId === subscription.creatorAccountId ? 'black' : 'black', fontFamily: 'questrial', fontSize: 16 }}>
                         {subscription.creatorName}
                       </Text>
                     </Pressable>
@@ -941,13 +938,13 @@ export default function Profile() {
                 {/* Preloading Progress Indicator */}
                 {isPreloading && (
                   <View style={{ 
-                    backgroundColor: '#1A1A1A', 
+                    backgroundColor: '#FFFFFF', 
                     padding: 12, 
                     borderRadius: 8, 
                     marginBottom: 16,
                     alignItems: 'center'
                   }}>
-                    <Text style={{ color: '#FB2355', fontSize: 12, fontFamily: 'questrial', marginBottom: 8 }}>
+                    <Text style={{ color: '#FD6F3E', fontSize: 12, fontFamily: 'questrial', marginBottom: 8 }}>
                       Caching content for faster loading...
                     </Text>
                     <View style={{ 
@@ -960,7 +957,7 @@ export default function Profile() {
                       <View style={{ 
                         width: `${preloadProgress}%`, 
                         height: '100%', 
-                        backgroundColor: '#FB2355',
+                        backgroundColor: '#FD6F3E',
                         borderRadius: 2
                       }} />
                     </View>
@@ -978,7 +975,7 @@ export default function Profile() {
                       style={{
                         width: '48%',
                         marginBottom: 12,
-                        backgroundColor: '#1A1A1A',
+                        backgroundColor: '#FFFFFF',
                         borderRadius: 12,
                         overflow: 'hidden'
                       }}
@@ -1010,7 +1007,7 @@ export default function Profile() {
                             justifyContent: 'center',
                             alignItems: 'center'
                           }}>
-                            <Text style={{ color: 'white', fontSize: 16, marginLeft: 2 }}>▶</Text>
+                            <Text style={{ color: 'black', fontSize: 16, marginLeft: 2 }}>▶</Text>
                           </View>
                           
                           {/* Thumbnail Loading Indicator */}
@@ -1025,7 +1022,7 @@ export default function Profile() {
                               minWidth: 16,
                               alignItems: 'center'
                             }}>
-                              <Text style={{ color: 'white', fontSize: 8, fontFamily: 'questrial' }}>🎬</Text>
+                              <Text style={{ color: 'black', fontSize: 8, fontFamily: 'questrial' }}>🎬</Text>
                             </View>
                           )}
                           
@@ -1038,7 +1035,7 @@ export default function Profile() {
                             borderRadius: 12,
                             padding: 4
                           }}>
-                            <Text style={{ color: 'white', fontSize: 10, fontFamily: 'questrial' }}>VIDEO</Text>
+                            <Text style={{ color: 'black', fontSize: 10, fontFamily: 'questrial' }}>VIDEO</Text>
                           </View>
                         </>
                       )}
@@ -1055,12 +1052,12 @@ export default function Profile() {
                           minWidth: 16,
                           alignItems: 'center'
                         }}>
-                          <Text style={{ color: 'white', fontSize: 8, fontFamily: 'questrial' }}>✓</Text>
+                          <Text style={{ color: 'black', fontSize: 8, fontFamily: 'questrial' }}>✓</Text>
                         </View>
                       )}
                       
                       <View style={{ padding: 8 }}>
-                        <Text style={{ color: 'white', fontSize: 12, fontFamily: 'questrial' }} numberOfLines={1}>
+                        <Text style={{ color: 'black', fontSize: 12, fontFamily: 'questrial' }} numberOfLines={1}>
                           {item.contentType === 'video' ? 'Video Content' : item.contentType === 'image' ? 'Photo Content' : 'File Content'}
                         </Text>
                       </View>
@@ -1088,7 +1085,7 @@ export default function Profile() {
         onBackButtonPress={closeModal}
         style={{ margin: 0, justifyContent: 'center', alignItems: 'center' }}
       >
-        <View className="bg-[#1A1A1A] rounded-2xl p-6 w-[90%] max-w-[400px]">
+        <View className="bg-[#FFFFFF] rounded-2xl p-6 w-[90%] max-w-[400px]">
           {modalMessage ? (
             <>
               <Text style={[
@@ -1098,7 +1095,7 @@ export default function Profile() {
                 {modalMessage.type === 'success' ? 'Success' : 'Error'}
               </Text>
               <Text style={[
-                { color: 'white', fontSize: 16, fontFamily: 'questrial', textAlign: 'center', marginBottom: 24 }
+                { color: 'black', fontSize: 16, fontFamily: 'questrial', textAlign: 'center', marginBottom: 24 }
               ]}>
                 {modalMessage.message}
               </Text>
@@ -1110,7 +1107,7 @@ export default function Profile() {
                 onPress={closeModal}
               >
                 <Text style={[
-                  { color: 'white', fontFamily: 'questrial', fontSize: 16, fontWeight: 'bold' }
+                  { color: 'black', fontFamily: 'questrial', fontSize: 16, fontWeight: 'bold' }
                 ]}>
                   OK
                 </Text>
@@ -1118,10 +1115,10 @@ export default function Profile() {
             </>
           ) : (
             <>
-              <Text style={{ color: 'white', fontSize: 20, fontFamily: 'questrial', fontWeight: 'bold', textAlign: 'center', marginBottom: 16 }}>
+              <Text style={{ color: 'black', fontSize: 20, fontFamily: 'questrial', fontWeight: 'bold', textAlign: 'center', marginBottom: 16 }}>
                 Confirm Unsubscribe
               </Text>
-              <Text style={{ color: 'white', fontSize: 16, fontFamily: 'questrial', textAlign: 'center', marginBottom: 24 }}>
+              <Text style={{ color: 'black', fontSize: 16, fontFamily: 'questrial', textAlign: 'center', marginBottom: 24 }}>
                 Are you sure you want to unsubscribe from {selectedCreator?.name}?
               </Text>
               <View className="flex-row justify-between">
@@ -1133,7 +1130,7 @@ export default function Profile() {
                   disabled={isProcessingUnsubscribe}
                 >
                   <Text style={[
-                    { color: 'white', fontFamily: 'questrial', fontSize: 16, fontWeight: 'bold', textAlign: 'center' }
+                    { color: 'black', fontFamily: 'questrial', fontSize: 16, fontWeight: 'bold', textAlign: 'center' }
                   ]}>
                     {isProcessingUnsubscribe ? 'Processing...' : 'Unsubscribe'}
                   </Text>
@@ -1146,7 +1143,7 @@ export default function Profile() {
                   disabled={isProcessingUnsubscribe}
                 >
                   <Text style={[
-                    { color: 'white', fontFamily: 'questrial', fontSize: 16, fontWeight: 'bold', textAlign: 'center' }
+                    { color: 'black', fontFamily: 'questrial', fontSize: 16, fontWeight: 'bold', textAlign: 'center' }
                   ]}>
                     Cancel
                   </Text>
@@ -1190,7 +1187,7 @@ export default function Profile() {
           >
             <Image 
               source={require('../../../assets/icon/close.png')}
-              style={{ width: 20, height: 20, tintColor: 'white' }}
+              style={{ width: 20, height: 20, tintColor: 'black' }}
               resizeMode="contain"
             />
           </TouchableOpacity>
@@ -1200,7 +1197,7 @@ export default function Profile() {
               {/* Content Header */}
               <View style={{ padding: 16, paddingTop: 60 }}>
                 <Text style={{ 
-                  color: 'white', 
+                  color: 'black', 
                   fontSize: 18, 
                   fontFamily: 'questrial', 
                   fontWeight: 'bold',
@@ -1229,7 +1226,7 @@ export default function Profile() {
                       width: '100%',
                       height: 400,
                       borderRadius: 8,
-                      backgroundColor: '#1A1A1A'
+                      backgroundColor: '#FFFFFF'
                     }}
                     contentFit="contain"
                     cachePolicy="memory-disk"
@@ -1238,7 +1235,7 @@ export default function Profile() {
                   />
                 ) : (
                   <View style={{
-                    backgroundColor: '#1A1A1A',
+                    backgroundColor: '#FFFFFF',
                     padding: 32,
                     borderRadius: 8,
                     alignItems: 'center',
@@ -1250,7 +1247,7 @@ export default function Profile() {
                       resizeMode="contain"
                     />
                     <Text style={{ 
-                      color: 'white', 
+                      color: 'black', 
                       fontSize: 16, 
                       fontFamily: 'questrial',
                       textAlign: 'center'
@@ -1285,7 +1282,7 @@ export default function Profile() {
                     }}
                     onPress={shareContent}
                   >
-                    <Text style={{ color: 'white', fontSize: 24 }}>▶</Text>
+                    <Text style={{ color: 'black', fontSize: 24 }}>▶</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -1294,7 +1291,7 @@ export default function Profile() {
               <View style={{ padding: 16 }}>
                 <TouchableOpacity
                   style={{
-                    backgroundColor: isProcessing ? '#999' : '#FB2355',
+                    backgroundColor: isProcessing ? '#999' : '#FD6F3E',
                     padding: 16,
                     borderRadius: 8,
                     alignItems: 'center'
@@ -1303,7 +1300,7 @@ export default function Profile() {
                   disabled={isProcessing}
                 >
                   <Text style={{ 
-                    color: 'white', 
+                    color: 'black', 
                     fontSize: 16, 
                     fontFamily: 'questrial', 
                     fontWeight: 'bold' 

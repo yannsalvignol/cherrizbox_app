@@ -1,4 +1,5 @@
 import { useGlobalContext } from '@/lib/global-provider';
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, Image, ImageBackground, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -200,7 +201,7 @@ const Property = () => {
           source={require('../../../assets/icon/loading-icon.png')} 
           style={{ width: 80, height: 80, marginBottom: 20 }} 
         />
-        <Text style={{ color: '#FB2355', fontSize: 18, fontFamily: 'questrial' }}>Loading...</Text>
+        <Text style={{ color: '#FD6F3E', fontSize: 18, fontFamily: 'questrial' }}>Loading...</Text>
       </View>
     );
   }
@@ -210,7 +211,7 @@ const Property = () => {
       <View style={{ flex: 1, backgroundColor: 'black', justifyContent: 'center', alignItems: 'center' }}>
         <Text style={{ color: 'white' }}>Post not found</Text>
         <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 20 }}>
-          <Text style={{ color: '#FB2355', fontSize: 18 }}>Go Back</Text>
+          <Text style={{ color: '#FD6F3E', fontSize: 18 }}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -247,10 +248,7 @@ const Property = () => {
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 50, marginHorizontal: 20 }}>
               <TouchableOpacity onPress={() => router.back()} style={{ paddingVertical: 6 }}>
-                <Image 
-                  source={require('../../../assets/icon/back.png')} 
-                  style={{ width: 28, height: 28, tintColor: 'white', resizeMode: 'contain' }} 
-                />
+                <Ionicons name="chevron-back-outline" size={32} color="white" />
               </TouchableOpacity>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 {isSubscribed && (
@@ -296,7 +294,7 @@ const Property = () => {
                 }}>
                   {/* Header */}
                   <View style={{
-                    backgroundColor: '#FB2355',
+                    backgroundColor: '#FD6F3E',
                     paddingVertical: 20,
                     paddingHorizontal: 24,
                     flexDirection: 'row',
@@ -426,7 +424,7 @@ const Property = () => {
                           width: 64,
                           height: 64,
                           borderRadius: 32,
-                          backgroundColor: '#FB2355',
+                          backgroundColor: '#FD6F3E',
                           justifyContent: 'center',
                           alignItems: 'center',
                           marginBottom: 16
@@ -471,7 +469,7 @@ const Property = () => {
                   }}>
                     <TouchableOpacity 
                       style={{
-                        backgroundColor: '#FB2355',
+                        backgroundColor: '#FD6F3E',
                         borderRadius: 12,
                         paddingVertical: 12,
                         alignItems: 'center'
@@ -503,7 +501,7 @@ const Property = () => {
               }
             ]}>
               <View style={{ width: '97%', height: '35%', backgroundColor: 'rgba(32, 32, 32, 0.92)', borderRadius: 40, padding: 20, alignItems: 'center' }}>
-                <Text style={{ color: 'white', fontSize: 32, fontWeight: 'bold', textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }} numberOfLines={2}>
+                <Text style={{ color: 'white', fontSize: 32, fontFamily: 'MuseoModerno-Regular', textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8 }} numberOfLines={2}>
                   {titleParam || post.title || 'Untitled'}
                 </Text>
                 <View style={{ alignSelf: 'flex-start', marginTop: 5 }}>
@@ -552,17 +550,17 @@ const Property = () => {
                         onPress={() => setSelectedPricing('yearly')}
                         style={{ 
                           borderWidth: selectedPricing === 'yearly' ? 3 : 2,
-                          borderColor: selectedPricing === 'yearly' ? '#FB2355' : 'rgba(251, 35, 85, 0.3)',
+                          borderColor: selectedPricing === 'yearly' ? '#FD6F3E' : 'rgba(251, 35, 85, 0.3)',
                           borderRadius: 16,
                           padding: 8,
                           backgroundColor: selectedPricing === 'yearly' ? 'rgba(251, 35, 85, 0.1)' : 'transparent',
                           transform: [{ scale: selectedPricing === 'yearly' ? 1.05 : 1 }]
                         }}
                       >
-                        <Text style={{ color: '#FB2355', fontSize: 28, fontWeight: 'bold', textShadowColor: 'rgba(251, 35, 85, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }}>
+                        <Text style={{ color: '#FD6F3E', fontSize: 28, fontWeight: 'bold', textShadowColor: 'rgba(251, 35, 85, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }}>
                           {formatPrice(JSON.parse(post.payment).yearlyPrice, post.currency || JSON.parse(post.payment).currency)}
                         </Text>
-                        <Text style={{ color: '#FB2355', fontSize: 16, textShadowColor: 'rgba(251, 35, 85, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial', marginTop: 4 }}>
+                        <Text style={{ color: '#FD6F3E', fontSize: 16, textShadowColor: 'rgba(251, 35, 85, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial', marginTop: 4 }}>
                           per year
                         </Text>
                       </TouchableOpacity>
@@ -571,8 +569,8 @@ const Property = () => {
                 </View>
                 <TouchableOpacity 
                   style={{ 
-                    marginTop: 30, 
-                    backgroundColor: '#FB2355', 
+                    marginTop: 16, 
+                    backgroundColor: '#FD6F3E', 
                     borderRadius: 20, 
                     paddingVertical: 12, 
                     paddingHorizontal: 20,

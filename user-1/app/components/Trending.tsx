@@ -47,13 +47,13 @@ const Trending = ({ onTrendsChange }: TrendingProps) => {
                     onPress={() => handleTrendPress(topic)}
                     className={`py-2 px-4 rounded-full mr-2 border ${
                       isSelected 
-                        ? 'bg-[#FB2355] border-[#FB2355]' 
-                        : 'bg-[#1A1A1A] border-gray-600'
+                        ? 'bg-[#FFFFFF] border-[#FFFFFF]' 
+                        : 'bg-[#DCDEDF] border-[#676767]'
                     }`}
                   >
                     <Text 
                       style={{
-                        color: 'white',
+                        color: 'black',
                         fontFamily: 'Urbanist-Regular'
                       }}
                     >

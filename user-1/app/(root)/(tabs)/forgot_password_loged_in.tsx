@@ -181,7 +181,7 @@ const ForgotPasswordLoggedIn = () => {
               onPress={() => router.back()}
               className="absolute top-0 left-0 z-10 p-2"
             >
-              <Ionicons name="chevron-back" size={32} color="white" />
+              <Ionicons name="chevron-back" size={32} color="black" />
             </TouchableOpacity>
 
             <View className="w-full mt-24">
@@ -209,7 +209,7 @@ const ForgotPasswordLoggedIn = () => {
                 />
                 <TouchableOpacity
                   onPress={handleRequestCode}
-                  className="w-full bg-[#FB2355] py-4 rounded-full mt-8"
+                  className="w-full bg-[#FD6F3E] py-4 rounded-full mt-8"
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -231,7 +231,7 @@ const ForgotPasswordLoggedIn = () => {
                 />
                 <TouchableOpacity
                   onPress={handleVerifyCode}
-                  className="w-full bg-[#FB2355] py-4 rounded-full mt-8"
+                  className="w-full bg-[#FD6F3E] py-4 rounded-full mt-8"
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -265,7 +265,7 @@ const ForgotPasswordLoggedIn = () => {
                     />
                     <TouchableOpacity 
                   onPress={handleResetPassword}
-                  className="w-full bg-[#FB2355] py-4 rounded-full mt-8"
+                  className="w-full bg-[#FD6F3E] py-4 rounded-full mt-8"
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -299,7 +299,7 @@ const ForgotPasswordLoggedIn = () => {
                         </Text>
             <TouchableOpacity
               onPress={handleLogout}
-              className="w-full bg-[#FB2355] py-3 rounded-full mt-8"
+              className="w-full bg-[#FD6F3E] py-3 rounded-full mt-8"
             >
               <Text style={{ color: 'white' }} className="text-center font-['Urbanist-Bold'] text-lg">
                 Log Out

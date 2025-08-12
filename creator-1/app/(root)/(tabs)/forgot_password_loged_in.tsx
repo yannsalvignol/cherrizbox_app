@@ -174,7 +174,7 @@ const ForgotPasswordLoggedIn = () => {
               onPress={() => router.back()}
               className="absolute top-0 left-0 z-10 p-2"
             >
-              <Ionicons name="chevron-back" size={32} color="white" />
+              <Ionicons name="chevron-back" size={32} color="black" />
             </TouchableOpacity>
 
             <View className="w-full mt-24">

@@ -375,7 +375,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
   
   // For direct messages, use custom message input with attachment button
   return (
-    <View style={{ backgroundColor: '#000000' }}>
+    <View style={{ backgroundColor: 'white', paddingBottom: 15 }}>
             <MessageInput 
         InputButtons={() => (
           <TouchableOpacity

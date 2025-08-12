@@ -159,7 +159,7 @@ export default function WelcomeAnimation() {
                             <Text style={{
                                 fontSize: 40,
                                 fontWeight: 'bold',
-                                color: '#FB2355',
+                                color: '#FD6F3E',
                                 fontFamily: 'questrial',
                                 marginLeft: 2,
                                 marginBottom: 2,
@@ -170,7 +170,7 @@ export default function WelcomeAnimation() {
 
                         <Text style={{
                             fontSize: 18,
-                            color: '#FB2355',
+                            color: '#FD6F3E',
                             fontFamily: 'Urbanist-Medium',
                             textAlign: 'center',
                             opacity: 0.8,

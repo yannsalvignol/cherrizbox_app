@@ -1,4 +1,5 @@
 import { useGlobalContext } from '@/lib/global-provider';
+import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
@@ -37,6 +38,7 @@ interface UserProfile {
 
 export default function Index() {
     const router = useRouter();
+    const navigation = useNavigation();
     const { user, profile, posts, loading, postsLoaded, refreshPosts, getCachedImageUrl, profileImage } = useGlobalContext();
     const [refreshing, setRefreshing] = useState(false);
     const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
@@ -45,6 +47,11 @@ export default function Index() {
     const [searchQuery, setSearchQuery] = useState('');
     const scrollY = useRef(new Animated.Value(0)).current;
     const [scrolling, setScrolling] = useState(false);
+
+    // Disable iOS swipe-back gesture on this screen
+    useEffect(() => {
+      navigation.setOptions?.({ gestureEnabled: false });
+    }, [navigation]);
 
     useEffect(() => {
       if (!loading) {
@@ -129,7 +136,7 @@ export default function Index() {
     };
     
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }} edges={['top']}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#DCDEDF' }} edges={['top']}>
             {/* Header */}
             <View className="flex-row items-center justify-between px-4 py-2 bg-black">
                 <Image 
@@ -147,7 +154,7 @@ export default function Index() {
                     <Text style={{ 
                         fontSize: 40,
                         fontWeight: 'bold',
-                        color: 'white',
+                        color: '#1E1E1E',
                         fontFamily: 'MuseoModerno-Regular',
                         letterSpacing: 1
                     }}>
@@ -202,8 +209,8 @@ export default function Index() {
                     <RefreshControl
                         refreshing={refreshing}
                         onRefresh={onRefresh}
-                        tintColor="#FB2355"
-                        colors={["#FB2355"]}
+                        tintColor="#FD6F3E"
+                        colors={["#FD6F3E"]}
                     />
                 }
                 scrollEventThrottle={16}
@@ -216,7 +223,7 @@ export default function Index() {
                 onMomentumScrollEnd={() => setScrolling(false)}
             >
                 {/* Posts section */}
-                <View className="px-2 -mt-5">
+                <View className="px-2 mt-[18px]">
                     <Text className="text-white font-['Urbanist-Bold'] text-lg mb-1">
                         {isSearchFocused ? 'Search Results' : 'For You'}
                     </Text>
@@ -224,7 +231,7 @@ export default function Index() {
                     {loading || !postsLoaded ? (
                         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 60 }}>
                             <Image source={require('../../../assets/icon/loading-icon.png')} style={{ width: 60, height: 60, marginBottom: 16 }} />
-                            <Text style={{ color: '#FB2355', fontSize: 18, marginBottom: 12 }}>Loading posts...</Text>
+                            <Text style={{ color: '#FD6F3E', fontSize: 18, marginBottom: 12 }}>Loading posts...</Text>
                         </View>
                     ) : (filteredPosts.length > 0 || isSearchFocused) ? (
                         <View className="flex-row flex-wrap justify-between">
@@ -239,7 +246,7 @@ export default function Index() {
                                                 width: '100%',
                                             }}>
                                                 <LinearGradient
-                                                    colors={['#FB2355', '#FFD700', '#FB2355']}
+                                                    colors={['#FD6F3E', '#FFD700', '#FD6F3E']}
                                                     start={{ x: 0, y: 0 }}
                                                     end={{ x: 1, y: 1 }}
                                                     style={{
@@ -280,14 +287,14 @@ export default function Index() {
                                     <TouchableOpacity 
                                         key={post.$id} 
                                         className="bg-[#1A1A1A] rounded-lg mb-3 p-4 w-full"
-                                        onPress={() => router.push(`/properties/${post.$id}`)}
+                                        onPress={() => router.replace(`/properties/${post.$id}`)}
                                     >
                                         <View className="flex-row items-center mb-2">
                                             <Text className="font-['Urbanist-Bold'] text-white text-lg">
                                                 {post.title || 'Untitled'}
                                             </Text>
                                             {post.type && (
-                                                <View className="ml-2 px-2 py-1 bg-[#FB2355] rounded-full">
+                                                <View className="ml-2 px-2 py-1 bg-[#FD6F3E] rounded-full">
                                                     <Text className="text-white text-xs font-['Urbanist-Bold']">
                                                         {post.type}
                                                     </Text>

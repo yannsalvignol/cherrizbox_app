@@ -3,17 +3,17 @@ import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
-  Modal,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Modal,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-  codeBasedPasswordReset,
-  verifyCodeAndResetPassword,
+    codeBasedPasswordReset,
+    verifyCodeAndResetPassword,
 } from "../lib/appwrite";
 import FormField from "./components/FormField";
 import OtpInput from "./components/OtpInput";
@@ -200,7 +200,7 @@ const ForgotPasswordLoggedOut = () => {
                 />
                 <TouchableOpacity
                   onPress={handleRequestCode}
-                  className="w-full bg-[#FB2355] py-4 rounded-full mt-8"
+                  className="w-full bg-[#FD6F3E] py-4 rounded-full mt-8"
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -222,7 +222,7 @@ const ForgotPasswordLoggedOut = () => {
                 />
                 <TouchableOpacity
                   onPress={handleVerifyCode}
-                  className="w-full bg-[#FB2355] py-4 rounded-full mt-8"
+                  className="w-full bg-[#FD6F3E] py-4 rounded-full mt-8"
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -256,7 +256,7 @@ const ForgotPasswordLoggedOut = () => {
                 />
                 <TouchableOpacity
                   onPress={handleResetPassword}
-                  className="w-full bg-[#FB2355] py-4 rounded-full mt-8"
+                  className="w-full bg-[#FD6F3E] py-4 rounded-full mt-8"
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -276,7 +276,7 @@ const ForgotPasswordLoggedOut = () => {
               Remember Password?{' '}
             </Text>
             <TouchableOpacity onPress={() => router.back()}>
-              <Text className="text-[#FB2355] font-['Urbanist-Bold']">
+              <Text className="text-[#FD6F3E] font-['Urbanist-Bold']">
                 Login
               </Text>
             </TouchableOpacity>
@@ -307,7 +307,7 @@ const ForgotPasswordLoggedOut = () => {
                 setShowSuccessModal(false);
                 router.back();
               }}
-              className="w-full bg-[#FB2355] py-3 rounded-full mt-8"
+              className="w-full bg-[#FD6F3E] py-3 rounded-full mt-8"
             >
               <Text style={{ color: 'white' }} className="text-center font-['Urbanist-Bold'] text-lg">
                 Continue to Login

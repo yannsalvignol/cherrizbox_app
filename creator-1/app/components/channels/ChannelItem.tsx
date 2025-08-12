@@ -1,18 +1,122 @@
 import {
-  type Channel,
-  formatLastMessageTime,
-  formatPrice,
-  getChannelAvatar,
-  getChannelDisplayName
+    type Channel,
+    formatLastMessageTime,
+    formatPrice,
+    getChannelAvatar,
+    getChannelDisplayName
 } from '@/lib/index-utils';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
-  Image,
-  Text,
-  TouchableOpacity,
-  View
+    Image,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
+
+// Batch database operations manager
+class BatchTipUpdater {
+  private static instance: BatchTipUpdater;
+  private updateQueue: Map<string, { documentId: string; uncashedAmount: number; userProfileCache: any; userId: string }> = new Map();
+  private batchTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly BATCH_DELAY = 2000; // 2 seconds
+  private readonly MAX_BATCH_SIZE = 10;
+
+  static getInstance(): BatchTipUpdater {
+    if (!BatchTipUpdater.instance) {
+      BatchTipUpdater.instance = new BatchTipUpdater();
+    }
+    return BatchTipUpdater.instance;
+  }
+
+  queueTipUpdate(userId: string, documentId: string, uncashedAmount: number, userProfileCache: any) {
+    this.updateQueue.set(userId, { documentId, uncashedAmount, userProfileCache, userId });
+    
+    // Clear existing timer
+    if (this.batchTimer) {
+      clearTimeout(this.batchTimer);
+    }
+    
+    // Process immediately if queue is full, otherwise wait for batch delay
+    if (this.updateQueue.size >= this.MAX_BATCH_SIZE) {
+      this.processBatch();
+    } else {
+      this.batchTimer = setTimeout(() => this.processBatch(), this.BATCH_DELAY);
+    }
+  }
+
+  private async processBatch() {
+    if (this.updateQueue.size === 0) return;
+    
+    const updates = Array.from(this.updateQueue.values());
+    this.updateQueue.clear();
+    
+    if (this.batchTimer) {
+      clearTimeout(this.batchTimer);
+      this.batchTimer = null;
+    }
+
+    console.log(`🔄 [BatchTipUpdater] Processing ${updates.length} tip updates in batch`);
+
+    try {
+      const { databases, config } = await import('@/lib/appwrite');
+      
+      // Process updates in parallel batches of 5 to avoid overwhelming the API
+      const PARALLEL_BATCH_SIZE = 5;
+      for (let i = 0; i < updates.length; i += PARALLEL_BATCH_SIZE) {
+        const batch = updates.slice(i, i + PARALLEL_BATCH_SIZE);
+        
+        await Promise.allSettled(
+          batch.map(async ({ documentId, uncashedAmount, userProfileCache, userId }) => {
+            try {
+              await databases.updateDocument(
+                config.databaseId,
+                process.env.EXPO_PUBLIC_APPWRITE_USER_COLLECTION_ID!,
+                documentId,
+                {
+                  cashed_tip_amount: uncashedAmount,
+                  uncashed_tip_amount: 0
+                }
+              );
+              
+              // Update cache
+              const cachedProfile = userProfileCache.current.get(userId);
+              if (cachedProfile) {
+                userProfileCache.current.set(userId, {
+                  ...cachedProfile,
+                  uncashedTipAmount: 0
+                });
+              }
+              
+              console.log(`✅ [BatchTipUpdater] Updated tip for user ${userId}: ${uncashedAmount}`);
+            } catch (error) {
+              console.error(`❌ [BatchTipUpdater] Failed to update tip for user ${userId}:`, error);
+            }
+          })
+        );
+      }
+      
+      console.log(`✅ [BatchTipUpdater] Completed batch processing of ${updates.length} updates`);
+    } catch (error) {
+      console.error('❌ [BatchTipUpdater] Batch processing failed:', error);
+    }
+  }
+
+  // Force process any pending updates (useful for app background/cleanup)
+  async flushPendingUpdates() {
+    if (this.updateQueue.size > 0) {
+      await this.processBatch();
+    }
+  }
+
+  // Get current queue size for monitoring
+  getQueueSize(): number {
+    return this.updateQueue.size;
+  }
+}
+
+// Export for use in other components
+export { BatchTipUpdater };
 
 interface ChannelItemProps {
   channel: Channel;
@@ -54,40 +158,33 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
   })();
 
   const handlePress = async () => {
-
     // Reset uncashed tip amount when opening a DM channel with tips
     if (isDM && hasTip) {
-      try {
-        const otherMemberId = channel.members.find(memberId => memberId !== currentUserId);
-        if (otherMemberId && channel.memberTipAmounts) {
-          const uncashedTipAmount = channel.memberTipAmounts[otherMemberId];
-          if (uncashedTipAmount > 0) {
-            const { databases, config } = await import('@/lib/appwrite');
+      const otherMemberId = channel.members.find(memberId => memberId !== currentUserId);
+      if (otherMemberId && channel.memberTipAmounts) {
+        const uncashedTipAmount = channel.memberTipAmounts[otherMemberId];
+        if (uncashedTipAmount > 0) {
+          // Get the cached profile to find the document ID
+          const cachedProfile = userProfileCache.current.get(otherMemberId);
+          if (cachedProfile && cachedProfile.documentId) {
+            // Queue the tip update for batch processing instead of immediate execution
+            const batchUpdater = BatchTipUpdater.getInstance();
+            batchUpdater.queueTipUpdate(
+              otherMemberId,
+              cachedProfile.documentId,
+              uncashedTipAmount,
+              userProfileCache
+            );
             
-            // Get the cached profile to find the document ID
-            const cachedProfile = userProfileCache.current.get(otherMemberId);
-            if (cachedProfile && cachedProfile.documentId) {
-              // Set cashed_tip_amount to the current uncashed_tip_amount value, then reset uncashed to 0
-              await databases.updateDocument(
-                config.databaseId,
-                process.env.EXPO_PUBLIC_APPWRITE_USER_COLLECTION_ID!,
-                cachedProfile.documentId,
-                {
-                  cashed_tip_amount: uncashedTipAmount,
-                  uncashed_tip_amount: 0
-                }
-              );
-              
-              // Update cache to reflect the change
-              userProfileCache.current.set(otherMemberId, {
-                ...cachedProfile,
-                uncashedTipAmount: 0
-              });
-            }
+            // Immediately update the UI cache for responsive UX
+            userProfileCache.current.set(otherMemberId, {
+              ...cachedProfile,
+              uncashedTipAmount: 0
+            });
+            
+            console.log(`📝 [ChannelItem] Queued tip update for user ${otherMemberId}: ${uncashedTipAmount}`);
           }
         }
-      } catch (error) {
-        // Silently handle tip reset errors
       }
     }
     

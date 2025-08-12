@@ -2,9 +2,9 @@ import { useGlobalContext } from '@/lib/global-provider';
 import React from 'react';
 import { View } from 'react-native';
 import {
-  MessageSimple,
-  useMessageContext,
-  useThreadContext
+    MessageSimple,
+    useMessageContext,
+    useThreadContext
 } from 'stream-chat-react-native';
 import { formatPrice } from '../../../lib/currency-utils';
 import BlurryFileAttachment from './attachments/BlurryFileAttachment';
@@ -57,6 +57,7 @@ const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = (props) => {
   // Channel and message type checks
   const isDMChannel = channel?.id?.startsWith('dm-');
   const isMyMessage = message?.user?.id === user?.$id;
+  const receivedDmOffset = isDMChannel && !isMyMessage ? 12 : 0; // Nudge received messages right in DMs
 
   // Poll detection
   const hasPoll = message?.poll_id || message?.poll;
@@ -84,7 +85,7 @@ const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = (props) => {
   if (hasPoll && message?.poll) {
     console.log('Rendering custom poll component');
     return (
-      <View>
+      <View style={{ marginLeft: receivedDmOffset }}>
         {/* Show the message text if any */}
         {message.text && message.text !== `📊 ${message.poll.name}` && (
           <View style={{ marginBottom: 8 }}>
@@ -100,7 +101,11 @@ const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = (props) => {
   // If poll_id exists but no poll data, use default MessageSimple
   if (hasPoll) {
     console.log('Rendering poll message with default MessageSimple');
-    return <MessageSimple {...messageSimpleProps} />;
+    return (
+      <View style={{ marginLeft: receivedDmOffset }}>
+        <MessageSimple {...messageSimpleProps} />
+      </View>
+    );
   }
 
   // Handle paid content attachments
@@ -173,6 +178,7 @@ const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = (props) => {
         marginTop: 4, // Add space between day timestamp and audio attachment
         marginBottom: 4, // Add space underneath audio attachment for better separation
         marginRight: isMyMessage ? -8 : 0, // Move sent audio messages closer to the right
+        marginLeft: !isMyMessage ? receivedDmOffset : 0, // Nudge received audio in DMs
         position: 'relative', // Enable absolute positioning for reactions
       }}>
         {/* Render the default MessageSimple which will show attachments and timestamps */}
@@ -192,6 +198,7 @@ const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = (props) => {
         alignItems: 'flex-start',
         marginVertical: 8,
         marginHorizontal: 4,
+        marginLeft: receivedDmOffset || 4,
       }}>
         {/* Render custom attachments only (no text message) */}
         {message.attachments?.map((attachment: any, index: number) => (
@@ -210,7 +217,7 @@ const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = (props) => {
   return (
     <View style={{
       // Override negative margins in thread context for received messages
-      marginLeft: props.isInThread && !isMyMessage ? 8 : 0,  // Reduced - closer to left edge
+      marginLeft: (props.isInThread && !isMyMessage ? 8 : 0) + receivedDmOffset,  // Nudge received DMs
       marginRight: props.isInThread && isMyMessage ? 8 : 0,   // Reduced - closer to right edge
     }}>
       {/* Render the default MessageSimple with its default timestamp */}

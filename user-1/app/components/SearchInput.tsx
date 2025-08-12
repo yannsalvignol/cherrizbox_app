@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { Image, Keyboard, TextInput, TouchableOpacity, View } from 'react-native';
+import { Keyboard, TextInput, TouchableOpacity, View } from 'react-native';
 
 interface SearchInputProps {
     onSearch: (query: string) => void;
@@ -49,15 +49,15 @@ const SearchInput = ({ onSearch, onFocus }: SearchInputProps) => {
                     <Ionicons 
                         name="chevron-back-outline" 
                         size={34} 
-                        color="white" 
+                        color="black" 
                     />
                 </TouchableOpacity>
             )}
-            <View className="flex-1 flex-row items-center bg-[#1A1A1A] px-5 py-4 rounded-full">
+            <View className="flex-1 flex-row items-center bg-[#FFFFFF] px-5 py-4 rounded-full">
                 <TextInput
-                    className="flex-1 text-white font-['Questrial'] text-base"
+                    className="flex-1 text-black font-['Questrial'] text-base"
                     placeholder="Search ..."
-                    placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                    placeholderTextColor="black"
                     value={searchText}
                     onChangeText={handleSearch}
                     onFocus={handleFocus}
@@ -66,15 +66,15 @@ const SearchInput = ({ onSearch, onFocus }: SearchInputProps) => {
                     returnKeyType="search"
                     style={{ 
                         paddingVertical: 4,
-                        color: 'white',
+                        color: 'black',
                         lineHeight: 18
                     }}
                 />
                 <TouchableOpacity onPress={handleFocus} className="ml-2">
-                    <Image 
-                        source={require('../../assets/icon/search.png')}
-                        className="w-6 h-6"
-                        style={{ tintColor: 'white' }}
+                    <Ionicons 
+                        name="search-outline" 
+                        size={24} 
+                        color="black" 
                     />
                 </TouchableOpacity>
             </View>

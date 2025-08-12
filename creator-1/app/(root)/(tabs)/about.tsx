@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Linking, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function About() {
@@ -108,6 +108,54 @@ export default function About() {
               <Text style={{ fontWeight: 'bold' }}>Legal:</Text> legal@cherrizbox.app{'\n\n'}
               Or reach out through our support channels within the application.
             </Text>
+          </View>
+        </View>
+
+        {/* Built With / Technologies Section */}
+        <View style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 20, marginBottom: 24 }}>
+          <Text style={{ color: '#FD6F3E', fontFamily: 'questrial', fontSize: 18, marginBottom: 12 }}>
+            Built With
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+            <View style={{ width: '33%', alignItems: 'center', marginVertical: 12 }}>
+              <Ionicons name="logo-javascript" size={48} color="#F7DF1E" />
+            </View>
+            <View style={{ width: '33%', alignItems: 'center', marginVertical: 12 }}>
+              <Ionicons name="logo-figma" size={48} color="#F24E1E" />
+            </View>
+            <View style={{ width: '33%', alignItems: 'center', marginVertical: 12 }}>
+              <Ionicons name="logo-react" size={48} color="#61DAFB" />
+            </View>
+            <View style={{ width: '33%', alignItems: 'center', marginVertical: 12 }}>
+              <Ionicons name="logo-nodejs" size={48} color="#339933" />
+            </View>
+            <View style={{ width: '33%', alignItems: 'center', marginVertical: 12 }}>
+              <Ionicons name="logo-npm" size={48} color="#CB3837" />
+            </View>
+            <View style={{ width: '33%', alignItems: 'center', marginVertical: 12 }}>
+              <Ionicons name="logo-python" size={48} color="#3776AB" />
+            </View>
+          </View>
+        </View>
+
+        {/* Follow Us Section */}
+        <View style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 20, marginBottom: 24 }}>
+          <Text style={{ color: '#FD6F3E', fontFamily: 'questrial', fontSize: 18, marginBottom: 12 }}>
+            Follow Us
+          </Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'center' }}>
+            <TouchableOpacity onPress={() => Linking.openURL('https://www.linkedin.com/company/cherrizbox')}>
+              <View style={{ alignItems: 'center' }}>
+                <Ionicons name="logo-linkedin" size={48} color="#0A66C2" />
+                <Text style={{ color: '#0A66C2', fontFamily: 'questrial', marginTop: 6 }}>LinkedIn</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => Linking.openURL('https://www.instagram.com/cherrizbox')}>
+              <View style={{ alignItems: 'center' }}>
+                <Ionicons name="logo-instagram" size={48} color="#E1306C" />
+                <Text style={{ color: '#E1306C', fontFamily: 'questrial', marginTop: 6 }}>Instagram</Text>
+              </View>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>

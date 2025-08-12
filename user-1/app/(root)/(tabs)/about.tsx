@@ -1,86 +1,161 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Linking, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function About() {
   const router = useRouter();
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#DCDEDF' }} edges={['top']}>
       {/* Header */}
       <View className="flex-row items-center px-4 pt-2 pb-4">
         <TouchableOpacity onPress={() => router.back()} className="flex-row items-center">
-          <Image 
-            source={require('../../../assets/icon/back.png')}
-            className="w-8 h-8"
-            resizeMode="contain"
+          <Ionicons 
+            name="chevron-back-outline" 
+            size={32} 
+            color="black" 
+            style={{ marginRight: 4 }}
           />
-          <Text style={{ color: 'white', fontSize: 20, marginLeft: 12, fontFamily: 'questrial' }}>
+          <Text style={{ color: 'black', fontSize: 20, marginLeft: 8, fontFamily: 'questrial' }}>
             About Us
           </Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView className="flex-1 px-4">
-        <View className="items-center mb-8">
-          <Image 
-            source={require('../../../assets/images/cherry-icon.png')}
-            className="w-24 h-24 mb-4"
-            resizeMode="contain"
-          />
-          <Text style={{ color: 'white', fontSize: 24, fontFamily: 'MuseoModerno-Regular', marginBottom: 8, letterSpacing: 1 }}>
-            cherrizbox
-          </Text>
-          <Text style={{ color: '#666666', fontFamily: 'questrial', fontSize: 16, textAlign: 'center' }}>
-            Version 1.0.0
-          </Text>
-        </View>
+      <ScrollView 
+        className="flex-1 px-4"
+        contentContainerStyle={{ paddingBottom: 40 }}
+        style={{ backgroundColor: '#DCDEDF' }}
+      >
+        <View style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 20, marginBottom: 20 }}>
+          <View className="items-center mb-8">
+            <Image 
+              source={require('../../../assets/images/cherry-icon.png')}
+              className="w-24 h-24 mb-4"
+              resizeMode="contain"
+            />
+            <Text style={{ color: 'black', fontSize: 24, fontFamily: 'MuseoModerno-Regular', marginBottom: 8 }}>
+              cherrizbox
+            </Text>
+            <Text style={{ color: '#888888', fontFamily: 'questrial', fontSize: 16, textAlign: 'center' }}>
+              Version 1.0.0
+            </Text>
+          </View>
 
-        <View className="space-y-6">
-          <View>
-            <Text style={{ color: '#FB2355', fontFamily: 'questrial', fontSize: 18, marginBottom: 8 }}>
+          <View style={{ marginBottom: 24 }}>
+            <Text style={{ color: '#FD6F3E', fontFamily: 'questrial', fontSize: 18, marginBottom: 8 }}>
+              Who We Are
+            </Text>
+            <Text style={{ color: 'black', fontFamily: 'questrial', fontSize: 16, lineHeight: 24 }}>
+              Cherrizbox is a French SAS (Société par Actions Simplifiée) founded by a passionate team of 4 people. We are officially registered in France and operate with the support of Legal Place, the leading French business structure service, ensuring full compliance with French business regulations and standards.
+            </Text>
+          </View>
+
+          <View style={{ marginBottom: 24 }}>
+            <Text style={{ color: '#FD6F3E', fontFamily: 'questrial', fontSize: 18, marginBottom: 8 }}>
               Our Mission
             </Text>
-            <Text style={{ color: 'white', fontFamily: 'questrial', fontSize: 16, lineHeight: 24 }}>
-              Cherrizbox is redefining creator–audience engagement. We empower creators with massive followings to engage every subscriber meaningfully, ensuring that every message gets a thoughtful response.
+            <Text style={{ color: 'black', fontFamily: 'questrial', fontSize: 16, lineHeight: 24 }}>
+              Cherrizbox is dedicated to creating a safe and engaging platform for content creators and their audiences. We strive to provide innovative tools and features that enhance the connection between creators and their community while empowering them to monetize their content effectively.
             </Text>
           </View>
 
-          <View>
-            <Text style={{ color: '#FB2355', fontFamily: 'questrial', fontSize: 18, marginBottom: 8 }}>
+          <View style={{ marginBottom: 24 }}>
+            <Text style={{ color: '#FD6F3E', fontFamily: 'questrial', fontSize: 18, marginBottom: 8 }}>
               What We Do
             </Text>
-            <Text style={{ color: 'white', fontFamily: 'questrial', fontSize: 16, lineHeight: 24 }}>
-              Our platform ensures that creators can always respond to their audience, no matter how large their following grows. We make it possible for every subscriber to feel heard and valued, creating authentic connections at scale.
+            <Text style={{ color: 'black', fontFamily: 'questrial', fontSize: 16, lineHeight: 24 }}>
+              We provide a comprehensive platform where creators can share exclusive content with their subscribers, manage their content effectively, and build meaningful relationships with their audience. Our focus is on delivering a seamless, user-friendly experience while maintaining the highest standards of privacy, security, and creator empowerment.
+            </Text>
+          </View>
+
+          <View style={{ marginBottom: 24 }}>
+            <Text style={{ color: '#FD6F3E', fontFamily: 'questrial', fontSize: 18, marginBottom: 8 }}>
+              Our Values
+            </Text>
+            <Text style={{ color: 'black', fontFamily: 'questrial', fontSize: 16, lineHeight: 24 }}>
+              • <Text style={{ fontWeight: 'bold' }}>Creator First:</Text> We prioritize the needs and success of content creators{'\n'}
+              • <Text style={{ fontWeight: 'bold' }}>Privacy & Security:</Text> Your data and content are protected with industry-leading security{'\n'}
+              • <Text style={{ fontWeight: 'bold' }}>Innovation:</Text> Continuously improving our platform with cutting-edge features{'\n'}
+              • <Text style={{ fontWeight: 'bold' }}>Community:</Text> Building strong connections between creators and their audiences{'\n'}
+              • <Text style={{ fontWeight: 'bold' }}>Transparency:</Text> Open and honest communication with our users
+            </Text>
+          </View>
+
+          <View style={{ marginBottom: 24 }}>
+            <Text style={{ color: '#FD6F3E', fontFamily: 'questrial', fontSize: 18, marginBottom: 8 }}>
+              Company Information
+            </Text>
+            <Text style={{ color: 'black', fontFamily: 'questrial', fontSize: 16, lineHeight: 24 }}>
+              <Text style={{ fontWeight: 'bold' }}>Company:</Text> cherrizbox SAS{'\n'}
+              <Text style={{ fontWeight: 'bold' }}>Legal Structure:</Text> French SAS (Société par Actions Simplifiée){'\n'}
+              <Text style={{ fontWeight: 'bold' }}>Registration:</Text> Incorporated in France{'\n'}
+              <Text style={{ fontWeight: 'bold' }}>Business Support:</Text> Legal Place (French business structure service){'\n'}
+              <Text style={{ fontWeight: 'bold' }}>Team Size:</Text> 4 dedicated professionals
             </Text>
           </View>
 
           <View>
-            <Text style={{ color: '#FB2355', fontFamily: 'questrial', fontSize: 18, marginBottom: 8 }}>
-              The Problem We Solve
-            </Text>
-            <Text style={{ color: 'white', fontFamily: 'questrial', fontSize: 16, lineHeight: 24 }}>
-              High-profile creators are drowning in messages. Existing platforms don't allow them to respond to everyone without sacrificing authenticity. We close this gap by ensuring every message gets an answer.
-            </Text>
-          </View>
-
-          <View>
-            <Text style={{ color: '#FB2355', fontFamily: 'questrial', fontSize: 18, marginBottom: 8 }}>
-              Our Team
-            </Text>
-            <Text style={{ color: 'white', fontFamily: 'questrial', fontSize: 16, lineHeight: 24 }}>
-              Founded by engineering students passionate about the creator economy, our team combines technical expertise with deep understanding of what creators and their audiences need. We've been working on this project for over a year, gathering feedback that reinforces our vision.
-            </Text>
-          </View>
-
-          <View>
-            <Text style={{ color: '#FB2355', fontFamily: 'questrial', fontSize: 18, marginBottom: 8 }}>
+            <Text style={{ color: '#FD6F3E', fontFamily: 'questrial', fontSize: 18, marginBottom: 8 }}>
               Contact Us
             </Text>
-            <Text style={{ color: 'white', fontFamily: 'questrial', fontSize: 16, lineHeight: 24 }}>
-              Have questions or suggestions? We'd love to hear from you. Reach out to our support team at support@cherrizbox.com
+            <Text style={{ color: 'black', fontFamily: 'questrial', fontSize: 16, lineHeight: 24 }}>
+              Have questions or suggestions? We'd love to hear from you.{'\n\n'}
+              <Text style={{ fontWeight: 'bold' }}>Support:</Text> support@cherrizbox.app{'\n'}
+              <Text style={{ fontWeight: 'bold' }}>Business:</Text> hello@cherrizbox.app{'\n'}
+              <Text style={{ fontWeight: 'bold' }}>Legal:</Text> legal@cherrizbox.app{'\n\n'}
+              Or reach out through our support channels within the application.
             </Text>
+          </View>
+        </View>
+
+        {/* Built With / Technologies Section */}
+        <View style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 20, marginBottom: 24 }}>
+          <Text style={{ color: '#FD6F3E', fontFamily: 'questrial', fontSize: 18, marginBottom: 12 }}>
+            Built With
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+            <View style={{ width: '33%', alignItems: 'center', marginVertical: 12 }}>
+              <Ionicons name="logo-javascript" size={48} color="#F7DF1E" />
+            </View>
+            <View style={{ width: '33%', alignItems: 'center', marginVertical: 12 }}>
+              <Ionicons name="logo-figma" size={48} color="#F24E1E" />
+            </View>
+            <View style={{ width: '33%', alignItems: 'center', marginVertical: 12 }}>
+              <Ionicons name="logo-react" size={48} color="#61DAFB" />
+            </View>
+            <View style={{ width: '33%', alignItems: 'center', marginVertical: 12 }}>
+              <Ionicons name="logo-nodejs" size={48} color="#339933" />
+            </View>
+            <View style={{ width: '33%', alignItems: 'center', marginVertical: 12 }}>
+              <Ionicons name="logo-npm" size={48} color="#CB3837" />
+            </View>
+            <View style={{ width: '33%', alignItems: 'center', marginVertical: 12 }}>
+              <Ionicons name="logo-python" size={48} color="#3776AB" />
+            </View>
+          </View>
+        </View>
+
+        {/* Follow Us Section */}
+        <View style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 20, marginBottom: 24 }}>
+          <Text style={{ color: '#FD6F3E', fontFamily: 'questrial', fontSize: 18, marginBottom: 12 }}>
+            Follow Us
+          </Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'center' }}>
+            <TouchableOpacity onPress={() => Linking.openURL('https://www.linkedin.com/company/cherrizbox')}>
+              <View style={{ alignItems: 'center' }}>
+                <Ionicons name="logo-linkedin" size={48} color="#0A66C2" />
+                <Text style={{ color: '#0A66C2', fontFamily: 'questrial', marginTop: 6 }}>LinkedIn</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => Linking.openURL('https://www.instagram.com/cherrizbox')}>
+              <View style={{ alignItems: 'center' }}>
+                <Ionicons name="logo-instagram" size={48} color="#E1306C" />
+                <Text style={{ color: '#E1306C', fontFamily: 'questrial', marginTop: 6 }}>Instagram</Text>
+              </View>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>

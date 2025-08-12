@@ -230,10 +230,27 @@ export async function login() {
 
         await account.createSession(userId, secret);
         console.log("[Google OAuth] Session created successfully for user", userId);
+        
+        // Get user info to check email
+        const user = await account.get();
+        if (user.email) {
+            console.log("[Google OAuth] Checking if email is creator:", user.email);
+            const isCreator = await checkIfEmailIsCreator(user.email);
+            if (isCreator) {
+                console.log("[Google OAuth] Email is creator - blocking login");
+                // Delete the session we just created
+                await account.deleteSession('current');
+                throw new Error("CREATOR_EMAIL_BLOCKED");
+            }
+        }
+        
         await ensureUserDocument();
         return true;
     } catch (error) {
         console.error("Google OAuth error:", error);
+        if (error instanceof Error && error.message === "CREATOR_EMAIL_BLOCKED") {
+            throw error; // Re-throw this specific error to be handled by the UI
+        }
         return false;
     }
 }
@@ -267,10 +284,27 @@ export async function loginWithApple() {
 
         await account.createSession(userId, secret);
         console.log("[Apple OAuth] Session created successfully for user", userId);
+        
+        // Get user info to check email
+        const user = await account.get();
+        if (user.email) {
+            console.log("[Apple OAuth] Checking if email is creator:", user.email);
+            const isCreator = await checkIfEmailIsCreator(user.email);
+            if (isCreator) {
+                console.log("[Apple OAuth] Email is creator - blocking login");
+                // Delete the session we just created
+                await account.deleteSession('current');
+                throw new Error("CREATOR_EMAIL_BLOCKED");
+            }
+        }
+        
         await ensureUserDocument();
         return true;
     } catch (error) {
         console.error("Apple OAuth error:", error);
+        if (error instanceof Error && error.message === "CREATOR_EMAIL_BLOCKED") {
+            throw error; // Re-throw this specific error to be handled by the UI
+        }
         return false;
     }
 }
@@ -286,6 +320,14 @@ export async function logout() {
 }
 export async function SignIn(email: string, password: string) {
     try {
+        // First, check if email is a creator before attempting login
+        console.log("[Email Login] Checking if email is creator:", email);
+        const isCreator = await checkIfEmailIsCreator(email);
+        if (isCreator) {
+            console.log("[Email Login] Email is creator - blocking login");
+            throw new Error("CREATOR_EMAIL_BLOCKED");
+        }
+        
         // First, try to delete any existing session
         try {
             await account.deleteSession('current');
@@ -1214,6 +1256,80 @@ export const uploadFileToAppwrite = async (fileUri: string, fileName: string, mi
     console.error('❌ Error uploading file to Appwrite:', error);
     throw new Error(`Failed to upload file: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
+};
+
+// Check if email exists in creator collection
+export const checkIfEmailIsCreator = async (email: string): Promise<boolean> => {
+    try {
+        console.log('🔍 Checking if email exists in creator collection:', email);
+        
+        if (!config.creatorCollectionId) {
+            console.warn('⚠️ Creator collection ID not configured');
+            return false;
+        }
+
+        const creators = await databases.listDocuments(
+            config.databaseId!,
+            config.creatorCollectionId!,
+            [
+                Query.equal('creatoremail', email),
+                Query.limit(1)
+            ]
+        );
+
+        const isCreator = creators.documents.length > 0;
+        console.log(`📊 Email check result: ${isCreator ? 'IS CREATOR' : 'NOT CREATOR'}`);
+        
+        return isCreator;
+    } catch (error) {
+        console.error('❌ Error checking creator email:', error);
+        return false; // In case of error, allow login to proceed
+    }
+};
+
+// Check if user already exists (email or username)
+export const checkIfUserExists = async (email: string, username?: string): Promise<{ exists: boolean; type?: 'email' | 'username' }> => {
+    try {
+        console.log('🔍 Checking if user already exists:', { email, username });
+        
+        // Check if email exists in users collection
+        const emailCheck = await databases.listDocuments(
+            config.databaseId!,
+            config.userCollectionId!,
+            [
+                Query.equal('email', email),
+                Query.limit(1)
+            ]
+        );
+
+        if (emailCheck.documents.length > 0) {
+            console.log('📊 User exists with this email');
+            return { exists: true, type: 'email' };
+        }
+
+        // Check if username exists (if provided)
+        if (username) {
+            const usernameCheck = await databases.listDocuments(
+                config.databaseId!,
+                config.userCollectionId!,
+                [
+                    Query.equal('username', username),
+                    Query.limit(1)
+                ]
+            );
+
+            if (usernameCheck.documents.length > 0) {
+                console.log('📊 User exists with this username');
+                return { exists: true, type: 'username' };
+            }
+        }
+
+        console.log('✅ User does not exist');
+        return { exists: false };
+    } catch (error) {
+        console.error('❌ Error checking if user exists:', error);
+        return { exists: false }; // In case of error, allow signup to proceed
+    }
 };
 
 export async function ensureUserDocument() {

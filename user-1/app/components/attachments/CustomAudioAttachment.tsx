@@ -372,7 +372,7 @@ export const CustomAudioAttachment: React.FC<CustomAudioAttachmentProps> = ({ at
             // During playback, use progress to determine colors
             if (index < activeBars) {
               // Played section - bright pink
-              barColor = '#FB2355';
+              barColor = '#FD6F3E';
             } else if (index === activeBars && activeBars < totalBars) {
               // Currently playing bar - lighter pink
               barColor = '#FF6B8A';

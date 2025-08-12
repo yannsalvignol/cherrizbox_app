@@ -82,7 +82,7 @@ const OtpInput: React.FC<OtpInputProps> = ({
               onBlur={handleBlur}
               keyboardType="number-pad"
               maxLength={1}
-              selectionColor="#FB2355"
+              selectionColor="#FD6F3E"
             />
           </View>
         );
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   inputFocused: {
-    borderColor: '#FB2355',
+    borderColor: '#FD6F3E',
   },
   inputText: {
     fontSize: 24,

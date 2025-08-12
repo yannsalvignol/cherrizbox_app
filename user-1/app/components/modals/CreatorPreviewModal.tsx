@@ -6,14 +6,14 @@ import * as MediaLibrary from 'expo-media-library';
 import * as Sharing from 'expo-sharing';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    Modal,
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  Modal,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 interface CreatorPreviewModalProps {
@@ -369,7 +369,7 @@ export const CreatorPreviewModal: React.FC<CreatorPreviewModalProps> = ({
           >
             {loading ? (
               <View style={{ padding: 40, alignItems: 'center' }}>
-                <ActivityIndicator size="large" color="#FB2355" />
+                <ActivityIndicator size="large" color="#FD6F3E" />
                 <Text style={{ color: 'white', marginTop: 16, fontFamily: 'questrial' }}>
                   Loading profile...
                 </Text>
@@ -547,7 +547,7 @@ export const CreatorPreviewModal: React.FC<CreatorPreviewModalProps> = ({
                           key={contentType}
                           onPress={() => setSelectedContentType(contentType)}
                           style={{
-                            backgroundColor: selectedContentType === contentType ? '#FB2355' : '#404040',
+                            backgroundColor: selectedContentType === contentType ? '#FD6F3E' : '#404040',
                             paddingHorizontal: 12,
                             paddingVertical: 6,
                             borderRadius: 16,
@@ -571,7 +571,7 @@ export const CreatorPreviewModal: React.FC<CreatorPreviewModalProps> = ({
                     {/* Content Display */}
                     {isLoadingContent ? (
                       <View style={{ alignItems: 'center', paddingVertical: 20 }}>
-                        <ActivityIndicator size="small" color="#FB2355" />
+                        <ActivityIndicator size="small" color="#FD6F3E" />
                         <Text style={{ 
     color: '#B9B9B9',
                           fontSize: 12, 
@@ -647,7 +647,7 @@ export const CreatorPreviewModal: React.FC<CreatorPreviewModalProps> = ({
                         
                         {purchasedContent.length > 6 && (
                           <Text style={{ 
-                            color: '#FB2355', 
+                            color: '#FD6F3E', 
                             fontSize: 12, 
                             fontFamily: 'questrial',
                             textAlign: 'center',
@@ -695,7 +695,7 @@ export const CreatorPreviewModal: React.FC<CreatorPreviewModalProps> = ({
           }}>
             <TouchableOpacity 
               style={{
-    backgroundColor: '#FB2355',
+    backgroundColor: '#FD6F3E',
                 borderRadius: 12,
                 paddingVertical: 12,
                 alignItems: 'center'
@@ -844,7 +844,7 @@ export const CreatorPreviewModal: React.FC<CreatorPreviewModalProps> = ({
                 <View style={{ padding: 16 }}>
                   <TouchableOpacity
                     style={{
-                      backgroundColor: isDownloadComplete ? '#4CAF50' : (isProcessing ? '#999' : '#FB2355'),
+                      backgroundColor: isDownloadComplete ? '#4CAF50' : (isProcessing ? '#999' : '#FD6F3E'),
                       padding: 16,
                       borderRadius: 8,
                       alignItems: 'center',

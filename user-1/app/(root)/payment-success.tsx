@@ -197,7 +197,7 @@ export default function PaymentSuccess() {
     <View style={styles.container}>
       {/* Animated background gradient with app colors */}
       <LinearGradient
-        colors={['#191A1D', '#FB2355', '#191A1D']}
+        colors={['#191A1D', '#FD6F3E', '#191A1D']}
         style={styles.backgroundGradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -267,7 +267,7 @@ export default function PaymentSuccess() {
           ]}
         >
           <LinearGradient
-            colors={['#FB2355', '#FFD700']}
+            colors={['#FD6F3E', '#FFD700']}
             style={styles.iconGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -358,7 +358,7 @@ const styles = StyleSheet.create({
     borderRadius: 60,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#FB2355',
+    shadowColor: '#FD6F3E',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
@@ -401,7 +401,7 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#FB2355',
+    shadowColor: '#FD6F3E',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

@@ -49,7 +49,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#FB2355"
+        "backgroundColor": "#FD6F3E"
       },
       "edgeToEdgeEnabled": true,
       "intentFilters": [
@@ -106,7 +106,7 @@
         {
           "image": "./assets/images/cherry.png",
           "resizeMode": "cover",
-          "backgroundColor": "#FB2355",
+          "backgroundColor": "#FD6F3E",
           "enableFullScreenImage_legacy": true
         }
       ],

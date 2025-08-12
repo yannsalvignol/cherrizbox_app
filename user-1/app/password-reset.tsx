@@ -69,7 +69,7 @@ const PasswordReset = () => {
                 />
                 
                 <TouchableOpacity 
-                    className={`w-full bg-[#FB2355] py-5 rounded-full mt-10 ${isSubmitting ? 'opacity-50' : ''}`}
+                    className={`w-full bg-[#FD6F3E] py-5 rounded-full mt-10 ${isSubmitting ? 'opacity-50' : ''}`}
                     onPress={handleSubmit}
                     disabled={isSubmitting}
                 >

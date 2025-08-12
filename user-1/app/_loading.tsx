@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#FB2355',
+    backgroundColor: '#FD6F3E',
     marginHorizontal: 4,
   },
   channelText: {

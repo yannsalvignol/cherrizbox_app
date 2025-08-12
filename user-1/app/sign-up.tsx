@@ -1,4 +1,4 @@
-import { createUser, ensureUserDocument, login, loginWithApple, sendVerificationEmailViaFunction, SignIn } from '@/lib/appwrite';
+import { checkIfEmailIsCreator, checkIfUserExists, createUser, ensureUserDocument, login, loginWithApple, sendVerificationEmailViaFunction, SignIn } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, useRouter } from 'expo-router';
@@ -102,13 +102,47 @@ const App = () => {
             return;
         }
 
-        console.log(`✅ [handleSendVerification] Form validation passed, generating verification code`);
         setIsSubmitting(true);
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
-        setGeneratedCode(code);
-        console.log(`🔢 [handleSendVerification] Generated verification code: ${code}`);
-        
+
         try {
+            // Check if email is a creator first
+            console.log(`🔍 [handleSendVerification] Checking if email is creator`);
+            const isCreator = await checkIfEmailIsCreator(form.email);
+            if (isCreator) {
+                console.log(`❌ [handleSendVerification] Email is creator - blocking signup`);
+                Alert.alert(
+                    'Account Already Exists',
+                    'You already have an account on Cherrizbox app. You need to use a different address to use Cherrizbox Pro.',
+                    [{ text: 'OK' }]
+                );
+                return;
+            }
+
+            // Check if user already exists
+            console.log(`🔍 [handleSendVerification] Checking if user already exists`);
+            const userCheck = await checkIfUserExists(form.email, form.username);
+            if (userCheck.exists) {
+                console.log(`❌ [handleSendVerification] User already exists:`, userCheck.type);
+                const message = userCheck.type === 'email' 
+                    ? 'An account with this email address already exists. Please use a different email or try logging in instead.'
+                    : 'This username is already taken. Please choose a different username.';
+                
+                Alert.alert(
+                    'Account Already Exists',
+                    message,
+                    [
+                        { text: 'Try Login', onPress: () => router.push('/log-in') },
+                        { text: 'OK', style: 'cancel' }
+                    ]
+                );
+                return;
+            }
+
+            console.log(`✅ [handleSendVerification] User checks passed, generating verification code`);
+            const code = Math.floor(100000 + Math.random() * 900000).toString();
+            setGeneratedCode(code);
+            console.log(`🔢 [handleSendVerification] Generated verification code: ${code}`);
+            
             console.log(`📧 [handleSendVerification] Calling email verification function`);
             await sendVerificationEmailViaFunction(form.email, code);
             console.log(`✅ [handleSendVerification] Email verification successful`);
@@ -117,15 +151,16 @@ const App = () => {
             setResendButtonDisabled(true);
             console.log(`⏰ [handleSendVerification] Timer reset to 600 seconds`);
         } catch (error) {
-            console.log(`❌ [handleSendVerification] Email verification failed:`, error);
+            console.log(`❌ [handleSendVerification] Process failed:`, error);
             if (error instanceof Error) {
                 Alert.alert('Error', error.message);
             } else {
                 Alert.alert('Error', 'Could not send verification email. Please try again.');
             }
+        } finally {
+            setIsSubmitting(false);
+            console.log(`🏁 [handleSendVerification] Process completed`);
         }
-        setIsSubmitting(false);
-        console.log(`🏁 [handleSendVerification] Process completed`);
     };
 
     const handleVerifyAndCreateAccount = async () => {
@@ -148,10 +183,24 @@ const App = () => {
             refetch();
             router.replace('/welcome-animation');
         } catch (error) {
+            console.log('❌ [handleVerifyAndCreateAccount] Account creation failed:', error);
+            
             if (error instanceof Error) {
-                Alert.alert('Error', error.message);
+                // Check for specific Appwrite duplicate user error
+                if (error.message.includes('A user with the same id, email, or phone already exists')) {
+                    Alert.alert(
+                        'Account Already Exists',
+                        'An account with this email address already exists. Please try logging in instead.',
+                        [
+                            { text: 'Try Login', onPress: () => router.push('/log-in') },
+                            { text: 'OK', style: 'cancel' }
+                        ]
+                    );
+                } else {
+                    Alert.alert('Error', error.message);
+                }
             } else {
-                Alert.alert('Error', 'Failed to create account');
+                Alert.alert('Error', 'Failed to create account. Please try again.');
             }
         } finally {
             setIsSubmitting(false);
@@ -159,22 +208,40 @@ const App = () => {
     };
 
     const handleLogin = async () => {
-        const result = await login();
-        if(result){
-            await ensureUserDocument();
-            refetch();
-        } else{
-            console.log('Login Failed');
+        try {
+            const result = await login();
+            if(result){
+                await ensureUserDocument();
+                refetch();
+                router.replace('/welcome-animation');
+            } else{
+                console.log('Login Failed');
+            }
+        } catch (error: any) {
+            if (error?.message === "CREATOR_EMAIL_BLOCKED") {
+                router.push('/email-exists-error');
+            } else {
+                console.log('Login Failed:', error);
+            }
         }
     };
 
     const handleAppleLogin = async () => {
-        const result = await loginWithApple();
-        if(result){
-            await ensureUserDocument();
-            refetch();
-        } else{
-            console.log('Apple Login Failed');
+        try {
+            const result = await loginWithApple();
+            if(result){
+                await ensureUserDocument();
+                refetch();
+                router.replace('/welcome-animation');
+            } else{
+                console.log('Apple Login Failed');
+            }
+        } catch (error: any) {
+            if (error?.message === "CREATOR_EMAIL_BLOCKED") {
+                router.push('/email-exists-error');
+            } else {
+                console.log('Apple Login Failed:', error);
+            }
         }
     };
 
@@ -220,7 +287,7 @@ const App = () => {
                             ) : null}
 
                             <TouchableOpacity 
-                                className={`w-full bg-[#FB2355] py-5 rounded-full mt-12 ${isSubmitting ? 'opacity-50' : ''}`}
+                                className={`w-full bg-[#FD6F3E] py-5 rounded-full mt-12 ${isSubmitting ? 'opacity-50' : ''}`}
                                 onPress={handleVerifyAndCreateAccount}
                                 disabled={isSubmitting || verificationCode.length !== 6}
                             >
@@ -232,7 +299,7 @@ const App = () => {
                             <View className="flex-row items-center mt-6">
                                 <Text className="text-gray-500 font-['Urbanist-Regular']">Didn't receive a code?</Text>
                                 <TouchableOpacity onPress={handleSendVerification} disabled={resendButtonDisabled || timer > 0}>
-                                    <Text className={`font-['Urbanist-Bold'] ml-2 ${resendButtonDisabled || timer > 0 ? 'text-gray-400' : 'text-[#FB2355]'}`}>
+                                    <Text className={`font-['Urbanist-Bold'] ml-2 ${resendButtonDisabled || timer > 0 ? 'text-gray-400' : 'text-[#FD6F3E]'}`}>
                                         Resend {timer > 0 ? `(${Math.floor(timer / 60)}:${(timer % 60).toString().padStart(2, '0')})` : ''}
                                     </Text>
                                 </TouchableOpacity>
@@ -276,7 +343,7 @@ const App = () => {
                                 disableAutofill
                     />
                     <TouchableOpacity 
-                        className={`w-full bg-[#FB2355] py-6 rounded-full mt-7 ${isSubmitting ? 'opacity-50' : ''}`}
+                        className={`w-full bg-[#FD6F3E] py-6 rounded-full mt-7 ${isSubmitting ? 'opacity-50' : ''}`}
                                 onPress={handleSendVerification}
                         disabled={isSubmitting}
                     >
@@ -326,7 +393,7 @@ const App = () => {
                             Already have an account?{' '}
                         </Text>
                         <TouchableOpacity onPress={() => router.push('/log-in')}>
-                            <Text className="text-[#FB2355] font-['Urbanist-Bold']">
+                            <Text className="text-[#FD6F3E] font-['Urbanist-Bold']">
                                 Login Now
                             </Text>
                         </TouchableOpacity>
