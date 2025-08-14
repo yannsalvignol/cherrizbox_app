@@ -76,7 +76,7 @@ const trendingTopics = [
 
 export default function EditProfile() {
   const router = useRouter();
-  const { user: globalUser, refreshChannelConditions, userCurrency, getCachedProfile, preloadProfileData } = useGlobalContext();
+  const { user: globalUser, refreshChannelConditions, userCurrency, getCachedProfile, preloadProfileData, clearProfileCache } = useGlobalContext();
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [name, setName] = useState('');
@@ -121,7 +121,7 @@ export default function EditProfile() {
   const [userPhotoThumbnail, setUserPhotoThumbnail] = useState<string | null>(null);
   const [compressedThumbnail, setCompressedThumbnail] = useState<string | null>(null);
   const [photoTitle, setPhotoTitle] = useState<string>('');
-  const [photoState, setPhotoState] = useState<string>('');
+
   const [showPhoneNumberModal, setShowPhoneNumberModal] = useState(false);
   const [tempPhoneNumber, setTempPhoneNumber] = useState('');
 
@@ -299,7 +299,6 @@ export default function EditProfile() {
               setUserPhotoThumbnail(userPhoto.thumbnail);
               setCompressedThumbnail(userPhoto.compressed_thumbnail);
               setPhotoTitle(userPhoto.title);
-              setPhotoState(userPhoto.state || '');
             }
             // Extract pricing from payment attribute
             if (userPhoto && userPhoto.payment) {
@@ -599,11 +598,21 @@ export default function EditProfile() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Vibration.vibrate(100); // Short vibration for success
       
-      // Refresh channel conditions to update the missing info modal on index.tsx
-      await refreshChannelConditions();
-      
-      // Preload fresh profile data to update cache
-      await preloadProfileData();
+      // Force refresh channel conditions to update the missing info modal on index.tsx
+      // This will clear cache and fetch fresh data to ensure the modal shows the latest state
+      try {
+        await refreshChannelConditions(true);
+      } catch (refreshError) {
+        console.error('Error refreshing channel conditions after profile update:', refreshError);
+        // Try once more with a delay in case of temporary network issues
+        setTimeout(async () => {
+          try {
+            await refreshChannelConditions(true);
+          } catch (retryError) {
+            console.error('Retry failed for refreshing channel conditions:', retryError);
+          }
+        }, 1000);
+      }
       
       // Hide success message after 2 seconds
       setTimeout(() => {
@@ -1630,8 +1639,21 @@ export default function EditProfile() {
                           currency: selectedCurrency
                         });
                         
-                        // Refresh channel conditions to update the missing info modal on index.tsx
-                        await refreshChannelConditions();
+                        // Force refresh channel conditions to update the missing info modal on index.tsx
+                        // This will clear cache and fetch fresh data to ensure the modal shows the latest state
+                        try {
+                          await refreshChannelConditions(true);
+                        } catch (refreshError) {
+                          console.error('Error refreshing channel conditions after pricing update:', refreshError);
+                          // Try once more with a delay in case of temporary network issues
+                          setTimeout(async () => {
+                            try {
+                              await refreshChannelConditions(true);
+                            } catch (retryError) {
+                              console.error('Retry failed for refreshing channel conditions:', retryError);
+                            }
+                          }, 1000);
+                        }
                         
                         // Show success message
                         setSuccessMessage('Prices saved successfully!');
@@ -2345,7 +2367,7 @@ export default function EditProfile() {
               followerCount={0}
               monthlyPrice={monthlyPrice}
               yearlyPrice={yearlyPrice}
-              state={photoState}
+
               creatorsname={creatorName}
               topics={topics.join(', ')}
               ProfilesBio={bio}

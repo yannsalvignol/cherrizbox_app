@@ -1,10 +1,12 @@
+import { formatPrice } from '@/lib/currency-utils';
 import { useGlobalContext } from '@/lib/global-provider';
 import { client } from '@/lib/stream-chat';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import * as Sharing from 'expo-sharing';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Animated, Platform, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Animated, Dimensions, Image, Modal, Platform, Text, TouchableOpacity, View } from 'react-native';
 import { useMessagesContext } from 'stream-chat-react-native';
 
 interface CustomMessageModalProps {
@@ -18,6 +20,8 @@ interface CustomMessageModalProps {
 
 const CustomMessageModal = ({ visible, onClose, message, onThreadReply, onEditMessage, onOpenImage }: CustomMessageModalProps) => {
   const [showReactions, setShowReactions] = useState(false);
+  const [showFullScreenImage, setShowFullScreenImage] = useState(false);
+  const [fullScreenImageUrl, setFullScreenImageUrl] = useState<string>('');
   const { supportedReactions } = useMessagesContext();
   const { user } = useGlobalContext();
   
@@ -30,6 +34,11 @@ const CustomMessageModal = ({ visible, onClose, message, onThreadReply, onEditMe
   // Animate modal appearance
   useEffect(() => {
     if (visible) {
+      // Add haptic feedback when modal opens
+      if (Platform.OS === 'ios') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      }
+      
       // Reset animations
       fadeAnim.setValue(0);
       scaleAnim.setValue(0.8);
@@ -133,18 +142,42 @@ const CustomMessageModal = ({ visible, onClose, message, onThreadReply, onEditMe
     }
   };
 
-  // Handle open image
+  // Helper function to format timestamp
+  const formatTimestamp = (timestamp: string) => {
+    try {
+      const date = new Date(timestamp);
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (error) {
+      return '';
+    }
+  };
+
+  // Helper function to format file size
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  // Handle open image - keep message modal open
   const handleOpenImage = () => {
-    handleClose();
-    if (message && onOpenImage) {
+    if (message) {
       // Find the first image attachment
       const imageAttachment = message.attachments?.find((att: any) => 
-        att?.type === 'custom_photo' || att?.type === 'paid_content' || att?.image_url
+        att?.type === 'custom_photo' || att?.type === 'paid_content' || att?.type === 'custom_attachment' || att?.image_url
       );
-      if (imageAttachment?.image_url) {
-        setTimeout(() => {
-          onOpenImage(imageAttachment.image_url);
-        }, 50);
+      
+      if (imageAttachment) {
+        // Get image URL from different attachment types
+        const imageUrl = imageAttachment?.image_url || 
+                        imageAttachment?.appwrite_url || 
+                        imageAttachment?.local_uri;
+        
+        if (imageUrl) {
+          // Don't close the message modal - open image on top
+          setFullScreenImageUrl(imageUrl);
+          setShowFullScreenImage(true);
+        }
       }
     }
   };
@@ -167,9 +200,17 @@ const CustomMessageModal = ({ visible, onClose, message, onThreadReply, onEditMe
         if (existingReaction) {
           // Remove the reaction if it already exists
           await channel.deleteReaction(message.id, reactionType);
+          // Light haptic for removing reaction
+          if (Platform.OS === 'ios') {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          }
         } else {
           // Add the reaction if it doesn't exist
           await channel.sendReaction(message.id, { type: reactionType });
+          // Medium haptic for adding reaction
+          if (Platform.OS === 'ios') {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          }
         }
       }
     } catch (error) {
@@ -332,7 +373,12 @@ const CustomMessageModal = ({ visible, onClose, message, onThreadReply, onEditMe
               </TouchableOpacity>
 
               {/* Open Image Button - only show for messages with images */}
-              {message?.attachments?.some((att: any) => att?.type === 'custom_photo' || att?.type === 'paid_content' || att?.image_url) && onOpenImage && (
+              {message?.attachments?.some((att: any) => 
+                att?.type === 'custom_photo' || 
+                att?.type === 'paid_content' || 
+                (att?.type === 'custom_attachment' && att?.attachment_type === 'image') || 
+                att?.image_url
+              ) && (
                 <TouchableOpacity
                   style={{
                     flexDirection: 'row',
@@ -542,6 +588,185 @@ const CustomMessageModal = ({ visible, onClose, message, onThreadReply, onEditMe
           </Animated.View>
         </Animated.View>
       </View>
+
+      {/* Full Screen Image Modal - Higher z-index to appear on top */}
+      <Modal
+        visible={showFullScreenImage}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowFullScreenImage(false)}
+      >
+        <StatusBar style="light" />
+        <View style={{
+          flex: 1,
+          backgroundColor: 'black',
+        }}>
+          {/* Close button */}
+          <TouchableOpacity
+            style={{
+              position: 'absolute',
+              top: 50,
+              right: 20,
+              zIndex: 10,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              borderRadius: 20,
+              width: 40,
+              height: 40,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+            onPress={() => setShowFullScreenImage(false)}
+          >
+            <Ionicons name="close" size={24} color="white" />
+          </TouchableOpacity>
+          
+          {/* Full screen image */}
+          <TouchableOpacity 
+            style={{ 
+              flex: 1, 
+              width: '100%',
+              justifyContent: 'center',
+              alignItems: 'center',
+              paddingBottom: 100, // Space for footer
+            }}
+            onPress={() => setShowFullScreenImage(false)}
+            activeOpacity={1}
+          >
+            <Image
+              source={{ uri: fullScreenImageUrl }}
+              style={{
+                width: Dimensions.get('window').width,
+                height: Dimensions.get('window').height - 100,
+              }}
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
+          
+          {/* Footer with actions */}
+          <View style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 100,
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-around',
+            paddingHorizontal: 20,
+            paddingBottom: 20,
+          }}>
+            {/* Download/Share Button */}
+            <TouchableOpacity
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                borderRadius: 25,
+                width: 50,
+                height: 50,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+              onPress={async () => {
+                try {
+                  if (fullScreenImageUrl && await Sharing.isAvailableAsync()) {
+                    await Sharing.shareAsync(fullScreenImageUrl, {
+                      mimeType: 'image/jpeg',
+                      dialogTitle: 'Image',
+                    });
+                  }
+                } catch (error) {
+                  console.error('Failed to share image:', error);
+                  Alert.alert('Error', 'Failed to share image');
+                }
+              }}
+            >
+              <Ionicons name="download-outline" size={24} color="white" />
+            </TouchableOpacity>
+            
+            {/* Message info */}
+            <View style={{
+              alignItems: 'center',
+              flex: 1,
+              marginHorizontal: 20,
+            }}>
+              {/* Extract tip info from custom_attachment */}
+              {(() => {
+                const attachment = message?.attachments?.find((att: any) => 
+                  att?.type === 'custom_attachment' && att?.attachment_type === 'image'
+                );
+                const tipAmount = attachment?.tip_amount;
+                const currency = attachment?.currency;
+                const timestamp = attachment?.timestamp || message?.created_at;
+                
+                return (
+                  <>
+                    {tipAmount && currency && (
+                      <View style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        marginBottom: 4,
+                      }}>
+                        <Text style={{
+                          color: '#FFD700',
+                          fontSize: 16,
+                          fontFamily: 'Urbanist-Bold',
+                          marginRight: 6,
+                        }}>
+                          💰
+                        </Text>
+                        <Text style={{
+                          color: '#FFFFFF',
+                          fontSize: 16,
+                          fontFamily: 'Urbanist-Bold',
+                        }}>
+                          {formatPrice(tipAmount * 100, currency)}
+                        </Text>
+                      </View>
+                    )}
+                    {timestamp && (
+                      <Text style={{
+                        color: '#CCCCCC',
+                        fontSize: 12,
+                        fontFamily: 'questrial',
+                      }}>
+                        {formatTimestamp(timestamp)}
+                      </Text>
+                    )}
+                  </>
+                );
+              })()}
+            </View>
+            
+            {/* Info Button */}
+            <TouchableOpacity
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                borderRadius: 25,
+                width: 50,
+                height: 50,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+              onPress={() => {
+                const attachment = message?.attachments?.find((att: any) => 
+                  att?.type === 'custom_attachment' && att?.attachment_type === 'image'
+                ) || message?.attachments?.[0];
+                
+                const fileSize = attachment?.file_size ? formatFileSize(attachment.file_size) : 'Unknown size';
+                const fileName = attachment?.title || 'Image';
+                const timestamp = attachment?.timestamp || message?.created_at;
+                
+                Alert.alert(
+                  'Image Info',
+                  `Name: ${fileName}\nSize: ${fileSize}\nTime: ${timestamp ? formatTimestamp(timestamp) : 'Unknown'}`
+                );
+              }}
+            >
+              <Ionicons name="information-circle-outline" size={24} color="white" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 };

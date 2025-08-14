@@ -2,7 +2,9 @@ import {
   ChannelList,
   SearchBar
 } from '@/app/components/channels';
-import { BatchTipUpdater } from '@/app/components/channels/ChannelItem';
+
+import EarningsChart from '@/app/components/charts/EarningsChart';
+import CircularProgress from '@/app/components/CircularProgress';
 import {
   CustomNotificationModal,
   NetworkErrorModal,
@@ -22,7 +24,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, AppState, FlatList, Image, KeyboardAvoidingView, Modal, Platform, RefreshControl, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, FlatList, Image, KeyboardAvoidingView, Modal, Platform, RefreshControl, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 
@@ -53,6 +55,12 @@ interface StripeConnectProfile {
   number_of_yearly_subscriptions?: number;
   number_of_cancelled_monthly_sub?: number;
   number_of_cancelled_yearly_sub?: number;
+  // Daily earnings tracking
+  dailyEarnings?: string; // JSON string of date -> amount
+  todayEarnings?: number;
+  weekEarnings?: number;
+  monthEarnings?: number;
+  yearEarnings?: number;
 }
 
 export default function Index() {
@@ -74,12 +82,26 @@ export default function Index() {
   const [profileImage, setProfileImage] = useState<string | null>(null);
   
   // Handle live channel updates from Stream Chat
-  const handleChannelUpdate = (channelId: string, updates: Partial<Channel>) => {
+  const handleChannelUpdate = (channelId: string, updates: Partial<Channel & { hasTip?: boolean }>) => {
     console.log(`🔄 [Index] Updating channel ${channelId} with:`, updates);
+    
+    // If this update includes a tip, add channel to uncollected tips
+    if (updates.hasTip) {
+      setUncollectedTips(prev => {
+        const newSet = new Set(prev);
+        newSet.add(channelId);
+        console.log(`💰 [Index] Added ${channelId} to uncollected tips`);
+        return newSet;
+      });
+    }
+    
+    // Remove the hasTip flag before updating channels (it's not part of Channel interface)
+    const { hasTip, ...channelUpdates } = updates;
+    
     setChannels(prevChannels => 
       prevChannels.map(channel => 
         channel.id === channelId 
-          ? { ...channel, ...updates }
+          ? { ...channel, ...channelUpdates }
           : channel
       )
     );
@@ -89,11 +111,21 @@ export default function Index() {
       setFilteredChannels(prevFiltered => 
         prevFiltered.map(channel => 
           channel.id === channelId 
-            ? { ...channel, ...updates }
+            ? { ...channel, ...channelUpdates }
             : channel
         )
       );
     }
+  };
+
+  // Handle tip collection (when user opens a channel with tips)
+  const handleTipCollected = (channelId: string) => {
+    setUncollectedTips(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(channelId);
+      console.log(`✅ [Index] Removed ${channelId} from uncollected tips`);
+      return newSet;
+    });
   };
     const [selectedTab, setSelectedTab] = useState('chats');
     const [refreshing, setRefreshing] = useState(false);
@@ -104,7 +136,7 @@ export default function Index() {
     const [isLoadingFinancials, setIsLoadingFinancials] = useState(false);
     const [payoutTab, setPayoutTab] = useState('history');
     const [isLoadingInsights, setIsLoadingInsights] = useState(false);
-    const [openInfoBubble, setOpenInfoBubble] = useState<null | 'lifetime' | 'available' | 'pending' | 'current'>(null);
+    const [openInfoBubble, setOpenInfoBubble] = useState<null | 'lifetime' | 'available' | 'pending' | 'current' | 'total' | 'transit' | 'earnings'>(null);
     const [audience, setAudience] = useState<any[]>([]);
     const [isLoadingAudience, setIsLoadingAudience] = useState(false);
     const [audienceSearch, setAudienceSearch] = useState('');
@@ -127,6 +159,10 @@ export default function Index() {
   const [showNetworkErrorModal, setShowNetworkErrorModal] = useState(false);
   const [userCurrency, setUserCurrency] = useState('USD');
   const [showPaymentStatusInfo, setShowPaymentStatusInfo] = useState(false);
+  const [uncollectedTips, setUncollectedTips] = useState<Set<string>>(new Set());
+  const [earningsTimeframe, setEarningsTimeframe] = useState<'weekly' | 'monthly' | 'yearly'>('weekly');
+  const [dailyGoal, setDailyGoal] = useState(0);
+  const [weeklyGoal, setWeeklyGoal] = useState(0);
 
 
 
@@ -149,7 +185,7 @@ export default function Index() {
     const [filteredChannels, setFilteredChannels] = useState<Channel[]>([]);
     
     // Cache for user profiles to avoid redundant API calls
-    const userProfileCache = useRef<Map<string, { name: string; avatar: string; uncashedTipAmount: number; documentId: string; timestamp: number }>>(new Map());
+    const userProfileCache = useRef<Map<string, { name: string; avatar: string; documentId: string; timestamp: number }>>(new Map());
     const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
     const CHANNELS_PER_PAGE = 30; // Load 30 channels at a time
 
@@ -165,7 +201,7 @@ export default function Index() {
     
     setIsCheckingConditions(true);
     try {
-      await refreshChannelConditions();
+      await refreshChannelConditions(true); // Force refresh to ensure latest data
     } catch (error) {
       console.error('❌ [Conditions] Error checking channel conditions:', error);
     } finally {
@@ -174,7 +210,10 @@ export default function Index() {
   };
 
   const loadChannels = async (loadMore = false) => {
-    if (!user?.$id) return;
+    if (!user?.$id) {
+      console.log('⚠️ [Channels] No authenticated user, skipping channel load');
+      return;
+    }
 
     try {
       if (!loadMore) {
@@ -334,18 +373,10 @@ export default function Index() {
           const userPhoto = await getUserPhoto(user.$id);
           
           if (userPhoto) {
-            // Update existing photo document
-            await databases.updateDocument(
-              config.databaseId,
-              config.photoCollectionId,
-              userPhoto.$id,
-              {
-                state: 'required'
-              }
-            );
-            console.log('✅ [Channels] Updated existing photo document state to required');
+            // Photo document already exists, no update needed
+            console.log('✅ [Channels] Photo document already exists');
           } else {
-            // Create new photo document with 'required' state
+            // Create new photo document
             await databases.createDocument(
               config.databaseId,
               config.photoCollectionId,
@@ -362,11 +393,10 @@ export default function Index() {
                   yearlyPrice: userPhoto && (userPhoto as any).payment ? JSON.parse((userPhoto as any).payment).yearlyPrice : '0'
                 }),
                 PhotoTopics: profile?.topics || '',
-                Bio: profile?.ProfilesBio || '',
-                state: 'required'
+                Bio: profile?.ProfilesBio || ''
               }
             );
-            console.log('✅ [Channels] Created new photo document with required state');
+            console.log('✅ [Channels] Created new photo document');
           }
           
           // Send verification notification email
@@ -507,7 +537,6 @@ export default function Index() {
           if (channel.id.startsWith('dm-')) {
             const memberNames: { [userId: string]: string } = {};
             const memberAvatars: { [userId: string]: string } = {};
-            const memberTipAmounts: { [userId: string]: number } = {};
             
           // Get cached data for other members
             const otherMembers = channel.members.filter(memberId => memberId !== user?.$id);
@@ -517,19 +546,37 @@ export default function Index() {
             if (cachedProfile) {
               memberNames[memberId] = cachedProfile.name;
               memberAvatars[memberId] = cachedProfile.avatar;
-              memberTipAmounts[memberId] = cachedProfile.uncashedTipAmount;
             } else {
               // Fallback if not in cache (shouldn't happen after batch fetch)
               memberNames[memberId] = memberId;
               memberAvatars[memberId] = '';
-              memberTipAmounts[memberId] = 0;
               }
             }
             
-            return { ...channel, memberNames, memberAvatars, memberTipAmounts };
+            return { ...channel, memberNames, memberAvatars };
           }
           return channel;
       });
+
+      // Check for existing tip messages and add to uncollected tips
+      if (!loadMore) {
+        const channelsWithTips = channelsWithNames
+          .filter(channel => 
+            channel.id.startsWith('dm-') && 
+            channel.lastMessage && 
+            channel.lastMessage.includes('💝 Tip:')
+          )
+          .map(channel => channel.id);
+        
+        if (channelsWithTips.length > 0) {
+          setUncollectedTips(prev => {
+            const newSet = new Set(prev);
+            channelsWithTips.forEach(channelId => newSet.add(channelId));
+            console.log(`💰 [Index] Found ${channelsWithTips.length} channels with existing tips`);
+            return newSet;
+          });
+        }
+      }
 
       // Sort channels: group chat first, then by last message time
       const sortedChannels = channelsWithNames.sort((a, b) => {
@@ -645,7 +692,6 @@ export default function Index() {
           userProfileCache.current.set(userData.accountId, {
             name: userData.username || userData.accountId,
             avatar: userData.profileImageUri || userData.avatar || '',
-            uncashedTipAmount: userData.uncashed_tip_amount || 0,
             documentId: userData.$id,
             timestamp: now
           });
@@ -657,7 +703,6 @@ export default function Index() {
             userProfileCache.current.set(memberId, {
               name: memberId,
               avatar: '',
-              uncashedTipAmount: 0,
               documentId: '', // No document ID for users not found
               timestamp: now
             });
@@ -726,9 +771,17 @@ export default function Index() {
             
             console.log('✅ [SocialMedia] Code verified successfully, account_state set to ok');
             
-            // Update all documents in the photo collection for this user
+            // Copy all photo documents to the available collection for this user
             try {
-              console.log('🔄 [PhotoCollection] Updating photo collection state to "ok" for user:', user.$id);
+              console.log('🔄 [PhotoCollection] Copying photo documents to available collection for user:', user.$id);
+              console.log('🔍 [PhotoCollection] Available collection ID:', config.photosAvailableToUsersCollectionId);
+              
+              // Check if the new collection ID is configured
+              if (!config.photosAvailableToUsersCollectionId) {
+                console.error('❌ [PhotoCollection] EXPO_PUBLIC_APPWRITE_PHOTOS_AVAILABLE_TO_USERS environment variable not set');
+                console.log('⚠️ [PhotoCollection] Skipping photo document processing - new collection not configured');
+                return; // Exit early if new collection is not configured
+              }
               
               // Get all photo documents for this user
               const photoDocs = await databases.listDocuments(
@@ -737,37 +790,53 @@ export default function Index() {
                 [Query.equal('IdCreator', user.$id)]
               );
               
-              console.log(`📸 [PhotoCollection] Found ${photoDocs.documents.length} photo documents to update`);
+              console.log(`📸 [PhotoCollection] Found ${photoDocs.documents.length} photo documents to copy`);
               
-              // Update each photo document's state to 'ok'
-              const updatePromises = photoDocs.documents.map(async (photoDoc) => {
+              // Copy each photo document to the available collection
+              const copyPromises = photoDocs.documents.map(async (photoDoc) => {
                 try {
-                  await databases.updateDocument(
+                  // Create document in the available collection
+                  const { ID } = await import('react-native-appwrite');
+                  await databases.createDocument(
                     config.databaseId,
-                    config.photoCollectionId,
-                    photoDoc.$id,
-                    { state: 'ok' }
+                    config.photosAvailableToUsersCollectionId,
+                    ID.unique(),
+                    {
+                      // Only include allowed attributes based on the error message
+                      thumbnail: photoDoc.thumbnail,
+                      title: photoDoc.title,
+                      prompte: photoDoc.prompte,
+                      IdCreator: photoDoc.IdCreator,
+                      payment: photoDoc.payment,
+                      PhotosLocation: photoDoc.PhotosLocation,
+                      PhotoTopics: photoDoc.PhotoTopics,
+                      Bio: photoDoc.Bio,
+                      compressed_thumbnail: photoDoc.compressed_thumbnail,
+                      // Add currency if it exists in the original document
+                      ...(photoDoc.currency && { currency: photoDoc.currency })
+                    }
                   );
-                  console.log(`✅ [PhotoCollection] Updated photo document ${photoDoc.$id} state to "ok"`);
+                  
+                  console.log(`✅ [PhotoCollection] Copied photo document ${photoDoc.$id} to available collection`);
                   return { success: true, id: photoDoc.$id };
                 } catch (error) {
-                  console.error(`❌ [PhotoCollection] Failed to update photo document ${photoDoc.$id}:`, error);
+                  console.error(`❌ [PhotoCollection] Failed to copy photo document ${photoDoc.$id}:`, error);
                   return { success: false, id: photoDoc.$id, error };
                 }
               });
               
-              const results = await Promise.allSettled(updatePromises);
+              const results = await Promise.allSettled(copyPromises);
               const successful = results.filter(result => result.status === 'fulfilled' && result.value.success).length;
               const failed = results.filter(result => result.status === 'rejected' || (result.status === 'fulfilled' && !result.value.success)).length;
               
-              console.log(`📊 [PhotoCollection] Update summary: ${successful} successful, ${failed} failed`);
+              console.log(`📊 [PhotoCollection] Copy summary: ${successful} copied successfully, ${failed} failed`);
               
               if (failed > 0) {
-                console.warn(`⚠️ [PhotoCollection] Some photo documents failed to update. Check logs above for details.`);
+                console.warn(`⚠️ [PhotoCollection] Some photo documents failed to copy. Check logs above for details.`);
               }
               
             } catch (error) {
-              console.error('❌ [PhotoCollection] Error updating photo collection:', error);
+              console.error('❌ [PhotoCollection] Error copying photo documents:', error);
               // Don't throw here - we don't want to break the main verification flow
             }
             
@@ -913,6 +982,48 @@ export default function Index() {
     }
   };
 
+  // Helper function to calculate earnings for different timeframes
+  const calculateTimeframeEarnings = (dailyEarnings: any, timeframe: 'weekly' | 'monthly' | 'yearly') => {
+    if (!dailyEarnings || typeof dailyEarnings !== 'object') return 0;
+    
+    const today = new Date();
+    let total = 0;
+    
+    if (timeframe === 'weekly') {
+      // Last 7 days
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        if (dailyEarnings[dateStr]) {
+          total += dailyEarnings[dateStr];
+        }
+      }
+    } else if (timeframe === 'monthly') {
+      // Last 30 days
+      for (let i = 0; i < 30; i++) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        if (dailyEarnings[dateStr]) {
+          total += dailyEarnings[dateStr];
+        }
+      }
+    } else if (timeframe === 'yearly') {
+      // Last 365 days
+      for (let i = 0; i < 365; i++) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        if (dailyEarnings[dateStr]) {
+          total += dailyEarnings[dateStr];
+        }
+      }
+    }
+    
+    return total;
+  };
+
   const loadCreatorFinancials = async () => {
     if (!user?.$id) return;
 
@@ -975,6 +1086,26 @@ export default function Index() {
         );
         console.log('📡 [KPI DEBUG] Stripe API execution result:', execution);
 
+        // Parse the response to get goals
+        try {
+          const response = JSON.parse(execution.responseBody);
+          if (response.goals) {
+            setDailyGoal(response.goals.dailyGoal || 0);
+            setWeeklyGoal(response.goals.weeklyGoal || 0);
+          }
+          if (response.kpis) {
+            // Update creator financials with the latest data
+            setCreatorFinancials(prev => ({
+              ...prev,
+              todayEarnings: response.kpis.todayEarnings || 0,
+              weekEarnings: response.kpis.weekEarnings || 0,
+              dailyEarnings: JSON.stringify(response.kpis.dailyEarnings || {})
+            }));
+          }
+        } catch (e) {
+          console.log('Error parsing response:', e);
+        }
+
         // Refetch the data from our DB
         console.log('🔄 [KPI DEBUG] Refetching creator financial data...');
         await loadCreatorFinancials();
@@ -997,8 +1128,10 @@ export default function Index() {
       const { functions, databases, config } = await import('@/lib/appwrite');
       const { ExecutionMethod, Query } = await import('react-native-appwrite');
       
-      // Fetch user's currency from profile collection
+      // Fetch user's profile data (currency, date of birth, phone number, etc.)
       let userCurrency = 'USD'; // Default currency
+      let dateOfBirth = null;
+      let phoneNumber = null;
       try {
         const userProfiles = await databases.listDocuments(
           config.databaseId,
@@ -1007,11 +1140,16 @@ export default function Index() {
         );
         
         if (userProfiles.documents.length > 0) {
-          userCurrency = userProfiles.documents[0].currency || 'USD';
+          const profile = userProfiles.documents[0];
+          userCurrency = profile.currency || 'USD';
+          dateOfBirth = profile.dateOfBirth || null;
+          phoneNumber = profile.phoneNumber || null;
           console.log('💰 User currency:', userCurrency);
+          console.log('🎂 User date of birth:', dateOfBirth);
+          console.log('📱 User phone number:', phoneNumber);
         }
       } catch (profileError) {
-        console.log('⚠️ Could not fetch user currency, using default USD:', profileError);
+        console.log('⚠️ Could not fetch user profile data, using defaults:', profileError);
       }
       
       const result = await functions.createExecution(
@@ -1020,7 +1158,9 @@ export default function Index() {
           userEmail: user?.email,
           userName: user?.name,
           returnUrl: 'https://cherrybox.app/connect-return',
-          currency: userCurrency
+          currency: userCurrency,
+          ...(dateOfBirth && { dateOfBirth: dateOfBirth }),
+          ...(phoneNumber && { phoneNumber: phoneNumber })
         }),
         false,
         '/create-connect-account',
@@ -1036,7 +1176,7 @@ export default function Index() {
         // Refresh data after onboarding attempt
         await loadCreatorFinancials();
         // Update channel conditions to reflect the new Stripe setup status
-        await refreshChannelConditions();
+        await refreshChannelConditions(true); // Force refresh after Stripe setup
       } else {
         throw new Error(response.error || 'Failed to create Stripe Connect account.');
       }
@@ -1141,6 +1281,14 @@ export default function Index() {
   };
 
   useEffect(() => {
+    if (!user?.$id) {
+      console.log('⚠️ [Init] No authenticated user, clearing channels and skipping load');
+      setChannels([]);
+      setFilteredChannels([]);
+      setChannelsLoaded(false);
+      return;
+    }
+    
     if (!channelsLoaded && user?.$id) {
       console.log('🚀 [Init] Initial load triggered');
       loadChannels(false).then(() => {
@@ -1188,23 +1336,7 @@ export default function Index() {
     setFilteredAudience(filtered);
   }, [audience, audienceSearch, audienceFilter]);
 
-  // Handle app state changes to flush pending batch updates
-  useEffect(() => {
-    const handleAppStateChange = async (nextAppState: string) => {
-      if (nextAppState === 'background' || nextAppState === 'inactive') {
-        console.log('🔄 [BatchTipUpdater] App going to background, flushing pending updates...');
-        const batchUpdater = BatchTipUpdater.getInstance();
-        await batchUpdater.flushPendingUpdates();
-        console.log('✅ [BatchTipUpdater] Pending updates flushed');
-      }
-    };
 
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-    
-    return () => {
-      subscription?.remove();
-    };
-  }, []);
 
   // Handle highlighting setup button when navigating from payment setup incomplete
   useEffect(() => {
@@ -1389,12 +1521,14 @@ export default function Index() {
               userName={user?.name}
               userCurrency={userCurrency}
               userProfileCache={userProfileCache}
+              uncollectedTips={uncollectedTips}
               onRefresh={onRefresh}
               onLoadMore={handleLoadMore}
               onChannelPress={(channelId) => {
                 router.push(`/chat/${channelId}` as any);
               }}
               onChannelUpdate={handleChannelUpdate}
+              onTipCollected={handleTipCollected}
             />
           ) : (
             <ScrollView
@@ -1741,7 +1875,7 @@ export default function Index() {
                 <View style={{ backgroundColor: '#999999', borderRadius: 8, padding: 6, marginRight: 8 }}>
                   <Ionicons name="close-circle" size={16} color="white" />
               </View>
-                <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 14 }}>Cancelled Monthly</Text>
+                <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 13 }}>Cancelled Monthly</Text>
               </View>
               <Text style={{ color: '#666666', fontFamily: 'Urbanist-Bold', fontSize: 24 }}>
                 {creatorFinancials?.number_of_cancelled_monthly_sub ?? '—'}
@@ -1760,7 +1894,7 @@ export default function Index() {
                 <View style={{ backgroundColor: '#999999', borderRadius: 8, padding: 6, marginRight: 8 }}>
                   <Ionicons name="close-circle-outline" size={16} color="white" />
               </View>
-                <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 14 }}>Cancelled Yearly</Text>
+                <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 13 }}>Cancelled Yearly</Text>
               </View>
               <Text style={{ color: '#666666', fontFamily: 'Urbanist-Bold', fontSize: 24 }}>
                 {creatorFinancials?.number_of_cancelled_yearly_sub ?? '—'}
@@ -1935,11 +2069,11 @@ export default function Index() {
                     paddingHorizontal: 16,
                     marginHorizontal: 2,
                     borderWidth: audienceFilter === tag.key ? 1.5 : 1,
-                    borderColor: audienceFilter === tag.key ? 'black' : '#333',
+                    borderColor: audienceFilter === tag.key ? 'white' : '#676767',
                   }}
                 >
                   <Text style={{
-                    color: audienceFilter === tag.key ? 'black' : '#888',
+                    color: audienceFilter === tag.key ? 'black' : 'black',
                     fontFamily: audienceFilter === tag.key ? 'Urbanist-Bold' : 'Urbanist-Regular',
                     fontSize: 14,
                   }}>{tag.label}</Text>
@@ -2070,467 +2204,697 @@ export default function Index() {
           }}
           contentContainerStyle={{
             flexGrow: 1,
-            justifyContent: 'space-between',
-            paddingHorizontal: 24,
-            paddingVertical: 20,
+            paddingHorizontal: 16,
+            paddingVertical: 16,
           }}
+          refreshControl={
+            <RefreshControl
+              refreshing={isLoadingFinancials}
+              onRefresh={handleUpdateStripeData}
+              tintColor="#676767"
+              colors={["#676767"]}
+            />
+          }
         >
           <View>
-            
-            {/* Current 2-Week Period Earnings - KPI #1 */}
+            {/* Auto-initialize KPI data if missing and Stripe is connected */}
             {(() => {
-              console.log('🔍 [KPI DEBUG] Checking currentPeriodGross:', creatorFinancials?.currentPeriodGross, 'condition:', creatorFinancials?.currentPeriodGross !== undefined);
-              
-              // Auto-initialize KPI data if missing and Stripe is connected
               if (creatorFinancials?.stripeConnectSetupComplete && 
                   creatorFinancials?.currentPeriodGross === undefined && 
                   !isLoadingFinancials) {
                 console.log('🔄 [AUTO-INIT] Auto-initializing KPI data...');
                 handleUpdateStripeData();
               }
-              
               return null;
             })()}
-            {(creatorFinancials?.currentPeriodGross !== undefined || creatorFinancials?.stripeConnectSetupComplete) && (
+
+            {/* First Row: Available & Pending */}
+            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
+              {/* Available Card */}
               <View style={{
+                flex: 1,
                 backgroundColor: 'white',
                 borderRadius: 16,
-                padding: 20,
-                marginBottom: 20,
-                borderWidth: 2,
-                borderColor: '#FD6F3E'
+                padding: 16,
+
+                position: 'relative',
               }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, position: 'relative' }}>
-                <Text style={{
+                {/* Info button positioned absolutely in top-right */}
+                <TouchableOpacity 
+                  onPress={() => setOpenInfoBubble(openInfoBubble === 'available' ? null : 'available')}
+                  style={{
+                    position: 'absolute',
+                    top: 16,
+                    right: 16,
+                    zIndex: 1,
+                  }}
+                >
+                  <View style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: 9,
+                    borderWidth: 1,
+                    borderColor: 'black',
+                    backgroundColor: 'transparent',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <Text style={{
+                      color: 'black',
+                      fontSize: 12,
+                      fontFamily: 'Urbanist-Bold',
+                    }}>
+                      i
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+                
+                {/* Centered content */}
+                <View style={{ alignItems: 'center', paddingTop: 8 }}>
+                  <Text style={{
+                    color: 'black',
+                    fontSize: 20,
+                    fontFamily: 'MuseoModerno-Regular',
+                    marginBottom: 8,
+                  }}>
+                    Available
+                  </Text>
+                  <Text style={{
+                    color: 'black',
+                    fontSize: 28,
+                    fontFamily: 'MuseoModerno-Regular',
+                  }}>
+                    {formatPrice(creatorFinancials?.stripeBalanceAvailable || 0, userCurrency)}
+                  </Text>
+                </View>
+                {openInfoBubble === 'available' && (
+                  <View style={{
+                    position: 'absolute',
+                    top: 45,
+                    right: 0,
+                    backgroundColor: 'black',
+                    borderRadius: 8,
+                    padding: 10,
+                    minWidth: 180,
+                    zIndex: 10,
+                  }}>
+                    <Text style={{ color: 'white', fontSize: 12, fontFamily: 'Urbanist-Regular' }}>
+                      Funds that are available for payout to your bank account.
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Pending Card */}
+              <View style={{
+                flex: 1,
+                backgroundColor: 'white',
+                borderRadius: 16,
+                padding: 16,
+
+                position: 'relative',
+              }}>
+                {/* Info button positioned absolutely in top-right */}
+                <TouchableOpacity 
+                  onPress={() => setOpenInfoBubble(openInfoBubble === 'pending' ? null : 'pending')}
+                  style={{
+                    position: 'absolute',
+                    top: 16,
+                    right: 16,
+                    zIndex: 1,
+                  }}
+                >
+                  <View style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: 9,
+                    borderWidth: 1,
+                    borderColor: 'black',
+                    backgroundColor: 'transparent',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <Text style={{
+                      color: 'black',
+                      fontSize: 12,
+                      fontFamily: 'Urbanist-Bold',
+                    }}>
+                      i
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+                
+                {/* Centered content */}
+                <View style={{ alignItems: 'center', paddingTop: 8 }}>
+                  <Text style={{
+                    color: 'black',
+                    fontSize: 20,
+                    fontFamily: 'MuseoModerno-Regular',
+                    marginBottom: 8,
+                  }}>
+                    Pending
+                  </Text>
+                  <Text style={{
+                    color: 'black',
+                    fontSize: 28,
+                    fontFamily: 'MuseoModerno-Regular',
+                  }}>
+                    {formatPrice(creatorFinancials?.stripeBalancePending || 0, userCurrency)}
+                  </Text>
+                </View>
+                {openInfoBubble === 'pending' && (
+                  <View style={{
+                    position: 'absolute',
+                    top: 45,
+                    right: 0,
+                    backgroundColor: 'black',
+                    borderRadius: 8,
+                    padding: 10,
+                    minWidth: 180,
+                    zIndex: 10,
+                  }}>
+                    <Text style={{ color: 'white', fontSize: 12, fontFamily: 'Urbanist-Regular' }}>
+                      Funds that are still being processed and will become available soon.
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {/* Second Row: Total & In Transit */}
+            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
+              {/* Total Card */}
+              <View style={{
+                flex: 1,
+                backgroundColor: 'white',
+                borderRadius: 16,
+                padding: 16,
+
+                position: 'relative',
+              }}>
+                {/* Info button positioned absolutely in top-right */}
+                <TouchableOpacity 
+                  onPress={() => setOpenInfoBubble(openInfoBubble === 'total' ? null : 'total')}
+                  style={{
+                    position: 'absolute',
+                    top: 16,
+                    right: 16,
+                    zIndex: 1,
+                  }}
+                >
+                  <View style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: 9,
+                    borderWidth: 1,
+                    borderColor: 'black',
+                    backgroundColor: 'transparent',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <Text style={{
+                      color: 'black',
+                      fontSize: 12,
+                      fontFamily: 'Urbanist-Bold',
+                    }}>
+                      i
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+                
+                {/* Centered content */}
+                <View style={{ alignItems: 'center', paddingTop: 8 }}>
+                  <Text style={{
+                    color: 'black',
+                    fontSize: 20,
+                    fontFamily: 'MuseoModerno-Regular',
+                    marginBottom: 8,
+                  }}>
+                    Total
+                  </Text>
+                  <Text style={{
+                    color: 'black',
+                    fontSize: 28,
+                    fontFamily: 'MuseoModerno-Regular',
+                  }}>
+                    {formatPrice(
+                      (creatorFinancials?.stripeBalanceAvailable || 0) + 
+                      (creatorFinancials?.stripeBalancePending || 0),
+                      userCurrency
+                    )}
+                  </Text>
+                </View>
+                {openInfoBubble === 'total' && (
+                  <View style={{
+                    position: 'absolute',
+                    top: 45,
+                    right: 0,
+                    backgroundColor: 'black',
+                    borderRadius: 8,
+                    padding: 10,
+                    minWidth: 180,
+                    zIndex: 10,
+                  }}>
+                    <Text style={{ color: 'white', fontSize: 12, fontFamily: 'Urbanist-Regular' }}>
+                      Combined total of available and pending funds in your account.
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              {/* In Transit Card */}
+              <View style={{
+                flex: 1,
+                backgroundColor: 'white',
+                borderRadius: 16,
+                padding: 16,
+
+                position: 'relative',
+              }}>
+                {/* Info button positioned absolutely in top-right */}
+                <TouchableOpacity 
+                  onPress={() => setOpenInfoBubble(openInfoBubble === 'transit' ? null : 'transit')}
+                  style={{
+                    position: 'absolute',
+                    top: 16,
+                    right: 16,
+                    zIndex: 1,
+                  }}
+                >
+                  <View style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: 9,
+                    borderWidth: 1,
+                    borderColor: 'black',
+                    backgroundColor: 'transparent',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <Text style={{
+                      color: 'black',
+                      fontSize: 12,
+                      fontFamily: 'Urbanist-Bold',
+                    }}>
+                      i
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+                
+                {/* Centered content */}
+                <View style={{ alignItems: 'center', paddingTop: 8 }}>
+                  <Text style={{
+                    color: 'black',
+                    fontSize: 20,
+                    fontFamily: 'MuseoModerno-Regular',
+                    marginBottom: 8,
+                  }}>
+                    In Transit
+                  </Text>
+                  <Text style={{
+                    color: 'black',
+                    fontSize: 28,
+                    fontFamily: 'MuseoModerno-Regular',
+                  }}>
+                    {formatPrice(creatorFinancials?.payoutsInTransitAmount || 0, userCurrency)}
+                  </Text>
+                </View>
+                {openInfoBubble === 'transit' && (
+                  <View style={{
+                    position: 'absolute',
+                    top: 45,
+                    right: 0,
+                    backgroundColor: 'black',
+                    borderRadius: 8,
+                    padding: 10,
+                    minWidth: 180,
+                    zIndex: 10,
+                  }}>
+                    <Text style={{ color: 'white', fontSize: 12, fontFamily: 'Urbanist-Regular' }}>
+                      Funds that are currently being transferred to your bank account.
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {/* Third Row: Today's Goal & Weekly Goal */}
+            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
+              {/* Today's Goal Card */}
+              <View style={{
+                flex: 1,
+                backgroundColor: 'white',
+                borderRadius: 16,
+                padding: 16,
+              }}>
+                {/* Centered content */}
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={{
                     color: 'black',
                     fontSize: 16,
-                    fontFamily: 'Urbanist-Bold',
-                    marginRight: 6
-                }}>
-                    Current Period Earnings
-                </Text>
-                  <TouchableOpacity onPress={() => setOpenInfoBubble(openInfoBubble === 'current' ? null : 'current')}>
-                    <Ionicons
-                      name="information-circle-outline"
-                      size={16}
-                      color="#CCCCCC"
-                      style={{ marginTop: 1 }}
-                    />
-                  </TouchableOpacity>
-                  {openInfoBubble === 'current' && (
-              <View style={{
-                      position: 'absolute',
-                      top: 22,
-                      left: 0,
-                      backgroundColor: '#23232B',
-                      borderRadius: 8,
-                      padding: 10,
-                      minWidth: 180,
-                      zIndex: 10,
-                  borderWidth: 1,
-                      borderColor: '#444',
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.18,
-                      shadowRadius: 6,
-                      elevation: 6,
-                    }}>
-                      <Text style={{ color: '#fff', fontSize: 13, fontFamily: 'Urbanist-Regular' }}>
-                        Your earnings since the last payout (resets every 2 weeks when Stripe transfers to your personal account).
+                    fontFamily: 'MuseoModerno-Regular',
+                    marginBottom: 4,
+                  }}>
+                    Today's Goal
                   </Text>
-                    </View>
-                  )}
-                </View>
-                <Text style={{
-                  color: '#FD6F3E',
-                  fontSize: 32,
-                  fontWeight: 'bold',
-                  fontFamily: 'Urbanist-Bold'
-                }}>
-                  {formatPrice(creatorFinancials.currentPeriodGross, userCurrency)}
-                </Text>
-                <Text style={{
+                  <Text style={{
                     color: '#888888',
-                  fontSize: 12,
-                  fontFamily: 'Urbanist-Regular',
-                  marginTop: 4
-                }}>
-                  Period started: {creatorFinancials.currentPeriodStart ? new Date(creatorFinancials.currentPeriodStart).toLocaleDateString() : 'N/A'}
-                </Text>
-              </View>
-            )}
+                    fontSize: 12,
+                    fontFamily: 'MuseoModerno-Regular',
+                    marginBottom: 12,
+                  }}>
+                    {formatPrice(dailyGoal, userCurrency)}
+                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    {(() => {
+                      let todayEarnings = 0;
+                      try {
+                        const dailyEarnings = creatorFinancials?.dailyEarnings ? JSON.parse(creatorFinancials.dailyEarnings) : {};
+                        const today = new Date().toISOString().split('T')[0];
+                        todayEarnings = dailyEarnings[today] || 0;
+                      } catch (e) {
+                        todayEarnings = 0;
+                      }
+                      
+                      const goalReached = todayEarnings >= dailyGoal && dailyGoal > 0;
+                      
+                      return (
+                        <Ionicons 
+                          name={goalReached ? "caret-up-outline" : "caret-down-outline"} 
+                          size={20} 
+                          color={goalReached ? "#4CAF50" : "#FD6F3E"} 
+                        />
+                      );
+                    })()}
+                    <Text style={{
+                      color: 'black',
+                      fontSize: 24,
+                      fontFamily: 'MuseoModerno-Regular',
+                    }}>
+                      {(() => {
+                        let todayEarnings = 0;
+                        try {
+                          const dailyEarnings = creatorFinancials?.dailyEarnings ? JSON.parse(creatorFinancials.dailyEarnings) : {};
+                          const today = new Date().toISOString().split('T')[0];
+                          todayEarnings = dailyEarnings[today] || 0;
+                        } catch (e) {
+                          todayEarnings = 0;
+                        }
+                        return formatPrice(todayEarnings, userCurrency);
+                      })()}
+                    </Text>
+                  </View>
+                  <View style={{ marginTop: 12 }}>
+                    <CircularProgress
+                      percentage={(() => {
+                        let todayEarnings = 0;
+                        try {
+                          const dailyEarnings = creatorFinancials?.dailyEarnings ? JSON.parse(creatorFinancials.dailyEarnings) : {};
+                          const today = new Date().toISOString().split('T')[0];
+                          todayEarnings = dailyEarnings[today] || 0;
+                        } catch (e) {
+                          todayEarnings = 0;
+                        }
+                        return dailyGoal > 0 ? Math.min(100, Math.round((todayEarnings / dailyGoal) * 100)) : 0;
+                      })()}
+                      size={60}
+                      strokeWidth={4}
+                      backgroundColor="#F0F0F0"
+                      textColor="black"
+                      fontSize={12}
+                      completedColor="#4CAF50"
+                      incompleteColor="#FD6F3E"
+                    />
+                  </View>
+                </View>
 
-            {/* Previous Period Comparison */}
-            {(() => {
-              console.log('🔍 [KPI DEBUG] Checking previousPeriodGross:', creatorFinancials?.previousPeriodGross, 'condition:', creatorFinancials?.previousPeriodGross !== undefined && creatorFinancials?.previousPeriodGross > 0);
-              return null;
-            })()}
-            {creatorFinancials?.previousPeriodGross !== undefined && creatorFinancials?.previousPeriodGross > 0 && (
+              </View>
+
+              {/* Weekly Goal Card */}
               <View style={{
+                flex: 1,
                 backgroundColor: 'white',
                 borderRadius: 16,
-                padding: 20,
-                marginBottom: 20,
-                borderWidth: 1,
-                borderColor: '#888888'
+                padding: 16,
               }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                {/* Centered content */}
+                <View style={{ alignItems: 'center' }}>
                   <Text style={{
                     color: 'black',
-                    fontSize: 14,
-                    fontFamily: 'Urbanist-Regular',
-                    marginRight: 6
+                    fontSize: 16,
+                    fontFamily: 'MuseoModerno-Regular',
+                    marginBottom: 4,
                   }}>
-                    Previous Period
+                    Weekly Goal
                   </Text>
-                  <Ionicons
-                    name="trending-up"
-                    size={16}
-                    color="#888888"
-                  />
+                  <Text style={{
+                    color: '#888888',
+                    fontSize: 12,
+                    fontFamily: 'MuseoModerno-Regular',
+                    marginBottom: 12,
+                  }}>
+                  {formatPrice(weeklyGoal, userCurrency)}
+                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    {(() => {
+                      let weekEarnings = 0;
+                      try {
+                        const dailyEarnings = creatorFinancials?.dailyEarnings ? JSON.parse(creatorFinancials.dailyEarnings) : {};
+                        weekEarnings = calculateTimeframeEarnings(dailyEarnings, 'weekly');
+                      } catch (e) {
+                        weekEarnings = 0;
+                      }
+                      
+                      const goalReached = weekEarnings >= weeklyGoal && weeklyGoal > 0;
+                      
+                      return (
+                        <Ionicons 
+                          name={goalReached ? "caret-up-outline" : "caret-down-outline"} 
+                          size={20} 
+                          color={goalReached ? "#4CAF50" : "#FD6F3E"} 
+                        />
+                      );
+                    })()}
+                    <Text style={{
+                      color: 'black',
+                      fontSize: 24,
+                      fontFamily: 'MuseoModerno-Regular',
+                    }}>
+                      {(() => {
+                        let weekEarnings = 0;
+                        try {
+                          const dailyEarnings = creatorFinancials?.dailyEarnings ? JSON.parse(creatorFinancials.dailyEarnings) : {};
+                          weekEarnings = calculateTimeframeEarnings(dailyEarnings, 'weekly');
+                        } catch (e) {
+                          weekEarnings = 0;
+                        }
+                        return formatPrice(weekEarnings, userCurrency);
+                      })()}
+                    </Text>
+                  </View>
+                  <View style={{ marginTop: 12 }}>
+                    <CircularProgress
+                      percentage={(() => {
+                        let weekEarnings = 0;
+                        try {
+                          const dailyEarnings = creatorFinancials?.dailyEarnings ? JSON.parse(creatorFinancials.dailyEarnings) : {};
+                          weekEarnings = calculateTimeframeEarnings(dailyEarnings, 'weekly');
+                        } catch (e) {
+                          weekEarnings = 0;
+                        }
+                        return weeklyGoal > 0 ? Math.min(100, Math.round((weekEarnings / weeklyGoal) * 100)) : 0;
+                      })()}
+                      size={60}
+                      strokeWidth={4}
+                      backgroundColor="#F0F0F0"
+                      textColor="black"
+                      fontSize={12}
+                      completedColor="#4CAF50"
+                      incompleteColor="#FD6F3E"
+                    />
+                  </View>
                 </View>
+
+              </View>
+            </View>
+
+            {/* Total Earnings Card with Tabs */}
+            <View style={{
+              backgroundColor: 'white',
+              borderRadius: 16,
+              padding: 20,
+              marginBottom: 16,
+              position: 'relative',
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <Text style={{
+                  color: 'black',
+                  fontSize: 24,
+                  fontFamily: 'MuseoModerno-Regular',
+                }}>
+                  Total Earnings (Gross)
+                </Text>
+                <TouchableOpacity onPress={() => setOpenInfoBubble(openInfoBubble === 'earnings' ? null : 'earnings')}>
+                  <View style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: 10,
+                    borderWidth: 1,
+                    borderColor: 'black',
+                    backgroundColor: 'transparent',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <Text style={{
+                      color: 'black',
+                      fontSize: 14,
+                      fontFamily: 'Urbanist-Bold',
+                    }}>
+                      i
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+              
+              {/* Tabs */}
+              <View style={{
+                flexDirection: 'row',
+                backgroundColor: '#F0F0F0',
+                borderRadius: 12,
+                padding: 4,
+                marginBottom: 16,
+              }}>
+                {(['weekly', 'monthly', 'yearly'] as const).map((timeframe) => (
+                  <TouchableOpacity
+                    key={timeframe}
+                    onPress={() => setEarningsTimeframe(timeframe)}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 10,
+                      borderRadius: 10,
+                      backgroundColor: earningsTimeframe === timeframe ? 'white' : 'transparent',
+                    }}
+                  >
+                    <Text style={{
+                      color: earningsTimeframe === timeframe ? 'black' : '#888888',
+                      fontFamily: earningsTimeframe === timeframe ? 'Urbanist-Bold' : 'Urbanist-Regular',
+                      fontSize: 14,
+                      textAlign: 'center',
+                      textTransform: 'capitalize',
+                    }}>
+                      {timeframe}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              
+              {/* Earnings Display */}
+              <View style={{ alignItems: 'center', marginBottom: 16 }}>
+                <Text style={{
+                  color: 'black',
+                  fontSize: 40,
+                  fontFamily: 'MuseoModerno-Regular',
+                  marginBottom: 8,
+                }}>
+                  {(() => {
+                    let dailyEarnings = {};
+                    try {
+                      dailyEarnings = creatorFinancials?.dailyEarnings ? JSON.parse(creatorFinancials.dailyEarnings) : {};
+                    } catch (e) {
+                      dailyEarnings = {};
+                    }
+                    const earnings = calculateTimeframeEarnings(dailyEarnings, earningsTimeframe);
+                    return formatPrice(earnings, userCurrency);
+                  })()}
+                </Text>
                 <Text style={{
                   color: '#888888',
-                  fontSize: 24,
-                  fontWeight: 'bold',
-                  fontFamily: 'Urbanist-Bold'
-                }}>
-                  {formatPrice(creatorFinancials.previousPeriodGross, userCurrency)}
-                </Text>
-                <Text style={{
-                  color: (creatorFinancials.currentPeriodGross || 0) >= creatorFinancials.previousPeriodGross ? '#4CAF50' : '#FF5722',
-                  fontSize: 12,
-                  fontFamily: 'Urbanist-Medium',
-                  marginTop: 4
-                }}>
-                  {(creatorFinancials.currentPeriodGross || 0) >= creatorFinancials.previousPeriodGross ? '🎯 On track to beat last period!' : '💪 Aim to reach this target'}
-                </Text>
-              </View>
-            )}
-
-            {/* Lifetime Earnings - Smaller, motivational */}
-            {(() => {
-              console.log('🔍 [KPI DEBUG] Checking lifetimeGross:', creatorFinancials?.lifetimeGross, 'condition:', creatorFinancials?.lifetimeGross !== undefined);
-              return null;
-            })()}
-            {(creatorFinancials?.lifetimeGross !== undefined || creatorFinancials?.stripeConnectSetupComplete) && (
-              <View style={{
-                backgroundColor: 'white',
-                borderRadius: 16,
-                padding: 16,
-                marginBottom: 20,
-                borderWidth: 1,
-                borderColor: '#4CAF50'
-              }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-                  <Text style={{
-                    color: 'black',
-                    fontSize: 14,
-                    fontFamily: 'Urbanist-Regular',
-                    marginRight: 6
-                  }}>
-                    Total Lifetime Earnings
-                  </Text>
-                  <Ionicons
-                    name="trophy"
-                    size={14}
-                    color="#4CAF50"
-                  />
-                </View>
-                <Text style={{
-                  color: '#4CAF50',
-                  fontSize: 20,
-                  fontWeight: 'bold',
-                  fontFamily: 'Urbanist-Bold'
-                }}>
-                  {formatPrice(creatorFinancials.lifetimeGross, userCurrency)}
-                </Text>
-              </View>
-            )}
-            
-
-
-            {/* Auto-initialization loading indicator */}
-            {creatorFinancials?.stripeConnectSetupComplete && 
-             creatorFinancials?.currentPeriodGross === undefined && 
-             isLoadingFinancials && (
-              <View style={{
-                backgroundColor: '#E3F2FD',
-                borderRadius: 12,
-                padding: 16,
-                marginBottom: 20,
-                alignItems: 'center',
-                borderWidth: 1,
-                borderColor: '#2196F3'
-              }}>
-                <Image 
-                  source={require('../../../assets/icon/loading-icon.png')} 
-                  style={{ 
-                    width: 24, 
-                    height: 24, 
-                    marginBottom: 8,
-                    tintColor: '#2196F3'
-                  }} 
-                />
-                <Text style={{
-                  color: '#1976D2',
                   fontSize: 14,
-                  fontFamily: 'Urbanist-Medium',
-                  textAlign: 'center'
-                }}>
-                  Setting up earnings tracking...
-                </Text>
-              </View>
-            )}
-
-            {/* Lifetime Volume - Technical metric for reference */}
-            {creatorFinancials?.lifetimeVolume !== undefined && (
-              <View style={{
-                backgroundColor: 'white',
-                borderRadius: 12,
-                padding: 16,
-                marginBottom: 20,
-                borderWidth: 1,
-                borderColor: '#E0E0E0'
-              }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6, position: 'relative' }}>
-                <Text style={{
-                    color: 'black',
-                  fontSize: 12,
                   fontFamily: 'Urbanist-Regular',
-                    marginRight: 6
                 }}>
-                    Platform Volume (Technical)
-                </Text>
-                  <TouchableOpacity onPress={() => setOpenInfoBubble(openInfoBubble === 'lifetime' ? null : 'lifetime')}>
-                    <Ionicons
-                      name="information-circle-outline"
-                      size={14}
-                      color="#CCCCCC"
-                      style={{ marginTop: 1 }}
-                    />
-                  </TouchableOpacity>
-                  {openInfoBubble === 'lifetime' && (
-              <View style={{
-                      position: 'absolute',
-                      top: 20,
-                      left: 0,
-                      backgroundColor: '#23232B',
-                      borderRadius: 8,
-                      padding: 10,
-                      minWidth: 180,
-                      zIndex: 10,
-                  borderWidth: 1,
-                      borderColor: '#444',
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.18,
-                      shadowRadius: 6,
-                      elevation: 6,
-                    }}>
-                      <Text style={{ color: '#fff', fontSize: 13, fontFamily: 'Urbanist-Regular' }}>
-                        Technical metric: Total gross transaction volume processed through Stripe.
-                  </Text>
-                    </View>
-                  )}
-                </View>
-                <Text style={{
-                  color: '#666666',
-                  fontSize: 18,
-                  fontWeight: 'bold',
-                  fontFamily: 'Urbanist-Bold'
-                }}>
-                  {formatPrice(creatorFinancials.lifetimeVolume, userCurrency)}
+                  {earningsTimeframe === 'weekly' && 'Last 7 days'}
+                  {earningsTimeframe === 'monthly' && 'Last 30 days'}
+                  {earningsTimeframe === 'yearly' && 'Last 365 days'}
                 </Text>
               </View>
-            )}
-
-            {/* Balance and Payouts Display */}
-            {creatorFinancials && (
-                <View style={{
-                  backgroundColor: 'white',
-                  borderRadius: 16,
-                  padding: 20,
-                  marginBottom: 20,
-                  borderWidth: 1,
-                  borderColor: '#333333'
-                }}>
-                  <Text style={{
-                    color: 'black',
-                    fontSize: 18,
-                    fontWeight: 'bold',
-                    fontFamily: 'Urbanist-Bold',
-                    marginBottom: 16
-                  }}>
-                   Balance
-                  </Text>
+              
+              {/* Earnings Chart */}
+              {(() => {
+                let dailyEarnings = {};
+                try {
+                  dailyEarnings = creatorFinancials?.dailyEarnings ? JSON.parse(creatorFinancials.dailyEarnings) : {};
+                } catch (e) {
+                  dailyEarnings = {};
+                }
                 
-                {/* Available Balance */}
-                <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                  <Text style={{
-                    color: 'black',
+                // Only show chart if we have data
+                const hasData = Object.keys(dailyEarnings).length > 0;
+                
+                return hasData ? (
+                  <EarningsChart
+                    dailyEarnings={dailyEarnings}
+                    timeframe={earningsTimeframe}
+                    currency={userCurrency}
+                  />
+                ) : (
+                  <View style={{
+                    height: 200,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: '#F8F8F8',
+                    borderRadius: 12,
+                    marginVertical: 8,
+                  }}>
+                    <Text style={{
+                      color: '#888888',
                       fontSize: 14,
-                    fontFamily: 'Urbanist-Regular',
-                      marginRight: 6
+                      fontFamily: 'Urbanist-Regular',
+                      textAlign: 'center',
                     }}>
-                      Available
-                  </Text>
-                    <TouchableOpacity onPress={() => setOpenInfoBubble(openInfoBubble === 'available' ? null : 'available')}>
-                      <Ionicons
-                        name="information-circle-outline"
-                        size={16}
-                        color="#888888"
-                        style={{ marginTop: 1 }}
-                      />
-                    </TouchableOpacity>
-                    {openInfoBubble === 'available' && (
+                      No earnings data available yet.{'\n'}Chart will appear once you start earning.
+                    </Text>
+                  </View>
+                );
+              })()}
+              
+              {openInfoBubble === 'earnings' && (
                 <View style={{
-                        position: 'absolute',
-                        top: 22,
-                        left: 0,
-                        backgroundColor: '#23232B',
-                        borderRadius: 8,
-                        padding: 10,
-                        minWidth: 180,
-                        zIndex: 10,
-                  borderWidth: 1,
-                        borderColor: '#444',
-                        shadowColor: '#000',
-                        shadowOffset: { width: 0, height: 2 },
-                        shadowOpacity: 0.18,
-                        shadowRadius: 6,
-                        elevation: 6,
-                      }}>
-                        <Text style={{ color: '#fff', fontSize: 13, fontFamily: 'Urbanist-Regular' }}>
-                          Funds that are available for payout to your bank account.
+                  position: 'absolute',
+                  top: 55,
+                  right: 0,
+                  backgroundColor: 'black',
+                  borderRadius: 8,
+                  padding: 10,
+                  minWidth: 200,
+                  zIndex: 10,
+                }}>
+                  <Text style={{ color: 'white', fontSize: 12, fontFamily: 'Urbanist-Regular' }}>
+                    Your gross earnings before fees and taxes for the selected time period.
                   </Text>
                 </View>
               )}
             </View>
-                  <Text style={{ color: '#4CAF50', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>
-                    {formatPrice(creatorFinancials.stripeBalanceAvailable || 0, userCurrency)}
-                  </Text>
-                </View>
-
-                {/* Pending Balance */}
-                <View style={{ marginBottom: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                  <Text style={{
-                    color: 'black',
-                      fontSize: 14,
-                    fontFamily: 'Urbanist-Regular',
-                      marginRight: 6
-                  }}>
-                      Pending
-                  </Text>
-                    <TouchableOpacity onPress={() => setOpenInfoBubble(openInfoBubble === 'pending' ? null : 'pending')}>
-                      <Ionicons
-                        name="information-circle-outline"
-                        size={16}
-                        color="#888888"
-                        style={{ marginTop: 1 }}
-                      />
-                    </TouchableOpacity>
-                    {openInfoBubble === 'pending' && (
-                      <View style={{
-                        position: 'absolute',
-                        top: 22,
-                        left: 0,
-                        backgroundColor: '#23232B',
-                        borderRadius: 8,
-                        padding: 10,
-                        minWidth: 180,
-                        zIndex: 10,
-                        borderWidth: 1,
-                        borderColor: '#444',
-                        shadowColor: '#000',
-                        shadowOffset: { width: 0, height: 2 },
-                        shadowOpacity: 0.18,
-                        shadowRadius: 6,
-                        elevation: 6,
-                      }}>
-                        <Text style={{ color: '#fff', fontSize: 13, fontFamily: 'Urbanist-Regular' }}>
-                          Funds that are still being processed and will become available soon.
-          </Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>
-                    {formatPrice(creatorFinancials.stripeBalancePending || 0, userCurrency)}
-                  </Text>
-                </View>
-
-                {/* Payouts Section */}
-                <View style={{ borderTopColor: 'black', borderTopWidth: 1, paddingTop: 16 }}>
-                  {/* Payout Tabs */}
-                  <View style={{ flexDirection: 'row', marginBottom: 12, backgroundColor: 'white', borderRadius: 8, padding: 4, borderWidth: 1, borderColor: '#E0E0E0' }}>
-                    {['inTransit', 'pending'].map(tab => (
-                      <TouchableOpacity
-                        key={tab}
-                        onPress={() => setPayoutTab(tab)}
-          style={{ 
-          flex: 1, 
-                          paddingVertical: 8,
-                          borderRadius: 6,
-                          backgroundColor: payoutTab === tab ? '#d3d3d3' : 'transparent',
-                        }}
-        >
-                  <Text style={{
-            color: 'black', 
-            fontFamily: 'Urbanist-Bold',
-            textAlign: 'center',
-                          fontSize: 13,
-                          textTransform: 'capitalize'
-          }}>
-                          {tab === 'inTransit' ? 'In Transit' : tab}
-                  </Text>
-                      </TouchableOpacity>
-                    ))}
-                </View>
-                  
-                  {/* Payout Amounts */}
-                   <View style={{ marginBottom: 6, paddingVertical: 4 }}>
-                      {payoutTab === 'inTransit' && (
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-                          <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 14 }}>
-                            In Transit Amount
-                          </Text>
-                          <Text style={{ color: 'black', fontFamily: 'Urbanist-Regular', fontSize: 13 }}>
-                             {formatPrice(creatorFinancials.payoutsInTransitAmount || 0, userCurrency)}
-                          </Text>
-              </View>
-                      )}
-                      {payoutTab === 'pending' && (
-                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-                          <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 14 }}>
-                            Pending Amount
-                          </Text>
-                          <Text style={{ color: 'black', fontFamily: 'Urbanist-Regular', fontSize: 13 }}>
-                             {formatPrice(creatorFinancials.payoutsPendingAmount || 0, userCurrency)}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                </View>
-              </View>
-            )}
             
+            {/* Update Button */}
             <TouchableOpacity
               onPress={handleUpdateStripeData}
               disabled={isLoadingFinancials}
-          style={{ 
-                backgroundColor: '#333',
+              style={{ 
+                backgroundColor: 'black',
                 borderRadius: 12,
-                paddingVertical: 12,
-                marginTop: 1,
+                paddingVertical: 14,
+                marginBottom: 16,
                 alignItems: 'center',
                 justifyContent: 'center',
                 opacity: isLoadingFinancials ? 0.5 : 1,
+                flexDirection: 'row',
               }}
             >
+              {isLoadingFinancials && (
+                <ActivityIndicator size="small" color="white" style={{ marginRight: 8 }} />
+              )}
               <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>
-                {isLoadingFinancials ? 'Updating...' : 'Update Earnings Data'}
+                {isLoadingFinancials ? 'Updating...' : 'Refresh Data'}
               </Text>
             </TouchableOpacity>
             
@@ -2772,7 +3136,7 @@ export default function Index() {
             
             // Refresh channel conditions to update missing requirements
             setTimeout(async () => {
-              await refreshChannelConditions();
+              await refreshChannelConditions(true); // Force refresh after Stripe completion
               
               // Switch to chat tab and show 6-digit code modal
               setSelectedTab('chats');

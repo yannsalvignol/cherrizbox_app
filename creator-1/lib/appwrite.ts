@@ -23,11 +23,16 @@ export const config = {
     profileCollectionId: process.env.EXPO_PUBLIC_APPWRITE_PROFILE_COLLECTION_ID!,
     videoCollectionId: process.env.EXPO_PUBLIC_APPWRITE_VIDEO_COLLECTION_ID!,
     photoCollectionId: process.env.EXPO_PUBLIC_APPWRITE_PHOTO_COLLECTION_ID!,
+    photosAvailableToUsersCollectionId: process.env.EXPO_PUBLIC_APPWRITE_PHOTOS_AVAILABLE_TO_USERS || '',
     storageId: process.env.EXPO_PUBLIC_APPWRITE_STORAGE_ID!,
     activeSubscriptionsCollectionId: process.env.EXPO_PUBLIC_APPWRITE_ACTIVE_SUBSCRIPTIONS_COLLECTION_ID!,
     cancelledSubscriptionsCollectionId: process.env.EXPO_PUBLIC_APPWRITE_CANCELLED_SUBSCRIPTIONS_COLLECTION_ID!,
     paidContentPurchasesCollectionId: process.env.EXPO_PUBLIC_APPWRITE_PAID_CONTENT_PURCHASES_COLLECTION_ID!
 };
+
+// Debug logging for the new collection ID
+console.log('🔍 [Config] EXPO_PUBLIC_APPWRITE_PHOTOS_AVAILABLE_TO_USERS:', process.env.EXPO_PUBLIC_APPWRITE_PHOTOS_AVAILABLE_TO_USERS);
+console.log('🔍 [Config] photosAvailableToUsersCollectionId:', config.photosAvailableToUsersCollectionId);
 
 export const client = new Client();
 client
@@ -287,7 +292,25 @@ export async function loginWithApple(socialMedia?: string, socialMediaUsername?:
 
 export async function logout() {
     try {
-        // First clear Stream Chat connection and caches
+        // First, delete the Appwrite session to prevent any new API calls
+        console.log('🔄 Deleting Appwrite session...');
+        const result = await account.deleteSession("current");
+        console.log('✅ Appwrite session deleted');
+        
+        // Give a small delay to let React components detect the session change and unmount
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Clear in-memory profile cache from global provider
+        try {
+            console.log('🔄 Clearing in-memory profile cache...');
+            const { clearProfileCache } = await import('./global-provider');
+            clearProfileCache();
+            console.log('✅ In-memory profile cache cleared');
+        } catch (profileCacheError) {
+            console.error('Error clearing profile cache:', profileCacheError);
+        }
+        
+        // Clear Stream Chat connection and caches
         try {
             console.log('🔄 Clearing Stream Chat connection and caches...');
             const { disconnectUser, clearTokenCache } = await import('./stream-chat');
@@ -320,20 +343,6 @@ export async function logout() {
         } catch (cacheError) {
             console.error('Error clearing app caches:', cacheError);
         }
-
-        // Clear in-memory profile cache from global provider
-        try {
-            console.log('🔄 Clearing in-memory profile cache...');
-            const { clearProfileCache } = await import('./global-provider');
-            clearProfileCache();
-            console.log('✅ In-memory profile cache cleared');
-        } catch (profileCacheError) {
-            console.error('Error clearing profile cache:', profileCacheError);
-        }
-        
-        // Finally, delete the Appwrite session
-        const result = await account.deleteSession("current");
-        console.log('✅ Appwrite session deleted');
         
         return result;
     } catch (error) {

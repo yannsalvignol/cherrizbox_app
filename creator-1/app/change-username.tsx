@@ -2,7 +2,7 @@ import { useGlobalContext } from '@/lib/global-provider';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Image, ImageBackground, KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const ChangeUsernameScreen = () => {
   const router = useRouter();
@@ -21,9 +21,7 @@ const ChangeUsernameScreen = () => {
   const networks = [
     { name: 'LinkedIn', icon: 'logo-linkedin', color: '#0077B5', type: 'ionicon', useAtSymbol: false },
     { name: 'TikTok', icon: 'musical-notes', color: '#000000', type: 'ionicon', useAtSymbol: true },
-    { name: 'YouTube', icon: 'logo-youtube', color: '#FF0000', type: 'ionicon', useAtSymbol: false },
     { name: 'Instagram', icon: 'logo-instagram', color: '#E4405F', type: 'ionicon', useAtSymbol: true },
-    { name: 'Twitch', icon: 'logo-twitch', color: '#9146FF', type: 'ionicon', useAtSymbol: true },
     { name: 'X', icon: require('../assets/images/X.png'), color: '#000000', type: 'image', useAtSymbol: true },
   ];
 
@@ -89,13 +87,14 @@ const ChangeUsernameScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header} />
-      <ImageBackground
-        source={require('../assets/images/cherry.png')}
-        style={styles.background}
-        resizeMode="cover"
-      >
+      <View style={styles.background}>
         <View style={styles.overlay}>
           <View style={styles.topContent}>
+            <Image 
+              source={require('../assets/icon/loading-icon.png')} 
+              style={{ width: 80, height: 80, marginBottom: 20 }}
+              resizeMode="contain"
+            />
             <View style={styles.textRow}>
               <Text style={styles.cherrizbox}>Cherrizbox</Text>
             </View>
@@ -103,7 +102,7 @@ const ChangeUsernameScreen = () => {
 
           </View>
 
-          <View style={styles.bottomContent}>
+          <View style={[styles.bottomContent, { paddingTop: 10 }]}>
             <Text style={styles.networkQuestion}>
               Choose your social media platform:
             </Text>
@@ -166,7 +165,7 @@ const ChangeUsernameScreen = () => {
 
           </View>
         </View>
-      </ImageBackground>
+      </View>
              <View style={styles.footer} />
 
        {/* Username Input Modal */}
@@ -243,10 +242,10 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     height: '100%',
+    backgroundColor: 'black',
   },
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
     justifyContent: 'flex-start',
     paddingBottom: 60,
   },

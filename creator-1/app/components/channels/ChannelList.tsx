@@ -28,14 +28,15 @@ interface ChannelListProps {
   userProfileCache: React.MutableRefObject<Map<string, { 
     name: string; 
     avatar: string; 
-    uncashedTipAmount: number; 
     documentId: string; 
     timestamp: number 
   }>>;
+  uncollectedTips: Set<string>;
   onRefresh: () => void;
   onLoadMore: () => void;
   onChannelPress?: (channelId: string) => void;
   onChannelUpdate?: (channelId: string, updates: Partial<Channel>) => void;
+  onTipCollected?: (channelId: string) => void;
 }
 
 export const ChannelList: React.FC<ChannelListProps> = ({
@@ -52,10 +53,12 @@ export const ChannelList: React.FC<ChannelListProps> = ({
   userName,
   userCurrency,
   userProfileCache,
+  uncollectedTips,
   onRefresh,
   onLoadMore,
   onChannelPress,
-  onChannelUpdate
+  onChannelUpdate,
+  onTipCollected
 }) => {
   // Local state for real-time unread counts
   const [liveUnreadCounts, setLiveUnreadCounts] = useState<Map<string, number>>(new Map());
@@ -63,6 +66,12 @@ export const ChannelList: React.FC<ChannelListProps> = ({
   // Set up Stream Chat listeners for real-time updates (hybrid approach)
   useEffect(() => {
     if (!currentUserId || channels.length === 0) return;
+
+    // Check if Stream Chat client is connected before setting up listeners
+    if (!client.user) {
+      console.log('⚠️ [ChannelList] Stream Chat not connected, skipping listener setup');
+      return;
+    }
 
     console.log('🔄 [ChannelList] Setting up Stream Chat listeners for', channels.length, 'channels');
     
@@ -87,6 +96,24 @@ export const ChannelList: React.FC<ChannelListProps> = ({
           const handleNewMessage = (event: any) => {
             if (event.user?.id !== currentUserId) {
               console.log(`📨 [ChannelList] New message in ${channel.id}, updating unread count`);
+              
+              // Check if this message contains a tip
+              const messageText = event.message?.text || '';
+              const isTipMessage = messageText.includes('💝 Tip:');
+              
+              if (isTipMessage) {
+                console.log(`💰 [ChannelList] Tip message detected in ${channel.id}: ${messageText}`);
+                // Add channel to uncollected tips (parent component will handle this)
+                if (onChannelUpdate) {
+                  onChannelUpdate(channel.id, { 
+                    lastMessage: messageText,
+                    lastMessageAt: event.message?.created_at || new Date().toISOString(),
+                    unreadCount: (liveUnreadCounts.get(channel.id) || channel.unreadCount || 0) + 1,
+                    hasTip: true // Add a flag to indicate this update includes a tip
+                  });
+                }
+              }
+              
               setLiveUnreadCounts(prev => {
                 const currentCount = prev.get(channel.id) || channel.unreadCount || 0;
                 const newMap = new Map(prev);
@@ -98,7 +125,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
               if (onChannelUpdate) {
                 onChannelUpdate(channel.id, {
                   unreadCount: (liveUnreadCounts.get(channel.id) || channel.unreadCount || 0) + 1,
-                  lastMessage: event.message?.text || '',
+                  lastMessage: messageText,
                   lastMessageAt: event.message?.created_at || new Date().toISOString()
                 });
               }
@@ -234,43 +261,63 @@ export const ChannelList: React.FC<ChannelListProps> = ({
 
   if (channels.length === 0) {
     return (
-      <View style={{
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#DCDEDF',
-        paddingHorizontal: 32
-      }}>
-        <Ionicons name="chatbubbles-outline" size={80} color="#333333" style={{ marginBottom: 24 }} />
-        <Text style={{ 
-          color: '#888888', 
-          fontSize: 20, 
-          fontFamily: 'Urbanist-Bold',
-          marginBottom: 8,
-          textAlign: 'center'
-        }}>
-          No chats yet
-        </Text>
-        <Text style={{ 
-          color: '#666666', 
-          fontSize: 16, 
-          fontFamily: 'Urbanist-Regular',
-          textAlign: 'center',
-          lineHeight: 24,
-          marginBottom: 16
-        }}>
-          Start chatting with your fans and subscribers to build your community
-        </Text>
-        <Text style={{ 
-          color: '#FD6F3E', 
-          fontSize: 14, 
-          fontFamily: 'Urbanist-Medium',
-          textAlign: 'center',
-          lineHeight: 20
-        }}>
-          Pull down to reload and see your channels
-        </Text>
-      </View>
+      <FlatList
+        data={[]}
+        renderItem={() => null}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#FD6F3E"
+            colors={["#FD6F3E"]}
+            progressBackgroundColor="#DCDEDF"
+          />
+        }
+        contentContainerStyle={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#DCDEDF',
+          paddingHorizontal: 32
+        }}
+        style={{ backgroundColor: '#DCDEDF' }}
+        ListEmptyComponent={
+          <View style={{
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <Ionicons name="chatbubbles-outline" size={80} color="#333333" style={{ marginBottom: 24 }} />
+            <Text style={{ 
+              color: '#888888', 
+              fontSize: 20, 
+              fontFamily: 'Urbanist-Bold',
+              marginBottom: 8,
+              textAlign: 'center'
+            }}>
+              No chats yet
+            </Text>
+            <Text style={{ 
+              color: '#666666', 
+              fontSize: 16, 
+              fontFamily: 'Urbanist-Regular',
+              textAlign: 'center',
+              lineHeight: 24,
+              marginBottom: 16
+            }}>
+              Start chatting with your fans and subscribers to build your community
+            </Text>
+            <Text style={{ 
+              color: '#FD6F3E', 
+              fontSize: 14, 
+              fontFamily: 'Urbanist-Medium',
+              textAlign: 'center',
+              lineHeight: 20
+            }}>
+              Pull down to reload and see your channels
+            </Text>
+          </View>
+        }
+      />
     );
   }
 
@@ -346,6 +393,8 @@ export const ChannelList: React.FC<ChannelListProps> = ({
               userName={userName}
               userCurrency={userCurrency}
               userProfileCache={userProfileCache}
+              uncollectedTips={uncollectedTips}
+              onTipCollected={onTipCollected}
               onChannelPress={(channelId) => {
                 // Optimistically update unread count immediately for better UX
                 setLiveUnreadCounts(prev => {

@@ -454,23 +454,55 @@ export const CustomAudioAttachment: React.FC<CustomAudioAttachmentProps> = ({ at
 
         {/* Content Area */}
         <View style={{ flex: 1, flexDirection: 'column', justifyContent: 'center', position: 'relative' }}>
-          {/* Duration - positioned absolutely in corner */}
+          {/* Duration - positioned on the left */}
           <View style={{
             position: 'absolute',
             bottom: -20,
-            right: 0,
+            left: 0,
             zIndex: 1,
           }}>
             <Text style={{
-              color: '#A1A1AA',
+              color: '#A1A1A1',
               fontSize: 11,
               fontFamily: 'questrial',
-              fontWeight: '400',
+              fontWeight: '600',
             }}>
               {isPlaying && totalDuration > 0 
                 ? `${formatTime(currentTime)} / ${formatTime(totalDuration)}`
                 : attachment.duration || '0:00'
               }
+            </Text>
+          </View>
+
+          {/* Timestamp - positioned in bottom right corner */}
+          <View style={{
+            position: 'absolute',
+            bottom: -20,
+            right: 0,
+            zIndex: 1,
+            backgroundColor: 'rgba(255, 255, 255, 0.9)', // Add background for visibility
+            paddingHorizontal: 4,
+            paddingVertical: 1,
+            borderRadius: 4,
+          }}>
+            <Text style={{
+              color: '#000000',
+              fontSize: 11,
+              fontFamily: 'questrial',
+              fontWeight: '600',
+            }}>
+              {(() => {
+                // Try multiple timestamp sources
+                const timestamp = attachment?.timestamp || attachment?.created_at || new Date().toISOString();
+                
+                try {
+                  const date = new Date(timestamp);
+                  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                } catch (error) {
+                  // Fallback to current time
+                  return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                }
+              })()}
             </Text>
           </View>
 

@@ -202,7 +202,7 @@ export const MessageSentAnimation: React.FC<MessageSentAnimationProps> = ({
               fontWeight: 'bold',
               textAlign: 'center',
             }}>
-              💝 Tip: {tipAmount}
+              Tip: {tipAmount}
             </Text>
           </Animated.View>
 

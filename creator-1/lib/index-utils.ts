@@ -15,7 +15,6 @@ export interface Channel {
   image?: string;
   memberNames?: { [userId: string]: string };
   memberAvatars?: { [userId: string]: string };
-  memberTipAmounts?: { [userId: string]: number };
   unreadCount: number;
 }
 

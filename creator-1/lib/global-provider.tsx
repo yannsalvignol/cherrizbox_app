@@ -18,7 +18,7 @@ interface GlobalContextType {
   isStreamConnected: boolean;
   missingChannelConditions: string[];
   setMissingChannelConditions: (conditions: string[]) => void;
-  refreshChannelConditions: () => void;
+  refreshChannelConditions: (forceRefresh?: boolean) => Promise<void>;
   showInlineVerification: boolean;
   setShowInlineVerification: (show: boolean) => void;
   socialMediaPlatform: string;
@@ -30,6 +30,7 @@ interface GlobalContextType {
   profileCache: ProfileCache | null;
   preloadProfileData: () => Promise<void>;
   getCachedProfile: () => ProfileCache | null;
+  clearProfileCache: () => void;
 }
 
 interface User {
@@ -125,19 +126,30 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
     return profileCache;
   };
 
-  const refreshChannelConditions = async () => {
-    console.log('🚀 [Global Currency] refreshChannelConditions called for user:', user?.$id);
+  const clearProfileCache = () => {
+    console.log('🗑️ [Profile Cache] Manually clearing cache');
+    setProfileCache(null);
+  };
+
+  const refreshChannelConditions = async (forceRefresh = false) => {
+    console.log('🚀 [Global Currency] refreshChannelConditions called for user:', user?.$id, 'forceRefresh:', forceRefresh);
     if (!user?.$id) {
       console.log('❌ [Global Currency] No user ID, returning early');
       return;
     }
     
     try {
-      // Try to use cached data first
       let profile, userPhoto;
+      
+      // If forcing refresh or no cache, fetch from API
+      if (forceRefresh) {
+        console.log('🔄 [Global Currency] Force refresh - clearing cache and loading from API...');
+        clearProfileCache();
+      }
+      
       const cached = getCachedProfile();
       
-      if (cached) {
+      if (cached && !forceRefresh) {
         console.log('🔄 [Global Currency] Using cached profile data...');
         profile = cached.profile;
         userPhoto = cached.userPhoto;
@@ -145,18 +157,33 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
         // First check if all profile fields are filled (same as handleGoLive validation)
         console.log('🔄 [Global Currency] Loading user profile from API...');
         const { getUserProfile, getUserPhoto } = await import('./appwrite');
-        [profile, userPhoto] = await Promise.all([
-          getUserProfile(user.$id),
-          getUserPhoto(user.$id)
-        ]);
         
-        // Cache the data for future use
-        if (profile) {
-          setProfileCache({
-            profile,
-            userPhoto,
-            timestamp: Date.now()
-          });
+        try {
+          [profile, userPhoto] = await Promise.all([
+            getUserProfile(user.$id),
+            getUserPhoto(user.$id)
+          ]);
+          
+          // Cache the fresh data
+          if (profile) {
+            setProfileCache({
+              profile,
+              userPhoto,
+              timestamp: Date.now()
+            });
+            console.log('✅ [Global Currency] Fresh data cached successfully');
+          }
+        } catch (apiError) {
+          console.error('❌ [Global Currency] Error fetching profile data:', apiError);
+          // If API fails, try to use any existing cache as fallback
+          const fallbackCached = profileCache;
+          if (fallbackCached) {
+            console.log('⚠️ [Global Currency] Using fallback cached data due to API error');
+            profile = fallbackCached.profile;
+            userPhoto = fallbackCached.userPhoto;
+          } else {
+            throw apiError;
+          }
         }
       }
       
@@ -486,6 +513,7 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
         profileCache,
         preloadProfileData,
         getCachedProfile,
+        clearProfileCache,
       }}
     >
       {children}

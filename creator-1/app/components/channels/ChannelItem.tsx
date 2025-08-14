@@ -1,122 +1,21 @@
 import {
-    type Channel,
-    formatLastMessageTime,
-    formatPrice,
-    getChannelAvatar,
-    getChannelDisplayName
+  type Channel,
+  formatLastMessageTime,
+  getChannelAvatar,
+  getChannelDisplayName
 } from '@/lib/index-utils';
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import {
-    Image,
-    Text,
-    TouchableOpacity,
-    View
+  Animated,
+  Image,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
-// Batch database operations manager
-class BatchTipUpdater {
-  private static instance: BatchTipUpdater;
-  private updateQueue: Map<string, { documentId: string; uncashedAmount: number; userProfileCache: any; userId: string }> = new Map();
-  private batchTimer: ReturnType<typeof setTimeout> | null = null;
-  private readonly BATCH_DELAY = 2000; // 2 seconds
-  private readonly MAX_BATCH_SIZE = 10;
 
-  static getInstance(): BatchTipUpdater {
-    if (!BatchTipUpdater.instance) {
-      BatchTipUpdater.instance = new BatchTipUpdater();
-    }
-    return BatchTipUpdater.instance;
-  }
-
-  queueTipUpdate(userId: string, documentId: string, uncashedAmount: number, userProfileCache: any) {
-    this.updateQueue.set(userId, { documentId, uncashedAmount, userProfileCache, userId });
-    
-    // Clear existing timer
-    if (this.batchTimer) {
-      clearTimeout(this.batchTimer);
-    }
-    
-    // Process immediately if queue is full, otherwise wait for batch delay
-    if (this.updateQueue.size >= this.MAX_BATCH_SIZE) {
-      this.processBatch();
-    } else {
-      this.batchTimer = setTimeout(() => this.processBatch(), this.BATCH_DELAY);
-    }
-  }
-
-  private async processBatch() {
-    if (this.updateQueue.size === 0) return;
-    
-    const updates = Array.from(this.updateQueue.values());
-    this.updateQueue.clear();
-    
-    if (this.batchTimer) {
-      clearTimeout(this.batchTimer);
-      this.batchTimer = null;
-    }
-
-    console.log(`🔄 [BatchTipUpdater] Processing ${updates.length} tip updates in batch`);
-
-    try {
-      const { databases, config } = await import('@/lib/appwrite');
-      
-      // Process updates in parallel batches of 5 to avoid overwhelming the API
-      const PARALLEL_BATCH_SIZE = 5;
-      for (let i = 0; i < updates.length; i += PARALLEL_BATCH_SIZE) {
-        const batch = updates.slice(i, i + PARALLEL_BATCH_SIZE);
-        
-        await Promise.allSettled(
-          batch.map(async ({ documentId, uncashedAmount, userProfileCache, userId }) => {
-            try {
-              await databases.updateDocument(
-                config.databaseId,
-                process.env.EXPO_PUBLIC_APPWRITE_USER_COLLECTION_ID!,
-                documentId,
-                {
-                  cashed_tip_amount: uncashedAmount,
-                  uncashed_tip_amount: 0
-                }
-              );
-              
-              // Update cache
-              const cachedProfile = userProfileCache.current.get(userId);
-              if (cachedProfile) {
-                userProfileCache.current.set(userId, {
-                  ...cachedProfile,
-                  uncashedTipAmount: 0
-                });
-              }
-              
-              console.log(`✅ [BatchTipUpdater] Updated tip for user ${userId}: ${uncashedAmount}`);
-            } catch (error) {
-              console.error(`❌ [BatchTipUpdater] Failed to update tip for user ${userId}:`, error);
-            }
-          })
-        );
-      }
-      
-      console.log(`✅ [BatchTipUpdater] Completed batch processing of ${updates.length} updates`);
-    } catch (error) {
-      console.error('❌ [BatchTipUpdater] Batch processing failed:', error);
-    }
-  }
-
-  // Force process any pending updates (useful for app background/cleanup)
-  async flushPendingUpdates() {
-    if (this.updateQueue.size > 0) {
-      await this.processBatch();
-    }
-  }
-
-  // Get current queue size for monitoring
-  getQueueSize(): number {
-    return this.updateQueue.size;
-  }
-}
-
-// Export for use in other components
-export { BatchTipUpdater };
 
 interface ChannelItemProps {
   channel: Channel;
@@ -127,11 +26,12 @@ interface ChannelItemProps {
   userProfileCache: React.MutableRefObject<Map<string, { 
     name: string; 
     avatar: string; 
-    uncashedTipAmount: number; 
     documentId: string; 
     timestamp: number 
   }>>;
+  uncollectedTips: Set<string>;
   onChannelPress?: (channelId: string) => void;
+  onTipCollected?: (channelId: string) => void;
 }
 
 export const ChannelItem: React.FC<ChannelItemProps> = ({
@@ -141,7 +41,9 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
   userName,
   userCurrency,
   userProfileCache,
-  onChannelPress
+  uncollectedTips,
+  onChannelPress,
+  onTipCollected
 }) => {
   const router = useRouter();
   const displayName = getChannelDisplayName(channel, currentUserId);
@@ -150,42 +52,68 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
   const isGroupChat = channel.id.startsWith('creator-');
   const hasUnread = channel.unreadCount > 0;
   
-  // Check if DM channel has tip amount
-  const hasTip = isDM && channel.memberTipAmounts && (() => {
-    const otherMemberId = channel.members.find(memberId => memberId !== currentUserId);
-    const tipAmountCents = otherMemberId ? channel.memberTipAmounts[otherMemberId] : 0;
-    return tipAmountCents > 0;
-  })();
+  // Animation refs for tip collection
+  const coinAnimations = useRef([
+    new Animated.Value(0),
+    new Animated.Value(0),
+    new Animated.Value(0),
+    new Animated.Value(0),
+    new Animated.Value(0)
+  ]).current;
+  const [showCoinAnimation, setShowCoinAnimation] = useState(false);
+  
+  // Check if DM channel has an uncollected tip (persistent) or a recent tip message
+  const hasTip = isDM && (
+    uncollectedTips.has(channel.id) || 
+    (channel.lastMessage && channel.lastMessage.includes('💝 Tip:'))
+  );
+
+  // Coin collection animation
+  const playTipCollectionAnimation = () => {
+    setShowCoinAnimation(true);
+    
+    // Trigger haptic feedback for satisfying feel
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    
+    // Reset all animations
+    coinAnimations.forEach(anim => anim.setValue(0));
+    
+    // Create staggered coin animations
+    const animations = coinAnimations.map((anim, index) => 
+      Animated.sequence([
+        Animated.delay(index * 100), // Stagger each coin by 100ms
+        Animated.parallel([
+          Animated.timing(anim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ])
+      ])
+    );
+    
+    // Start all animations
+    Animated.parallel(animations).start(() => {
+      // Additional subtle haptic when animation completes
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      
+      // Hide animation after completion
+      setTimeout(() => {
+        setShowCoinAnimation(false);
+      }, 200);
+    });
+  };
 
   const handlePress = async () => {
-    // Reset uncashed tip amount when opening a DM channel with tips
-    if (isDM && hasTip) {
-      const otherMemberId = channel.members.find(memberId => memberId !== currentUserId);
-      if (otherMemberId && channel.memberTipAmounts) {
-        const uncashedTipAmount = channel.memberTipAmounts[otherMemberId];
-        if (uncashedTipAmount > 0) {
-          // Get the cached profile to find the document ID
-          const cachedProfile = userProfileCache.current.get(otherMemberId);
-          if (cachedProfile && cachedProfile.documentId) {
-            // Queue the tip update for batch processing instead of immediate execution
-            const batchUpdater = BatchTipUpdater.getInstance();
-            batchUpdater.queueTipUpdate(
-              otherMemberId,
-              cachedProfile.documentId,
-              uncashedTipAmount,
-              userProfileCache
-            );
-            
-            // Immediately update the UI cache for responsive UX
-            userProfileCache.current.set(otherMemberId, {
-              ...cachedProfile,
-              uncashedTipAmount: 0
-            });
-            
-            console.log(`📝 [ChannelItem] Queued tip update for user ${otherMemberId}: ${uncashedTipAmount}`);
-          }
-        }
+    // Play tip collection animation if this channel has tips
+    if (hasTip) {
+      playTipCollectionAnimation();
+      // Mark tip as collected
+      if (onTipCollected) {
+        onTipCollected(channel.id);
       }
+      // Small delay to let animation start before navigation
+      await new Promise(resolve => setTimeout(resolve, 300));
     }
     
     const targetRoute = `/chat/${channel.id}`;
@@ -198,25 +126,26 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
   };
 
   return (
-    <TouchableOpacity 
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: isGroupChat ? 16 : 12,
-        backgroundColor: isGroupChat ? 'white' : (hasTip ? 'rgba(40, 158, 65, 0.36)' : '#FFFFFF'), // Pale green for tipped DMs
-        marginHorizontal: 16,
-        marginVertical: isGroupChat ? 4 : 2,
-        borderRadius: isGroupChat ? 16 : 8,
-        borderWidth: isGroupChat ? 2 : 1,
-        borderColor: isGroupChat ? '#676767' : (hasTip ? 'rgba(67, 255, 107, 0.16)' : '#333333'), // Darker green border for tipped DMs
-        shadowColor: isGroupChat ? 'black' : 'transparent',
-        shadowOffset: isGroupChat ? { width: 0, height: 2 } : { width: 0, height: 0 },
-        shadowOpacity: isGroupChat ? 0.3 : 0,
-        shadowRadius: isGroupChat ? 8 : 0,
-        elevation: isGroupChat ? 8 : 0,
-      }}
-      onPress={handlePress}
-    >
+    <View style={{ position: 'relative' }}>
+      <TouchableOpacity 
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          padding: isGroupChat ? 16 : 12,
+          backgroundColor: isGroupChat ? 'white' : (hasTip ? 'rgba(40, 158, 65, 0.36)' : '#FFFFFF'), // Pale green for tipped DMs
+          marginHorizontal: 16,
+          marginVertical: isGroupChat ? 4 : 2,
+          borderRadius: isGroupChat ? 16 : 8,
+          borderWidth: isGroupChat ? 2 : 1,
+          borderColor: isGroupChat ? '#676767' : (hasTip ? 'rgba(67, 255, 107, 0.16)' : '#333333'), // Darker green border for tipped DMs
+          shadowColor: isGroupChat ? 'black' : 'transparent',
+          shadowOffset: isGroupChat ? { width: 0, height: 2 } : { width: 0, height: 0 },
+          shadowOpacity: isGroupChat ? 0.3 : 0,
+          shadowRadius: isGroupChat ? 8 : 0,
+          elevation: isGroupChat ? 8 : 0,
+        }}
+        onPress={handlePress}
+      >
       {/* Avatar */}
       <View style={{
         width: isGroupChat ? 48 : 40,
@@ -293,25 +222,7 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
             </Text>
           )}
           
-          {/* Show tip amount for DM channels */}
-          {isDM && channel.memberTipAmounts && (() => {
-            const otherMemberId = channel.members.find(memberId => memberId !== currentUserId);
-            const tipAmountCents = otherMemberId ? channel.memberTipAmounts[otherMemberId] : 0;
-            if (tipAmountCents > 0) {
-              const tipAmount = tipAmountCents * 100; // Convert to actual currency
-              return (
-                <Text style={{ 
-                  color: '#FFD700', 
-                  fontSize: 11,
-                  fontFamily: 'Urbanist-Bold',
-                  marginRight: 8,
-                }}>
-                  💰 {formatPrice(tipAmount, userCurrency)}
-                </Text>
-              );
-            }
-            return null;
-          })()}
+
           
           {channel.lastMessageAt && (
             <Text style={{ 
@@ -371,5 +282,108 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
         </View>
       )}
     </TouchableOpacity>
+    
+    {/* Animated Coins Overlay */}
+    {showCoinAnimation && (
+      <View style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+        pointerEvents: 'none',
+        zIndex: 1000
+      }}>
+        {coinAnimations.map((anim, index) => {
+          const translateY = anim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, -60 - (index * 10)] // Different heights for each coin
+          });
+          
+          const translateX = anim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, (index - 2) * 15] // Spread coins horizontally
+          });
+          
+          const opacity = anim.interpolate({
+            inputRange: [0, 0.8, 1],
+            outputRange: [1, 1, 0] // Fade out at the end
+          });
+          
+          const scale = anim.interpolate({
+            inputRange: [0, 0.3, 1],
+            outputRange: [0, 1.2, 0.8] // Pop in, then shrink slightly
+          });
+          
+          const rotate = anim.interpolate({
+            inputRange: [0, 1],
+            outputRange: ['0deg', '360deg'] // Spinning coin effect
+          });
+          
+          return (
+            <Animated.View
+              key={index}
+              style={{
+                position: 'absolute',
+                transform: [
+                  { translateY },
+                  { translateX },
+                  { scale },
+                  { rotate }
+                ],
+                opacity
+              }}
+            >
+              <Text style={{ 
+                fontSize: 24, 
+                color: '#FFD700',
+                textShadowColor: 'rgba(0, 0, 0, 0.3)',
+                textShadowOffset: { width: 1, height: 1 },
+                textShadowRadius: 2
+              }}>
+                💰
+              </Text>
+            </Animated.View>
+          );
+        })}
+        
+        {/* Success text that appears after coins */}
+        <Animated.View
+          style={{
+            opacity: coinAnimations[0].interpolate({
+              inputRange: [0, 0.5, 1],
+              outputRange: [0, 0, 1]
+            }),
+            transform: [{
+              translateY: coinAnimations[0].interpolate({
+                inputRange: [0, 1],
+                outputRange: [20, -40]
+              })
+            }, {
+              scale: coinAnimations[0].interpolate({
+                inputRange: [0, 0.8, 1],
+                outputRange: [0.5, 1.1, 1]
+              })
+            }]
+          }}
+        >
+          <Text style={{ 
+            fontSize: 16, 
+            fontWeight: 'bold',
+            color: '#4CAF50',
+            textAlign: 'center',
+            textShadowColor: 'rgba(0, 0, 0, 0.3)',
+            textShadowOffset: { width: 1, height: 1 },
+            textShadowRadius: 2,
+            fontFamily: 'Urbanist-Bold'
+          }}>
+            Tip Collected!
+          </Text>
+        </Animated.View>
+      </View>
+    )}
+  </View>
   );
 };

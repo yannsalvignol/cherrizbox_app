@@ -2,13 +2,14 @@ import { useGlobalContext } from '@/lib/global-provider';
 import React from 'react';
 import { View } from 'react-native';
 import {
-    MessageSimple,
-    useMessageContext,
-    useThreadContext
+  MessageSimple,
+  useMessageContext,
+  useThreadContext
 } from 'stream-chat-react-native';
 import { formatPrice } from '../../../lib/currency-utils';
 import BlurryFileAttachment from './attachments/BlurryFileAttachment';
 import CustomAttachment from './attachments/CustomAttachment';
+import CustomAudioAttachment from './attachments/CustomAudioAttachment';
 import PaidContentAttachment from './attachments/PaidContentAttachment';
 import PaidVideoAttachment from './attachments/PaidVideoAttachment';
 import PollDisplayComponent from './CustomPollComponent';
@@ -167,7 +168,7 @@ const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = (props) => {
     );
   }
 
-  // Handle audio attachments - use default MessageSimple with custom audio rendering
+  // Handle audio attachments - render completely custom without MessageSimple
   if (hasAudioAttachment) {
     console.log('Rendering message with audio attachment');
     return (
@@ -177,15 +178,24 @@ const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = (props) => {
         paddingLeft: props.isInThread && !isMyMessage ? 8 : 0, // Closer to left edge for received
         marginTop: 4, // Add space between day timestamp and audio attachment
         marginBottom: 4, // Add space underneath audio attachment for better separation
-        marginRight: isMyMessage ? -8 : 0, // Move sent audio messages closer to the right
-        marginLeft: !isMyMessage ? receivedDmOffset : 0, // Nudge received audio in DMs
-        position: 'relative', // Enable absolute positioning for reactions
+        marginRight: isMyMessage ? -2 : 0, // Move sent audio messages to the left
+        marginLeft: !isMyMessage ? receivedDmOffset + 12 : 0, // Move received audio to the left
       }}>
-        {/* Render the default MessageSimple which will show attachments and timestamps */}
-        <MessageSimple {...messageSimpleProps} />
-        
-        {/* Render reactions on top of audio attachment */}
-        <CustomReactionList />
+        {/* Render audio attachments directly without MessageSimple wrapper */}
+        <View style={{ position: 'relative' }}>
+          {message.attachments?.map((attachment: any, index: number) => (
+            attachment?.type === 'custom_audio' ? (
+              <View key={`audio-${index}`} style={{ paddingTop: 12, paddingBottom: 12 }}>
+                <CustomAudioAttachment 
+                  attachment={attachment} 
+                />
+              </View>
+            ) : null
+          ))}
+          
+          {/* Add reactions on top of audio attachment */}
+          <CustomReactionList />
+        </View>
       </View>
     );
   }

@@ -1,7 +1,8 @@
+import { formatPrice } from '@/lib/currency-utils';
 import { Ionicons } from '@expo/vector-icons';
 import * as Sharing from 'expo-sharing';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Linking, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Dimensions, Image, Linking, Modal, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 
 interface CustomAttachmentProps {
   attachment: any;
@@ -11,6 +12,7 @@ const CustomAttachment = ({ attachment }: CustomAttachmentProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [cachedImageUri, setCachedImageUri] = useState<string | null>(null);
+  const [showFullScreenImage, setShowFullScreenImage] = useState(false);
   
   // Return null if not a custom_attachment
   if (attachment?.type !== 'custom_attachment') {
@@ -87,26 +89,36 @@ const CustomAttachment = ({ attachment }: CustomAttachmentProps) => {
     }
 
     try {
-      console.log(`📄 [CustomAttachment] Opening document: ${attachment?.title}`);
+      console.log(`📄 [CustomAttachment] Downloading document: ${attachment?.title}`);
       
-      // For documents, try to open directly with the system
-      const canOpen = await Linking.canOpenURL(documentUrl);
-      if (canOpen) {
-        await Linking.openURL(documentUrl);
+      // Always use the native sharing/download functionality
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(documentUrl, {
+          mimeType: attachment?.mime_type || 'application/pdf',
+          dialogTitle: attachment?.title || 'Document',
+          UTI: attachment?.mime_type === 'application/pdf' ? 'com.adobe.pdf' : undefined,
+        });
+        console.log('✅ [CustomAttachment] Document shared successfully');
       } else {
-        // Fallback to sharing
-        if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(documentUrl, {
-            mimeType: attachment?.mime_type || 'application/octet-stream',
-            dialogTitle: `Share ${attachment?.title || 'Document'}`,
-          });
+        // Fallback for older iOS versions or when sharing is not available
+        console.log('⚠️ [CustomAttachment] Sharing not available, trying to open with system');
+        const canOpen = await Linking.canOpenURL(documentUrl);
+        if (canOpen) {
+          await Linking.openURL(documentUrl);
         } else {
           Alert.alert('Error', 'Cannot open this document type');
         }
       }
     } catch (error) {
-      console.error('❌ [CustomAttachment] Failed to open document:', error);
-      Alert.alert('Error', 'Failed to open document');
+      console.error('❌ [CustomAttachment] Failed to share document:', error);
+      Alert.alert('Error', 'Failed to download document. Please try again.');
+    }
+  };
+
+  // Handle image press to open full screen
+  const handleImagePress = () => {
+    if (cachedImageUri) {
+      setShowFullScreenImage(true);
     }
   };
 
@@ -129,6 +141,29 @@ const CustomAttachment = ({ attachment }: CustomAttachmentProps) => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  // Helper function to format timestamp
+  const formatTimestamp = (timestamp: string) => {
+    try {
+      const date = new Date(timestamp);
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (error) {
+      return '';
+    }
+  };
+
+  // Helper function to get currency symbol
+  const getCurrencySymbol = (currency: string) => {
+    const symbols: { [key: string]: string } = {
+      'usd': '$',
+      'eur': '€',
+      'chf': 'CHF',
+      'gbp': '£',
+      'cad': 'C$',
+      'aud': 'A$',
+    };
+    return symbols[currency?.toLowerCase()] || currency?.toUpperCase() || '';
   };
 
   if (hasError && isImage) {
@@ -160,6 +195,10 @@ const CustomAttachment = ({ attachment }: CustomAttachmentProps) => {
 
   // Render document attachment
   if (isDocument) {
+    const tipAmount = attachment?.tip_amount;
+    const currency = attachment?.currency;
+    const timestamp = attachment?.timestamp;
+    
     return (
       <View style={{
         backgroundColor: 'transparent',
@@ -222,6 +261,53 @@ const CustomAttachment = ({ attachment }: CustomAttachmentProps) => {
           
           {/* Download arrow */}
           <Ionicons name="download-outline" size={20} color="#FFFFFF" />
+          
+          {/* Tip Amount - Top Right Corner */}
+          {tipAmount && currency && (
+            <View style={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              flexDirection: 'row',
+              alignItems: 'center',
+              zIndex: 3,
+            }}>
+              <Text style={{
+                color: '#FFD700',
+                fontSize: 10,
+                fontFamily: 'Urbanist-Bold',
+                marginRight: 3,
+              }}>
+                💰
+              </Text>
+              <Text style={{
+                color: '#FFFFFF',
+                fontSize: 10,
+                fontFamily: 'Urbanist-Bold',
+              }}>
+                {formatPrice(tipAmount * 100, currency)}
+              </Text>
+            </View>
+          )}
+          
+          {/* Timestamp - Bottom Right Corner */}
+          {timestamp && (
+            <View style={{
+              position: 'absolute',
+              bottom: 8,
+              right: 8,
+              zIndex: 3,
+            }}>
+              <Text style={{
+                color: '#FFFFFF',
+                fontSize: 9,
+                fontFamily: 'questrial',
+                opacity: 0.9,
+              }}>
+                {formatTimestamp(timestamp)}
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
     );
@@ -229,6 +315,10 @@ const CustomAttachment = ({ attachment }: CustomAttachmentProps) => {
 
   // Render image attachment
   if (isImage) {
+    const tipAmount = attachment?.tip_amount;
+    const currency = attachment?.currency;
+    const timestamp = attachment?.timestamp;
+    
     return (
       <View style={{
         backgroundColor: 'transparent',
@@ -241,14 +331,20 @@ const CustomAttachment = ({ attachment }: CustomAttachmentProps) => {
       }}>
         <View style={{
           width: 250,
-          height: 200,
           borderRadius: 12,
           backgroundColor: '#2A2A2A',
-          justifyContent: 'center',
-          alignItems: 'center',
           position: 'relative',
           zIndex: 1,
+          overflow: 'hidden',
         }}>
+          {/* Main image container */}
+          <View style={{
+            width: 250,
+            height: 200,
+            justifyContent: 'center',
+            alignItems: 'center',
+            position: 'relative',
+          }}>
           {/* Loading indicator */}
           {(isLoading || !cachedImageUri) && !hasError && (
             <View style={{
@@ -259,7 +355,7 @@ const CustomAttachment = ({ attachment }: CustomAttachmentProps) => {
               height: '100%',
               backgroundColor: 'rgba(42, 42, 42, 0.8)',
               borderRadius: 12,
-              zIndex: 1,
+              zIndex: 2,
             }}>
               <ActivityIndicator size="large" color="#FFFFFF" />
               <Text style={{
@@ -276,27 +372,252 @@ const CustomAttachment = ({ attachment }: CustomAttachmentProps) => {
           
           {/* Render image when ready */}
           {cachedImageUri && (
-            <Image
-              source={{ uri: cachedImageUri }}
+            <TouchableOpacity 
+              onPress={handleImagePress}
+              activeOpacity={0.9}
               style={{
                 width: 250,
                 height: 200,
                 borderRadius: 12,
-                backgroundColor: 'transparent',
               }}
-              resizeMode="cover"
-              onLoad={() => {
-                setIsLoading(false);
-                console.log(`🎯 [CustomAttachment] Image rendered successfully`);
-              }}
-              onError={(error) => {
-                console.error('❌ [CustomAttachment] Image rendering failed:', error);
-                setHasError(true);
-                setIsLoading(false);
-              }}
-            />
+            >
+              <Image
+                source={{ uri: cachedImageUri }}
+                style={{
+                  width: 250,
+                  height: 200,
+                  borderRadius: 12,
+                  backgroundColor: 'transparent',
+                }}
+                resizeMode="cover"
+                onLoad={() => {
+                  setIsLoading(false);
+                  console.log(`🎯 [CustomAttachment] Image rendered successfully`);
+                }}
+                onError={(error) => {
+                  console.error('❌ [CustomAttachment] Image rendering failed:', error);
+                  setHasError(true);
+                  setIsLoading(false);
+                }}
+              />
+            </TouchableOpacity>
           )}
+          
+
+          </View>
+          
+          {/* Black Footer Band - Overlapping the photo */}
+          <View style={{
+            width: 250,
+            height: 40,
+            backgroundColor: '#000000',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            marginTop: -12, // Bring it up to overlap the photo
+            zIndex: 4, // Ensure it appears above the image
+          }}>
+            {/* Left side - Tip amount */}
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+            }}>
+              {tipAmount && currency && (
+                <>
+                  <Text style={{
+                    color: '#FFD700',
+                    fontSize: 14,
+                    fontFamily: 'Urbanist-Bold',
+                    marginRight: 6,
+                  }}>
+                    💰
+                  </Text>
+                  <Text style={{
+                    color: '#FFFFFF',
+                    fontSize: 14,
+                    fontFamily: 'Urbanist-Bold',
+                  }}>
+                    {formatPrice(tipAmount * 100, currency)}
+                  </Text>
+                </>
+              )}
+            </View>
+            
+            {/* Right side - Timestamp */}
+            <View>
+              {timestamp && (
+                <Text style={{
+                  color: '#CCCCCC',
+                  fontSize: 12,
+                  fontFamily: 'questrial',
+                }}>
+                  {formatTimestamp(timestamp)}
+                </Text>
+              )}
+            </View>
+          </View>
         </View>
+        
+        {/* Full Screen Image Modal */}
+        <Modal
+          visible={showFullScreenImage}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowFullScreenImage(false)}
+        >
+          <StatusBar hidden={true} />
+          <View style={{
+            flex: 1,
+            backgroundColor: 'black',
+          }}>
+            {/* Close button */}
+            <TouchableOpacity
+              style={{
+                position: 'absolute',
+                top: 50,
+                right: 20,
+                zIndex: 10,
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                borderRadius: 20,
+                width: 40,
+                height: 40,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+              onPress={() => setShowFullScreenImage(false)}
+            >
+              <Ionicons name="close" size={24} color="white" />
+            </TouchableOpacity>
+            
+            {/* Full screen image */}
+            <TouchableOpacity 
+              style={{ 
+                flex: 1, 
+                width: '100%',
+                justifyContent: 'center',
+                alignItems: 'center',
+                paddingBottom: 100, // Space for footer
+              }}
+              onPress={() => setShowFullScreenImage(false)}
+              activeOpacity={1}
+            >
+              <Image
+                source={{ uri: cachedImageUri || '' }}
+                style={{
+                  width: Dimensions.get('window').width,
+                  height: Dimensions.get('window').height - 100,
+                }}
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
+            
+            {/* Footer with actions */}
+            <View style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: 100,
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-around',
+              paddingHorizontal: 20,
+              paddingBottom: 20,
+            }}>
+              {/* Download/Share Button */}
+              <TouchableOpacity
+                style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  borderRadius: 25,
+                  width: 50,
+                  height: 50,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+                onPress={async () => {
+                  try {
+                    if (cachedImageUri && await Sharing.isAvailableAsync()) {
+                      await Sharing.shareAsync(cachedImageUri, {
+                        mimeType: 'image/jpeg',
+                        dialogTitle: attachment?.title || 'Image',
+                      });
+                    }
+                  } catch (error) {
+                    console.error('Failed to share image:', error);
+                    Alert.alert('Error', 'Failed to share image');
+                  }
+                }}
+              >
+                <Ionicons name="download-outline" size={24} color="white" />
+              </TouchableOpacity>
+              
+              {/* Tip info */}
+              <View style={{
+                alignItems: 'center',
+                flex: 1,
+                marginHorizontal: 20,
+              }}>
+                {tipAmount && currency && (
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    marginBottom: 4,
+                  }}>
+                    <Text style={{
+                      color: '#FFD700',
+                      fontSize: 16,
+                      fontFamily: 'Urbanist-Bold',
+                      marginRight: 6,
+                    }}>
+                      💰
+                    </Text>
+                    <Text style={{
+                      color: '#FFFFFF',
+                      fontSize: 16,
+                      fontFamily: 'Urbanist-Bold',
+                    }}>
+                      {formatPrice(tipAmount * 100, currency)}
+                    </Text>
+                  </View>
+                )}
+                {timestamp && (
+                  <Text style={{
+                    color: '#CCCCCC',
+                    fontSize: 12,
+                    fontFamily: 'questrial',
+                  }}>
+                    {formatTimestamp(timestamp)}
+                  </Text>
+                )}
+              </View>
+              
+              {/* Info Button */}
+              <TouchableOpacity
+                style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  borderRadius: 25,
+                  width: 50,
+                  height: 50,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+                onPress={() => {
+                  const fileSize = attachment?.file_size ? formatFileSize(attachment.file_size) : 'Unknown size';
+                  const fileName = attachment?.title || 'Image';
+                  Alert.alert(
+                    'Image Info',
+                    `Name: ${fileName}\nSize: ${fileSize}\nTime: ${timestamp ? formatTimestamp(timestamp) : 'Unknown'}`
+                  );
+                }}
+              >
+                <Ionicons name="information-circle-outline" size={24} color="white" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </View>
     );
   }

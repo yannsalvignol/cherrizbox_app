@@ -31,7 +31,7 @@ export const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
     <Modal
       visible={visible}
       animationType="slide"
-      presentationStyle="fullScreen"
+      presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
       <View style={{ flex: 1, backgroundColor: 'black' }}>
@@ -41,21 +41,21 @@ export const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
             flexDirection: 'row',
             alignItems: 'center', 
             justifyContent: 'space-between',
-            paddingHorizontal: 16,
-            paddingVertical: 16,
+            paddingHorizontal: 12,
+            paddingVertical: 8,
             backgroundColor: 'black',
             borderBottomWidth: 1,
             borderBottomColor: '#333333',
-            minHeight: 60
+            minHeight: 44
           }}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Image
               source={require('../../../assets/icon/loading-icon.png')}
-              style={{ width: 32, height: 32, marginRight: 8, resizeMode: 'contain' }}
+              style={{ width: 24, height: 24, marginRight: 6, resizeMode: 'contain' }}
             />
             <Text style={{ 
               color: 'white', 
-              fontSize: 18,
+              fontSize: 16,
               fontWeight: 'bold',
               fontFamily: 'Urbanist-Bold'
             }}>
@@ -65,18 +65,18 @@ export const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
           <TouchableOpacity
             onPress={onClose}
             style={{
-              padding: 12,
+              padding: 8,
               backgroundColor: '#333333',
-              borderRadius: 8,
-              minWidth: 44,
-              minHeight: 44,
+              borderRadius: 6,
+              minWidth: 36,
+              minHeight: 36,
               justifyContent: 'center',
               alignItems: 'center'
             }}
           >
             <Text style={{ 
               color: 'white',
-              fontSize: 18, 
+              fontSize: 16, 
               fontWeight: 'bold',
               fontFamily: 'Urbanist-Bold'
             }}>

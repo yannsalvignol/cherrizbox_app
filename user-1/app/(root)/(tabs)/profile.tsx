@@ -644,9 +644,9 @@ export default function Profile() {
           </Text>
           <TouchableOpacity 
             onPress={() => router.push('/(root)/(tabs)/settings')} 
-            className="absolute right-12 top-3"
+            className="absolute right-12 top-1"
           >
-            <Ionicons name="settings-sharp" size={28} color="#676767" />
+            <Ionicons name="settings-sharp" size={32} color="#676767" />
           </TouchableOpacity>
         </View>
         <View className="flex-row items-center justify-center mb-4">
@@ -845,7 +845,7 @@ export default function Profile() {
                     key={contentType}
                     onPress={() => setSelectedContentType(contentType)}
                     style={{
-                      backgroundColor: selectedContentType === contentType ? '#DCDEDF' : '#FFFFFF',
+                      backgroundColor: selectedContentType === contentType ? '#FFFFFF' : '#DCDEDF',
                       paddingHorizontal: 24,
                       paddingVertical: 12,
                       borderRadius: 25,
@@ -853,7 +853,7 @@ export default function Profile() {
                       marginHorizontal: 4,
                       alignItems: 'center',
                       borderWidth: 1,
-                      borderColor: selectedContentType === contentType ? '#676767' : '#E0E0E0'
+                      borderColor: selectedContentType === contentType ? '#FFFFFF' : '#676767'
                     }}
                   >
                     <Text style={{ color: selectedContentType === contentType ? 'black' : 'black', fontFamily: 'questrial', fontSize: 16 }}>
@@ -876,13 +876,13 @@ export default function Profile() {
                 <Pressable 
                   onPress={() => setSelectedCreatorId('all')}
                   style={{
-                    backgroundColor: selectedCreatorId === 'all' ? '#DCDEDF' : '#FFFFFF',
+                    backgroundColor: selectedCreatorId === 'all' ? '#FFFFFF' : '#DCDEDF',
                     paddingHorizontal: 24,
                     paddingVertical: 12,
                     borderRadius: 25,
                     marginRight: 12,
                     borderWidth: 1,
-                    borderColor: selectedCreatorId === 'all' ? '#676767' : '#E0E0E0'
+                    borderColor: selectedCreatorId === 'all' ? '#FFFFFF' : '#676767'
                   }}
                 >
                   <Text style={{ color: selectedCreatorId === 'all' ? 'black' : 'black', fontFamily: 'questrial', fontSize: 16 }}>

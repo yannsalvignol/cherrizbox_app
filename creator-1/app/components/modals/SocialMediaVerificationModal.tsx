@@ -50,6 +50,109 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
 
   if (!visible) return null;
 
+  // Check if the platform is Google or Apple
+  const isGoogleOrApple = socialMediaPlatform === 'Google' || socialMediaPlatform === 'Apple';
+
+  if (isGoogleOrApple) {
+    return (
+      <View style={{
+        backgroundColor: '#FFFFFF',
+        borderRadius: 20,
+        padding: 28,
+        marginBottom: 24,
+        borderWidth: 2,
+        borderColor: '#FD6F3E',
+        width: '100%',
+        alignItems: 'center'
+      }}>
+        {/* Header */}
+        <View style={{ 
+          flexDirection: 'row', 
+          alignItems: 'center', 
+          marginBottom: 20,
+          width: '100%'
+        }}>
+          <View style={{
+            backgroundColor: '#FD6F3E',
+            borderRadius: 8,
+            padding: 6,
+            marginRight: 10
+          }}>
+            <Ionicons name="star" size={16} color="white" />
+          </View>
+          <Text style={{ 
+            color: 'black', 
+            fontSize: 16, 
+            fontFamily: 'Urbanist-Bold',
+            flex: 1
+          }}>
+            Choose Your Platform
+          </Text>
+        </View>
+
+        {/* Message */}
+        <View style={{
+          backgroundColor: 'rgba(253, 111, 62, 0.1)',
+          borderRadius: 12,
+          padding: 16,
+          marginBottom: 24,
+          borderWidth: 1,
+          borderColor: '#FD6F3E',
+          alignItems: 'center',
+          width: '100%'
+        }}>
+          <Text style={{
+            color: 'black',
+            fontSize: 16,
+            fontFamily: 'Urbanist-Bold',
+            textAlign: 'center',
+            marginBottom: 8
+          }}>
+            We need a social media platform to verify you
+          </Text>
+          <Text style={{
+            color: 'rgba(0,0,0,0.7)',
+            fontSize: 14,
+            fontFamily: 'Urbanist-Regular',
+            textAlign: 'center'
+          }}>
+            Please select a social media platform where you have a presence so we can verify your account
+          </Text>
+        </View>
+
+        {/* Pick Social Media Button */}
+        <TouchableOpacity 
+          style={{ 
+            backgroundColor: '#FD6F3E', 
+            borderRadius: 12, 
+            paddingVertical: 16, 
+            paddingHorizontal: 32,
+            width: '100%',
+            alignItems: 'center',
+            shadowColor: '#FD6F3E',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+            elevation: 8,
+            marginBottom: 16
+          }}
+          onPress={() => {
+            onClose();
+            router.push('/change-username');
+          }}
+        >
+          <Text style={{ 
+            color: 'white', 
+            fontSize: 16, 
+            fontFamily: 'Urbanist-Bold'
+          }}>
+            Pick social media where you are a legend
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={{
       backgroundColor: '#FFFFFF',

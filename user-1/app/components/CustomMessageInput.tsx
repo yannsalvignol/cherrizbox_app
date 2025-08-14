@@ -2,7 +2,7 @@ import { uploadFileToAppwrite } from '@/lib/appwrite';
 import { formatPrice, getCurrencyInfo } from '@/lib/currency';
 import { createTipPaymentIntent } from '@/lib/tip-payment';
 import { Ionicons } from '@expo/vector-icons';
-import { ResizeMode, Video } from 'expo-av';
+// Video import removed - only supporting images now
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
@@ -150,7 +150,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
 
       console.log('📱 Launching image library...');
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: false,
         quality: 0.8,
         allowsMultipleSelection: false,
@@ -173,14 +173,26 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
           height: asset.height
         });
         
+        // Generate proper filename with extension if missing
+        let fileName = asset.fileName || 'image';
+        if (!fileName.includes('.')) {
+          // Extract extension from URI if filename doesn't have one
+          const uriExtension = asset.uri.substring(asset.uri.lastIndexOf('.'));
+          if (uriExtension && uriExtension.length > 1 && uriExtension.length < 6) {
+            fileName = fileName + uriExtension.toLowerCase();
+          } else {
+            // Default to .jpg for images if we can't extract extension
+            fileName = fileName + '.jpg';
+          }
+        }
+        
         const attachmentData = {
           uri: asset.uri,
           type: asset.type || 'image',
-          fileName: asset.fileName || 'image',
+          fileName: fileName,
           fileSize: asset.fileSize || 0,
         };
         
-        console.log('💾 Setting selected attachment:', attachmentData);
         setSelectedAttachment(attachmentData);
         console.log('📱 Showing preview in same modal');
       } else {
@@ -193,11 +205,11 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
   };
 
     const handleDocumentPicker = async () => {
-    console.log('📄 Starting document picker...');
+    console.log('📄 Starting PDF document picker...');
     try {
-      console.log('📱 Launching document picker...');
+      console.log('📱 Launching PDF document picker...');
       const result = await DocumentPicker.getDocumentAsync({
-        type: '*/*',
+        type: 'application/pdf',
         copyToCacheDirectory: true,
       });
 
@@ -240,7 +252,6 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
             originalUri: asset.uri, // Keep original for reference
           };
           
-          console.log('💾 Setting selected document with permanent URI:', attachmentData);
           setSelectedAttachment(attachmentData);
           console.log('📱 Showing preview in same modal');
         } catch (copyError) {
@@ -281,7 +292,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: false,
         quality: 0.8,
-        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
       });
 
       console.log('📋 Camera result:', {
@@ -301,14 +312,26 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
           height: asset.height
         });
         
+        // Generate proper filename with extension if missing
+        let fileName = asset.fileName || 'image';
+        if (!fileName.includes('.')) {
+          // Extract extension from URI if filename doesn't have one
+          const uriExtension = asset.uri.substring(asset.uri.lastIndexOf('.'));
+          if (uriExtension && uriExtension.length > 1 && uriExtension.length < 6) {
+            fileName = fileName + uriExtension.toLowerCase();
+          } else {
+            // Default to .jpg for images if we can't extract extension
+            fileName = fileName + '.jpg';
+          }
+        }
+        
         const attachmentData = {
           uri: asset.uri,
           type: asset.type || 'image',
-          fileName: asset.fileName || 'image',
+          fileName: fileName,
           fileSize: asset.fileSize || 0,
         };
         
-        console.log('💾 Setting camera attachment:', attachmentData);
         setSelectedAttachment(attachmentData);
         console.log('📱 Showing preview in same modal');
       } else {
@@ -498,7 +521,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                       fontFamily: 'questrial',
                       flex: 1,
                     }}>
-                      Photo & Video Library
+                      Photo Library
                     </Text>
                     <Ionicons name="chevron-forward" size={20} color="#666666" />
                   </TouchableOpacity>
@@ -521,7 +544,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                       fontFamily: 'questrial',
                       flex: 1,
                     }}>
-                      Document
+                      PDF Document
                     </Text>
                     <Ionicons name="chevron-forward" size={20} color="#666666" />
                   </TouchableOpacity>
@@ -573,14 +596,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                   marginBottom: 15,
                   backgroundColor: '#1A1A1A',
                 }}>
-                  {selectedAttachment?.type === 'video' ? (
-                    <Video
-                      source={{ uri: selectedAttachment.uri }}
-                      style={{ width: '100%', height: '100%' }}
-                      resizeMode={ResizeMode.CONTAIN}
-                      useNativeControls
-                    />
-                  ) : selectedAttachment?.type === 'document' ? (
+                  {selectedAttachment?.type === 'document' ? (
                     <View style={{
                       flex: 1,
                       justifyContent: 'center',
@@ -787,10 +803,10 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                         }
                         
                         // Upload file with custom animation
-                        const mimeType = selectedAttachment.type === 'video' ? 'video/mp4' : 
-                                        selectedAttachment.type === 'document' ? (selectedAttachment.mimeType || 'application/octet-stream') : 'image/jpeg';
+                        const mimeType = selectedAttachment.type === 'document' ? 'application/pdf' : 'image/jpeg';
                         
                         console.log('⬆️ Uploading file to Appwrite storage with animation...');
+                        
                         const appwriteFileUrl = await uploadWithAnimation(
                           selectedAttachment.uri,
                           selectedAttachment.fileName || 'attachment',
@@ -801,7 +817,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                         
                         // Prepare message data but don't send yet - wait for payment
                         const messageData = {
-                          text: `💝 Tip: ${formatPrice(tipAmount.toFixed(2), creatorCurrency)}`,
+                          text: `Tip: ${formatPrice(tipAmount.toFixed(2), creatorCurrency)}`,
                           attachments: [
                             {
                               type: 'custom_attachment',

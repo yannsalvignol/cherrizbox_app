@@ -428,6 +428,7 @@ export default function ChatScreen() {
               messageActions={() => []} // Disable default message actions
               ReactionListTop={CustomReactionList} // Custom reaction list without dark background
               ReactionListBottom={CustomReactionList}
+
               Card={(props: any) => {
                 
                 // The props ARE the attachment, not nested under 'attachment'
@@ -486,6 +487,13 @@ export default function ChatScreen() {
                         <EmptyStateIndicator channelId={channelId} />
                       )}
                       onThreadSelect={setThread}
+                      swipeToReplyEnabled={(message) => {
+                        // Disable swipe to reply for custom audio attachments
+                        const hasAudioAttachment = message?.attachments?.some((attachment: any) => 
+                          attachment?.type === 'custom_audio'
+                        );
+                        return !hasAudioAttachment; // Return false to disable, true to enable
+                      }}
                     />
                     
                     {/* Creator Name Banner - Floating on top */}

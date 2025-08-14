@@ -1208,9 +1208,6 @@ export const getPurchasedContent = async (
 export const uploadFileToAppwrite = async (fileUri: string, fileName: string, mimeType?: string): Promise<string> => {
   try {
     console.log('📤 Starting file upload to Appwrite...');
-    console.log('📁 File URI:', fileUri);
-    console.log('📄 File Name:', fileName);
-    console.log('🏷️ MIME Type:', mimeType);
 
     // We need to import FileSystem dynamically to avoid circular dependencies
     const FileSystem = await import('expo-file-system');
