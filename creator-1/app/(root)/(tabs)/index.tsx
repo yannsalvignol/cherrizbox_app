@@ -1,26 +1,27 @@
 import {
-  ChannelList,
-  SearchBar
+    ChannelList,
+    SearchBar
 } from '@/app/components/channels';
 
 import EarningsChart from '@/app/components/charts/EarningsChart';
+import SubscriberChart from '@/app/components/charts/SubscriberChart';
 import CircularProgress from '@/app/components/CircularProgress';
 import {
-  CustomNotificationModal,
-  NetworkErrorModal,
-  SocialMediaVerificationModal,
-  StripeConnectModal,
-  SubscriberInfoModal
+    CustomNotificationModal,
+    NetworkErrorModal,
+    SocialMediaVerificationModal,
+    StripeConnectModal,
+    SubscriberInfoModal
 } from '@/app/components/modals';
 import { getUserProfile } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
 import {
-  filterChannels,
-  formatPrice,
-  type Channel
+    filterChannels,
+    formatPrice,
+    type Channel
 } from '@/lib/index-utils';
 import { client, connectUser } from '@/lib/stream-chat';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
@@ -61,6 +62,8 @@ interface StripeConnectProfile {
   weekEarnings?: number;
   monthEarnings?: number;
   yearEarnings?: number;
+  // Daily subscriber stats tracking
+  dailySubscribersStats?: string; // JSON string of date -> {monthly, yearly, cancelledMonthly, cancelledYearly}
 }
 
 export default function Index() {
@@ -163,6 +166,7 @@ export default function Index() {
   const [earningsTimeframe, setEarningsTimeframe] = useState<'weekly' | 'monthly' | 'yearly'>('weekly');
   const [dailyGoal, setDailyGoal] = useState(0);
   const [weeklyGoal, setWeeklyGoal] = useState(0);
+  const [subscriberTimeframe, setSubscriberTimeframe] = useState<'weekly' | 'monthly' | 'yearly'>('weekly');
 
 
 
@@ -1024,6 +1028,35 @@ export default function Index() {
     return total;
   };
 
+  // Helper function to calculate subscriber stats for different timeframes
+  const calculateSubscriberStats = (dailySubscribersStats: any, timeframe: 'weekly' | 'monthly' | 'yearly') => {
+    if (!dailySubscribersStats || typeof dailySubscribersStats !== 'object') {
+      return { gained: 0, lost: 0, net: 0 };
+    }
+    
+    const today = new Date();
+    let gained = 0;
+    let lost = 0;
+    let days = 7;
+    
+    if (timeframe === 'monthly') days = 30;
+    else if (timeframe === 'yearly') days = 365;
+    
+    for (let i = 0; i < days; i++) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      
+      if (dailySubscribersStats[dateStr]) {
+        const dayStats = dailySubscribersStats[dateStr];
+        gained += (dayStats.monthly || 0) + (dayStats.yearly || 0);
+        lost += (dayStats.cancelledMonthly || 0) + (dayStats.cancelledYearly || 0);
+      }
+    }
+    
+    return { gained, lost, net: gained - lost };
+  };
+
   const loadCreatorFinancials = async () => {
     if (!user?.$id) return;
 
@@ -1774,205 +1807,306 @@ export default function Index() {
             paddingVertical: 20,
           }}
         >
-          {/* Subscriptions Section */}
-          <View style={{ marginBottom: 16 }}>
+          {/* Big Total Subscribers Card with Weekly Stats */}
+          <View style={{
+            backgroundColor: 'white',
+            borderRadius: 16,
+            padding: 24,
+            marginBottom: 20,
+          }}>
             <Text style={{ 
               color: 'black', 
-              fontFamily: 'Urbanist-Bold', 
-              fontSize: 20, 
+              fontFamily: 'MuseoModerno-Regular', 
+              fontSize: 18,
               marginBottom: 16,
-              textAlign: 'left'
+              textAlign: 'center'
             }}>
-              📊 Subscription Analytics
+              Total Current Subscribers
             </Text>
+            
+            {/* Total Number */}
+            <Text style={{ 
+              color: 'black', 
+              fontFamily: 'MuseoModerno-Regular', 
+              fontSize: 48, 
+              textAlign: 'center',
+              marginBottom: 20
+            }}>
+              {(typeof creatorFinancials?.number_of_monthly_subscribers === 'number' || typeof creatorFinancials?.number_of_yearly_subscriptions === 'number')
+                ? ((creatorFinancials?.number_of_monthly_subscribers || 0) + (creatorFinancials?.number_of_yearly_subscriptions || 0))
+                : '—'}
+            </Text>
+
+            {/* Weekly Stats */}
+            {(() => {
+              let weeklyStats = { gained: 0, lost: 0, net: 0 };
+              try {
+                const dailyStats = creatorFinancials?.dailySubscribersStats ? JSON.parse(creatorFinancials.dailySubscribersStats) : {};
+                weeklyStats = calculateSubscriberStats(dailyStats, 'weekly');
+              } catch (e) {
+                weeklyStats = { gained: 0, lost: 0, net: 0 };
+              }
+              
+              return (
+                <View style={{ flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center' }}>
+                  {/* Gained this week */}
+                  <View style={{ alignItems: 'center', flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                      <Ionicons name="arrow-up-circle" size={20} color="#4CAF50" style={{ marginRight: 6 }} />
+                      <Text style={{ 
+                        color: '#4CAF50', 
+                        fontFamily: 'MuseoModerno-Regular', 
+                        fontSize: 24 
+                      }}>
+                        +{weeklyStats.gained}
+                      </Text>
+                    </View>
+                    <Text style={{ 
+                      color: '#888888', 
+                      fontFamily: 'MuseoModerno-Regular', 
+                      fontSize: 12,
+                      textAlign: 'center'
+                    }}>
+                      Gained this week
+                    </Text>
+                  </View>
+
+                  {/* Divider */}
+                  <View style={{ width: 1, height: 40, backgroundColor: '#E0E0E0', marginHorizontal: 16 }} />
+
+                  {/* Lost this week */}
+                  <View style={{ alignItems: 'center', flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                      <Ionicons name="arrow-down-circle" size={20} color="#F44336" style={{ marginRight: 6 }} />
+                      <Text style={{ 
+                        color: '#F44336', 
+                        fontFamily: 'MuseoModerno-Regular', 
+                        fontSize: 24 
+                      }}>
+                        -{weeklyStats.lost}
+                      </Text>
+                    </View>
+                    <Text style={{ 
+                      color: '#888888', 
+                      fontFamily: 'MuseoModerno-Regular', 
+                      fontSize: 12,
+                      textAlign: 'center'
+                    }}>
+                      Lost this week
+                    </Text>
+                  </View>
+                </View>
+              );
+            })()}
           </View>
-          {/* Total Subscribers Card */}
-            <View style={{
-              backgroundColor: 'white',
+
+          {/* Subscriber Growth Chart with Tabs */}
+          <View style={{
+            backgroundColor: 'white',
             borderRadius: 16,
             padding: 20,
             marginBottom: 20,
-            borderWidth: 1,
-            borderColor: '#FD6F3E'
           }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-              <View style={{ backgroundColor: '#FD6F3E', borderRadius: 12, padding: 8, marginRight: 12 }}>
-                <Ionicons name="star" size={24} color="white" />
+            <Text style={{
+              color: 'black',
+              fontSize: 18,
+              fontFamily: 'MuseoModerno-Regular',
+              marginBottom: 16,
+            }}>
+              Subscriber Growth
+            </Text>
+            
+            {/* Tabs */}
+            <View style={{
+              flexDirection: 'row',
+              backgroundColor: '#F0F0F0',
+              borderRadius: 12,
+              padding: 4,
+              marginBottom: 16,
+            }}>
+              {(['weekly', 'monthly', 'yearly'] as const).map((timeframe) => (
+                <TouchableOpacity
+                  key={timeframe}
+                  onPress={() => setSubscriberTimeframe(timeframe)}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 10,
+                    borderRadius: 10,
+                    backgroundColor: subscriberTimeframe === timeframe ? 'white' : 'transparent',
+                  }}
+                >
+                  <Text style={{
+                    color: subscriberTimeframe === timeframe ? 'black' : '#888888',
+                    fontFamily: 'MuseoModerno-Regular',
+                    fontSize: 14,
+                    textAlign: 'center',
+                    textTransform: 'capitalize',
+                  }}>
+                    {timeframe}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            
+            {/* Stats Display */}
+            <View style={{ alignItems: 'center', marginBottom: 16 }}>
+              {(() => {
+                let stats = { gained: 0, lost: 0, net: 0 };
+                try {
+                  const dailyStats = creatorFinancials?.dailySubscribersStats ? JSON.parse(creatorFinancials.dailySubscribersStats) : {};
+                  stats = calculateSubscriberStats(dailyStats, subscriberTimeframe);
+                } catch (e) {
+                  stats = { gained: 0, lost: 0, net: 0 };
+                }
+                
+                return (
+                  <>
+                    <Text style={{
+                      color: stats.net >= 0 ? '#4CAF50' : '#F44336',
+                      fontSize: 36,
+                      fontFamily: 'MuseoModerno-Regular',
+                      marginBottom: 8,
+                    }}>
+                      {stats.net >= 0 ? '+' : ''}{stats.net}
+                    </Text>
+                    <Text style={{
+                      color: '#888888',
+                      fontSize: 14,
+                      fontFamily: 'MuseoModerno-Regular',
+                      marginBottom: 8,
+                    }}>
+                      Net change (
+                      {subscriberTimeframe === 'weekly' && 'last 7 days'}
+                      {subscriberTimeframe === 'monthly' && 'last 30 days'}
+                      {subscriberTimeframe === 'yearly' && 'last 365 days'})
+                    </Text>
+                    <View style={{ flexDirection: 'row', gap: 20 }}>
+                      <Text style={{
+                        color: '#4CAF50',
+                        fontSize: 14,
+                        fontFamily: 'MuseoModerno-Regular',
+                      }}>
+                        +{stats.gained} gained
+                      </Text>
+                      <Text style={{
+                        color: '#F44336',
+                        fontSize: 14,
+                        fontFamily: 'MuseoModerno-Regular',
+                      }}>
+                        -{stats.lost} lost
+                      </Text>
+                    </View>
+                  </>
+                );
+              })()}
+            </View>
+            
+            {/* Subscriber Chart */}
+            {(() => {
+              let dailyStats = {};
+              try {
+                dailyStats = creatorFinancials?.dailySubscribersStats ? JSON.parse(creatorFinancials.dailySubscribersStats) : {};
+              } catch (e) {
+                dailyStats = {};
+              }
+              
+              // Only show chart if we have data
+              const hasData = Object.keys(dailyStats).length > 0;
+              
+              return hasData ? (
+                <SubscriberChart
+                  dailySubscribersStats={dailyStats}
+                  timeframe={subscriberTimeframe}
+                />
+              ) : (
+                <View style={{
+                  height: 200,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: '#F8F8F8',
+                  borderRadius: 12,
+                  marginVertical: 8,
+                }}>
+                  <Text style={{
+                    color: '#888888',
+                    fontSize: 14,
+                    fontFamily: 'MuseoModerno-Regular',
+                    textAlign: 'center',
+                  }}>
+                    No subscriber data available yet.{'\n'}Chart will appear once you have subscriber activity.
+                  </Text>
                 </View>
-              <Text style={{ 
-                color: 'black', 
-                fontFamily: 'Urbanist-Bold', 
-                fontSize: 16,
-                flex: 1
-              }}>
-                Total Current Subscribers
-              </Text>
-              </View>
-            <Text style={{ 
-              color: '#FD6F3E', 
-              fontFamily: 'Urbanist-Bold', 
-              fontSize: 36, 
-              textAlign: 'left' 
-            }}>
-                {(typeof creatorFinancials?.number_of_monthly_subscribers === 'number' || typeof creatorFinancials?.number_of_yearly_subscriptions === 'number')
-                  ? ((creatorFinancials?.number_of_monthly_subscribers || 0) + (creatorFinancials?.number_of_yearly_subscriptions || 0))
-                  : '—'}
-              </Text>
-            </View>
-          {/* Monthly/Yearly Row */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
-            {/* Monthly */}
-            <View style={{
-              backgroundColor: 'white',
-              borderRadius: 16,
-              width: '48%',
-              padding: 16,
-              borderWidth: 1,
-              borderColor: '#E0E0E0'
-            }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                <View style={{ backgroundColor: '#777777', borderRadius: 8, padding: 6, marginRight: 8 }}>
-                  <Ionicons name="people" size={16} color="white" />
-              </View>
-                <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 14 }}>Monthly</Text>
-              </View>
-              <Text style={{ color: '#333333', fontFamily: 'Urbanist-Bold', fontSize: 24 }}>
-                {creatorFinancials?.number_of_monthly_subscribers ?? '—'}
-              </Text>
-            </View>
-            {/* Yearly */}
-            <View style={{
-              backgroundColor: 'white',
-              borderRadius: 16,
-              width: '48%',
-              padding: 16,
-              borderWidth: 1,
-              borderColor: '#E0E0E0'
-            }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                <View style={{ backgroundColor: '#777777', borderRadius: 8, padding: 6, marginRight: 8 }}>
-                  <MaterialCommunityIcons name="calendar-star" size={16} color="white" />
-              </View>
-                <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 14 }}>Yearly</Text>
-              </View>
-              <Text style={{ color: '#333333', fontFamily: 'Urbanist-Bold', fontSize: 24 }}>
-                {creatorFinancials?.number_of_yearly_subscriptions ?? '—'}
-              </Text>
-            </View>
-          </View>
-          {/* Cancelled Row */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 32 }}>
-            {/* Cancelled Monthly */}
-            <View style={{
-              backgroundColor: 'white',
-              borderRadius: 16,
-              width: '48%',
-              padding: 16,
-              borderWidth: 1,
-              borderColor: '#E0E0E0'
-            }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                <View style={{ backgroundColor: '#999999', borderRadius: 8, padding: 6, marginRight: 8 }}>
-                  <Ionicons name="close-circle" size={16} color="white" />
-              </View>
-                <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 13 }}>Cancelled Monthly</Text>
-              </View>
-              <Text style={{ color: '#666666', fontFamily: 'Urbanist-Bold', fontSize: 24 }}>
-                {creatorFinancials?.number_of_cancelled_monthly_sub ?? '—'}
-              </Text>
-            </View>
-            {/* Cancelled Yearly */}
-            <View style={{
-              backgroundColor: 'white',
-              borderRadius: 16,
-              width: '48%',
-              padding: 16,
-              borderWidth: 1,
-              borderColor: '#E0E0E0'
-            }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                <View style={{ backgroundColor: '#999999', borderRadius: 8, padding: 6, marginRight: 8 }}>
-                  <Ionicons name="close-circle-outline" size={16} color="white" />
-              </View>
-                <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 13 }}>Cancelled Yearly</Text>
-              </View>
-              <Text style={{ color: '#666666', fontFamily: 'Urbanist-Bold', fontSize: 24 }}>
-                {creatorFinancials?.number_of_cancelled_yearly_sub ?? '—'}
-              </Text>
-            </View>
+              );
+            })()}
           </View>
 
-          {/* Purchases Section */}
+
+
+          {/* Content Purchases Section */}
           <View style={{ marginBottom: 16 }}>
             <Text style={{ 
               color: 'black', 
-              fontFamily: 'Urbanist-Bold', 
+              fontFamily: 'MuseoModerno-Regular', 
               fontSize: 20, 
               marginBottom: 16,
               textAlign: 'left'
             }}>
-              💰 Content Purchases
+              Content Purchases
             </Text>
           </View>
           
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 32 }}>
             {/* Photos */}
-              <View style={{
+            <View style={{
               backgroundColor: 'white',
-                borderRadius: 16,
+              borderRadius: 16,
               width: '32%',
               padding: 12,
-              borderWidth: 1,
-              borderColor: '#E0E0E0'
             }}>
               <View style={{ alignItems: 'center', marginBottom: 8 }}>
                 <View style={{ backgroundColor: '#666666', borderRadius: 8, padding: 6, marginBottom: 6 }}>
                   <Ionicons name="image" size={16} color="white" />
                 </View>
-                <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 12, textAlign: 'center' }}>Photos</Text>
+                <Text style={{ color: 'black', fontFamily: 'MuseoModerno-Regular', fontSize: 12, textAlign: 'center' }}>Photos</Text>
               </View>
-              <Text style={{ color: '#333333', fontFamily: 'Urbanist-Bold', fontSize: 20, textAlign: 'center' }}>
+              <Text style={{ color: '#333333', fontFamily: 'MuseoModerno-Regular', fontSize: 20, textAlign: 'center' }}>
                 {creatorFinancials?.number_of_photos ?? '—'}
               </Text>
-              </View>
-              {/* Videos */}
-              <View style={{
-                backgroundColor: 'white',
-                borderRadius: 16,
-                width: '32%',
+            </View>
+            {/* Videos */}
+            <View style={{
+              backgroundColor: 'white',
+              borderRadius: 16,
+              width: '32%',
               padding: 12,
-              borderWidth: 1,
-              borderColor: '#E0E0E0'
             }}>
               <View style={{ alignItems: 'center', marginBottom: 8 }}>
                 <View style={{ backgroundColor: '#777777', borderRadius: 8, padding: 6, marginBottom: 6 }}>
                   <Ionicons name="videocam" size={16} color="white" />
                 </View>
-                <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 12, textAlign: 'center' }}>Videos</Text>
+                <Text style={{ color: 'black', fontFamily: 'MuseoModerno-Regular', fontSize: 12, textAlign: 'center' }}>Videos</Text>
               </View>
-              <Text style={{ color: '#333333', fontFamily: 'Urbanist-Bold', fontSize: 20, textAlign: 'center' }}>
+              <Text style={{ color: '#333333', fontFamily: 'MuseoModerno-Regular', fontSize: 20, textAlign: 'center' }}>
                 {creatorFinancials?.number_of_videos ?? '—'}
               </Text>
-              </View>
-              {/* Files */}
-              <View style={{
-                backgroundColor: 'white',
-                borderRadius: 16,
-                width: '32%',
+            </View>
+            {/* Files */}
+            <View style={{
+              backgroundColor: 'white',
+              borderRadius: 16,
+              width: '32%',
               padding: 12,
-              borderWidth: 1,
-              borderColor: '#E0E0E0'
             }}>
               <View style={{ alignItems: 'center', marginBottom: 8 }}>
                 <View style={{ backgroundColor: '#888888', borderRadius: 8, padding: 6, marginBottom: 6 }}>
                   <Ionicons name="document" size={16} color="white" />
                 </View>
-                <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 12, textAlign: 'center' }}>Files</Text>
+                <Text style={{ color: 'black', fontFamily: 'MuseoModerno-Regular', fontSize: 12, textAlign: 'center' }}>Files</Text>
               </View>
-              <Text style={{ color: '#333333', fontFamily: 'Urbanist-Bold', fontSize: 20, textAlign: 'center' }}>
+              <Text style={{ color: '#333333', fontFamily: 'MuseoModerno-Regular', fontSize: 20, textAlign: 'center' }}>
                 {creatorFinancials?.number_of_files ?? '—'}
               </Text>
-              </View>
+            </View>
           </View>
 
           {/* Update Insights Button */}
@@ -2006,7 +2140,7 @@ export default function Index() {
                 }} 
               />
             )}
-            <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>
+            <Text style={{ color: 'white', fontFamily: 'MuseoModerno-Regular', fontSize: 16 }}>
               {isLoadingInsights ? 'Updating...' : '🔄 Refresh Insights'}
             </Text>
           </TouchableOpacity>
@@ -2762,7 +2896,7 @@ export default function Index() {
                 backgroundColor: '#F0F0F0',
                 borderRadius: 12,
                 padding: 4,
-                marginBottom: 16,
+                marginBottom: 8,
               }}>
                 {(['weekly', 'monthly', 'yearly'] as const).map((timeframe) => (
                   <TouchableOpacity
@@ -2787,6 +2921,44 @@ export default function Index() {
                   </TouchableOpacity>
                 ))}
               </View>
+
+              {/* Net Average Display */}
+              <Text style={{
+                color: '#666666',
+                fontSize: 12,
+                fontFamily: 'MuseoModerno-Regular',
+                textAlign: 'center',
+                marginBottom: 16,
+              }}>
+                {(() => {
+                  let dailyEarnings = {};
+                  try {
+                    dailyEarnings = creatorFinancials?.dailyEarnings ? JSON.parse(creatorFinancials.dailyEarnings) : {};
+                  } catch (e) {
+                    dailyEarnings = {};
+                  }
+                  
+                  const grossEarnings = calculateTimeframeEarnings(dailyEarnings, earningsTimeframe);
+                  const netEarnings = Math.round(grossEarnings * 0.8); // 20% platform fee
+                  
+                  let divisor = 1;
+                  let period = '';
+                  
+                  if (earningsTimeframe === 'weekly') {
+                    divisor = 7;
+                    period = 'Weekly';
+                  } else if (earningsTimeframe === 'monthly') {
+                    divisor = 30;
+                    period = 'Monthly';
+                  } else if (earningsTimeframe === 'yearly') {
+                    divisor = 365;
+                    period = 'Yearly';
+                  }
+                  
+                  const average = divisor > 1 ? Math.round(netEarnings / divisor) : netEarnings;
+                  return `${period} Net Average: ${formatPrice(average, userCurrency)}`;
+                })()}
+              </Text>
               
               {/* Earnings Display */}
               <View style={{ alignItems: 'center', marginBottom: 16 }}>

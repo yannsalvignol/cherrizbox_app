@@ -28,7 +28,9 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const strokeDasharray = circumference;
-  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+  // Cap the visual progress at 100% for the circle, but allow text to show actual percentage
+  const visualPercentage = Math.min(percentage, 100);
+  const strokeDashoffset = circumference - (visualPercentage / 100) * circumference;
   
   // Determine color based on completion
   const progressColor = percentage >= 100 ? completedColor : incompleteColor;
