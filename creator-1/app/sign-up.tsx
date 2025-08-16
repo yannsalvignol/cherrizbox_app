@@ -129,6 +129,8 @@ const App = () => {
             );
             await SignIn(form.email, form.password);
             refetch();
+            // Reset navigation stack completely to prevent going back
+            router.dismissAll();
             router.replace('/welcome');
         } catch (error) {
             if (error instanceof Error) {
@@ -152,6 +154,8 @@ const App = () => {
         const result = await login(socialMedia as string, socialMediaUsername as string, socialMediaNumber as string);
         if(result){
             refetch();
+            // Reset navigation stack completely to prevent going back
+            router.dismissAll();
             router.replace('/welcome');
         } else{
             console.log('Login Failed');
@@ -169,6 +173,8 @@ const App = () => {
         const result = await loginWithApple(socialMedia as string, socialMediaUsername as string, socialMediaNumber as string);
         if(result){
             refetch();
+            // Reset navigation stack completely to prevent going back
+            router.dismissAll();
             router.replace('/welcome');
         } else {
             console.log('Apple Login Failed');

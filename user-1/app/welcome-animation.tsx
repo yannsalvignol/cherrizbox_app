@@ -118,7 +118,7 @@ export default function WelcomeAnimation() {
                         }}
                     >
                         <Image
-                            source={require('../assets/images/cherry-icon.png')}
+                            source={require('../assets/images/cherry.png')}
                             style={{
                                 width: 120,
                                 height: 120,
@@ -147,26 +147,15 @@ export default function WelcomeAnimation() {
                             Welcome to
                         </Text>
                         
-                        <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginBottom: 16 }}>
-                            <Text style={{
-                                fontSize: 40,
-                                fontWeight: 'bold',
-                                color: 'white',
-                                fontFamily: 'questrial',
-                            }}>
-                                Cherrizbox
-                            </Text>
-                            <Text style={{
-                                fontSize: 40,
-                                fontWeight: 'bold',
-                                color: '#FD6F3E',
-                                fontFamily: 'questrial',
-                                marginLeft: 2,
-                                marginBottom: 2,
-                            }}>
-                                .
-                            </Text>
-                        </View>
+                        <Text style={{
+                            fontSize: 40,
+                            fontWeight: 'bold',
+                            color: 'white',
+                            fontFamily: 'MuseoModerno-Regular',
+                            marginBottom: 16,
+                        }}>
+                            Cherrizbox
+                        </Text>
 
                         <Text style={{
                             fontSize: 18,

@@ -28,9 +28,13 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const strokeDasharray = circumference;
-  // Cap the visual progress at 100% for the circle, but allow text to show actual percentage
-  const visualPercentage = Math.min(percentage, 100);
-  const strokeDashoffset = circumference - (visualPercentage / 100) * circumference;
+  // Handle visual progress over 100%
+  const isOver100 = percentage >= 100;
+  const displayPercentage = isOver100 ? 100 : percentage; // Show full circle if over 100%
+  const overflowPercentage = isOver100 ? percentage - 100 : 0; // Additional progress over 100%
+  
+  const strokeDashoffset = circumference - (displayPercentage / 100) * circumference;
+  const overflowStrokeDashoffset = circumference - (overflowPercentage / 100) * circumference;
   
   // Determine color based on completion
   const progressColor = percentage >= 100 ? completedColor : incompleteColor;
@@ -47,7 +51,7 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
           strokeWidth={strokeWidth}
           fill="transparent"
         />
-        {/* Progress circle */}
+        {/* Main progress circle */}
         <Circle
           cx={size / 2}
           cy={size / 2}
@@ -59,6 +63,21 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
           strokeDashoffset={strokeDashoffset}
           strokeLinecap="round"
         />
+        {/* Overflow progress circle (for percentages over 100%) */}
+        {isOver100 && overflowPercentage > 0 && (
+          <Circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius - strokeWidth - 2} // Slightly smaller radius for inner circle
+            stroke={completedColor}
+            strokeWidth={Math.max(strokeWidth - 1, 2)} // Slightly thinner stroke
+            fill="transparent"
+            strokeDasharray={circumference}
+            strokeDashoffset={overflowStrokeDashoffset}
+            strokeLinecap="round"
+            opacity={0.7} // Slightly transparent to show it's additional
+          />
+        )}
       </Svg>
       {/* Percentage text */}
       <View

@@ -98,7 +98,7 @@ const EarningsChart: React.FC<EarningsChartProps> = ({ dailyEarnings, timeframe,
     backgroundColor: 'transparent',
     backgroundGradientFrom: 'white',
     backgroundGradientTo: 'white',
-    color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+    color: (opacity = 1) => `rgba(253, 111, 62, ${opacity})`,
     strokeWidth: 3,
     barPercentage: 0.7,
     useShadowColorFromDataset: false,
@@ -106,7 +106,7 @@ const EarningsChart: React.FC<EarningsChartProps> = ({ dailyEarnings, timeframe,
     propsForDots: {
       r: '5',
       strokeWidth: '2',
-      stroke: 'black',
+      stroke: '#FD6F3E',
       fill: 'white'
     },
     propsForBackgroundLines: {

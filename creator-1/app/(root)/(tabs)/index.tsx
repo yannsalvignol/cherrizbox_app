@@ -617,24 +617,38 @@ export default function Index() {
 
       console.log(`📊 [Channels] Final breakdown: ${groupChats.length} group chats, ${dmChannels.length} DM channels`);
 
+      let finalChannels: Channel[];
+      
       if (loadMore) {
-        setChannels(prev => [...prev, ...uniqueChannels]);
+        // Combine existing channels with new ones and remove duplicates by channel ID
+        const allChannels = [...channels, ...uniqueChannels];
+        const seenIds = new Set<string>();
+        finalChannels = allChannels.filter(channel => {
+          if (seenIds.has(channel.id)) {
+            console.log(`🔄 [Channels] Removing duplicate channel: ${channel.id}`);
+            return false;
+          }
+          seenIds.add(channel.id);
+          return true;
+        });
+        console.log(`📈 [Channels] Added ${uniqueChannels.length} new channels. After dedup: ${finalChannels.length} total channels`);
+        setChannels(finalChannels);
         setChannelOffset(prev => prev + uniqueChannels.length);
-        console.log(`📈 [Channels] Added ${uniqueChannels.length} more channels. Total: ${channels.length + uniqueChannels.length}`);
       } else {
-        setChannels(uniqueChannels);
-        setChannelOffset(uniqueChannels.length);
-        console.log(`📈 [Channels] Set ${uniqueChannels.length} channels as initial load`);
+        finalChannels = uniqueChannels;
+        setChannels(finalChannels);
+        setChannelOffset(finalChannels.length);
+        console.log(`📈 [Channels] Set ${finalChannels.length} channels as initial load`);
       }
       
       // Update filtered channels for search
       if (searchQuery) {
-        filterChannels(loadMore ? [...channels, ...uniqueChannels] : uniqueChannels, searchQuery);
+        filterChannels(finalChannels, searchQuery);
       } else {
-        setFilteredChannels(loadMore ? [...channels, ...uniqueChannels] : uniqueChannels);
+        setFilteredChannels(finalChannels);
       }
       
-      console.log(`✅ [Channels] Load complete: ${uniqueChannels.length} channels (Total: ${loadMore ? channels.length + uniqueChannels.length : uniqueChannels.length})`);
+      console.log(`✅ [Channels] Load complete: ${uniqueChannels.length} channels (Total: ${finalChannels.length})`);
         } catch (error) {
       console.error('❌ [Channels] Error loading channels:', error);
         } finally {
@@ -2749,7 +2763,7 @@ export default function Index() {
                         } catch (e) {
                           todayEarnings = 0;
                         }
-                        return dailyGoal > 0 ? Math.min(100, Math.round((todayEarnings / dailyGoal) * 100)) : 0;
+                        return dailyGoal > 0 ? Math.round((todayEarnings / dailyGoal) * 100) : 0;
                       })()}
                       size={60}
                       strokeWidth={4}
@@ -2836,7 +2850,7 @@ export default function Index() {
                         } catch (e) {
                           weekEarnings = 0;
                         }
-                        return weeklyGoal > 0 ? Math.min(100, Math.round((weekEarnings / weeklyGoal) * 100)) : 0;
+                        return weeklyGoal > 0 ? Math.round((weekEarnings / weeklyGoal) * 100) : 0;
                       })()}
                       size={60}
                       strokeWidth={4}
@@ -2890,6 +2904,37 @@ export default function Index() {
                 </TouchableOpacity>
               </View>
               
+
+              {/* Earnings Display */}
+              <View style={{ alignItems: 'center', marginBottom: 16 }}>
+                <Text style={{
+                  color: 'black',
+                  fontSize: 40,
+                  fontFamily: 'MuseoModerno-Regular',
+                  marginBottom: 8,
+                }}>
+                  {(() => {
+                    let dailyEarnings = {};
+                    try {
+                      dailyEarnings = creatorFinancials?.dailyEarnings ? JSON.parse(creatorFinancials.dailyEarnings) : {};
+                    } catch (e) {
+                      dailyEarnings = {};
+                    }
+                    const earnings = calculateTimeframeEarnings(dailyEarnings, earningsTimeframe);
+                    return formatPrice(earnings, userCurrency);
+                  })()}
+                </Text>
+                <Text style={{
+                  color: '#888888',
+                  fontSize: 14,
+                  fontFamily: 'Urbanist-Regular',
+                }}>
+                  {earningsTimeframe === 'weekly' && 'Last 7 days'}
+                  {earningsTimeframe === 'monthly' && 'Last 30 days'}
+                  {earningsTimeframe === 'yearly' && 'Last 365 days'}
+                </Text>
+              </View>
+
               {/* Tabs */}
               <View style={{
                 flexDirection: 'row',
@@ -2959,36 +3004,6 @@ export default function Index() {
                   return `${period} Net Average: ${formatPrice(average, userCurrency)}`;
                 })()}
               </Text>
-              
-              {/* Earnings Display */}
-              <View style={{ alignItems: 'center', marginBottom: 16 }}>
-                <Text style={{
-                  color: 'black',
-                  fontSize: 40,
-                  fontFamily: 'MuseoModerno-Regular',
-                  marginBottom: 8,
-                }}>
-                  {(() => {
-                    let dailyEarnings = {};
-                    try {
-                      dailyEarnings = creatorFinancials?.dailyEarnings ? JSON.parse(creatorFinancials.dailyEarnings) : {};
-                    } catch (e) {
-                      dailyEarnings = {};
-                    }
-                    const earnings = calculateTimeframeEarnings(dailyEarnings, earningsTimeframe);
-                    return formatPrice(earnings, userCurrency);
-                  })()}
-                </Text>
-                <Text style={{
-                  color: '#888888',
-                  fontSize: 14,
-                  fontFamily: 'Urbanist-Regular',
-                }}>
-                  {earningsTimeframe === 'weekly' && 'Last 7 days'}
-                  {earningsTimeframe === 'monthly' && 'Last 30 days'}
-                  {earningsTimeframe === 'yearly' && 'Last 365 days'}
-                </Text>
-              </View>
               
               {/* Earnings Chart */}
               {(() => {

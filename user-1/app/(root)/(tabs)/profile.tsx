@@ -898,13 +898,13 @@ export default function Profile() {
                       key={subscription.$id}
                       onPress={() => setSelectedCreatorId(subscription.creatorAccountId)}
                       style={{
-                        backgroundColor: selectedCreatorId === subscription.creatorAccountId ? 'black' : '#FFFFFF',
+                        backgroundColor: selectedCreatorId === subscription.creatorAccountId ? 'white' : '#DCDEDF',
                         paddingHorizontal: 24,
                         paddingVertical: 12,
                         borderRadius: 25,
                         marginRight: 12,
                         borderWidth: 1,
-                        borderColor: selectedCreatorId === subscription.creatorAccountId ? '#FD6F3E' : '#E0E0E0'
+                        borderColor: selectedCreatorId === subscription.creatorAccountId ? 'transparent' : '#676767'
                       }}
                     >
                       <Text style={{ color: selectedCreatorId === subscription.creatorAccountId ? 'black' : 'black', fontFamily: 'questrial', fontSize: 16 }}>

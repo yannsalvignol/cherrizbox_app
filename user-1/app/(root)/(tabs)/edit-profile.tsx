@@ -476,7 +476,7 @@ export default function EditProfile() {
           <View className="flex-1 bg-black/50 justify-end">
             <View className="bg-[#FFFFFF] rounded-t-3xl p-4">
               <View className="flex-row justify-between items-center mb-4">
-                <Text className="text-white text-xl font-bold">Select Birth Date</Text>
+                <Text className="text-black text-xl font-bold">Select Birth Date</Text>
                 <TouchableOpacity onPress={() => setShowDatePicker(false)}>
                   <Ionicons name="close" size={30} color="#FD6F3E" />
                 </TouchableOpacity>
@@ -484,7 +484,7 @@ export default function EditProfile() {
               <View className="flex-row justify-between">
                 {/* Month Picker */}
                 <View className="flex-1">
-                  <Text className="text-white text-center mb-2">Month</Text>
+                  <Text className="text-black text-center mb-2">Month</Text>
                   <Picker
                     selectedValue={selectedMonth}
                     onValueChange={(value) => {
@@ -495,33 +495,33 @@ export default function EditProfile() {
                         setSelectedDay(daysInMonth.toString());
                       }
                     }}
-                    style={{ color: 'white' }}
-                    itemStyle={{ color: 'white' }}
+                    style={{ color: 'black' }}
+                    itemStyle={{ color: 'black' }}
                   >
                     {months.map((month) => (
-                      <Picker.Item key={month} label={month} value={month} color="white" />
+                      <Picker.Item key={month} label={month} value={month} color="black" />
                     ))}
                   </Picker>
                 </View>
 
                 {/* Day Picker */}
                 <View className="flex-1">
-                  <Text className="text-white text-center mb-2">Day</Text>
+                  <Text className="text-black text-center mb-2">Day</Text>
                   <Picker
                     selectedValue={selectedDay}
                     onValueChange={setSelectedDay}
-                    style={{ color: 'white' }}
-                    itemStyle={{ color: 'white' }}
+                    style={{ color: 'black' }}
+                    itemStyle={{ color: 'black' }}
                   >
                     {days.map((day) => (
-                      <Picker.Item key={day} label={day} value={day} color="white" />
+                      <Picker.Item key={day} label={day} value={day} color="black" />
                     ))}
                   </Picker>
                 </View>
 
                 {/* Year Picker */}
                 <View className="flex-1">
-                  <Text className="text-white text-center mb-2">Year</Text>
+                  <Text className="text-black text-center mb-2">Year</Text>
                   <Picker
                     selectedValue={selectedYear}
                     onValueChange={(value) => {
@@ -532,11 +532,11 @@ export default function EditProfile() {
                         setSelectedDay(daysInMonth.toString());
                       }
                     }}
-                    style={{ color: 'white' }}
-                    itemStyle={{ color: 'white' }}
+                    style={{ color: 'black' }}
+                    itemStyle={{ color: 'black' }}
                   >
                     {years.map((year) => (
-                      <Picker.Item key={year} label={year} value={year} color="white" />
+                      <Picker.Item key={year} label={year} value={year} color="black" />
                     ))}
                   </Picker>
                 </View>
@@ -574,16 +574,16 @@ export default function EditProfile() {
                 keyExtractor={(item) => item.code + item.name}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: 20 }}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    className="flex-row items-center py-4 px-6 mx-4 mb-2 rounded-xl bg-[#2A2A2A] active:bg-[#FD6F3E]/20"
-                    onPress={() => {
-                      setSelectedCountry(item);
-                      setShowCountryPicker(false);
-                      setShowOtherCountries(false);
-                    }}
-                    activeOpacity={0.7}
-                  >
+                                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      className="flex-row items-center py-4 px-6 mx-4 mb-2 rounded-xl bg-[#FD6F3E]/10 active:bg-[#FD6F3E]/20"
+                      onPress={() => {
+                        setSelectedCountry(item);
+                        setShowCountryPicker(false);
+                        setShowOtherCountries(false);
+                      }}
+                      activeOpacity={0.7}
+                    >
                     <View className="w-12 h-8 bg-black rounded-lg items-center justify-center mr-4">
                       <Text className="text-white text-lg">{item.flag}</Text>
                     </View>
@@ -649,22 +649,22 @@ export default function EditProfile() {
 
               {/* Content */}
               <View className="p-6">
-                {/* Country Code Display */}
-                <View className="flex-row items-center justify-center mb-6">
-                  <View className="bg-[#2A2A2A] rounded-xl px-4 py-3 mr-3">
-                    <Text className="text-white text-2xl">{selectedCountry.flag}</Text>
+                                  {/* Country Code Display */}
+                  <View className="flex-row items-center justify-center mb-6">
+                    <View className="bg-white rounded-xl px-4 py-3 mr-3 border-2 border-[#FD6F3E]">
+                      <Text className="text-white text-2xl">{selectedCountry.flag}</Text>
+                    </View>
+                    <View className="bg-white rounded-xl px-4 py-3 border-2 border-[#FD6F3E]">
+                      <Text className="text-white text-lg font-questrial font-semibold">{selectedCountry.code}</Text>
+                    </View>
                   </View>
-                  <View className="bg-[#2A2A2A] rounded-xl px-4 py-3">
-                    <Text className="text-white text-lg font-questrial font-semibold">{selectedCountry.code}</Text>
-                  </View>
-                </View>
 
                 {/* Phone Number Input */}
                 <View className="mb-6">
                   <Text className="text-white text-sm font-questrial mb-3 text-center">Enter your phone number</Text>
-                  <View className="bg-[#2A2A2A] rounded-xl px-4 py-4 border-2 border-[#FD6F3E]/30">
+                  <View className="bg-white rounded-xl px-4 py-4 border-2 border-[#FD6F3E]/30">
                     <TextInput
-                      className="text-white text-3xl font-questrial text-center"
+                      className="text-black text-3xl font-questrial text-center"
                       placeholder={selectedCountry.format}
                       placeholderTextColor="#666"
                       value={phoneNumber}
@@ -679,7 +679,7 @@ export default function EditProfile() {
                       returnKeyType="done"
                       onSubmitEditing={() => setShowPhoneModal(false)}
                       style={{ 
-                        color: 'white',
+                        color: 'black',
                         letterSpacing: 2,
                         textAlign: 'center',
                         fontSize: 28,
@@ -693,7 +693,7 @@ export default function EditProfile() {
                 <View className="flex-row">
                   <TouchableOpacity 
                     onPress={() => setShowPhoneModal(false)}
-                    className="flex-1 bg-[#2A2A2A] rounded-xl py-4 items-center mr-2"
+                    className="flex-1 bg-[#FF6247] rounded-xl py-4 items-center mr-2"
                     activeOpacity={0.7}
                   >
                     <Text className="text-white font-questrial font-semibold">Cancel</Text>
