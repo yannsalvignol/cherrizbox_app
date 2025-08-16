@@ -1482,15 +1482,15 @@ export default function EditProfile() {
       <ProfilePreviewModal
         visible={showPreviewModal}
         onClose={() => setShowPreviewModal(false)}
-        profileImageUri={profileImage || undefined}
-        name={photoTitle || creatorName || name || ''}
-        location={location}
-        bio={bio}
-        monthlyPrice={monthlyPrice}
-        yearlyPrice={yearlyPrice}
+              profileImageUri={profileImage || undefined}
+              name={photoTitle || creatorName || name || ''}
+              location={location}
+              bio={bio}
+              monthlyPrice={monthlyPrice}
+              yearlyPrice={yearlyPrice}
         creatorName={creatorName}
-        topics={topics.join(', ')}
-        phoneNumber={selectedCountry.code + phoneNumber}
+              topics={topics.join(', ')}
+              phoneNumber={selectedCountry.code + phoneNumber}
         selectedGender={selectedGender}
         selectedYear={selectedYear}
         selectedMonth={selectedMonth}

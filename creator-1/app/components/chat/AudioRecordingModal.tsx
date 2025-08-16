@@ -178,13 +178,13 @@ const AudioRecordingModal = ({ visible, onClose, onSend }: AudioRecordingModalPr
               <TouchableOpacity
                 onPress={startRecording}
                 style={{
-                  backgroundColor: '#1A1A1A',
+                  backgroundColor: 'white',
                   paddingHorizontal: 20,
                   paddingVertical: 12,
                   borderRadius: 25
                 }}
               >
-                <Text style={{ color: 'white', fontWeight: 'bold' }}>Start Recording</Text>
+                <Text style={{ color: 'black', fontWeight: 'bold' }}>Start Recording</Text>
               </TouchableOpacity>
             </View>
           ) : (

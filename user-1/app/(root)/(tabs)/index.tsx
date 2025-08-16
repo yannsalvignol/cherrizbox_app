@@ -1,5 +1,6 @@
 import { useGlobalContext } from '@/lib/global-provider';
 import { useNavigation } from '@react-navigation/native';
+import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
@@ -47,6 +48,7 @@ export default function Index() {
     const [searchQuery, setSearchQuery] = useState('');
     const scrollY = useRef(new Animated.Value(0)).current;
     const [scrolling, setScrolling] = useState(false);
+    const cherryIconScale = useRef(new Animated.Value(1)).current;
 
     // Disable iOS swipe-back gesture on this screen
     useEffect(() => {
@@ -55,9 +57,7 @@ export default function Index() {
 
     useEffect(() => {
       if (!loading) {
-        // Filter posts to only show those with state=ok
-        const approvedPosts = posts.filter(post => post.state === 'ok');
-        setFilteredPosts(approvedPosts);
+        setFilteredPosts(posts);
       }
     }, [posts, loading]);
 
@@ -71,15 +71,14 @@ export default function Index() {
         if (query.trim()) {
             filterPosts(query, selectedTrends);
         } else {
-            // Reset to show only approved posts when search is empty
-            const approvedPosts = posts.filter(post => post.state === 'ok');
-            setFilteredPosts(approvedPosts);
+            // Reset to show all posts when search is empty
+            setFilteredPosts(posts);
         }
     };
 
     const filterPosts = (query: string, trends: string[]) => {
-        // Start with posts that have state=ok
-        let filtered = posts.filter(post => post.state === 'ok');
+        // Start with all posts
+        let filtered = posts;
 
         // Apply search filter
         if (query.trim()) {
@@ -134,21 +133,51 @@ export default function Index() {
             setFilteredPosts(posts); // Reset to show all posts when search is unfocused
         }
     };
+
+    const handleCherryIconPressIn = () => {
+        // Trigger haptic feedback
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        
+        // Scale up animation
+        Animated.spring(cherryIconScale, {
+            toValue: 1.2,
+            tension: 300,
+            friction: 10,
+            useNativeDriver: true,
+        }).start();
+    };
+
+    const handleCherryIconPressOut = () => {
+        // Scale back to normal
+        Animated.spring(cherryIconScale, {
+            toValue: 1,
+            tension: 300,
+            friction: 10,
+            useNativeDriver: true,
+        }).start();
+    };
     
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: '#DCDEDF' }} edges={['top']}>
             {/* Header */}
             <View className="flex-row items-center justify-between px-4 py-2 bg-black">
-                <Image 
-                    source={require('../../../assets/images/cherry-icon.png')}
-                    style={{
-                        width: 56,
-                        height: 56,
-                        borderRadius: 10, // Slightly rounded corners
-                        backgroundColor: 'white',
-                    }}
-                    resizeMode="contain"
-                />
+                <TouchableOpacity
+                    onPressIn={handleCherryIconPressIn}
+                    onPressOut={handleCherryIconPressOut}
+                    activeOpacity={1}
+                >
+                    <Animated.Image 
+                        source={require('../../../assets/images/cherry-icon.png')}
+                        style={{
+                            width: 56,
+                            height: 56,
+                            borderRadius: 10, // Slightly rounded corners
+                            backgroundColor: 'white',
+                            transform: [{ scale: cherryIconScale }],
+                        }}
+                        resizeMode="contain"
+                    />
+                </TouchableOpacity>
                 
                 <View className="flex-row items-center">
                     <Text style={{ 
@@ -168,7 +197,7 @@ export default function Index() {
                         width: 67,
                         height: 67,
                         borderRadius: 36,
-                        backgroundColor: '#1A1A1A',
+                        backgroundColor: '#FD6F3E',
                         alignItems: 'center',
                         justifyContent: 'center',
                         overflow: 'hidden'

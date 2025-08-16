@@ -23,14 +23,17 @@ const LoginScreen = () => {
             const result = await login();
             if (result === true) {
                 await refetch();
+                router.dismissAll();
                 router.replace('/welcome');
             } else if (result && typeof result === 'object' && result.error === 'EMAIL_EXISTS_IN_USER_COLLECTION') {
+                router.dismissAll();
                 router.replace('/email-exists-error');
             } else {
                 console.log('Login Failed');
             }
         } catch (error: any) {
             if (error.message === 'EMAIL_EXISTS_IN_USER_COLLECTION') {
+                router.dismissAll();
                 router.replace('/email-exists-error');
             } else {
                 console.log('Login Failed:', error);
@@ -43,14 +46,17 @@ const LoginScreen = () => {
             const result = await loginWithApple();
             if (result === true) {
                 await refetch();
+                router.dismissAll();
                 router.replace('/welcome');
             } else if (result && typeof result === 'object' && result.error === 'EMAIL_EXISTS_IN_USER_COLLECTION') {
+                router.dismissAll();
                 router.replace('/email-exists-error');
             } else {
                 console.log('Apple Login Failed');
             }
         } catch (error: any) {
             if (error.message === 'EMAIL_EXISTS_IN_USER_COLLECTION') {
+                router.dismissAll();
                 router.replace('/email-exists-error');
             } else {
                 console.log('Apple Login Failed:', error);
@@ -69,9 +75,11 @@ const LoginScreen = () => {
             setIsSubmitting(true);
             await SignIn(form.email, form.password);
             await refetch(); // Refresh the global state to update login status
+            router.dismissAll();
             router.replace('/welcome');
         } catch (error: any) {
             if (error.message === 'EMAIL_EXISTS_IN_USER_COLLECTION') {
+                router.dismissAll();
                 router.replace('/email-exists-error');
             } else {
                 setError('Invalid email or password');

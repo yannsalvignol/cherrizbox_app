@@ -99,13 +99,13 @@ export const sendPaidContent = async (
 
       // Upload to Appwrite storage
       const uploadedFile = await storage.createFile(
-        config.storageId,
+        config.storageStreamChatId,
         ID.unique(),
         fileToUpload
       );
 
       // Get the file URL from Appwrite
-      appwriteImageUrl = storage.getFileView(config.storageId, uploadedFile.$id).toString();
+      appwriteImageUrl = storage.getFileView(config.storageStreamChatId, uploadedFile.$id).toString();
       
       console.log('Image uploaded successfully to Appwrite:', uploadedFile.$id);
       console.log('Appwrite image URL:', appwriteImageUrl);
@@ -327,13 +327,13 @@ export const sendBlurryFile = async (
 
       // Upload to Appwrite storage
       const uploadedFile = await storage.createFile(
-        config.storageId,
+        config.storageStreamChatId,
         ID.unique(),
         fileToUpload
       );
 
       // Get the file URL from Appwrite
-      appwriteFileUrl = storage.getFileView(config.storageId, uploadedFile.$id).toString();
+      appwriteFileUrl = storage.getFileView(config.storageStreamChatId, uploadedFile.$id).toString();
       
       console.log('📤 File uploaded successfully to Appwrite:', uploadedFile.$id);
       console.log('🔗 Appwrite file URL:', appwriteFileUrl);
@@ -431,18 +431,18 @@ export const handleSendAudio = async (audioUri: string, duration: number, channe
 
         // Upload to Appwrite storage
         const uploadedFile = await storage.createFile(
-          config.storageId,
+          config.storageStreamChatId,
           ID.unique(),
           fileToUpload
         );
 
         // Get the file URL from Appwrite - try download URL for better media compatibility
         try {
-          appwriteAudioUrl = storage.getFileDownload(config.storageId, uploadedFile.$id).toString();
+          appwriteAudioUrl = storage.getFileDownload(config.storageStreamChatId, uploadedFile.$id).toString();
           console.log('🎤 Using download URL:', appwriteAudioUrl);
         } catch (downloadError) {
           // Fallback to view URL
-          appwriteAudioUrl = storage.getFileView(config.storageId, uploadedFile.$id).toString();
+          appwriteAudioUrl = storage.getFileView(config.storageStreamChatId, uploadedFile.$id).toString();
           console.log('🎤 Using view URL as fallback:', appwriteAudioUrl);
         }
         
@@ -542,13 +542,13 @@ export const sendPaidVideo = async (
 
       // Upload to Appwrite storage
       const uploadedFile = await storage.createFile(
-        config.storageId,
+        config.storageStreamChatId,
         ID.unique(),
         fileToUpload
       );
 
       // Get the file URL from Appwrite
-      appwriteVideoUrl = storage.getFileView(config.storageId, uploadedFile.$id).toString();
+      appwriteVideoUrl = storage.getFileView(config.storageStreamChatId, uploadedFile.$id).toString();
       
       console.log('Video uploaded successfully to Appwrite:', uploadedFile.$id);
       console.log('Appwrite video URL:', appwriteVideoUrl);

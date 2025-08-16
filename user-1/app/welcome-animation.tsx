@@ -1,7 +1,7 @@
 import { useGlobalContext } from '@/lib/global-provider';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Dimensions, Image, Platform, Text, Vibration, View } from 'react-native';
+import { Animated, Dimensions, Platform, Text, Vibration, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width, height } = Dimensions.get('window');
@@ -109,25 +109,17 @@ export default function WelcomeAnimation() {
                     }}
                 >
                     {/* Logo */}
-                    <Animated.View
+                    <Animated.Image
+                        source={require('../assets/icon/loading-icon.png')}
                         style={{
+                            width: 120,
+                            height: 120,
+                            marginBottom: 40,
                             transform: [{ scale: logoScale }],
                             opacity: logoOpacity,
-                            alignItems: 'center',
-                            marginBottom: 40,
                         }}
-                    >
-                        <Image
-                            source={require('../assets/images/cherry.png')}
-                            style={{
-                                width: 120,
-                                height: 120,
-                                borderRadius: 20,
-                                backgroundColor: 'white',
-                            }}
-                            resizeMode="contain"
-                        />
-                    </Animated.View>
+                        resizeMode="contain"
+                    />
 
                     {/* Welcome Text */}
                     <Animated.View

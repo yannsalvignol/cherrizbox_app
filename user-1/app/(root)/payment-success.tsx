@@ -169,7 +169,7 @@ export default function PaymentSuccess() {
           await Promise.all([refreshPosts(), refreshCreators()]);
           console.log('✅ Stream Chat initialization, channel setup, and data refresh completed');
           
-          // Automatically navigate to app tabs after refresh
+          // Simple navigation
           router.replace('/(root)/(tabs)');
         } catch (error) {
           console.error('❌ Error during Stream Chat initialization or data refresh:', error);

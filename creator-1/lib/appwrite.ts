@@ -25,6 +25,7 @@ export const config = {
     photoCollectionId: process.env.EXPO_PUBLIC_APPWRITE_PHOTO_COLLECTION_ID!,
     photosAvailableToUsersCollectionId: process.env.EXPO_PUBLIC_APPWRITE_PHOTOS_AVAILABLE_TO_USERS || '',
     storageId: process.env.EXPO_PUBLIC_APPWRITE_STORAGE_ID!,
+    storageStreamChatId: process.env.EXPO_PUBLIC_APPWRITE_STORAGE_STREAM_CHAT_ID!,
     activeSubscriptionsCollectionId: process.env.EXPO_PUBLIC_APPWRITE_ACTIVE_SUBSCRIPTIONS_COLLECTION_ID!,
     cancelledSubscriptionsCollectionId: process.env.EXPO_PUBLIC_APPWRITE_CANCELLED_SUBSCRIPTIONS_COLLECTION_ID!,
     paidContentPurchasesCollectionId: process.env.EXPO_PUBLIC_APPWRITE_PAID_CONTENT_PURCHASES_COLLECTION_ID!

@@ -714,7 +714,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                 borderRadius: 8,
                           backgroundColor: tipAmount === amount ? '' : '#1A1A1A',
                           borderWidth: 1,
-                          borderColor: tipAmount === amount ? '' : '#666666',
+                          borderColor: tipAmount === amount ? 'white' : '#666666',
                         }}
                       >
                         <Text style={{
@@ -750,7 +750,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                       fontWeight: 'bold',
                     flex: 1,
                   }}>
-                      Billing Policy
+                      Tipping Policy
                     </Text>
                   </View>
                   <Text style={{
@@ -759,7 +759,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                     fontFamily: 'questrial',
                     lineHeight: 18,
                   }}>
-                    Your tip will only be charged if the creator responds to your message. Higher tips increase your chances of getting a response.
+                  Higher tips increase your chances of getting a response. 
                   </Text>
                 </View>
 
@@ -850,13 +850,13 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                     style={{
                       flex: 1,
                       paddingVertical: 16,
-                      backgroundColor: '',
+                      backgroundColor: '#FD6F3E',
                       borderRadius: 12,
                       alignItems: 'center',
                     }}
                   >
                     <Text style={{
-                      color: '#FFFFFF',
+                      color: 'white',
                       fontSize: 16,
                       fontFamily: 'questrial',
                       fontWeight: 'bold',

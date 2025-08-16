@@ -76,13 +76,13 @@ const CustomInputButtons: React.FC = () => {
 
           // Upload to Appwrite storage
           const uploadedFile = await storage.createFile(
-            config.storageId,
+            config.storageStreamChatId,
             ID.unique(),
             fileToUpload
           );
 
           // Get the file URL from Appwrite
-          const appwriteImageUrl = storage.getFileView(config.storageId, uploadedFile.$id).toString();
+          const appwriteImageUrl = storage.getFileView(config.storageStreamChatId, uploadedFile.$id).toString();
           
           console.log('📸 Image uploaded successfully to Appwrite:', uploadedFile.$id);
           console.log('📸 Appwrite image URL:', appwriteImageUrl);

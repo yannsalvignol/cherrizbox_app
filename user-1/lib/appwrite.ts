@@ -32,7 +32,8 @@ export const config = {
      * Collection that stores aggregated statistics for each creator (e.g. subscriber counters).
      */
     creatorCollectionId: process.env.EXPO_PUBLIC_CREATOR_COLLECTION_ID,
-    storageId: process.env.EXPO_PUBLIC_STORAGE_ID,
+    storageId: process.env.EXPO_PUBLIC_STORAGE_ID, // For profile pictures
+    streamChatStorageId: process.env.EXPO_PUBLIC_STREAM_CHAT_STORAGE_ID, // For other files
     activeSubscriptionsCollectionId: process.env.EXPO_PUBLIC_ACTIVE_SUBSCRIPTIONS_COLLECTION_ID,
     cancelledSubscriptionsCollectionId: process.env.EXPO_PUBLIC_CANCELLED_SUBSCRIPTIONS_COLLECTION_ID,
     paidContentPurchasesCollectionId: process.env.EXPO_PUBLIC_PAID_CONTENT_PURCHASES_COLLECTION_ID
@@ -89,8 +90,13 @@ export async function testStreamTokenGeneration() {
         // Call the Appwrite function
         console.log('Calling Appwrite function...');
         try {
+            const streamTokenFunctionId = process.env.EXPO_PUBLIC_STREAM_TOKEN_FUNCTION_ID;
+            if (!streamTokenFunctionId) {
+                throw new Error('EXPO_PUBLIC_STREAM_TOKEN_FUNCTION_ID is not configured');
+            }
+            
             const response = await functions.createExecution(
-                process.env.EXPO_PUBLIC_STREAM_TOKEN_FUNCTION_ID,
+                streamTokenFunctionId,
                 '', // No need to send session token in body
                 false,
                 '/generate-token',
@@ -1204,7 +1210,7 @@ export const getPurchasedContent = async (
     }
 };
 
-// Function to upload file to Appwrite storage
+// Function to upload file to Appwrite storage (uses Stream Chat storage bucket)
 export const uploadFileToAppwrite = async (fileUri: string, fileName: string, mimeType?: string): Promise<string> => {
   try {
     console.log('📤 Starting file upload to Appwrite...');
@@ -1234,10 +1240,16 @@ export const uploadFileToAppwrite = async (fileUri: string, fileName: string, mi
 
     console.log('📦 File to upload:', fileToUpload);
 
-    // Upload to Appwrite storage
-    console.log('⬆️ Uploading to storage bucket:', config.storageId);
+    // Use Stream Chat storage bucket for general file uploads
+    const storageToUse = config.streamChatStorageId || config.storageId;
+    console.log('⬆️ Uploading to storage bucket:', storageToUse);
+    
+    if (!storageToUse) {
+      throw new Error('No storage bucket configured');
+    }
+    
     const uploadedFile = await storage.createFile(
-      config.storageId!,
+      storageToUse,
       fileId,
       fileToUpload
     );
@@ -1245,7 +1257,7 @@ export const uploadFileToAppwrite = async (fileUri: string, fileName: string, mi
     console.log('✅ File uploaded successfully:', uploadedFile);
 
     // Get the file URL
-    const fileUrl = storage.getFileView(config.storageId!, uploadedFile.$id);
+    const fileUrl = storage.getFileView(storageToUse, uploadedFile.$id);
     console.log('🔗 File URL:', fileUrl);
 
     return fileUrl.toString();

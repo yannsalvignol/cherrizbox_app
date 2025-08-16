@@ -181,6 +181,9 @@ const App = () => {
             ]);
             
             refetch();
+            
+            // Reset navigation stack and navigate to welcome animation
+            router.dismissAll();
             router.replace('/welcome-animation');
         } catch (error) {
             console.log('❌ [handleVerifyAndCreateAccount] Account creation failed:', error);
@@ -213,6 +216,9 @@ const App = () => {
             if(result){
                 await ensureUserDocument();
                 refetch();
+                
+                // Reset navigation stack and navigate to welcome animation
+                router.dismissAll();
                 router.replace('/welcome-animation');
             } else{
                 console.log('Login Failed');
@@ -232,6 +238,9 @@ const App = () => {
             if(result){
                 await ensureUserDocument();
                 refetch();
+                
+                // Reset navigation stack and navigate to welcome animation
+                router.dismissAll();
                 router.replace('/welcome-animation');
             } else{
                 console.log('Apple Login Failed');

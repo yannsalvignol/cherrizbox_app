@@ -624,7 +624,7 @@ export default function Profile() {
 
       {/* Profile Picture Section - Fixed */}
       <View className="items-center mb-5">
-        <View className="w-32 h-32 rounded-full bg-[#FFFFFF] items-center justify-center mb-3 overflow-hidden">
+        <View className="w-32 h-32 rounded-full bg-[#FD6F3E] items-center justify-center mb-3 overflow-hidden">
           {profileImage ? (
             <ExpoImage
               source={{ uri: profileImage }}

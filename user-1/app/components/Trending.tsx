@@ -1,3 +1,4 @@
+import * as Haptics from 'expo-haptics';
 import React, { useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
@@ -18,6 +19,9 @@ const Trending = ({ onTrendsChange }: TrendingProps) => {
   const [selectedTrends, setSelectedTrends] = useState<string[]>([]);
 
   const handleTrendPress = (trend: string) => {
+    // Trigger haptic feedback
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
     setSelectedTrends(prev => {
       const newTrends = prev.includes(trend)
         ? prev.filter(t => t !== trend)
