@@ -122,6 +122,8 @@ export default function EditProfile() {
   const [isSavingAndExiting, setIsSavingAndExiting] = useState(false);
   const outerWheelRotation = useRef(new Animated.Value(0)).current;
   const innerWheelRotation = useRef(new Animated.Value(0)).current;
+  const [paymentDataLoaded, setPaymentDataLoaded] = useState(false);
+  const [profileDataLoaded, setProfileDataLoaded] = useState(false);
 
   const [userPhotoThumbnail, setUserPhotoThumbnail] = useState<string | null>(null);
   const [compressedThumbnail, setCompressedThumbnail] = useState<string | null>(null);
@@ -327,10 +329,7 @@ export default function EditProfile() {
         if (!cached) {
           setLoading(false);
         }
-        // Capture original form data after loading is complete
-        setTimeout(() => {
-          setOriginalFormData(captureFormData());
-        }, 100);
+        setProfileDataLoaded(true);
       }
     };
 
@@ -854,7 +853,36 @@ export default function EditProfile() {
         }
     } catch (error) {
         console.error('Error loading payment data:', error);
+    } finally {
+        setPaymentDataLoaded(true);
     }
+  };
+
+  // Capture original form data baseline only after all initial data has loaded
+  useEffect(() => {
+    if (!originalFormData && !loading && paymentDataLoaded && profileDataLoaded) {
+      setOriginalFormData(normalizeFormData(captureFormData()));
+    }
+  }, [loading, paymentDataLoaded, profileDataLoaded]);
+
+  // Normalize form data for stable comparisons
+  const normalizeFormData = (data: any) => {
+    return {
+      profileImage: data.profileImage || '',
+      location: (data.location || '').trim(),
+      creatorName: (data.creatorName || '').trim(),
+      topics: (Array.isArray(data.topics) ? data.topics.join(',') : (data.topics || '')).trim(),
+      bio: (data.bio || '').trim(),
+      phoneNumber: (data.phoneNumber || '').trim(),
+      selectedCountry: data.selectedCountry || '',
+      selectedGender: data.selectedGender || '',
+      selectedMonth: data.selectedMonth || '',
+      selectedDay: data.selectedDay || '',
+      selectedYear: data.selectedYear || '',
+      monthlyPrice: (data.monthlyPrice || '').toString().trim(),
+      yearlyPrice: (data.yearlyPrice || '').toString().trim(),
+      selectedCurrency: data.selectedCurrency || 'USD',
+    };
   };
 
   // Save prices function for SubscriptionsModal
@@ -883,11 +911,17 @@ export default function EditProfile() {
         return;
       }
 
+      // Enforce maximum price of 200 for both monthly and yearly
+      const cappedMonthly = Math.min(monthly, 200);
+      const cappedYearly = Math.min(yearly, 200);
+      if (cappedMonthly !== monthly) setMonthlyPrice(cappedMonthly.toString());
+      if (cappedYearly !== yearly) setYearlyPrice(cappedYearly.toString());
+
       // Save prices and currency to Appwrite
       if (globalUser?.$id) {
         await updateCreatorPayment(globalUser.$id, {
-          monthlyPrice: monthly,
-          yearlyPrice: yearly,
+          monthlyPrice: cappedMonthly,
+          yearlyPrice: cappedYearly,
           currency: selectedCurrency
         });
         
@@ -930,7 +964,7 @@ export default function EditProfile() {
 
   // Function to capture current form state
   const captureFormData = () => {
-    return {
+    return normalizeFormData({
       profileImage,
       location,
       creatorName,
@@ -945,7 +979,7 @@ export default function EditProfile() {
       monthlyPrice,
       yearlyPrice,
       selectedCurrency
-    };
+    });
   };
 
   // Function to check if form has unsaved changes
@@ -1086,10 +1120,10 @@ export default function EditProfile() {
         {/* Avatar with Preview Button */}
         <View className="w-full mb-4 relative">
           {/* Centered Profile Picture */}
-          <View className="w-36 h-36 rounded-full bg-[#676767] items-center justify-center relative mx-auto">
+          <View className="w-36 h-36 rounded-full bg-[#FD6F3E] items-center justify-center relative mx-auto">
             {isUploadingImage ? (
               <View className="w-full h-full items-center justify-center">
-                <ActivityIndicator size="large" color="#FD6F3E" />
+                <ActivityIndicator size="large" color="#676767" />
               </View>
             ) : profileImage ? (
               <Image 
@@ -1544,7 +1578,7 @@ export default function EditProfile() {
         />
 
 
-        </View>
+                      </View>
       </ScrollView>
 
       {/* Creator Name Modal */}
@@ -1617,18 +1651,18 @@ export default function EditProfile() {
         animationType="fade"
         onRequestClose={() => {}} // Prevent closing while saving
       >
-        <View style={{ 
-          flex: 1, 
+          <View style={{ 
+            flex: 1, 
           backgroundColor: 'rgba(0,0,0,0.8)', 
-          justifyContent: 'center', 
-          alignItems: 'center',
+            justifyContent: 'center', 
+            alignItems: 'center',
           paddingHorizontal: 20
         }}>
           <View style={{ 
             backgroundColor: 'white', 
             borderRadius: 20, 
             padding: 40, 
-            alignItems: 'center',
+              alignItems: 'center',
             minWidth: 200,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 4 },
@@ -1637,11 +1671,11 @@ export default function EditProfile() {
             elevation: 5
           }}>
             {/* Loading Animation Container */}
-            <View style={{
+              <View style={{ 
               width: 80,
               height: 80,
               justifyContent: 'center',
-              alignItems: 'center',
+                alignItems: 'center', 
               marginBottom: 20,
               position: 'relative'
             }}>
@@ -1693,27 +1727,27 @@ export default function EditProfile() {
               />
             </View>
             
-            <Text style={{ 
+                <Text style={{ 
               color: 'black', 
               fontSize: 18, 
               fontFamily: 'Nunito-Bold', 
-              textAlign: 'center',
+                  textAlign: 'center', 
               marginBottom: 8
-            }}>
+                }}>
               Saving Profile...
-            </Text>
+                </Text>
             
-            <Text style={{ 
+                  <Text style={{ 
               color: '#666', 
-              fontSize: 14, 
+                    fontSize: 14,
               fontFamily: 'Nunito-Regular', 
               textAlign: 'center',
               lineHeight: 20
-            }}>
+                  }}>
               Please wait while we update your profile
-            </Text>
-          </View>
-        </View>
+                  </Text>
+                </View>
+              </View>
       </Modal>
 
       {/* Unsaved Changes Modal */}
@@ -1723,27 +1757,27 @@ export default function EditProfile() {
         animationType="fade"
         onRequestClose={() => setShowUnsavedChangesModal(false)}
       >
-        <View style={{ 
-          flex: 1, 
-          backgroundColor: 'rgba(0,0,0,0.5)', 
-          justifyContent: 'center', 
-          alignItems: 'center',
-          paddingHorizontal: 20
-        }}>
           <View style={{ 
+            flex: 1, 
+          backgroundColor: 'rgba(0,0,0,0.5)', 
+            justifyContent: 'center', 
+            alignItems: 'center',
+          paddingHorizontal: 20
+            }}>
+              <View style={{ 
             backgroundColor: 'white', 
-            borderRadius: 16, 
+                  borderRadius: 16,
             padding: 24, 
-            width: '100%',
+                  width: '100%',
             maxWidth: 340
           }}>
             <View style={{ alignItems: 'center', marginBottom: 16 }}>
               <Ionicons name="warning-outline" size={48} color="#FD6F3E" />
-            </View>
+              </View>
             
-            <Text style={{ 
-              color: 'black', 
-              fontSize: 20, 
+                <Text style={{ 
+                  color: 'black', 
+                  fontSize: 20, 
               fontFamily: 'Nunito-Bold', 
               textAlign: 'center',
               marginBottom: 8
@@ -1753,9 +1787,9 @@ export default function EditProfile() {
             
             <Text style={{ 
               color: '#666', 
-              fontSize: 16, 
+                  fontSize: 16,
               fontFamily: 'Nunito-Regular', 
-              textAlign: 'center',
+                  textAlign: 'center',
               marginBottom: 24,
               lineHeight: 22
             }}>
@@ -1763,60 +1797,60 @@ export default function EditProfile() {
             </Text>
             
             <View style={{ flexDirection: 'row', gap: 12 }}>
-              <TouchableOpacity
+                <TouchableOpacity 
                 onPress={handleDiscardChanges}
-                style={{
-                  flex: 1,
+                  style={{ 
+                    flex: 1, 
                   backgroundColor: '#f5f5f5',
                   borderRadius: 12,
                   paddingVertical: 14,
                   alignItems: 'center'
-                }}
-              >
-                <Text style={{ 
+                  }}
+                >
+                  <Text style={{ 
                   color: '#666', 
-                  fontSize: 16, 
+                    fontSize: 16, 
                   fontFamily: 'Nunito-SemiBold'
                 }}>
                   Discard
                 </Text>
-              </TouchableOpacity>
+                </TouchableOpacity>
               
-              <TouchableOpacity
+                <TouchableOpacity 
                 onPress={handleSaveAndExit}
-                style={{
-                  flex: 1,
+                  style={{ 
+                    flex: 1, 
                   backgroundColor: !profileImage ? '#ccc' : '#FD6F3E',
                   borderRadius: 12,
                   paddingVertical: 14,
                   alignItems: 'center'
                 }}
                 disabled={saving || !profileImage}
-              >
-                <Text style={{ 
+                >
+                  <Text style={{ 
                   color: !profileImage ? '#666' : 'white', 
-                  fontSize: 16, 
+                    fontSize: 16, 
                   fontFamily: 'Nunito-SemiBold'
                 }}>
                   {saving ? 'Saving...' : 'Save & Exit'}
                 </Text>
-              </TouchableOpacity>
-            </View>
+                </TouchableOpacity>
+              </View>
             
             {!profileImage && (
               <Text style={{ 
                 color: '#FD6F3E', 
                 fontSize: 14, 
                 fontFamily: 'Nunito-Regular', 
-                textAlign: 'center',
+                   textAlign: 'center', 
                 marginTop: 12
               }}>
                 Profile picture required to save changes
-              </Text>
+                 </Text>
             )}
-          </View>
+           </View>
         </View>
-      </Modal>
+       </Modal>
 
      </SafeAreaView>
    );

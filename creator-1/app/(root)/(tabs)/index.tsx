@@ -1,24 +1,24 @@
 import {
-    ChannelList,
-    SearchBar
+  ChannelList,
+  SearchBar
 } from '@/app/components/channels';
 
 import EarningsChart from '@/app/components/charts/EarningsChart';
 import SubscriberChart from '@/app/components/charts/SubscriberChart';
 import CircularProgress from '@/app/components/CircularProgress';
 import {
-    CustomNotificationModal,
-    NetworkErrorModal,
-    SocialMediaVerificationModal,
-    StripeConnectModal,
-    SubscriberInfoModal
+  CustomNotificationModal,
+  NetworkErrorModal,
+  SocialMediaVerificationModal,
+  StripeConnectModal,
+  SubscriberInfoModal
 } from '@/app/components/modals';
 import { getUserProfile } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
 import {
-    filterChannels,
-    formatPrice,
-    type Channel
+  filterChannels,
+  formatPrice,
+  type Channel
 } from '@/lib/index-utils';
 import { client, connectUser } from '@/lib/stream-chat';
 import { Ionicons } from '@expo/vector-icons';
@@ -1462,7 +1462,7 @@ export default function Index() {
                 </View>
                 
         <TouchableOpacity onPress={() => router.push('/edit-profile')}>
-                    <View className="w-[61px] h-[61px] rounded-full bg-[#1A1A1A] items-center justify-center overflow-hidden">
+                    <View className="w-[61px] h-[61px] rounded-full bg-[#FD6F3E] items-center justify-center overflow-hidden">
                         {profileImage ? (
                             <Image
                                 source={{ uri: profileImage }}

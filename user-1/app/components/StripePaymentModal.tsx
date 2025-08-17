@@ -1,24 +1,32 @@
-import {
-  CardField,
-  StripeProvider,
-  useStripe
-} from '@stripe/stripe-react-native';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Animated,
-  Dimensions,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Animated,
+    Dimensions,
+    Modal, Platform, ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { initiatePaymentIntent } from '../../lib/subscription';
+let StripeProvider: any, CardField: any, useStripe: any;
+if (Platform.OS !== 'web') {
+  // Dynamically require native-only Stripe module on native platforms only
+  // to avoid server/web bundling errors
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const stripe = require('@stripe/stripe-react-native');
+  StripeProvider = stripe.StripeProvider;
+  CardField = stripe.CardField;
+  useStripe = stripe.useStripe;
+} else {
+  // Web/server stubs so the file can be evaluated during server export
+  StripeProvider = ({ children }: any) => children || null;
+  CardField = () => null;
+  useStripe = () => ({ confirmPayment: async () => ({ error: { message: 'unsupported' } }) });
+}
 
 interface StripePaymentModalProps {
   visible: boolean;
@@ -64,7 +72,7 @@ const PaymentFormUI: React.FC<{
         placeholders={{ number: '1234 1234 1234 1234' }}
         cardStyle={{ ...styles.cardFieldProfessional, textColor: '#18181b' }}
         style={styles.cardFieldContainerProfessional}
-        onCardChange={(cardDetails) => onCardChange(cardDetails.complete)}
+        onCardChange={(cardDetails: { complete: boolean }) => onCardChange(!!cardDetails?.complete)}
       />
     </View>
     {error && (

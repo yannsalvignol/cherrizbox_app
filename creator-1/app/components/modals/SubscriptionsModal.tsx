@@ -48,6 +48,14 @@ export const SubscriptionsModal: React.FC<SubscriptionsModalProps> = ({
   onSave,
   calculatePriceBreakdown
 }) => {
+  const clampTo200 = (text: string) => {
+    const normalized = (text || '').replace(',', '.');
+    const num = parseFloat(normalized);
+    if (isNaN(num)) return '';
+    const clamped = Math.min(Math.max(num, 0), 200);
+    return clamped.toString();
+  };
+
   return (
     <Modal
       visible={visible}
@@ -187,6 +195,7 @@ export const SubscriptionsModal: React.FC<SubscriptionsModalProps> = ({
                 keyboardType="decimal-pad"
                 placeholder="Enter monthly price"
                 placeholderTextColor="rgba(0,0,0,0.5)"
+                onEndEditing={({ nativeEvent }) => setMonthlyPrice(clampTo200(nativeEvent.text))}
                 style={{ 
                   backgroundColor: '#FFFFFF',
                   borderRadius: 8,
@@ -223,6 +232,7 @@ export const SubscriptionsModal: React.FC<SubscriptionsModalProps> = ({
                 keyboardType="decimal-pad"
                 placeholder="Enter yearly price"
                 placeholderTextColor="rgba(0,0,0,0.5)"
+                onEndEditing={({ nativeEvent }) => setYearlyPrice(clampTo200(nativeEvent.text))}
                 style={{ 
                   backgroundColor: '#FFFFFF',
                   borderRadius: 8,

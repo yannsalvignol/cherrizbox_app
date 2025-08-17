@@ -1,9 +1,22 @@
-import { StripeProvider, useStripe } from '@stripe/stripe-react-native';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Modal, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Modal, Platform, Text, View } from 'react-native';
 import { initiatePaymentIntent } from '../../lib/subscription';
+let StripeProvider: any, useStripe: any;
+if (Platform.OS !== 'web') {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const stripe = require('@stripe/stripe-react-native');
+  StripeProvider = stripe.StripeProvider;
+  useStripe = stripe.useStripe;
+} else {
+  StripeProvider = ({ children }: any) => children || null;
+  useStripe = () => ({
+    initPaymentSheet: async () => ({ error: { message: 'unsupported' } }),
+    presentPaymentSheet: async () => ({ error: { message: 'unsupported' } }),
+    isPlatformPaySupported: async () => false,
+  });
+}
 
 interface StripePaymentSheetProps {
   visible: boolean;

@@ -1,9 +1,18 @@
 import { createPaidContentPaymentIntent, getCurrentUser } from '@/lib/appwrite';
-import { CardField, useStripe } from '@stripe/stripe-react-native';
 import * as Haptics from 'expo-haptics';
 import React, { useState } from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import StripePaymentSheet from '../StripePaymentSheet';
+let CardField: any, useStripe: any;
+if (Platform.OS !== 'web') {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const stripe = require('@stripe/stripe-react-native');
+  CardField = stripe.CardField;
+  useStripe = stripe.useStripe;
+} else {
+  CardField = () => null;
+  useStripe = () => ({ confirmPayment: async () => ({ error: { message: 'unsupported' } }) });
+}
 
 export interface PaidContentPaymentModalProps {
   visible: boolean;
