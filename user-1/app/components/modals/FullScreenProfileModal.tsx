@@ -1,6 +1,7 @@
 import { dataCache } from '@/lib/data-cache';
 import { useGlobalContext } from '@/lib/global-provider';
 import { Ionicons } from '@expo/vector-icons';
+import { ResizeMode, Video } from 'expo-av';
 import { BlurView } from 'expo-blur';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
@@ -8,20 +9,21 @@ import * as Sharing from 'expo-sharing';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Alert,
-  Animated,
-  Dimensions,
-  Image,
-  ImageBackground,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Alert,
+    Animated,
+    Dimensions,
+    Image,
+    ImageBackground,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { Client, Databases, Query } from 'react-native-appwrite';
 import { config } from '../../../lib/appwrite';
+import { CherryLoadingIndicator } from '../CherryLoadingIndicator';
 
 interface FullScreenProfileModalProps {
   visible: boolean;
@@ -46,6 +48,9 @@ export const FullScreenProfileModal: React.FC<FullScreenProfileModalProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [contentCache, setContentCache] = useState<Map<string, string>>(new Map());
   const [videoThumbnails, setVideoThumbnails] = useState<Map<string, string>>(new Map());
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+  const videoRef = useRef<Video>(null);
 
   // Animation values
   const backgroundScale = useRef(new Animated.Value(0.95)).current;
@@ -250,6 +255,11 @@ export const FullScreenProfileModal: React.FC<FullScreenProfileModalProps> = ({
   const closeContentViewer = () => {
     setIsContentViewerVisible(false);
     setSelectedContentItem(null);
+    setIsVideoPlaying(false);
+    setIsVideoLoaded(false);
+    if (videoRef.current) {
+      videoRef.current.pauseAsync();
+    }
   };
 
   const getActionText = () => {
@@ -666,13 +676,13 @@ export const FullScreenProfileModal: React.FC<FullScreenProfileModalProps> = ({
                         />
                         {item.contentType === 'video' && (
                           <>
-                            {/* Play Button Overlay */}
+                            {/* Video Icon Overlay */}
                             <View style={{
                               position: 'absolute',
                               top: '50%',
                               left: '50%',
                               transform: [{ translateX: -22 }, { translateY: -22 }],
-                              backgroundColor: 'rgba(251, 35, 85, 0.95)',
+                              backgroundColor: 'rgba(0, 0, 0, 0.8)',
                               borderRadius: 22,
                               width: 44,
                               height: 44,
@@ -684,7 +694,7 @@ export const FullScreenProfileModal: React.FC<FullScreenProfileModalProps> = ({
                               shadowRadius: 8,
                               elevation: 6
                             }}>
-                              <Text style={{ color: 'white', fontSize: 18, marginLeft: 2 }}>▶</Text>
+                              <Ionicons name="videocam-outline" size={24} color="white" />
                             </View>
                             
                             {/* Video Badge */}
@@ -834,7 +844,67 @@ export const FullScreenProfileModal: React.FC<FullScreenProfileModalProps> = ({
 
                 {/* Content Display */}
                 <View style={{ alignItems: 'center', paddingHorizontal: 16, paddingBottom: 16 }}>
-                  {selectedContentItem.contentType === 'image' || selectedContentItem.contentType === 'video' ? (
+                  {selectedContentItem.contentType === 'video' ? (
+                    <View style={{ 
+                      width: '100%', 
+                      height: 400, 
+                      borderRadius: 8, 
+                      overflow: 'hidden',
+                      backgroundColor: '#1A1A1A',
+                      position: 'relative'
+                    }}>
+                      <Video
+                        ref={videoRef}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                        }}
+                        source={{ uri: selectedContentItem.imageUri }}
+                        useNativeControls
+                        resizeMode={ResizeMode.CONTAIN}
+                        shouldPlay={false}
+                        isLooping={false}
+                        onPlaybackStatusUpdate={(status: any) => {
+                          if (status.isLoaded) {
+                            setIsVideoPlaying(status.isPlaying);
+                            setIsVideoLoaded(true);
+                          }
+                        }}
+                        onLoadStart={() => {
+                          setIsVideoLoaded(false);
+                        }}
+                        onLoad={() => {
+                          setIsVideoLoaded(true);
+                        }}
+                      />
+                      
+                      {/* Loading indicator for video */}
+                      {!isVideoLoaded && (
+                        <View style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                        }}>
+                          <CherryLoadingIndicator size={60} />
+                          <Text style={{
+                            color: '#FFFFFF',
+                            fontSize: 14,
+                            fontWeight: '600',
+                            marginTop: 12,
+                            fontFamily: 'Questrial-Regular',
+                            textAlign: 'center',
+                          }}>
+                            Loading video...
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  ) : selectedContentItem.contentType === 'image' ? (
                     <Image
                       source={{ uri: selectedContentItem.imageUri }}
                       style={{
@@ -876,26 +946,6 @@ export const FullScreenProfileModal: React.FC<FullScreenProfileModalProps> = ({
                         Tap to download or view
                       </Text>
                     </View>
-                  )}
-
-                  {selectedContentItem.contentType === 'video' && (
-                    <TouchableOpacity
-                      style={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: [{ translateX: -30 }, { translateY: -30 }],
-                        backgroundColor: 'rgba(251, 35, 85, 0.9)',
-                        borderRadius: 30,
-                        width: 60,
-                        height: 60,
-                        justifyContent: 'center',
-                        alignItems: 'center'
-                      }}
-                      onPress={shareContent}
-                    >
-                      <Text style={{ color: 'white', fontSize: 24 }}>▶</Text>
-                    </TouchableOpacity>
                   )}
                 </View>
 

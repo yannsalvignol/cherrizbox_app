@@ -31,6 +31,8 @@ interface GlobalContextType {
   preloadProfileData: () => Promise<void>;
   getCachedProfile: () => ProfileCache | null;
   clearProfileCache: () => void;
+  photoCollectionData: PhotoCollectionData | null;
+  loadPhotoCollectionData: () => Promise<void>;
 }
 
 interface User {
@@ -38,6 +40,18 @@ interface User {
   name: string;
   email: string;
   avatar: string;
+}
+
+interface PhotoCollectionData {
+  title: string;
+  Bio: string;
+  PhotosLocation: string;
+  PhotoTopics: string[];
+  thumbnail: string;
+  compressed_thumbnail: string;
+  prompte: string;
+  payment: number;
+  currency: string;
 }
 
 const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
@@ -62,6 +76,7 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
   const [socialMediaUsername, setSocialMediaUsername] = React.useState('');
   const [userCurrency, setUserCurrency] = React.useState('USD');
   const [profileCache, setProfileCache] = React.useState<ProfileCache | null>(null);
+  const [photoCollectionData, setPhotoCollectionData] = React.useState<PhotoCollectionData | null>(null);
 
   const previousUserId = useRef<string | null>(null);
 
@@ -69,6 +84,8 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
   React.useEffect(() => {
     registerProfileCacheSetter(setProfileCache);
   }, []);
+
+
 
   const isLogged = !!user;
 
@@ -130,6 +147,57 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
     console.log('🗑️ [Profile Cache] Manually clearing cache');
     setProfileCache(null);
   };
+
+  const loadPhotoCollectionData = useCallback(async () => {
+    if (!user?.$id) return;
+    
+    try {
+      console.log('🔄 [PhotoCollection] Loading photo collection data for user:', user.$id);
+      
+      const { databases, config } = await import('./appwrite');
+      const { Query } = await import('react-native-appwrite');
+      
+      // Get the user's photo document
+      const photoDocs = await databases.listDocuments(
+        config.databaseId,
+        config.photoCollectionId,
+        [Query.equal('IdCreator', user.$id)]
+      );
+      
+      if (photoDocs.documents.length > 0) {
+        const photoDoc = photoDocs.documents[0];
+        const photoData: PhotoCollectionData = {
+          title: photoDoc.title || '',
+          Bio: photoDoc.Bio || '',
+          PhotosLocation: photoDoc.PhotosLocation || '',
+          PhotoTopics: photoDoc.PhotoTopics || [],
+          thumbnail: photoDoc.thumbnail || '',
+          compressed_thumbnail: photoDoc.compressed_thumbnail || '',
+          prompte: photoDoc.prompte || '',
+          payment: photoDoc.payment || 0,
+          currency: photoDoc.currency || 'USD'
+        };
+        
+        setPhotoCollectionData(photoData);
+        console.log('✅ [PhotoCollection] Photo collection data loaded:', photoData.title);
+      } else {
+        console.log('📸 [PhotoCollection] No photo document found for user');
+        setPhotoCollectionData(null);
+      }
+    } catch (error) {
+      console.error('❌ [PhotoCollection] Error loading photo collection data:', error);
+      setPhotoCollectionData(null);
+    }
+  }, [user?.$id]);
+
+  // Load photo collection data when user changes
+  React.useEffect(() => {
+    if (user?.$id) {
+      loadPhotoCollectionData();
+    } else {
+      setPhotoCollectionData(null);
+    }
+  }, [user?.$id, loadPhotoCollectionData]);
 
   const refreshChannelConditions = async (forceRefresh = false) => {
     console.log('🚀 [Global Currency] refreshChannelConditions called for user:', user?.$id, 'forceRefresh:', forceRefresh);
@@ -514,6 +582,8 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
         preloadProfileData,
         getCachedProfile,
         clearProfileCache,
+        photoCollectionData,
+        loadPhotoCollectionData,
       }}
     >
       {children}

@@ -1429,7 +1429,11 @@ export default function EditProfile() {
             >
               <Ionicons name="chatbubble-ellipses-outline" size={22} color="#FD6F3E" style={{ marginRight: 10 }} />
               <Text style={{ color: 'black', fontFamily: 'Nunito-Regular', fontSize: 18 }}>
-                {topics.length > 0 ? topics.join(', ') : 'Choose topics'}
+                {topics.length > 0 ? (
+                  topics.length <= 3 
+                    ? topics.join(', ')
+                    : `${topics.slice(0, 3).join(', ')}...`
+                ) : 'Choose topics'}
               </Text>
             </TouchableOpacity>
             <Modal

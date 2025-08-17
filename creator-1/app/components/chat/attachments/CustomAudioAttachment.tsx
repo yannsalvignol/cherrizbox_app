@@ -8,6 +8,8 @@ interface AudioAttachment {
   type: string;
   asset_url?: string;
   duration?: string;
+  timestamp?: string;
+  created_at?: string;
 }
 
 interface CustomAudioAttachmentProps {

@@ -1,4 +1,6 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Models } from 'appwrite';
+import Constants from 'expo-constants';
 import * as FileSystem from 'expo-file-system';
 import React, { createContext, ReactNode, useContext, useEffect, useRef, useState } from "react";
 
@@ -125,24 +127,107 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
   const getCachedImageUrl = (remoteUrl?: string) => {
     if (!remoteUrl) return undefined;
     const cachedUri = imageDiskCache.current[remoteUrl];
+    
+    // Check if cached file exists and re-cache if missing
+    if (cachedUri) {
+      FileSystem.getInfoAsync(cachedUri).then(fileInfo => {
+        if (!fileInfo.exists) {
+          console.log(`🔄 [ImageCache] Cached file missing, re-caching: ${remoteUrl.substring(0, 50)}...`);
+          delete imageDiskCache.current[remoteUrl];
+          // Re-cache the image in the background
+          cacheImage(remoteUrl).then(newUri => {
+            imageDiskCache.current[remoteUrl] = newUri;
+            saveImageCacheToDisk();
+            console.log(`✅ [ImageCache] Image re-cached successfully: ${remoteUrl.substring(0, 50)}...`);
+          }).catch(error => {
+            console.error(`❌ [ImageCache] Failed to re-cache image: ${remoteUrl.substring(0, 50)}...`, error);
+          });
+        }
+      }).catch(() => {
+        // File check failed, remove from cache and re-cache
+        delete imageDiskCache.current[remoteUrl];
+        cacheImage(remoteUrl).then(newUri => {
+          imageDiskCache.current[remoteUrl] = newUri;
+          saveImageCacheToDisk();
+        }).catch(() => {
+          // Ignore re-cache failures
+        });
+      });
+    } else {
+      // No cached version, start caching in background for next time
+      cacheImage(remoteUrl).then(newUri => {
+        imageDiskCache.current[remoteUrl] = newUri;
+        saveImageCacheToDisk();
+        console.log(`✅ [ImageCache] New image cached: ${remoteUrl.substring(0, 50)}...`);
+      }).catch(error => {
+        console.log(`⚠️ [ImageCache] Failed to cache new image: ${remoteUrl.substring(0, 50)}...`, error);
+      });
+    }
+    
+    console.log(`🖼️ [ImageCache] URL: ${remoteUrl.substring(0, 50)}...`);
+    console.log(`🖼️ [ImageCache] Cached: ${cachedUri ? 'YES' : 'NO'}`);
+    console.log(`🖼️ [ImageCache] Using: ${cachedUri && cachedUri.startsWith('file://') ? 'CACHED' : 'ORIGINAL'}`);
+    
+    // Return cached version if available and valid, otherwise original
     return cachedUri || remoteUrl;
+  };
+
+  const saveImageCacheToDisk = async () => {
+    try {
+      await FileSystem.writeAsStringAsync(imageCachePath, JSON.stringify(imageDiskCache.current));
+      console.log('💾 [ImageCache] Cache saved to disk');
+    } catch (error) {
+      console.error('❌ [ImageCache] Failed to save cache to disk:', error);
+    }
+  };
+
+  const clearImageCache = async () => {
+    try {
+      console.log('🗑️ [ImageCache] Clearing image cache...');
+      imageDiskCache.current = {};
+      await FileSystem.deleteAsync(imageCachePath, { idempotent: true });
+      // Also clear the cached image files
+      const dirInfo = await FileSystem.getInfoAsync(CACHE_DIR);
+      if (dirInfo.exists) {
+        await FileSystem.deleteAsync(CACHE_DIR, { idempotent: true });
+        await FileSystem.makeDirectoryAsync(CACHE_DIR, { intermediates: true });
+      }
+      console.log('✅ [ImageCache] Image cache and files cleared successfully');
+    } catch (error) {
+      console.error('❌ [ImageCache] Failed to clear image cache:', error);
+    }
   };
 
   const initializeImageCache = async () => {
     try {
-      console.log('Reading image cache from disk...');
+      console.log('🔄 [ImageCache] Reading image cache from disk...');
+      
+      // Check app version to clear cache on updates
+      const currentVersion = Constants.expoConfig?.version || '1.0.0';
+      const versionKey = 'app_version';
+      const storedVersion = await AsyncStorage.getItem(versionKey);
+      
+      if (storedVersion !== currentVersion) {
+        console.log(`📱 [ImageCache] App updated from ${storedVersion} to ${currentVersion}, clearing cache...`);
+        await clearImageCache();
+        await AsyncStorage.setItem(versionKey, currentVersion);
+        return;
+      }
+      
       const fileInfo = await FileSystem.getInfoAsync(imageCachePath);
       if (fileInfo.exists) {
         const content = await FileSystem.readAsStringAsync(imageCachePath);
         if (content) {
           imageDiskCache.current = JSON.parse(content);
-          console.log(`Image cache initialized with ${Object.keys(imageDiskCache.current).length} files.`);
+          console.log(`✅ [ImageCache] Cache initialized with ${Object.keys(imageDiskCache.current).length} files.`);
         }
       } else {
-        console.log('No image cache file found.');
+        console.log('ℹ️ [ImageCache] No cache file found.');
       }
     } catch (error) {
-      console.error('Failed to initialize image cache:', error);
+      console.error('❌ [ImageCache] Failed to initialize image cache:', error);
+      // Clear cache on error
+      await clearImageCache();
     }
   };
 

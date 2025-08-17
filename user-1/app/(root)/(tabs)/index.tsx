@@ -57,6 +57,8 @@ export default function Index() {
 
     useEffect(() => {
       if (!loading) {
+        console.log('📱 [Index] Posts loaded:', posts.length);
+        console.log('📱 [Index] Sample post:', posts[0]);
         setFilteredPosts(posts);
       }
     }, [posts, loading]);

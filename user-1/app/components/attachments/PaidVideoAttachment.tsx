@@ -9,6 +9,7 @@ import { ActivityIndicator, Platform, Text, TouchableOpacity, View } from 'react
 import { useMessageContext } from 'stream-chat-react-native';
 import { checkPaidContentPurchase } from '../../../lib/appwrite';
 import { PaidContentPaymentModal } from '../modals/PaidContentPaymentModal';
+import { CherryLoadingIndicator } from '../CherryLoadingIndicator';
 
 interface PaidVideoAttachmentProps {
   attachment: any;
@@ -21,6 +22,7 @@ export const PaidVideoAttachment: React.FC<PaidVideoAttachmentProps> = ({ attach
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const videoRef = useRef<Video>(null);
 
   // Get message context to access message sender info
@@ -127,9 +129,42 @@ export const PaidVideoAttachment: React.FC<PaidVideoAttachmentProps> = ({ attach
                 onPlaybackStatusUpdate={(status: any) => {
                   if (status.isLoaded) {
                     setIsPlaying(status.isPlaying);
+                    setIsVideoLoaded(true);
                   }
                 }}
+                onLoadStart={() => {
+                  setIsVideoLoaded(false);
+                }}
+                onLoad={() => {
+                  setIsVideoLoaded(true);
+                }}
               />
+              
+              {/* Loading indicator for unlocked video */}
+              {!isVideoLoaded && (
+                <View style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                }}>
+                  <CherryLoadingIndicator size={80} />
+                  <Text style={{
+                    color: '#FFFFFF',
+                    fontSize: 14,
+                    fontWeight: '600',
+                    marginTop: 12,
+                    fontFamily: 'questrial',
+                    textAlign: 'center',
+                  }}>
+                    Loading video...
+                  </Text>
+                </View>
+              )}
               
               {/* Unlocked indicator */}
               <View style={{

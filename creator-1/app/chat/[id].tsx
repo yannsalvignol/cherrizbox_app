@@ -81,7 +81,7 @@ const CustomMessageStatus = () => {
 export default function ChatScreen() {
   const router = useRouter();
   const { id: channelId } = useLocalSearchParams<{ id: string }>();
-  const { user, userCurrency } = useGlobalContext();
+  const { user, userCurrency, photoCollectionData } = useGlobalContext();
   const [isLoading, setIsLoading] = useState(true);
   const [channel, setChannel] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -487,13 +487,6 @@ export default function ChatScreen() {
                         <EmptyStateIndicator channelId={channelId} />
                       )}
                       onThreadSelect={setThread}
-                      swipeToReplyEnabled={(message) => {
-                        // Disable swipe to reply for custom audio attachments
-                        const hasAudioAttachment = message?.attachments?.some((attachment: any) => 
-                          attachment?.type === 'custom_audio'
-                        );
-                        return !hasAudioAttachment; // Return false to disable, true to enable
-                      }}
                     />
                     
                     {/* Creator Name Banner - Floating on top */}
@@ -554,7 +547,7 @@ export default function ChatScreen() {
                         fontWeight: 'bold',
                         fontFamily: 'MuseoModerno-Regular',
                       }}>
-                        {user?.name || 'Creator'}
+                        {photoCollectionData?.title || user?.name || 'Creator'}
                       </Text>
                     </View>
                     

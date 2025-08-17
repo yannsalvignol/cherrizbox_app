@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
 import { Animated, Dimensions, Image, Text, TouchableOpacity, View } from 'react-native';
+import { SafeImage } from './SafeImage';
 
 const { width } = Dimensions.get('window');
 const cardWidth = (width - 24) / 2; // Match the width from index.tsx
@@ -184,10 +185,19 @@ const PhotoCard = ({ photo, index = 0, scrollY, isSubscribed = false, isCancelle
                     <View style={{ borderRadius: 18, overflow: 'hidden', position: 'relative' }}>
                         {/* Image */}
                         {imageUrl ? (
-                            <Image
+                            <SafeImage
                                 source={{ uri: cachedUrl }}
                                 style={{ width: '100%', height: 290 }}
                                 resizeMode="cover"
+                                fallbackText={`${photo.title || 'Image'} not available`}
+                                onError={(error) => {
+                                    console.log(`❌ [PhotoCard] Image load error for ${photo.title}:`, error.nativeEvent.error);
+                                    console.log(`❌ [PhotoCard] Failed URL: ${cachedUrl}`);
+                                    console.log(`❌ [PhotoCard] Original URL: ${imageUrl}`);
+                                }}
+                                onLoad={() => {
+                                    console.log(`✅ [PhotoCard] Image loaded successfully for ${photo.title}`);
+                                }}
                             />
                         ) : (
                             <View style={{ width: '100%', height: 290, backgroundColor: '#222', alignItems: 'center', justifyContent: 'center' }}>

@@ -176,16 +176,18 @@ const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = (props) => {
         alignItems: isMyMessage ? 'flex-end' : 'flex-start',  // Align based on sender
         paddingRight: props.isInThread && isMyMessage ? 8 : 5, // Closer to right edge for sent
         paddingLeft: props.isInThread && !isMyMessage ? 8 : 0, // Closer to left edge for received
-        marginTop: 4, // Add space between day timestamp and audio attachment
-        marginBottom: 4, // Add space underneath audio attachment for better separation
+        marginTop: 8, // Increased space between day timestamp and audio attachment
+        marginBottom: 8, // Increased space underneath audio attachment for better separation
         marginRight: isMyMessage ? -2 : 0, // Move sent audio messages to the left
         marginLeft: !isMyMessage ? receivedDmOffset + 12 : 0, // Move received audio to the left
+        zIndex: 5, // Ensure the entire audio message container has proper z-index
+        elevation: 5, // For Android
       }}>
         {/* Render audio attachments directly without MessageSimple wrapper */}
-        <View style={{ position: 'relative' }}>
+        <View style={{ position: 'relative', zIndex: 10 }}>
           {message.attachments?.map((attachment: any, index: number) => (
             attachment?.type === 'custom_audio' ? (
-              <View key={`audio-${index}`} style={{ paddingTop: 12, paddingBottom: 12 }}>
+              <View key={`audio-${index}`} style={{ paddingTop: 12, paddingBottom: 20 }}>
                 <CustomAudioAttachment 
                   attachment={attachment} 
                 />
@@ -193,8 +195,16 @@ const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = (props) => {
             ) : null
           ))}
           
-          {/* Add reactions on top of audio attachment */}
-          <CustomReactionList />
+          {/* Add reactions on top of audio attachment with proper positioning */}
+          <View style={{
+            position: 'absolute',
+            top: 6,
+            right: 8,
+            zIndex: 20,
+            elevation: 20, // For Android
+          }}>
+            <CustomReactionList />
+          </View>
         </View>
       </View>
     );

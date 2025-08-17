@@ -787,9 +787,9 @@ export default function Index() {
             
             console.log('✅ [SocialMedia] Code verified successfully, account_state set to ok');
             
-            // Copy all photo documents to the available collection for this user
+            // Copy the user's photo document to the available collection
             try {
-              console.log('🔄 [PhotoCollection] Copying photo documents to available collection for user:', user.$id);
+              console.log('🔄 [PhotoCollection] Copying photo document to available collection for user:', user.$id);
               console.log('🔍 [PhotoCollection] Available collection ID:', config.photosAvailableToUsersCollectionId);
               
               // Check if the new collection ID is configured
@@ -799,57 +799,48 @@ export default function Index() {
                 return; // Exit early if new collection is not configured
               }
               
-              // Get all photo documents for this user
+              // Get the single photo document for this user
               const photoDocs = await databases.listDocuments(
                 config.databaseId,
                 config.photoCollectionId,
                 [Query.equal('IdCreator', user.$id)]
               );
               
-              console.log(`📸 [PhotoCollection] Found ${photoDocs.documents.length} photo documents to copy`);
-              
-              // Copy each photo document to the available collection
-              const copyPromises = photoDocs.documents.map(async (photoDoc) => {
-                try {
-                  // Create document in the available collection
-                  const { ID } = await import('react-native-appwrite');
-                  await databases.createDocument(
-                    config.databaseId,
-                    config.photosAvailableToUsersCollectionId,
-                    ID.unique(),
-                    {
-                      // Only include allowed attributes based on the error message
-                      thumbnail: photoDoc.thumbnail,
-                      title: photoDoc.title,
-                      prompte: photoDoc.prompte,
-                      IdCreator: photoDoc.IdCreator,
-                      payment: photoDoc.payment,
-                      PhotosLocation: photoDoc.PhotosLocation,
-                      PhotoTopics: photoDoc.PhotoTopics,
-                      Bio: photoDoc.Bio,
-                      compressed_thumbnail: photoDoc.compressed_thumbnail,
-                      // Add currency if it exists in the original document
-                      ...(photoDoc.currency && { currency: photoDoc.currency })
-                    }
-                  );
-                  
-                  console.log(`✅ [PhotoCollection] Copied photo document ${photoDoc.$id} to available collection`);
-                  return { success: true, id: photoDoc.$id };
-                } catch (error) {
-                  console.error(`❌ [PhotoCollection] Failed to copy photo document ${photoDoc.$id}:`, error);
-                  return { success: false, id: photoDoc.$id, error };
-                }
-              });
-              
-              const results = await Promise.allSettled(copyPromises);
-              const successful = results.filter(result => result.status === 'fulfilled' && result.value.success).length;
-              const failed = results.filter(result => result.status === 'rejected' || (result.status === 'fulfilled' && !result.value.success)).length;
-              
-              console.log(`📊 [PhotoCollection] Copy summary: ${successful} copied successfully, ${failed} failed`);
-              
-              if (failed > 0) {
-                console.warn(`⚠️ [PhotoCollection] Some photo documents failed to copy. Check logs above for details.`);
+              if (photoDocs.documents.length === 0) {
+                console.log('📸 [PhotoCollection] No photo document found for user');
+                return;
               }
+              
+              if (photoDocs.documents.length > 1) {
+                console.warn(`⚠️ [PhotoCollection] Expected 1 photo document, found ${photoDocs.documents.length}. Using the first one.`);
+              }
+              
+              const photoDoc = photoDocs.documents[0];
+              console.log(`📸 [PhotoCollection] Found photo document to copy: ${photoDoc.$id}`);
+              
+              // Create document in the available collection
+              const { ID } = await import('react-native-appwrite');
+              await databases.createDocument(
+                config.databaseId,
+                config.photosAvailableToUsersCollectionId,
+                ID.unique(),
+                {
+                  // Only include allowed attributes based on the error message
+                  thumbnail: photoDoc.thumbnail,
+                  title: photoDoc.title,
+                  prompte: photoDoc.prompte,
+                  IdCreator: photoDoc.IdCreator,
+                  payment: photoDoc.payment,
+                  PhotosLocation: photoDoc.PhotosLocation,
+                  PhotoTopics: photoDoc.PhotoTopics,
+                  Bio: photoDoc.Bio,
+                  compressed_thumbnail: photoDoc.compressed_thumbnail,
+                  // Add currency if it exists in the original document
+                  ...(photoDoc.currency && { currency: photoDoc.currency })
+                }
+              );
+              
+              console.log(`✅ [PhotoCollection] Successfully copied photo document ${photoDoc.$id} to available collection`);
               
             } catch (error) {
               console.error('❌ [PhotoCollection] Error copying photo documents:', error);
