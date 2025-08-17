@@ -24,7 +24,7 @@ import { client, connectUser } from '@/lib/stream-chat';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, FlatList, Image, KeyboardAvoidingView, Modal, Platform, RefreshControl, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -83,43 +83,6 @@ export default function Index() {
       const [channels, setChannels] = useState<Channel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [profileImage, setProfileImage] = useState<string | null>(null);
-  
-  // Handle live channel updates from Stream Chat
-  const handleChannelUpdate = (channelId: string, updates: Partial<Channel & { hasTip?: boolean }>) => {
-    console.log(`🔄 [Index] Updating channel ${channelId} with:`, updates);
-    
-    // If this update includes a tip, add channel to uncollected tips
-    if (updates.hasTip) {
-      setUncollectedTips(prev => {
-        const newSet = new Set(prev);
-        newSet.add(channelId);
-        console.log(`💰 [Index] Added ${channelId} to uncollected tips`);
-        return newSet;
-      });
-    }
-    
-    // Remove the hasTip flag before updating channels (it's not part of Channel interface)
-    const { hasTip, ...channelUpdates } = updates;
-    
-    setChannels(prevChannels => 
-      prevChannels.map(channel => 
-        channel.id === channelId 
-          ? { ...channel, ...channelUpdates }
-          : channel
-      )
-    );
-    
-    // Also update filtered channels if search is active
-    if (searchQuery) {
-      setFilteredChannels(prevFiltered => 
-        prevFiltered.map(channel => 
-          channel.id === channelId 
-            ? { ...channel, ...channelUpdates }
-            : channel
-        )
-      );
-    }
-  };
 
   // Handle tip collection (when user opens a channel with tips)
   const handleTipCollected = (channelId: string) => {
@@ -187,6 +150,41 @@ export default function Index() {
     const [searchQuery, setSearchQuery] = useState('');
     const [showSearch, setShowSearch] = useState(false);
     const [filteredChannels, setFilteredChannels] = useState<Channel[]>([]);
+
+    // Handle live channel updates from Stream Chat
+    const handleChannelUpdate = useCallback((channelId: string, updates: Partial<Channel & { hasTip?: boolean }>) => {
+      console.log(`🔄 [Index] Updating channel ${channelId} with:`, updates);
+      
+      // If this update includes a tip, add channel to uncollected tips
+      if (updates.hasTip) {
+        setUncollectedTips(prev => {
+          const newSet = new Set(prev);
+          newSet.add(channelId);
+          console.log(`💰 [Index] Added ${channelId} to uncollected tips`);
+          return newSet;
+        });
+      }
+      
+      // Remove the hasTip flag before updating channels (it's not part of Channel interface)
+      const { hasTip, ...channelUpdates } = updates;
+      
+      setChannels(prevChannels => 
+        prevChannels.map(channel => 
+          channel.id === channelId 
+            ? { ...channel, ...channelUpdates }
+            : channel
+        )
+      );
+      
+      // Also update filtered channels if search is active
+      setFilteredChannels(prevFiltered => 
+        prevFiltered.map(channel => 
+          channel.id === channelId 
+            ? { ...channel, ...channelUpdates }
+            : channel
+        )
+      );
+    }, [searchQuery]);
     
     // Cache for user profiles to avoid redundant API calls
     const userProfileCache = useRef<Map<string, { name: string; avatar: string; documentId: string; timestamp: number }>>(new Map());
@@ -568,7 +566,7 @@ export default function Index() {
           .filter(channel => 
             channel.id.startsWith('dm-') && 
             channel.lastMessage && 
-            channel.lastMessage.includes('💝 Tip:')
+            channel.lastMessage.includes('Tip:')
           )
           .map(channel => channel.id);
         

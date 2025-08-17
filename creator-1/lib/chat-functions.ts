@@ -157,15 +157,23 @@ export const handleFileCreation = async () => {
     // Import DocumentPicker
     const DocumentPicker = await import('expo-document-picker');
     
-    // Launch document picker for all file types
+    // Launch document picker for PDF files only (robust across platforms)
     const result = await DocumentPicker.getDocumentAsync({
-      type: '*/*', // Allow all file types
+      type: ['application/pdf', 'com.adobe.pdf', 'public.pdf'],
       copyToCacheDirectory: true,
       multiple: false,
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      return result.assets[0];
+      const asset = result.assets[0] as any;
+      const name: string = asset?.name || '';
+      const mime: string = asset?.mimeType || '';
+      const isPdf = (mime && mime.toLowerCase().includes('pdf')) || name.toLowerCase().endsWith('.pdf');
+      if (!isPdf) {
+        Alert.alert('Invalid file type', 'Please select a PDF file (.pdf)');
+        return null;
+      }
+      return asset;
     }
     
     return null;

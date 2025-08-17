@@ -58,7 +58,7 @@ export default function EmailExistsError() {
           lineHeight: 24,
           marginBottom: 32
         }}>
-          You already have an account on Cherrizbox Pro. You need to use a different address to use Cherrizbox Pro.
+          You already have an account on Cherrizbox Pro. You need to use a different address to use Cherrizbox.
         </Text>
 
         {/* Cherry Logo */}

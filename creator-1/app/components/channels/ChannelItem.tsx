@@ -65,7 +65,7 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
   // Check if DM channel has an uncollected tip (persistent) or a recent tip message
   const hasTip = isDM && (
     uncollectedTips.has(channel.id) || 
-    (channel.lastMessage && channel.lastMessage.includes('💝 Tip:'))
+    (channel.lastMessage && channel.lastMessage.includes('Tip:'))
   );
 
   // Coin collection animation

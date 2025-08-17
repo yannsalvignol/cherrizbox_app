@@ -1,14 +1,14 @@
 import { type Channel } from '@/lib/index-utils';
 import { client } from '@/lib/stream-chat';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-    ActivityIndicator,
-    FlatList,
-    Image,
-    RefreshControl,
-    Text,
-    View
+  ActivityIndicator,
+  FlatList,
+  Image,
+  RefreshControl,
+  Text,
+  View
 } from 'react-native';
 import { ChannelItem } from './ChannelItem';
 
@@ -63,6 +63,9 @@ export const ChannelList: React.FC<ChannelListProps> = ({
   // Local state for real-time unread counts
   const [liveUnreadCounts, setLiveUnreadCounts] = useState<Map<string, number>>(new Map());
 
+  // Create stable reference to channel IDs to prevent unnecessary re-renders
+  const channelIds = useMemo(() => channels.map(c => c.id).sort().join(','), [channels]);
+
   // Set up Stream Chat listeners for real-time updates (hybrid approach)
   useEffect(() => {
     if (!currentUserId || channels.length === 0) return;
@@ -99,35 +102,30 @@ export const ChannelList: React.FC<ChannelListProps> = ({
               
               // Check if this message contains a tip
               const messageText = event.message?.text || '';
-              const isTipMessage = messageText.includes('💝 Tip:');
+              const isTipMessage = messageText.includes('Tip:');
               
-              if (isTipMessage) {
-                console.log(`💰 [ChannelList] Tip message detected in ${channel.id}: ${messageText}`);
-                // Add channel to uncollected tips (parent component will handle this)
+              // Update unread count using functional state update to avoid stale closure
+              setLiveUnreadCounts(prev => {
+                const currentCount = prev.get(channel.id) || 0;
+                const newCount = currentCount + 1;
+                const newMap = new Map(prev);
+                newMap.set(channel.id, newCount);
+                
+                // Notify parent component with the correct count
                 if (onChannelUpdate) {
-                  onChannelUpdate(channel.id, { 
+                  onChannelUpdate(channel.id, {
+                    unreadCount: newCount,
                     lastMessage: messageText,
                     lastMessageAt: event.message?.created_at || new Date().toISOString(),
-                    unreadCount: (liveUnreadCounts.get(channel.id) || channel.unreadCount || 0) + 1,
-                    hasTip: true // Add a flag to indicate this update includes a tip
+                    ...(isTipMessage && { hasTip: true })
                   });
                 }
-              }
-              
-              setLiveUnreadCounts(prev => {
-                const currentCount = prev.get(channel.id) || channel.unreadCount || 0;
-                const newMap = new Map(prev);
-                newMap.set(channel.id, currentCount + 1);
+                
                 return newMap;
               });
               
-              // Notify parent component
-              if (onChannelUpdate) {
-                onChannelUpdate(channel.id, {
-                  unreadCount: (liveUnreadCounts.get(channel.id) || channel.unreadCount || 0) + 1,
-                  lastMessage: messageText,
-                  lastMessageAt: event.message?.created_at || new Date().toISOString()
-                });
+              if (isTipMessage) {
+                console.log(`💰 [ChannelList] Tip message detected in ${channel.id}: ${messageText}`);
               }
             }
           };
@@ -225,7 +223,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
         }
       });
     };
-  }, [channels, currentUserId, onChannelUpdate]);
+  }, [channelIds, currentUserId]); // Only depend on stable channel IDs and user ID
 
   // Initialize live unread counts from channels data
   useEffect(() => {

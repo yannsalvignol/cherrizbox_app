@@ -16,6 +16,7 @@ export interface Channel {
   memberNames?: { [userId: string]: string };
   memberAvatars?: { [userId: string]: string };
   unreadCount: number;
+  hasTip?: boolean;
 }
 
 // ===== CURRENCY UTILITIES =====

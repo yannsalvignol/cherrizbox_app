@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Modal, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -56,7 +57,7 @@ const PaidVideosPriceModal = ({
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={{
-            backgroundColor: '#1A1A1A',
+            backgroundColor: '#FFFFFF',
             borderTopLeftRadius: 20,
             borderTopRightRadius: 20,
             paddingTop: 20,
@@ -78,7 +79,7 @@ const PaidVideosPriceModal = ({
             marginBottom: 24,
           }}>
             <Text style={{
-              color: 'white',
+              color: 'black',
               fontSize: 24,
               fontFamily: 'Urbanist-Bold',
             }}>
@@ -86,7 +87,7 @@ const PaidVideosPriceModal = ({
             </Text>
             <TouchableOpacity onPress={handleClose}>
               <Text style={{
-                color: '#9C27B0',
+                color: '#666666',
                 fontSize: 18,
                 fontFamily: 'Urbanist-SemiBold',
               }}>
@@ -97,47 +98,15 @@ const PaidVideosPriceModal = ({
 
           {/* Video Preview */}
           {videoUri && (
-            <View style={{
-              backgroundColor: '#2A2A2A',
-              borderRadius: 12,
-              padding: 16,
-              marginBottom: 24,
-              borderWidth: 1,
-              borderColor: '#9C27B0',
-            }}>
-              <View style={{
-                backgroundColor: '#3A3A3A',
-                borderRadius: 8,
-                height: 200,
-                justifyContent: 'center',
-                alignItems: 'center',
-                marginBottom: 12,
-              }}>
-                <Text style={{ fontSize: 64, opacity: 0.6 }}>🎥</Text>
-                <Text style={{
-                  color: '#9C27B0',
-                  fontSize: 14,
-                  fontWeight: 'bold',
-                  marginTop: 8,
-                }}>
-                  Video Preview
-                </Text>
-              </View>
-              <Text style={{
-                color: '#CCC',
-                fontSize: 14,
-                fontFamily: 'Urbanist-Regular',
-                textAlign: 'center',
-              }}>
-                Video selected successfully
-              </Text>
+            <View style={{ alignItems: 'center', marginBottom: 24 }}>
+              <Ionicons name="videocam-outline" size={64} color="#FD6F3E" />
             </View>
           )}
 
           {/* Title Input */}
           <View style={{ marginBottom: 20 }}>
             <Text style={{
-              color: '#888',
+              color: '#676767',
               fontSize: 14,
               marginBottom: 8,
               fontFamily: 'Urbanist-Regular',
@@ -146,14 +115,14 @@ const PaidVideosPriceModal = ({
             </Text>
             <TextInput
               style={{
-                backgroundColor: '#2A2A2A',
+                backgroundColor: '#FFFFFF',
                 borderRadius: 12,
                 padding: 16,
-                color: 'white',
+                color: 'black',
                 fontSize: 16,
                 fontFamily: 'Urbanist-Regular',
                 borderWidth: 1,
-                borderColor: '#9C27B0',
+                borderColor: '#676767',
               }}
               placeholder="Enter video title"
               placeholderTextColor="#666"
@@ -167,7 +136,7 @@ const PaidVideosPriceModal = ({
           {/* Price Input */}
           <View style={{ marginBottom: 24 }}>
             <Text style={{
-              color: '#888',
+              color: '#676767',
               fontSize: 14,
               marginBottom: 8,
               fontFamily: 'Urbanist-Regular',
@@ -176,14 +145,14 @@ const PaidVideosPriceModal = ({
             </Text>
             <TextInput
               style={{
-                backgroundColor: '#2A2A2A',
+                backgroundColor: '#FFFFFF',
                 borderRadius: 12,
                 padding: 16,
-                color: 'white',
+                color: 'black',
                 fontSize: 16,
                 fontFamily: 'Urbanist-Regular',
                 borderWidth: 1,
-                borderColor: '#9C27B0',
+                borderColor: '#676767',
               }}
               placeholder="Enter price (e.g., 9.99)"
               placeholderTextColor="#666"
@@ -201,17 +170,17 @@ const PaidVideosPriceModal = ({
             <TouchableOpacity
               style={{
                 flex: 1,
-                backgroundColor: '#2A2A2A',
+                backgroundColor: '#f5f5f5',
                 borderRadius: 12,
                 paddingVertical: 16,
                 alignItems: 'center',
                 borderWidth: 1,
-                borderColor: '#666',
+                borderColor: '#676767',
               }}
               onPress={handleClose}
             >
               <Text style={{
-                color: 'white',
+                color: '#666666',
                 fontSize: 16,
                 fontFamily: 'Urbanist-SemiBold',
               }}>
@@ -222,11 +191,11 @@ const PaidVideosPriceModal = ({
             <TouchableOpacity
               style={{
                 flex: 1,
-                backgroundColor: '#9C27B0',
+                backgroundColor: '#FD6F3E',
                 borderRadius: 12,
                 paddingVertical: 16,
                 alignItems: 'center',
-                shadowColor: '#9C27B0',
+                shadowColor: '#FD6F3E',
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.3,
                 shadowRadius: 8,
@@ -235,7 +204,7 @@ const PaidVideosPriceModal = ({
               onPress={handleSubmit}
             >
               <Text style={{
-                color: 'white',
+                color: 'black',
                 fontSize: 16,
                 fontFamily: 'Urbanist-Bold',
               }}>

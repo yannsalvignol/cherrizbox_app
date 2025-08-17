@@ -100,19 +100,19 @@ const FileUploadModal = ({ visible, progress }: FileUploadModalProps) => {
         alignItems: 'center',
       }}>
         <Animated.View style={{
-          backgroundColor: '#1A1A1A',
+          backgroundColor: '#FFFFFF',
           borderRadius: 20,
           padding: 32,
           alignItems: 'center',
           justifyContent: 'center',
           minWidth: 300,
-          shadowColor: '#4CAF50',
+          shadowColor: '#FD6F3E',
           shadowOffset: { width: 0, height: 10 },
           shadowOpacity: 0.3,
           shadowRadius: 18,
           elevation: 18,
-          borderWidth: 2,
-          borderColor: '#4CAF50',
+          borderWidth: 1,
+          borderColor: '#676767',
           transform: [{ scale: scaleValue }],
         }}>
           {/* File Icon with Floating Animation */}
@@ -127,10 +127,10 @@ const FileUploadModal = ({ visible, progress }: FileUploadModalProps) => {
               width: 85,
               height: 85,
               borderRadius: 42.5,
-              backgroundColor: '#4CAF50',
+              backgroundColor: '#FD6F3E',
               justifyContent: 'center',
               alignItems: 'center',
-              shadowColor: '#4CAF50',
+              shadowColor: '#FD6F3E',
               shadowOffset: { width: 0, height: 6 },
               shadowOpacity: 0.4,
               shadowRadius: 12,
@@ -152,7 +152,7 @@ const FileUploadModal = ({ visible, progress }: FileUploadModalProps) => {
                   position: index > 0 ? 'absolute' : 'relative',
                   width: 40,
                   height: 6,
-                  backgroundColor: `rgba(76, 175, 80, ${0.8 - index * 0.2})`,
+                  backgroundColor: `rgba(253, 111, 62, ${0.8 - index * 0.2})`,
                   borderRadius: 3,
                   marginBottom: index === 0 ? 4 : 0,
                   transform: [
@@ -170,15 +170,15 @@ const FileUploadModal = ({ visible, progress }: FileUploadModalProps) => {
             height: 65,
             borderRadius: 32.5,
             borderWidth: 4,
-            borderColor: 'rgba(76, 175, 80, 0.2)',
-            borderTopColor: '#4CAF50',
-            borderRightColor: '#4CAF50',
+            borderColor: 'rgba(253, 111, 62, 0.2)',
+            borderTopColor: '#FD6F3E',
+            borderRightColor: '#FD6F3E',
             marginBottom: 20,
             transform: [{ rotate: spinInterpolate }],
           }} />
           
           <Text style={{
-            color: 'white',
+            color: 'black',
             fontSize: 20,
             fontFamily: 'Urbanist-Bold',
             marginBottom: 8,
@@ -188,7 +188,7 @@ const FileUploadModal = ({ visible, progress }: FileUploadModalProps) => {
           </Text>
           
           <Text style={{
-            color: '#4CAF50',
+            color: '#FD6F3E',
             fontSize: 16,
             fontFamily: 'Urbanist-SemiBold',
             textAlign: 'center',
@@ -201,19 +201,19 @@ const FileUploadModal = ({ visible, progress }: FileUploadModalProps) => {
           <View style={{
             width: '100%',
             height: 6,
-            backgroundColor: 'rgba(76, 175, 80, 0.2)',
+            backgroundColor: 'rgba(253, 111, 62, 0.2)',
             borderRadius: 3,
             overflow: 'hidden',
           }}>
             <Animated.View style={{
               height: '100%',
-              backgroundColor: '#4CAF50',
+              backgroundColor: '#FD6F3E',
               borderRadius: 3,
               width: progress.includes('Processing') ? '25%' : 
                     progress.includes('Uploading') ? '60%' : 
                     progress.includes('Finalizing') ? '85%' : 
                     progress.includes('success') ? '100%' : '10%',
-              shadowColor: '#4CAF50',
+              shadowColor: '#FD6F3E',
               shadowOffset: { width: 0, height: 0 },
               shadowOpacity: 0.8,
               shadowRadius: 4,
@@ -223,7 +223,7 @@ const FileUploadModal = ({ visible, progress }: FileUploadModalProps) => {
 
           {/* File Upload Specific Tips */}
           <Text style={{
-            color: '#888',
+            color: '#676767',
             fontSize: 12,
             fontFamily: 'Urbanist-Regular',
             textAlign: 'center',

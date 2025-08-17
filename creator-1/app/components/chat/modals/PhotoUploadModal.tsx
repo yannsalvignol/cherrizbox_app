@@ -100,19 +100,19 @@ const PhotoUploadModal = ({ visible, progress }: PhotoUploadModalProps) => {
         alignItems: 'center',
       }}>
         <Animated.View style={{
-          backgroundColor: '#1A1A1A',
+          backgroundColor: '#FFFFFF',
           borderRadius: 24,
           padding: 36,
           alignItems: 'center',
           justifyContent: 'center',
           minWidth: 320,
-          shadowColor: '#FF4081',
+          shadowColor: '#FD6F3E',
           shadowOffset: { width: 0, height: 12 },
           shadowOpacity: 0.4,
           shadowRadius: 20,
           elevation: 20,
           borderWidth: 1,
-          borderColor: '#FF4081',
+          borderColor: '#676767',
           transform: [{ scale: scaleValue }],
         }}>
           {/* Photo Icon with Shimmer Effect */}
@@ -124,10 +124,10 @@ const PhotoUploadModal = ({ visible, progress }: PhotoUploadModalProps) => {
               width: 90,
               height: 90,
               borderRadius: 45,
-              backgroundColor: '#FF4081',
+              backgroundColor: '#FD6F3E',
               justifyContent: 'center',
               alignItems: 'center',
-              shadowColor: '#FF4081',
+              shadowColor: '#FD6F3E',
               shadowOffset: { width: 0, height: 6 },
               shadowOpacity: 0.5,
               shadowRadius: 15,
@@ -155,15 +155,15 @@ const PhotoUploadModal = ({ visible, progress }: PhotoUploadModalProps) => {
             height: 70,
             borderRadius: 35,
             borderWidth: 4,
-            borderColor: 'rgba(255, 64, 129, 0.2)',
-            borderTopColor: '#FF4081',
-            borderRightColor: '#FF4081',
+            borderColor: 'rgba(253, 111, 62, 0.2)',
+            borderTopColor: '#FD6F3E',
+            borderRightColor: '#FD6F3E',
             marginBottom: 24,
             transform: [{ rotate: spinInterpolate }],
           }} />
           
           <Text style={{
-            color: 'white',
+            color: 'black',
             fontSize: 22,
             fontFamily: 'Urbanist-Bold',
             marginBottom: 8,
@@ -173,7 +173,7 @@ const PhotoUploadModal = ({ visible, progress }: PhotoUploadModalProps) => {
           </Text>
           
           <Text style={{
-            color: '#FF4081',
+            color: '#FD6F3E',
             fontSize: 16,
             fontFamily: 'Urbanist-SemiBold',
             textAlign: 'center',
@@ -186,20 +186,20 @@ const PhotoUploadModal = ({ visible, progress }: PhotoUploadModalProps) => {
           <View style={{
             width: '100%',
             height: 8,
-            backgroundColor: 'rgba(255, 64, 129, 0.2)',
+            backgroundColor: 'rgba(253, 111, 62, 0.2)',
             borderRadius: 4,
             overflow: 'hidden',
             marginBottom: 4,
           }}>
             <Animated.View style={{
               height: '100%',
-              backgroundColor: '#FF4081',
+              backgroundColor: '#FD6F3E',
               borderRadius: 4,
               width: progress.includes('Processing') ? '30%' : 
                     progress.includes('Uploading') ? '65%' : 
                     progress.includes('Finalizing') ? '90%' : 
                     progress.includes('success') ? '100%' : '15%',
-              shadowColor: '#FF4081',
+              shadowColor: '#FD6F3E',
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.8,
               shadowRadius: 6,
@@ -209,7 +209,7 @@ const PhotoUploadModal = ({ visible, progress }: PhotoUploadModalProps) => {
 
           {/* Progress percentage */}
           <Text style={{
-            color: 'rgba(255, 64, 129, 0.8)',
+            color: 'rgba(253, 111, 62, 0.8)',
             fontSize: 12,
             fontFamily: 'Urbanist-Medium',
             marginBottom: 16,
@@ -222,7 +222,7 @@ const PhotoUploadModal = ({ visible, progress }: PhotoUploadModalProps) => {
 
           {/* Upload Tips */}
           <Text style={{
-            color: '#888',
+            color: '#676767',
             fontSize: 12,
             fontFamily: 'Urbanist-Regular',
             textAlign: 'center',

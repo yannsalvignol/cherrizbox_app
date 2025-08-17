@@ -1,6 +1,6 @@
 import { BlurView } from 'expo-blur';
 import React, { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Modal, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, KeyboardAvoidingView, Modal, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 interface PaidFilesPriceModalProps {
   visible: boolean;
@@ -68,7 +68,7 @@ const PaidFilesPriceModal = ({
           }}
         >
           <View style={{
-            backgroundColor: '#1A1A1A',
+            backgroundColor: '#FFFFFF',
             borderRadius: 20,
             padding: 24,
             shadowColor: '#000',
@@ -77,7 +77,7 @@ const PaidFilesPriceModal = ({
             shadowRadius: 10,
             elevation: 10,
             borderWidth: 1,
-            borderColor: '#4CAF50',
+            borderColor: '#676767',
           }}>
             {/* Header */}
             <View style={{
@@ -89,13 +89,13 @@ const PaidFilesPriceModal = ({
               <Text style={{
                 fontSize: 20,
                 fontWeight: 'bold',
-                color: 'white',
+                color: 'black',
                 fontFamily: 'Urbanist-Bold',
               }}>
                 Set File Price
               </Text>
               <TouchableOpacity onPress={handleClose}>
-                <Text style={{ color: '#888', fontSize: 24 }}>✕</Text>
+                <Text style={{ color: '#FD6F3E', fontSize: 24 }}>✕</Text>
               </TouchableOpacity>
             </View>
 
@@ -104,72 +104,29 @@ const PaidFilesPriceModal = ({
               <View style={{
                 width: '100%',
                 height: 200,
-                backgroundColor: '#2A2A2A',
+                backgroundColor: '#FFFFFF',
                 borderRadius: 12,
                 marginBottom: 20,
                 overflow: 'hidden',
                 position: 'relative',
                 justifyContent: 'center',
                 alignItems: 'center',
+                borderWidth: 1,
+                borderColor: '#676767',
               }}>
-                {/* Generic file icon since we can't preview all file types */}
-                <View style={{
-                  width: '100%',
-                  height: '100%',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  backgroundColor: '#1A1A1A',
-                }}>
-                  <Text style={{
-                    fontSize: 48,
-                    marginBottom: 8,
-                  }}>📄</Text>
-                  <Text style={{
-                    color: '#888',
-                    fontSize: 14,
-                    textAlign: 'center',
-                    fontFamily: 'Urbanist-Regular',
-                  }}>
-                    File selected
-                  </Text>
-                </View>
-                
-                {/* Blur overlay to show it will be blurred */}
-                <BlurView
-                  intensity={15}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  }}
-                >
-                  <View style={{
-                    backgroundColor: 'rgba(76, 175, 80, 0.9)',
-                    paddingHorizontal: 12,
-                    paddingVertical: 6,
-                    borderRadius: 15,
-                  }}>
-                    <Text style={{
-                      color: 'white',
-                      fontSize: 12,
-                      fontWeight: 'bold',
-                      fontFamily: 'Urbanist-Bold',
-                    }}>
-                      📁 BLURRED PREVIEW
-                    </Text>
-                  </View>
-                </BlurView>
+                {/* PDF icon preview */}
+                <Image
+                  source={require('../../../../assets/icon/pdf.png')}
+                  style={{ width: 84, height: 84 }}
+                  resizeMode="contain"
+                />
               </View>
             )}
 
             {/* Title Input */}
             <View style={{ marginBottom: 16 }}>
               <Text style={{
-                color: '#888',
+                color: '#676767',
                 fontSize: 14,
                 marginBottom: 8,
                 fontFamily: 'Urbanist-Regular',
@@ -178,14 +135,14 @@ const PaidFilesPriceModal = ({
               </Text>
               <TextInput
                 style={{
-                  backgroundColor: '#2A2A2A',
+                  backgroundColor: '#FFFFFF',
                   borderRadius: 12,
                   padding: 16,
-                  color: 'white',
+                  color: 'black',
                   fontSize: 16,
                   fontFamily: 'Urbanist-Regular',
                   borderWidth: 1,
-                  borderColor: '#4CAF50',
+                  borderColor: '#676767',
                 }}
                 placeholder="Enter file title (e.g., Premium Guide)"
                 placeholderTextColor="#666"
@@ -198,7 +155,7 @@ const PaidFilesPriceModal = ({
             {/* Price Input */}
             <View style={{ marginBottom: 24 }}>
               <Text style={{
-                color: '#888',
+                color: '#676767',
                 fontSize: 14,
                 marginBottom: 8,
                 fontFamily: 'Urbanist-Regular',
@@ -207,14 +164,14 @@ const PaidFilesPriceModal = ({
               </Text>
               <TextInput
                 style={{
-                  backgroundColor: '#2A2A2A',
+                  backgroundColor: '#FFFFFF',
                   borderRadius: 12,
                   padding: 16,
-                  color: 'white',
+                  color: 'black',
                   fontSize: 16,
                   fontFamily: 'Urbanist-Regular',
                   borderWidth: 1,
-                  borderColor: '#4CAF50',
+                  borderColor: '#676767',
                 }}
                 placeholder="Enter price (e.g., 9.99)"
                 placeholderTextColor="#666"
@@ -233,7 +190,7 @@ const PaidFilesPriceModal = ({
               <TouchableOpacity
                 style={{
                   flex: 1,
-                  backgroundColor: '#333',
+                  backgroundColor: '#f5f5f5',
                   paddingVertical: 16,
                   borderRadius: 12,
                   alignItems: 'center',
@@ -241,7 +198,7 @@ const PaidFilesPriceModal = ({
                 onPress={handleClose}
               >
                 <Text style={{
-                  color: '#888',
+                  color: '#666',
                   fontSize: 16,
                   fontWeight: 'bold',
                   fontFamily: 'Urbanist-Bold',
@@ -253,11 +210,11 @@ const PaidFilesPriceModal = ({
               <TouchableOpacity
                 style={{
                   flex: 1,
-                  backgroundColor: '#4CAF50',
+                  backgroundColor: '#FD6F3E',
                   paddingVertical: 16,
                   borderRadius: 12,
                   alignItems: 'center',
-                  shadowColor: '#4CAF50',
+                  shadowColor: '#FD6F3E',
                   shadowOffset: { width: 0, height: 4 },
                   shadowOpacity: 0.3,
                   shadowRadius: 8,
@@ -266,7 +223,7 @@ const PaidFilesPriceModal = ({
                 onPress={handleSubmit}
               >
                 <Text style={{
-                  color: 'white',
+                  color: 'black',
                   fontSize: 16,
                   fontWeight: 'bold',
                   fontFamily: 'Urbanist-Bold',

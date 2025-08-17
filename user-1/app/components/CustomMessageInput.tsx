@@ -491,7 +491,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                       borderRadius: 12,
                     }}
                   >
-                    <Ionicons name="camera" size={24} color="" style={{ marginRight: 16 }} />
+                    <Ionicons name="camera" size={24} color="white" style={{ marginRight: 16 }} />
                     <Text style={{
                       color: '#FFFFFF',
                       fontSize: 16,
@@ -514,7 +514,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                       borderRadius: 12,
                     }}
                   >
-                    <Ionicons name="images" size={24} color="" style={{ marginRight: 16 }} />
+                    <Ionicons name="images" size={24} color="white" style={{ marginRight: 16 }} />
                     <Text style={{
                       color: '#FFFFFF',
                       fontSize: 16,
@@ -537,7 +537,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                       borderRadius: 12,
                     }}
                   >
-                    <Ionicons name="document" size={24} color="" style={{ marginRight: 16 }} />
+                    <Ionicons name="document" size={24} color="white" style={{ marginRight: 16 }} />
                     <Text style={{
                       color: '#FFFFFF',
                       fontSize: 16,

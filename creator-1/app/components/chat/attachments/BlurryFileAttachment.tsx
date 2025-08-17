@@ -232,27 +232,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
         </TouchableOpacity>
       </View>
       
-      {/* Format toggle button */}
-      <TouchableOpacity
-        onPress={toggleFileFormat}
-        style={{
-          position: 'absolute',
-          top: 8,
-          right: 8,
-          backgroundColor: 'rgba(0, 0, 0, 0.1)',
-          borderRadius: 20,
-          width: 40,
-          height: 40,
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}
-      >
-        <Ionicons 
-          name={isPortraitMode ? "phone-portrait" : "phone-landscape"} 
-          size={20} 
-          color="#666666" 
-        />
-      </TouchableOpacity>
+      {/* Format toggle button removed */}
 
       {/* Timestamp in bottom right corner */}
       {message?.created_at && (
@@ -601,27 +581,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
           )}
         </TouchableOpacity>
         
-        {/* Format toggle button */}
-        <TouchableOpacity
-          onPress={toggleFileFormat}
-          style={{
-            position: 'absolute',
-            bottom: 12,
-            right: 12,
-            backgroundColor: 'rgba(255, 255, 255, 0.2)',
-            borderRadius: 20,
-            width: 40,
-            height: 40,
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-        >
-          <Ionicons 
-            name={isPortraitMode ? "phone-portrait" : "phone-landscape"} 
-            size={20} 
-            color="#FFFFFF" 
-          />
-        </TouchableOpacity>
+        {/* Format toggle button removed */}
 
         {/* Timestamp in bottom right corner */}
         {message?.created_at && (
