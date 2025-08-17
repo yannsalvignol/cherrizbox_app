@@ -230,14 +230,14 @@ export default function ChatScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#1A1A1A' }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#DCDEDF' }} edges={['top']}>
         <View className="flex-1 items-center justify-center">
           <Image 
             source={require('../../assets/icon/loading-icon.png')} 
             style={{ width: 60, height: 60, marginBottom: 16 }} 
           />
           <Text style={{ 
-            color: 'white', 
+            color: 'black', 
             fontSize: 18, 
             marginBottom: 12,
             fontFamily: 'questrial'

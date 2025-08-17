@@ -3,8 +3,8 @@ import { ID, Query } from 'appwrite';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Modal, ScrollView, Text, TextInput, TouchableOpacity, Vibration, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Animated, Image, Modal, ScrollView, Text, TextInput, TouchableOpacity, Vibration, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { config, databases, getUserPhoto, getUserProfile, updateCreatorPayment, updateUserProfile, uploadProfilePicture } from '../../../lib/appwrite';
 import { useGlobalContext } from '../../../lib/global-provider';
@@ -115,6 +115,13 @@ export default function EditProfile() {
   const [showCreatorNameWarning, setShowCreatorNameWarning] = useState(false);
   const [selectedCurrency, setSelectedCurrency] = useState('USD');
 
+  // Unsaved changes tracking
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showUnsavedChangesModal, setShowUnsavedChangesModal] = useState(false);
+  const [originalFormData, setOriginalFormData] = useState<any>(null);
+  const [isSavingAndExiting, setIsSavingAndExiting] = useState(false);
+  const outerWheelRotation = useRef(new Animated.Value(0)).current;
+  const innerWheelRotation = useRef(new Animated.Value(0)).current;
 
   const [userPhotoThumbnail, setUserPhotoThumbnail] = useState<string | null>(null);
   const [compressedThumbnail, setCompressedThumbnail] = useState<string | null>(null);
@@ -320,6 +327,10 @@ export default function EditProfile() {
         if (!cached) {
           setLoading(false);
         }
+        // Capture original form data after loading is complete
+        setTimeout(() => {
+          setOriginalFormData(captureFormData());
+        }, 100);
       }
     };
 
@@ -792,6 +803,9 @@ export default function EditProfile() {
         setSuccessMessage(null);
       }, 2000);
 
+      // Reset original form data to current state after successful save
+      setOriginalFormData(captureFormData());
+
     } catch (error) {
       console.error('Error updating profile:', error);
       Alert.alert('Error', 'Failed to update profile');
@@ -914,6 +928,103 @@ export default function EditProfile() {
     setCreatorName(name);
   };
 
+  // Function to capture current form state
+  const captureFormData = () => {
+    return {
+      profileImage,
+      location,
+      creatorName,
+      topics: topics.join(','),
+      bio,
+      phoneNumber,
+      selectedCountry: selectedCountry.code,
+      selectedGender: selectedGender?.value || '',
+      selectedMonth,
+      selectedDay,
+      selectedYear,
+      monthlyPrice,
+      yearlyPrice,
+      selectedCurrency
+    };
+  };
+
+  // Function to check if form has unsaved changes
+  const checkForUnsavedChanges = () => {
+    if (!originalFormData) return false;
+    
+    const currentData = captureFormData();
+    return JSON.stringify(originalFormData) !== JSON.stringify(currentData);
+  };
+
+  // Handle back button press with unsaved changes check
+  const handleBackPress = () => {
+    if (checkForUnsavedChanges()) {
+      setShowUnsavedChangesModal(true);
+    } else {
+      router.back();
+    }
+  };
+
+  // Handle discard changes
+  const handleDiscardChanges = () => {
+    setShowUnsavedChangesModal(false);
+    router.back();
+  };
+
+  // Handle save and exit
+  const handleSaveAndExit = async () => {
+    if (!profileImage) {
+      // Don't save if no profile image, just show an alert and keep modal open
+      Alert.alert(
+        'Profile Picture Required',
+        'Please add a profile picture before saving your profile.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    
+    setShowUnsavedChangesModal(false);
+    setIsSavingAndExiting(true);
+    
+    // Start rotating wheel animations
+    Animated.loop(
+      Animated.timing(outerWheelRotation, {
+        toValue: 1,
+        duration: 2000,
+        useNativeDriver: true,
+      })
+    ).start();
+    
+    Animated.loop(
+      Animated.timing(innerWheelRotation, {
+        toValue: 1,
+        duration: 1500,
+        useNativeDriver: true,
+      })
+    ).start();
+    
+    try {
+      await handleUpdateProfile();
+      // Add success vibration feedback
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Vibration.vibrate(100); // Short vibration for success
+      
+      // Small delay to show success state before navigating
+      setTimeout(() => {
+        outerWheelRotation.stopAnimation();
+        innerWheelRotation.stopAnimation();
+        setIsSavingAndExiting(false);
+        router.back();
+      }, 800);
+    } catch (error) {
+      console.error('Error in handleSaveAndExit:', error);
+      outerWheelRotation.stopAnimation();
+      innerWheelRotation.stopAnimation();
+      setIsSavingAndExiting(false);
+      // Don't navigate back if there was an error
+    }
+  };
+
 
 
   if (loading) {
@@ -941,7 +1052,7 @@ export default function EditProfile() {
         backgroundColor: '#DCDEDF'
       }}>
         <View className="flex-row items-center">
-        <TouchableOpacity onPress={() => router.back()} className="flex-row items-center">
+        <TouchableOpacity onPress={handleBackPress} className="flex-row items-center">
           <Ionicons 
             name="chevron-back-outline" 
             size={32} 
@@ -1498,6 +1609,214 @@ export default function EditProfile() {
         userCurrency={userCurrency}
         selectedCurrency={selectedCurrency}
       />
+
+      {/* Saving Animation Modal */}
+      <Modal
+        visible={isSavingAndExiting}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {}} // Prevent closing while saving
+      >
+        <View style={{ 
+          flex: 1, 
+          backgroundColor: 'rgba(0,0,0,0.8)', 
+          justifyContent: 'center', 
+          alignItems: 'center',
+          paddingHorizontal: 20
+        }}>
+          <View style={{ 
+            backgroundColor: 'white', 
+            borderRadius: 20, 
+            padding: 40, 
+            alignItems: 'center',
+            minWidth: 200,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+            elevation: 5
+          }}>
+            {/* Loading Animation Container */}
+            <View style={{
+              width: 80,
+              height: 80,
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginBottom: 20,
+              position: 'relative'
+            }}>
+              {/* Outer Wheel - Rotating Clockwise */}
+              <Animated.View style={{
+                position: 'absolute',
+                width: 80,
+                height: 80,
+                borderWidth: 3,
+                borderColor: '#FD6F3E',
+                borderTopColor: 'transparent',
+                borderRightColor: 'transparent',
+                borderRadius: 40,
+                transform: [{
+                  rotate: outerWheelRotation.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0deg', '360deg']
+                  })
+                }]
+              }} />
+              
+              {/* Inner Wheel - Rotating Counter-Clockwise */}
+              <Animated.View style={{
+                position: 'absolute',
+                width: 60,
+                height: 60,
+                borderWidth: 2,
+                borderColor: '#333',
+                borderBottomColor: 'transparent',
+                borderLeftColor: 'transparent',
+                borderRadius: 30,
+                transform: [{
+                  rotate: innerWheelRotation.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['360deg', '0deg']
+                  })
+                }]
+              }} />
+              
+              {/* Loading Icon in Center */}
+              <Image 
+                source={require('../../../assets/icon/loading-icon.png')}
+                style={{
+                  width: 32,
+                  height: 32,
+                  tintColor: '#666'
+                }}
+                resizeMode="contain"
+              />
+            </View>
+            
+            <Text style={{ 
+              color: 'black', 
+              fontSize: 18, 
+              fontFamily: 'Nunito-Bold', 
+              textAlign: 'center',
+              marginBottom: 8
+            }}>
+              Saving Profile...
+            </Text>
+            
+            <Text style={{ 
+              color: '#666', 
+              fontSize: 14, 
+              fontFamily: 'Nunito-Regular', 
+              textAlign: 'center',
+              lineHeight: 20
+            }}>
+              Please wait while we update your profile
+            </Text>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Unsaved Changes Modal */}
+      <Modal
+        visible={showUnsavedChangesModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowUnsavedChangesModal(false)}
+      >
+        <View style={{ 
+          flex: 1, 
+          backgroundColor: 'rgba(0,0,0,0.5)', 
+          justifyContent: 'center', 
+          alignItems: 'center',
+          paddingHorizontal: 20
+        }}>
+          <View style={{ 
+            backgroundColor: 'white', 
+            borderRadius: 16, 
+            padding: 24, 
+            width: '100%',
+            maxWidth: 340
+          }}>
+            <View style={{ alignItems: 'center', marginBottom: 16 }}>
+              <Ionicons name="warning-outline" size={48} color="#FD6F3E" />
+            </View>
+            
+            <Text style={{ 
+              color: 'black', 
+              fontSize: 20, 
+              fontFamily: 'Nunito-Bold', 
+              textAlign: 'center',
+              marginBottom: 8
+            }}>
+              Unsaved Changes
+            </Text>
+            
+            <Text style={{ 
+              color: '#666', 
+              fontSize: 16, 
+              fontFamily: 'Nunito-Regular', 
+              textAlign: 'center',
+              marginBottom: 24,
+              lineHeight: 22
+            }}>
+              You have unsaved changes that will be lost if you leave this page. Do you want to save your changes?
+            </Text>
+            
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <TouchableOpacity
+                onPress={handleDiscardChanges}
+                style={{
+                  flex: 1,
+                  backgroundColor: '#f5f5f5',
+                  borderRadius: 12,
+                  paddingVertical: 14,
+                  alignItems: 'center'
+                }}
+              >
+                <Text style={{ 
+                  color: '#666', 
+                  fontSize: 16, 
+                  fontFamily: 'Nunito-SemiBold'
+                }}>
+                  Discard
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                onPress={handleSaveAndExit}
+                style={{
+                  flex: 1,
+                  backgroundColor: !profileImage ? '#ccc' : '#FD6F3E',
+                  borderRadius: 12,
+                  paddingVertical: 14,
+                  alignItems: 'center'
+                }}
+                disabled={saving || !profileImage}
+              >
+                <Text style={{ 
+                  color: !profileImage ? '#666' : 'white', 
+                  fontSize: 16, 
+                  fontFamily: 'Nunito-SemiBold'
+                }}>
+                  {saving ? 'Saving...' : 'Save & Exit'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            
+            {!profileImage && (
+              <Text style={{ 
+                color: '#FD6F3E', 
+                fontSize: 14, 
+                fontFamily: 'Nunito-Regular', 
+                textAlign: 'center',
+                marginTop: 12
+              }}>
+                Profile picture required to save changes
+              </Text>
+            )}
+          </View>
+        </View>
+      </Modal>
 
      </SafeAreaView>
    );

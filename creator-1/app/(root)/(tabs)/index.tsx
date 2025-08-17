@@ -618,7 +618,7 @@ export default function Index() {
       console.log(`📊 [Channels] Final breakdown: ${groupChats.length} group chats, ${dmChannels.length} DM channels`);
 
       let finalChannels: Channel[];
-      
+
       if (loadMore) {
         // Combine existing channels with new ones and remove duplicates by channel ID
         const allChannels = [...channels, ...uniqueChannels];
@@ -1820,23 +1820,36 @@ export default function Index() {
             paddingHorizontal: 20,
             paddingVertical: 20,
           }}
+          refreshControl={
+            <RefreshControl
+              refreshing={isLoadingInsights}
+              onRefresh={async () => {
+                setIsLoadingInsights(true);
+                await loadCreatorFinancials();
+                setIsLoadingInsights(false);
+              }}
+              tintColor="#676767"
+              colors={["#676767"]}
+              progressBackgroundColor="#DCDEDF"
+            />
+          }
         >
           {/* Big Total Subscribers Card with Weekly Stats */}
-          <View style={{
-            backgroundColor: 'white',
+            <View style={{
+              backgroundColor: 'white',
             borderRadius: 16,
             padding: 24,
             marginBottom: 20,
           }}>
-            <Text style={{ 
-              color: 'black', 
+              <Text style={{ 
+                color: 'black', 
               fontFamily: 'MuseoModerno-Regular', 
               fontSize: 18,
               marginBottom: 16,
               textAlign: 'center'
-            }}>
-              Total Current Subscribers
-            </Text>
+              }}>
+                Total Current Subscribers
+              </Text>
             
             {/* Total Number */}
             <Text style={{ 
@@ -1846,10 +1859,10 @@ export default function Index() {
               textAlign: 'center',
               marginBottom: 20
             }}>
-              {(typeof creatorFinancials?.number_of_monthly_subscribers === 'number' || typeof creatorFinancials?.number_of_yearly_subscriptions === 'number')
-                ? ((creatorFinancials?.number_of_monthly_subscribers || 0) + (creatorFinancials?.number_of_yearly_subscriptions || 0))
-                : '—'}
-            </Text>
+                {(typeof creatorFinancials?.number_of_monthly_subscribers === 'number' || typeof creatorFinancials?.number_of_yearly_subscriptions === 'number')
+                  ? ((creatorFinancials?.number_of_monthly_subscribers || 0) + (creatorFinancials?.number_of_yearly_subscriptions || 0))
+                  : '—'}
+              </Text>
 
             {/* Weekly Stats */}
             {(() => {
@@ -1874,7 +1887,7 @@ export default function Index() {
                       }}>
                         +{weeklyStats.gained}
                       </Text>
-                    </View>
+              </View>
                     <Text style={{ 
                       color: '#888888', 
                       fontFamily: 'MuseoModerno-Regular', 
@@ -1882,8 +1895,8 @@ export default function Index() {
                       textAlign: 'center'
                     }}>
                       Gained this week
-                    </Text>
-                  </View>
+              </Text>
+            </View>
 
                   {/* Divider */}
                   <View style={{ width: 1, height: 40, backgroundColor: '#E0E0E0', marginHorizontal: 16 }} />
@@ -1899,7 +1912,7 @@ export default function Index() {
                       }}>
                         -{weeklyStats.lost}
                       </Text>
-                    </View>
+              </View>
                     <Text style={{ 
                       color: '#888888', 
                       fontFamily: 'MuseoModerno-Regular', 
@@ -1907,17 +1920,17 @@ export default function Index() {
                       textAlign: 'center'
                     }}>
                       Lost this week
-                    </Text>
-                  </View>
-                </View>
+              </Text>
+            </View>
+          </View>
               );
             })()}
           </View>
 
           {/* Subscriber Growth Chart with Tabs */}
-          <View style={{
-            backgroundColor: 'white',
-            borderRadius: 16,
+            <View style={{
+              backgroundColor: 'white',
+              borderRadius: 16,
             padding: 20,
             marginBottom: 20,
           }}>
@@ -1928,7 +1941,7 @@ export default function Index() {
               marginBottom: 16,
             }}>
               Subscriber Growth
-            </Text>
+              </Text>
             
             {/* Tabs */}
             <View style={{
@@ -1960,7 +1973,7 @@ export default function Index() {
                   </Text>
                 </TouchableOpacity>
               ))}
-            </View>
+              </View>
             
             {/* Stats Display */}
             <View style={{ alignItems: 'center', marginBottom: 16 }}>
@@ -2009,7 +2022,7 @@ export default function Index() {
                       }}>
                         -{stats.lost} lost
                       </Text>
-                    </View>
+              </View>
                   </>
                 );
               })()}
@@ -2048,8 +2061,8 @@ export default function Index() {
                     textAlign: 'center',
                   }}>
                     No subscriber data available yet.{'\n'}Chart will appear once you have subscriber activity.
-                  </Text>
-                </View>
+              </Text>
+            </View>
               );
             })()}
           </View>
@@ -2071,9 +2084,9 @@ export default function Index() {
           
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 32 }}>
             {/* Photos */}
-            <View style={{
+              <View style={{
               backgroundColor: 'white',
-              borderRadius: 16,
+                borderRadius: 16,
               width: '32%',
               padding: 12,
             }}>
@@ -2086,12 +2099,12 @@ export default function Index() {
               <Text style={{ color: '#333333', fontFamily: 'MuseoModerno-Regular', fontSize: 20, textAlign: 'center' }}>
                 {creatorFinancials?.number_of_photos ?? '—'}
               </Text>
-            </View>
-            {/* Videos */}
-            <View style={{
-              backgroundColor: 'white',
-              borderRadius: 16,
-              width: '32%',
+              </View>
+              {/* Videos */}
+              <View style={{
+                backgroundColor: 'white',
+                borderRadius: 16,
+                width: '32%',
               padding: 12,
             }}>
               <View style={{ alignItems: 'center', marginBottom: 8 }}>
@@ -2103,12 +2116,12 @@ export default function Index() {
               <Text style={{ color: '#333333', fontFamily: 'MuseoModerno-Regular', fontSize: 20, textAlign: 'center' }}>
                 {creatorFinancials?.number_of_videos ?? '—'}
               </Text>
-            </View>
-            {/* Files */}
-            <View style={{
-              backgroundColor: 'white',
-              borderRadius: 16,
-              width: '32%',
+              </View>
+              {/* Files */}
+              <View style={{
+                backgroundColor: 'white',
+                borderRadius: 16,
+                width: '32%',
               padding: 12,
             }}>
               <View style={{ alignItems: 'center', marginBottom: 8 }}>
@@ -2120,44 +2133,10 @@ export default function Index() {
               <Text style={{ color: '#333333', fontFamily: 'MuseoModerno-Regular', fontSize: 20, textAlign: 'center' }}>
                 {creatorFinancials?.number_of_files ?? '—'}
               </Text>
-            </View>
+              </View>
           </View>
 
-          {/* Update Insights Button */}
-          <TouchableOpacity
-            onPress={async () => {
-              setIsLoadingInsights(true);
-              await loadCreatorFinancials();
-              setIsLoadingInsights(false);
-            }}
-            disabled={isLoadingInsights}
-            style={{
-              backgroundColor: '#FD6F3E',
-              borderRadius: 16,
-              paddingVertical: 16,
-              paddingHorizontal: 24,
-              alignItems: 'center',
-              justifyContent: 'center',
-              opacity: isLoadingInsights ? 0.7 : 1,
-              flexDirection: 'row',
-              marginBottom: 32
-            }}
-          >
-            {isLoadingInsights && (
-              <Image 
-                source={require('../../../assets/icon/loading-icon.png')} 
-                style={{ 
-                  width: 20, 
-                  height: 20, 
-                  marginRight: 8,
-                  tintColor: 'white'
-                }} 
-              />
-            )}
-            <Text style={{ color: 'white', fontFamily: 'MuseoModerno-Regular', fontSize: 16 }}>
-              {isLoadingInsights ? 'Updating...' : '🔄 Refresh Insights'}
-            </Text>
-          </TouchableOpacity>
+
         </ScrollView>
       )}
 
@@ -2361,6 +2340,7 @@ export default function Index() {
               onRefresh={handleUpdateStripeData}
               tintColor="#676767"
               colors={["#676767"]}
+              progressBackgroundColor="#DCDEDF"
             />
           }
         >
@@ -2934,7 +2914,7 @@ export default function Index() {
                   {earningsTimeframe === 'yearly' && 'Last 365 days'}
                 </Text>
               </View>
-
+              
               {/* Tabs */}
               <View style={{
                 flexDirection: 'row',
@@ -2966,22 +2946,22 @@ export default function Index() {
                   </TouchableOpacity>
                 ))}
               </View>
-
+              
               {/* Net Average Display */}
-              <Text style={{
+                <Text style={{
                 color: '#666666',
                 fontSize: 12,
-                fontFamily: 'MuseoModerno-Regular',
+                  fontFamily: 'MuseoModerno-Regular',
                 textAlign: 'center',
                 marginBottom: 16,
-              }}>
-                {(() => {
-                  let dailyEarnings = {};
-                  try {
-                    dailyEarnings = creatorFinancials?.dailyEarnings ? JSON.parse(creatorFinancials.dailyEarnings) : {};
-                  } catch (e) {
-                    dailyEarnings = {};
-                  }
+                }}>
+                  {(() => {
+                    let dailyEarnings = {};
+                    try {
+                      dailyEarnings = creatorFinancials?.dailyEarnings ? JSON.parse(creatorFinancials.dailyEarnings) : {};
+                    } catch (e) {
+                      dailyEarnings = {};
+                    }
                   
                   const grossEarnings = calculateTimeframeEarnings(dailyEarnings, earningsTimeframe);
                   const netEarnings = Math.round(grossEarnings * 0.8); // 20% platform fee
@@ -3002,8 +2982,8 @@ export default function Index() {
                   
                   const average = divisor > 1 ? Math.round(netEarnings / divisor) : netEarnings;
                   return `${period} Net Average: ${formatPrice(average, userCurrency)}`;
-                })()}
-              </Text>
+                  })()}
+                </Text>
               
               {/* Earnings Chart */}
               {(() => {
@@ -3062,31 +3042,13 @@ export default function Index() {
               )}
             </View>
             
-            {/* Update Button */}
-            <TouchableOpacity
-              onPress={handleUpdateStripeData}
-              disabled={isLoadingFinancials}
-              style={{ 
-                backgroundColor: 'black',
-                borderRadius: 12,
-                paddingVertical: 14,
-                marginBottom: 16,
-                alignItems: 'center',
-                justifyContent: 'center',
-                opacity: isLoadingFinancials ? 0.5 : 1,
-                flexDirection: 'row',
-              }}
-            >
-              {isLoadingFinancials && (
-                <ActivityIndicator size="small" color="white" style={{ marginRight: 8 }} />
-              )}
-              <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>
-                {isLoadingFinancials ? 'Updating...' : 'Refresh Data'}
-              </Text>
-            </TouchableOpacity>
+
             
-            {/* Stripe Status Display */}
-            {creatorFinancials?.stripeConnectSetupComplete ? (
+                        {/* Stripe Status Display - Only show if there are issues */}
+            {creatorFinancials?.stripeConnectSetupComplete && 
+             (!creatorFinancials.stripeConnectEnabled || 
+              !creatorFinancials.stripeConnectPayoutsEnabled || 
+              !creatorFinancials.stripeConnectVerified) && (
                 <View style={{
                   backgroundColor: 'white',
                   borderRadius: 16,
@@ -3167,25 +3129,6 @@ export default function Index() {
                   </Text>
                 </View>
                 
-                {/* View Dashboard Button */}
-                <TouchableOpacity
-                  onPress={handleOpenDashboard}
-                    style={{
-                    backgroundColor: '#333',
-                    borderRadius: 12,
-                    paddingVertical: 12,
-                    marginTop: 16,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexDirection: 'row'
-                  }}
-                >
-                  <Ionicons name="open-outline" size={18} color="white" style={{ marginRight: 8 }} />
-                  <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>
-                    View Dashboard
-                  </Text>
-                </TouchableOpacity>
-
                 {creatorFinancials.stripeConnectSetupDate && (
                   <View style={{ marginTop: 12, borderTopColor: '#333', borderTopWidth: 1, paddingTop: 12 }}>
                     <Text style={{ color: '#888', fontFamily: 'Urbanist-Regular', fontSize: 12, textAlign: 'center' }}>
@@ -3194,7 +3137,10 @@ export default function Index() {
                 </View>
               )}
               </View>
-            ) : (
+            )}
+            
+            {/* Get Paid message - Only show if Stripe is not connected */}
+            {!creatorFinancials?.stripeConnectSetupComplete && (
                 <View style={{
                 backgroundColor: 'rgba(251, 35, 85, 0.1)',
                   borderRadius: 16,
@@ -3227,79 +3173,98 @@ export default function Index() {
                 </View>
             </View>
           )}
-          </View>
           
-          <View style={{ alignItems: 'center', width: '100%', paddingBottom: 10, marginTop: 20 }}>
-            {/* Stripe Connect Express Button */}
-            <Animated.View
+          {/* View Dashboard Button - Always visible when Stripe is connected */}
+          {creatorFinancials?.stripeConnectSetupComplete && (
+            <TouchableOpacity
+              onPress={handleOpenDashboard}
               style={{
-                transform: [{ scale: setupButtonAnimation }],
-                width: '100%',
+                backgroundColor: '#333',
+                borderRadius: 12,
+                paddingVertical: 14,
+                marginTop: 16,
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'row'
               }}
             >
-              <TouchableOpacity
+              <Ionicons name="open-outline" size={20} color="white" style={{ marginRight: 8 }} />
+              <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>
+                View Dashboard
+              </Text>
+            </TouchableOpacity>
+          )}
+          </View>
+          
+          {/* Stripe Connect Express Button - Only show if setup is not complete */}
+          {!creatorFinancials?.stripeConnectSetupComplete && (
+            <View style={{ alignItems: 'center', width: '100%', paddingBottom: 10, marginTop: 20 }}>
+              <Animated.View
                 style={{
-                  backgroundColor: creatorFinancials?.stripeConnectSetupComplete ? '#333' : (shouldHighlightSetup ? '#FD6F3E' : '#676767'),
-                  paddingVertical: 16,
-                  borderRadius: 16,
-                  flexDirection: 'row',
-            alignItems: 'center', 
-            justifyContent: 'center',
+                  transform: [{ scale: setupButtonAnimation }],
                   width: '100%',
-                  shadowColor: creatorFinancials?.stripeConnectSetupComplete ? 'transparent' : (shouldHighlightSetup ? '#FD6F3E' : '#676767'),
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: shouldHighlightSetup ? 0.6 : 0.4,
-                  shadowRadius: shouldHighlightSetup ? 15 : 10,
-                  elevation: creatorFinancials?.stripeConnectSetupComplete ? 0 : (shouldHighlightSetup ? 12 : 8),
-                  opacity: (isLoadingStripeConnect || (missingChannelConditions.length > 1 || (missingChannelConditions.length === 1 && missingChannelConditions[0] !== 'Payment setup incomplete'))) ? 0.5 : 1,
-                  borderWidth: shouldHighlightSetup ? 2 : 0,
-                  borderColor: shouldHighlightSetup ? '#FFB74D' : 'transparent',
-                }}
-                disabled={isLoadingStripeConnect || creatorFinancials?.stripeConnectSetupComplete}
-                onPress={() => {
-                  // If profile is incomplete, navigate to edit-profile
-                  if (missingChannelConditions.length > 1 || (missingChannelConditions.length === 1 && missingChannelConditions[0] !== 'Payment setup incomplete')) {
-                    router.push('/edit-profile');
-                  } else {
-                    // If profile is complete, proceed with payment setup
-                    handleOnboarding();
-                  }
                 }}
               >
-              <Ionicons name="card-outline" size={22} color="white" style={{ marginRight: 12 }} />
-              <View>
-          <Text style={{ 
-            color: 'white', 
-                  fontSize: 18, 
-                  fontWeight: 'bold',
-            fontFamily: 'Urbanist-Bold',
-                  textAlign: 'left'
-          }}>
-                  {isLoadingStripeConnect 
-                    ? 'Connecting...' 
-                    : (creatorFinancials?.stripeConnectSetupComplete 
-                        ? 'Setup Complete' 
-                        : ((missingChannelConditions.length > 1 || (missingChannelConditions.length === 1 && missingChannelConditions[0] !== 'Payment setup incomplete'))
-                            ? 'Complete Profile First' 
-                            : 'Set Up Payments'))}
-          </Text>
-          <Text style={{ 
-                  color: 'rgba(255, 255, 255, 0.8)',
-                  fontSize: 13,
-                  fontFamily: 'Urbanist-Regular',
-                  textAlign: 'left',
-                  marginTop: 2
-                }}>
-                  {creatorFinancials?.stripeConnectSetupComplete 
-                    ? 'You can now manage payouts from your dashboard' 
-                    : ((missingChannelConditions.length > 1 || (missingChannelConditions.length === 1 && missingChannelConditions[0] !== 'Payment setup incomplete'))
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: shouldHighlightSetup ? '#FD6F3E' : '#676767',
+                    paddingVertical: 16,
+                    borderRadius: 16,
+                    flexDirection: 'row',
+              alignItems: 'center', 
+              justifyContent: 'center',
+                    width: '100%',
+                    shadowColor: shouldHighlightSetup ? '#FD6F3E' : '#676767',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: shouldHighlightSetup ? 0.6 : 0.4,
+                    shadowRadius: shouldHighlightSetup ? 15 : 10,
+                    elevation: shouldHighlightSetup ? 12 : 8,
+                    opacity: (isLoadingStripeConnect || (missingChannelConditions.length > 1 || (missingChannelConditions.length === 1 && missingChannelConditions[0] !== 'Payment setup incomplete'))) ? 0.5 : 1,
+                    borderWidth: shouldHighlightSetup ? 2 : 0,
+                    borderColor: shouldHighlightSetup ? '#FFB74D' : 'transparent',
+                  }}
+                  disabled={isLoadingStripeConnect}
+                  onPress={() => {
+                    // If profile is incomplete, navigate to edit-profile
+                    if (missingChannelConditions.length > 1 || (missingChannelConditions.length === 1 && missingChannelConditions[0] !== 'Payment setup incomplete')) {
+                      router.push('/edit-profile');
+                    } else {
+                      // If profile is complete, proceed with payment setup
+                      handleOnboarding();
+                    }
+                  }}
+                >
+                <Ionicons name="card-outline" size={22} color="white" style={{ marginRight: 12 }} />
+                <View>
+            <Text style={{ 
+              color: 'white', 
+                    fontSize: 18, 
+                    fontWeight: 'bold',
+              fontFamily: 'Urbanist-Bold',
+                    textAlign: 'left'
+            }}>
+                    {isLoadingStripeConnect 
+                      ? 'Connecting...' 
+                      : ((missingChannelConditions.length > 1 || (missingChannelConditions.length === 1 && missingChannelConditions[0] !== 'Payment setup incomplete'))
+                          ? 'Complete Profile First' 
+                          : 'Set Up Payments')}
+            </Text>
+            <Text style={{ 
+                    color: 'rgba(255, 255, 255, 0.8)',
+                    fontSize: 13,
+                    fontFamily: 'Urbanist-Regular',
+                    textAlign: 'left',
+                    marginTop: 2
+                  }}>
+                    {(missingChannelConditions.length > 1 || (missingChannelConditions.length === 1 && missingChannelConditions[0] !== 'Payment setup incomplete'))
                         ? 'Finish your profile setup to enable payments' 
-                        : 'Connect with Stripe to get paid')}
-          </Text>
-        </View>
-            </TouchableOpacity>
-            </Animated.View>
+                        : 'Connect with Stripe to get paid'}
+            </Text>
           </View>
+              </TouchableOpacity>
+              </Animated.View>
+            </View>
+          )}
         </ScrollView>
       )}
 

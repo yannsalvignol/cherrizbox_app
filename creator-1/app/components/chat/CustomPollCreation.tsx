@@ -216,9 +216,10 @@ const CustomPollCreation = ({ visible, onClose, onCreatePoll }: CustomPollCreati
                   color: '#FFFFFF',
                   fontSize: 16,
                   paddingHorizontal: 16,
-                  paddingVertical: 12,
+                  paddingTop: 14,
+                  paddingBottom: 14,
                   fontFamily: 'questrial',
-                  minHeight: 44,
+                  lineHeight: 20,
                 }}
                 placeholder="What's your question?"
                 placeholderTextColor="#666666"
@@ -259,9 +260,10 @@ const CustomPollCreation = ({ visible, onClose, onCreatePoll }: CustomPollCreati
                       color: '#FFFFFF',
                       fontSize: 14,
                       paddingHorizontal: 16,
-                      paddingVertical: 12,
+                      paddingTop: 15,
+                      paddingBottom: 15,
                       fontFamily: 'questrial',
-                      minHeight: 44,
+                      lineHeight: 16,
                     }}
                     placeholder={`Option ${index + 1}`}
                     placeholderTextColor="#666666"
