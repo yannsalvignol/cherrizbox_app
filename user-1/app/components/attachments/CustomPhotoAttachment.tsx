@@ -1,7 +1,8 @@
 import { imageCache } from '@/lib/image-cache';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Modal, Share, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMessageContext } from 'stream-chat-react-native';
 
 interface CustomPhotoAttachmentProps {
@@ -18,6 +19,8 @@ export const CustomPhotoAttachment: React.FC<CustomPhotoAttachmentProps> = (prop
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [cachedImageUri, setCachedImageUri] = useState<string>(attachment.image_url);
+  const [showFullScreen, setShowFullScreen] = useState(false);
+  const insets = useSafeAreaInsets();
   
   // Get message context to access message actions
   const messageContext = useMessageContext();
@@ -48,8 +51,29 @@ export const CustomPhotoAttachment: React.FC<CustomPhotoAttachmentProps> = (prop
   const handlePress = (event: any) => {
     // Prevent event bubbling to avoid opening thread
     event.stopPropagation();
-    // TODO: Add full-screen image view functionality
-    console.log('Photo pressed:', attachment.image_url);
+    setShowFullScreen(true);
+  };
+
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        url: cachedImageUri,
+        message: attachment.caption || 'Shared from Cherrizbox'
+      });
+    } catch (error) {
+      console.error('Error sharing image:', error);
+    }
+  };
+
+  const handleInfo = () => {
+    const createdAt = message?.created_at ? new Date(message.created_at).toLocaleString() : 'Unknown';
+    const sender = message?.user?.name || 'Unknown sender';
+    
+    Alert.alert(
+      'Photo Information',
+      `Sent by: ${sender}\nDate: ${createdAt}${attachment.caption ? `\nCaption: ${attachment.caption}` : ''}`,
+      [{ text: 'OK' }]
+    );
   };
 
   const handleLongPress = (event: any) => {
@@ -195,6 +219,114 @@ export const CustomPhotoAttachment: React.FC<CustomPhotoAttachmentProps> = (prop
           </View>
         )}
     </View>
+
+    {/* Full Screen Photo Modal */}
+    <Modal
+      visible={showFullScreen}
+      transparent={true}
+      animationType="fade"
+      statusBarTranslucent={true}
+    >
+      <View style={{
+        flex: 1,
+        backgroundColor: 'black',
+        justifyContent: 'center',
+        alignItems: 'center'
+      }}>
+        {/* Full Screen Image */}
+        <Image
+          source={{ uri: cachedImageUri }}
+          style={{
+            width: '100%',
+            height: '100%'
+          }}
+          resizeMode="contain"
+        />
+
+        {/* Top Controls Bar - Close Button Only */}
+        <View style={{
+          position: 'absolute',
+          top: insets.top + 10,
+          left: 20,
+          paddingVertical: 10
+        }}>
+          {/* Close Button */}
+          <TouchableOpacity
+            onPress={() => setShowFullScreen(false)}
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              justifyContent: 'center',
+              alignItems: 'center'
+            }}
+          >
+            <Ionicons name="close" size={24} color="white" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Bottom Left - Info Button */}
+        <TouchableOpacity
+          onPress={handleInfo}
+          style={{
+            position: 'absolute',
+            bottom: insets.bottom + 30,
+            left: 20,
+            width: 50,
+            height: 50,
+            borderRadius: 25,
+            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}
+        >
+          <Ionicons name="information-circle-outline" size={26} color="white" />
+        </TouchableOpacity>
+
+        {/* Bottom Right - Share Button */}
+        <TouchableOpacity
+          onPress={handleShare}
+          style={{
+            position: 'absolute',
+            bottom: insets.bottom + 30,
+            right: 20,
+            width: 50,
+            height: 50,
+            borderRadius: 25,
+            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}
+        >
+          <Ionicons name="share-outline" size={26} color="white" />
+        </TouchableOpacity>
+
+        {/* Bottom Caption (if available) */}
+        {attachment.caption && attachment.caption.trim() !== '' && (
+          <View style={{
+            position: 'absolute',
+            bottom: insets.bottom + 20,
+            left: 20,
+            right: 20,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            borderRadius: 12
+          }}>
+            <Text style={{
+              color: 'white',
+              fontSize: 16,
+              fontFamily: 'questrial',
+              textAlign: 'center',
+              lineHeight: 22
+            }}>
+              {attachment.caption}
+            </Text>
+          </View>
+        )}
+      </View>
+    </Modal>
     </TouchableOpacity>
   );
 };

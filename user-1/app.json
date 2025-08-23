@@ -2,7 +2,7 @@
   "expo": {
     "name": "Cherrizbox",
     "slug": "cherrizboxtest",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "cherripay",
@@ -18,8 +18,9 @@
       }
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.yannsalvignol.cherripay",
+      "requireFullScreen": true,
       "associatedDomains": [
         "applinks:cherrybox.app",
         "applinks:cherrybox.app"
@@ -43,7 +44,8 @@
         "NSCameraUsageDescription": "Cherrizbox needs camera access to let you take photos and videos to share with creators.",
         "NSPhotoLibraryUsageDescription": "Cherrizbox needs photo library access to let you select photos and videos to share with creators.",
         "NSMicrophoneUsageDescription": "Cherrizbox needs microphone access to record videos with sound.",
-        "NSApplePayUsageDescription": "Cherrizbox uses Apple Pay to process secure payments for subscriptions and content purchases."
+        "NSApplePayUsageDescription": "Cherrizbox uses Apple Pay to process secure payments for subscriptions and content purchases.",
+        "UIContentSizeCategory": "UICTContentSizeCategoryM"
       }
     },
     "android": {

@@ -4,24 +4,28 @@ import { Ionicons } from '@expo/vector-icons';
 import { ResizeMode, Video } from 'expo-av';
 import { BlurView } from 'expo-blur';
 import * as FileSystem from 'expo-file-system';
+import * as Linking from 'expo-linking';
 import * as MediaLibrary from 'expo-media-library';
 import * as Sharing from 'expo-sharing';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    Alert,
-    Animated,
-    Dimensions,
-    Image,
-    ImageBackground,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Dimensions,
+  Image,
+  ImageBackground,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { Client, Databases, Query } from 'react-native-appwrite';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { WebView } from 'react-native-webview';
 import { config } from '../../../lib/appwrite';
 import { CherryLoadingIndicator } from '../CherryLoadingIndicator';
 
@@ -50,7 +54,40 @@ export const FullScreenProfileModal: React.FC<FullScreenProfileModalProps> = ({
   const [videoThumbnails, setVideoThumbnails] = useState<Map<string, string>>(new Map());
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+  const [showPdfViewer, setShowPdfViewer] = useState(false);
   const videoRef = useRef<Video>(null);
+  const insets = useSafeAreaInsets();
+
+  // Debug PDF viewer state
+  useEffect(() => {
+    console.log('📄 [PDF] showPdfViewer state changed:', showPdfViewer);
+  }, [showPdfViewer]);
+
+  // Function to get file URL from contentId
+  const getFileUrlFromContentId = async (contentId: string): Promise<string | null> => {
+    try {
+      console.log('📄 [PDF] Fetching file URL for contentId:', contentId);
+      
+      // The contentId format is like "file_1755948937289_ifo9mhxlm"
+      // We need to search for this in the Stream Chat messages or use Appwrite storage
+      
+      // For now, let's construct the Appwrite storage URL
+      // The contentId contains the file ID after the timestamp
+      const parts = contentId.split('_');
+      if (parts.length >= 3) {
+        const fileId = parts[2]; // Extract the file ID part
+        const fileUrl = `https://cloud.appwrite.io/v1/storage/buckets/${config.streamChatStorageId || config.storageId}/files/${fileId}/view?project=${config.projectId}`;
+        console.log('📄 [PDF] Constructed file URL:', fileUrl);
+        return fileUrl;
+      }
+      
+      console.log('❌ [PDF] Could not parse contentId:', contentId);
+      return null;
+    } catch (error) {
+      console.error('❌ [PDF] Error getting file URL:', error);
+      return null;
+    }
+  };
 
   // Animation values
   const backgroundScale = useRef(new Animated.Value(0.95)).current;
@@ -257,6 +294,7 @@ export const FullScreenProfileModal: React.FC<FullScreenProfileModalProps> = ({
     setSelectedContentItem(null);
     setIsVideoPlaying(false);
     setIsVideoLoaded(false);
+    setShowPdfViewer(false);
     if (videoRef.current) {
       videoRef.current.pauseAsync();
     }
@@ -269,15 +307,67 @@ export const FullScreenProfileModal: React.FC<FullScreenProfileModalProps> = ({
     const isImageOrVideo = contentType === 'image' || contentType === 'video';
     
     if (isProcessing) {
-      return isImageOrVideo ? 'Downloading...' : 'Sharing...';
+      return isImageOrVideo ? 'Downloading...' : 'Opening...';
     }
     
-    return isImageOrVideo ? 'Download' : 'Share';
+    return isImageOrVideo ? 'Download' : 'Open';
   };
 
-  const shareContent = async () => {
-    if (!selectedContentItem) return;
+  const handleContentAction = async () => {
+    if (!selectedContentItem) {
+      console.log('❌ [PDF] No selectedContentItem');
+      return;
+    }
 
+    const contentType = selectedContentItem.contentType || '';
+    const isImageOrVideo = contentType === 'image' || contentType === 'video';
+
+    console.log('📄 [PDF] handleContentAction called');
+    console.log('📄 [PDF] contentType:', contentType);
+    console.log('📄 [PDF] isImageOrVideo:', isImageOrVideo);
+    console.log('📄 [PDF] selectedContentItem:', selectedContentItem);
+
+    // For PDF files, open in WebView
+    if (!isImageOrVideo) {
+      console.log('📄 [PDF] Opening PDF viewer...');
+      console.log('📄 [PDF] Current imageUri:', selectedContentItem.imageUri);
+      console.log('📄 [PDF] ContentId:', selectedContentItem.contentId);
+      
+      setIsProcessing(true);
+      
+      try {
+        // Get the file URL from contentId if imageUri is null
+        let fileUrl = selectedContentItem.imageUri;
+        
+        if (!fileUrl && selectedContentItem.contentId) {
+          fileUrl = await getFileUrlFromContentId(selectedContentItem.contentId);
+        }
+        
+        if (!fileUrl) {
+          Alert.alert('Error', 'PDF file URL not available');
+          setIsProcessing(false);
+          return;
+        }
+        
+        // Update the selectedContentItem with the file URL
+        setSelectedContentItem((prev: any) => ({
+          ...prev,
+          imageUri: fileUrl
+        }));
+        
+        console.log('📄 [PDF] Final PDF URL:', fileUrl);
+        console.log('📄 [PDF] Setting showPdfViewer to true');
+        setShowPdfViewer(true);
+      } catch (error) {
+        console.error('❌ [PDF] Error preparing PDF:', error);
+        Alert.alert('Error', 'Failed to load PDF file');
+      } finally {
+        setIsProcessing(false);
+      }
+      return;
+    }
+
+    // For images and videos, download to gallery
     setIsProcessing(true);
     try {
       if (!selectedContentItem.imageUri) {
@@ -293,7 +383,6 @@ export const FullScreenProfileModal: React.FC<FullScreenProfileModalProps> = ({
         switch (type) {
           case 'image': return 'jpg';
           case 'video': return 'mp4';
-          case 'file': return 'pdf';
           default: return 'file';
         }
       };
@@ -313,27 +402,14 @@ export const FullScreenProfileModal: React.FC<FullScreenProfileModalProps> = ({
         return;
       }
 
-      const contentType = selectedContentItem.contentType || '';
-      const isImageOrVideo = contentType === 'image' || contentType === 'video';
-
-      if (isImageOrVideo) {
-        const { status } = await MediaLibrary.requestPermissionsAsync();
-        if (status !== 'granted') {
-          Alert.alert('Permission required', 'Please grant permission to save to your photo library');
-          return;
-        }
-
-        await MediaLibrary.saveToLibraryAsync(result.uri);
-        Alert.alert('Success', `${contentType === 'image' ? 'Photo' : 'Video'} saved to your gallery!`);
-      } else {
-        if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(result.uri, {
-            dialogTitle: `Share ${selectedContentItem.title || 'Content'}`,
-          });
-        } else {
-          Alert.alert('Sharing not available', 'Sharing is not available on this device');
-        }
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission required', 'Please grant permission to save to your photo library');
+        return;
       }
+
+      await MediaLibrary.saveToLibraryAsync(result.uri);
+      Alert.alert('Success', `${contentType === 'image' ? 'Photo' : 'Video'} saved to your gallery!`);
 
       await FileSystem.deleteAsync(result.uri, { idempotent: true });
     } catch (error) {
@@ -665,15 +741,43 @@ export const FullScreenProfileModal: React.FC<FullScreenProfileModalProps> = ({
                           elevation: 6
                         }}
                       >
-                        <Image
-                          source={{ uri: getDisplayUrl(item) }}
-                          style={{
+                        {item.contentType === 'image' || item.contentType === 'video' ? (
+                          <Image
+                            source={{ uri: getDisplayUrl(item) }}
+                            style={{
+                              width: '100%',
+                              height: 140,
+                              backgroundColor: '#2A2A2A'
+                            }}
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <View style={{
                             width: '100%',
                             height: 140,
-                            backgroundColor: '#2A2A2A'
-                          }}
-                          resizeMode="cover"
-                        />
+                            backgroundColor: '#2A2A2A',
+                            justifyContent: 'center',
+                            alignItems: 'center'
+                          }}>
+                            <Image
+                              source={require('../../../assets/icon/pdf.png')}
+                              style={{
+                                width: 48,
+                                height: 48,
+                                marginBottom: 8
+                              }}
+                              resizeMode="contain"
+                            />
+                            <Text style={{
+                              color: '#888',
+                              fontSize: 12,
+                              fontFamily: 'Questrial-Regular',
+                              textAlign: 'center'
+                            }}>
+                              PDF
+                            </Text>
+                          </View>
+                        )}
                         {item.contentType === 'video' && (
                           <>
                             {/* Video Icon Overlay */}
@@ -720,7 +824,7 @@ export const FullScreenProfileModal: React.FC<FullScreenProfileModalProps> = ({
                             fontWeight: '500'
                           }} numberOfLines={1}>
                             {item.contentType === 'video' ? 'Video Content' : 
-                             item.contentType === 'image' ? 'Photo Content' : 'File Content'}
+                             item.contentType === 'image' ? 'Photo Content' : 'PDF Content'}
                           </Text>
                         </View>
                       </TouchableOpacity>
@@ -924,8 +1028,8 @@ export const FullScreenProfileModal: React.FC<FullScreenProfileModalProps> = ({
                       width: '100%'
                     }}>
                       <Image 
-                        source={require('../../../assets/icon/edit.png')}
-                        style={{ width: 48, height: 48, tintColor: '#888', marginBottom: 16 }}
+                        source={require('../../../assets/icon/pdf.png')}
+                        style={{ width: 64, height: 64, marginBottom: 16 }}
                         resizeMode="contain"
                       />
                       <Text style={{ 
@@ -934,7 +1038,7 @@ export const FullScreenProfileModal: React.FC<FullScreenProfileModalProps> = ({
                         fontFamily: 'Questrial-Regular',
                         textAlign: 'center'
                       }}>
-                        File Content
+                        PDF Document
                       </Text>
                       <Text style={{ 
                         color: '#888', 
@@ -943,7 +1047,7 @@ export const FullScreenProfileModal: React.FC<FullScreenProfileModalProps> = ({
                         textAlign: 'center',
                         marginTop: 8
                       }}>
-                        Tap to download or view
+                        Tap to open in viewer
                       </Text>
                     </View>
                   )}
@@ -958,7 +1062,7 @@ export const FullScreenProfileModal: React.FC<FullScreenProfileModalProps> = ({
                       borderRadius: 8,
                       alignItems: 'center'
                     }}
-                    onPress={shareContent}
+                    onPress={handleContentAction}
                     disabled={isProcessing}
                   >
                     <Text style={{ 
@@ -973,6 +1077,191 @@ export const FullScreenProfileModal: React.FC<FullScreenProfileModalProps> = ({
                 </View>
               </View>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* PDF Viewer Modal */}
+      <Modal
+        visible={showPdfViewer}
+        transparent={false}
+        animationType="slide"
+        statusBarTranslucent={true}
+        onShow={() => console.log('📄 [PDF] Modal is now visible')}
+        onDismiss={() => console.log('📄 [PDF] Modal dismissed')}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: '#000000',
+          paddingTop: insets.top
+        }}>
+          {/* Header */}
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 20,
+            paddingVertical: 16,
+            backgroundColor: 'rgba(0, 0, 0, 0.95)',
+            borderBottomWidth: 0.5,
+            borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+            elevation: 8
+          }}>
+            {/* Close Button */}
+            <TouchableOpacity
+              onPress={() => setShowPdfViewer(false)}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingVertical: 10,
+                paddingHorizontal: 8
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="chevron-back" size={30} color="#FFFFFF" />
+              <Text style={{
+                fontSize: 16,
+                color: '#FFFFFF',
+                marginLeft: 6,
+                fontFamily: 'Urbanist-SemiBold'
+              }}>
+                Back
+              </Text>
+            </TouchableOpacity>
+
+            {/* Title */}
+            <Text style={{
+              fontSize: 18,
+              fontWeight: '700',
+              color: '#FFFFFF',
+              fontFamily: 'Urbanist-Bold',
+              flex: 1,
+              textAlign: 'center',
+              marginHorizontal: 20,
+              opacity: 0.95
+            }} numberOfLines={1}>
+              {selectedContentItem?.title || 'PDF Document'}
+            </Text>
+
+            {/* Share Button */}
+            <TouchableOpacity
+              onPress={async () => {
+                try {
+                  if (await Sharing.isAvailableAsync()) {
+                    await Sharing.shareAsync(selectedContentItem?.imageUri || '', {
+                      dialogTitle: 'Share PDF',
+                      UTI: 'com.adobe.pdf',
+                    });
+                  }
+                } catch (error) {
+                  console.error('Error sharing PDF:', error);
+                }
+              }}
+              style={{
+                padding: 12
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="share-outline" size={30} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+
+          {/* PDF Viewer Container */}
+          <View style={{
+            flex: 1,
+            margin: 16,
+            borderRadius: 12,
+            overflow: 'hidden',
+            backgroundColor: '#FFFFFF',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.2,
+            shadowRadius: 12,
+            elevation: 8
+          }}>
+            <WebView
+              source={{ uri: selectedContentItem?.imageUri || '' }}
+              style={{ 
+                flex: 1,
+                backgroundColor: '#FFFFFF'
+              }}
+              startInLoadingState={true}
+              showsVerticalScrollIndicator={false}
+              showsHorizontalScrollIndicator={false}
+              scalesPageToFit={true}
+              renderLoading={() => (
+                <View style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  backgroundColor: '#FFFFFF'
+                }}>
+                  <View style={{
+                    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                    borderRadius: 16,
+                    padding: 32,
+                    alignItems: 'center'
+                  }}>
+                    <ActivityIndicator size="large" color="#FD6F3E" />
+                    <Text style={{
+                      marginTop: 20,
+                      fontSize: 18,
+                      color: '#333',
+                      fontFamily: 'Urbanist-SemiBold'
+                    }}>
+                      Loading PDF...
+                    </Text>
+                    <Text style={{
+                      marginTop: 8,
+                      fontSize: 14,
+                      color: '#666',
+                      fontFamily: 'Urbanist-Regular',
+                      textAlign: 'center'
+                    }}>
+                      Please wait while we prepare your document
+                    </Text>
+                  </View>
+                </View>
+              )}
+              onError={(error) => {
+                console.error('WebView error:', error);
+                Alert.alert(
+                  'Error Loading PDF',
+                  'Could not load the PDF file. Would you like to open it externally?',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Open Externally',
+                      onPress: async () => {
+                        try {
+                          const supported = await Linking.canOpenURL(selectedContentItem?.imageUri || '');
+                          if (supported) {
+                            await Linking.openURL(selectedContentItem?.imageUri || '');
+                          } else {
+                            if (await Sharing.isAvailableAsync()) {
+                              await Sharing.shareAsync(selectedContentItem?.imageUri || '', {
+                                dialogTitle: 'Open PDF with...',
+                                UTI: 'com.adobe.pdf',
+                              });
+                            }
+                          }
+                        } catch (err) {
+                          console.error('Error opening PDF externally:', err);
+                        }
+                      }
+                    }
+                  ]
+                );
+              }}
+            />
           </View>
         </View>
       </Modal>

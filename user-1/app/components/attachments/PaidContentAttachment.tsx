@@ -5,7 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Modal, Platform, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Modal, Platform, Share, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMessageContext } from 'stream-chat-react-native';
 
 interface PaidContentAttachmentProps {
@@ -26,6 +27,7 @@ export const PaidContentAttachment: React.FC<PaidContentAttachmentProps> = ({ at
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showImageViewer, setShowImageViewer] = useState(false);
+  const insets = useSafeAreaInsets();
 
   // Get message context to access message sender info
   const messageContext = useMessageContext();
@@ -100,6 +102,29 @@ export const PaidContentAttachment: React.FC<PaidContentAttachmentProps> = ({ at
 
   const closeImageViewer = () => {
     setShowImageViewer(false);
+  };
+
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        url: attachment?.image_url || '',
+        message: 'Shared from Cherrizbox - Exclusive Content'
+      });
+    } catch (error) {
+      console.error('Error sharing image:', error);
+    }
+  };
+
+  const handleInfo = () => {
+    const createdAt = message?.created_at ? new Date(message.created_at).toLocaleString() : 'Unknown';
+    const sender = messageSender?.name || 'Unknown sender';
+    const price = attachment?.price || '5.00';
+    
+    Alert.alert(
+      'Paid Content Information',
+      `Sent by: ${sender}\nDate: ${createdAt}\nPrice: $${price}\nStatus: Unlocked`,
+      [{ text: 'OK' }]
+    );
   };
 
   if (attachment?.type === 'paid_content') {
@@ -259,61 +284,112 @@ export const PaidContentAttachment: React.FC<PaidContentAttachmentProps> = ({ at
           contentType="image"
         />
 
-        {/* Image Viewer Modal */}
+        {/* Apple-Style Full Screen Image Viewer Modal */}
         <Modal
           visible={showImageViewer}
           transparent={true}
           animationType="fade"
-          onRequestClose={closeImageViewer}
-            >
-              <View style={{
-            flex: 1, 
-            backgroundColor: 'rgba(0,0,0,0.95)', 
-                    justifyContent: 'center',
-            alignItems: 'center' 
+          statusBarTranslucent={true}
+        >
+          <View style={{
+            flex: 1,
+            backgroundColor: 'black',
+            justifyContent: 'center',
+            alignItems: 'center'
           }}>
-                <View style={{
-              width: '95%', 
-              maxHeight: '90%', 
-              backgroundColor: '#1A1A1A',
-              borderRadius: 16,
-                  overflow: 'hidden',
-              position: 'relative'
+            {/* Full Screen Image */}
+            <Image
+              source={{ uri: attachment?.image_url }}
+              style={{
+                width: '100%',
+                height: '100%'
+              }}
+              resizeMode="contain"
+            />
+
+            {/* Top Controls Bar - Close Button Only */}
+            <View style={{
+              position: 'absolute',
+              top: insets.top + 10,
+              left: 20,
+              paddingVertical: 10
             }}>
               {/* Close Button */}
               <TouchableOpacity
-                style={{
-                  position: 'absolute',
-                  top: 16,
-                  right: 16,
-                  backgroundColor: 'rgba(0,0,0,0.7)',
-                  borderRadius: 20,
-                  width: 40,
-                  height: 40,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  zIndex: 10
-                }}
                 onPress={closeImageViewer}
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  justifyContent: 'center',
+                  alignItems: 'center'
+                }}
               >
-                <Text style={{ color: 'white', fontSize: 24, fontWeight: 'bold' }}>×</Text>
+                <Ionicons name="close" size={24} color="white" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Bottom Left - Info Button */}
+            <TouchableOpacity
+              onPress={handleInfo}
+              style={{
+                position: 'absolute',
+                bottom: insets.bottom + 30,
+                left: 20,
+                width: 50,
+                height: 50,
+                borderRadius: 25,
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}
+            >
+              <Ionicons name="information-circle-outline" size={26} color="white" />
             </TouchableOpacity>
 
-              {/* Image Display */}
-              <View style={{ alignItems: 'center', padding: 16, paddingTop: 60 }}>
-                <Image
-                  source={{ uri: attachment?.image_url }}
-                  style={{
-                    width: '100%',
-                    height: 400,
-                    borderRadius: 8,
-                    backgroundColor: '#2A2A2A'
-                  }}
-                  resizeMode="contain"
-                />
-      </View>
-        </View>
-    </View>
+            {/* Bottom Right - Share Button */}
+            <TouchableOpacity
+              onPress={handleShare}
+              style={{
+                position: 'absolute',
+                bottom: insets.bottom + 30,
+                right: 20,
+                width: 50,
+                height: 50,
+                borderRadius: 25,
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}
+            >
+              <Ionicons name="share-outline" size={26} color="white" />
+            </TouchableOpacity>
+
+            {/* Bottom Center - Paid Content Badge */}
+            <View style={{
+              position: 'absolute',
+              bottom: insets.bottom + 35,
+              alignSelf: 'center',
+              backgroundColor: 'rgba(0, 200, 81, 0.9)',
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              borderRadius: 20,
+              flexDirection: 'row',
+              alignItems: 'center'
+            }}>
+              <Ionicons name="lock-open" size={16} color="white" />
+              <Text style={{
+                color: 'white',
+                fontSize: 14,
+                fontWeight: 'bold',
+                marginLeft: 6,
+                fontFamily: 'questrial'
+              }}>
+                Exclusive Content - ${attachment?.price || '5.00'}
+              </Text>
+            </View>
+          </View>
         </Modal>
       </>
   );

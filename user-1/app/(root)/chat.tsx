@@ -5,11 +5,13 @@ import { imageCache } from '@/lib/image-cache';
 import { client, connectUser } from '@/lib/stream-chat';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import * as Haptics from 'expo-haptics';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Image, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { Client, Databases, Query } from 'react-native-appwrite';
+import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Channel, Chat, MessageList, OverlayProvider, ReactionData } from 'stream-chat-react-native';
 import loadingIcon from '../../assets/icon/loading-icon.png';
@@ -93,6 +95,10 @@ export default function ChatScreen() {
   const [fullScreenImageUri, setFullScreenImageUri] = useState<string | null>(null);
 
   const colorScheme = useColorScheme();
+
+  // Swipe gesture state
+  const swipeTranslateX = useRef(new Animated.Value(0)).current;
+  const [isSwipeActive, setIsSwipeActive] = useState(false);
 
   // Fetch creator's currency from posts data
   useEffect(() => {
@@ -447,6 +453,52 @@ export default function ChatScreen() {
     console.log('🔄 Switched to:', newChatType, 'chat');
   };
 
+  // Function to switch chat type with haptic feedback (for toggle buttons)
+  const switchChatTypeWithHaptic = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    switchChatType();
+  };
+
+  // Handle swipe gesture
+  const onSwipeGestureEvent = Animated.event(
+    [{ nativeEvent: { translationX: swipeTranslateX } }],
+    { useNativeDriver: true }
+  );
+
+  const onSwipeHandlerStateChange = (event: any) => {
+    if (event.nativeEvent.oldState === State.ACTIVE) {
+      const { translationX, velocityX } = event.nativeEvent;
+      
+      // Determine if swipe is significant enough to switch
+      const shouldSwitch = Math.abs(translationX) > 50 || Math.abs(velocityX) > 500;
+      
+      if (shouldSwitch) {
+        // Determine direction and switch accordingly
+        if (translationX > 0 && currentChatType === 'direct') {
+          // Swipe right: direct -> group
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          switchChatType();
+        } else if (translationX < 0 && currentChatType === 'group') {
+          // Swipe left: group -> direct
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          switchChatType();
+        }
+      }
+      
+      // Reset animation
+      Animated.spring(swipeTranslateX, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 100,
+        friction: 8,
+      }).start();
+      
+      setIsSwipeActive(false);
+    } else if (event.nativeEvent.state === State.BEGAN) {
+      setIsSwipeActive(true);
+    }
+  };
+
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: '#DCDEDF', paddingTop: insets.top }}>
@@ -651,25 +703,45 @@ export default function ChatScreen() {
             ) : (
               <>
                 <View style={{ flex: 1, position: 'relative' }}>
-                  <MessageList 
-                    DateHeader={() => null}
-                    EmptyStateIndicator={() => (
-                      <View style={{ flex: 1, backgroundColor: '#DCDEDF', justifyContent: 'center', alignItems: 'center', padding: 32 }}>
-                        <Image
-                          source={loadingIcon}
-                          style={{ width: 60, height: 60, marginBottom: 18, opacity: 0.8 }}
-                          resizeMode="contain"
-                        />
-                        <Text style={{ color: '#1A1A1A', fontSize: 18, fontFamily: 'questrial', textAlign: 'center', opacity: 0.7 }}>
-                          No messages yet. Start the conversation!
-                        </Text>
-                      </View>
-                    )}
-                    onThreadSelect={setThread}
-                  />
+                  <PanGestureHandler
+                    onGestureEvent={onSwipeGestureEvent}
+                    onHandlerStateChange={onSwipeHandlerStateChange}
+                    activeOffsetX={[-10, 10]}
+                    failOffsetY={[-20, 20]}
+                  >
+                    <Animated.View 
+                      style={{ 
+                        flex: 1,
+                        transform: [{ 
+                          translateX: swipeTranslateX.interpolate({
+                            inputRange: [-100, 0, 100],
+                            outputRange: [-30, 0, 30],
+                            extrapolate: 'clamp'
+                          })
+                        }]
+                      }}
+                    >
+                      <MessageList 
+                        DateHeader={() => null}
+                        EmptyStateIndicator={() => (
+                          <View style={{ flex: 1, backgroundColor: '#DCDEDF', justifyContent: 'center', alignItems: 'center', padding: 32 }}>
+                            <Image
+                              source={loadingIcon}
+                              style={{ width: 60, height: 60, marginBottom: 18, opacity: 0.8 }}
+                              resizeMode="contain"
+                            />
+                            <Text style={{ color: '#1A1A1A', fontSize: 18, fontFamily: 'questrial', textAlign: 'center', opacity: 0.7 }}>
+                              No messages yet. Start the conversation!
+                            </Text>
+                          </View>
+                        )}
+                        onThreadSelect={setThread}
+                      />
+                    </Animated.View>
+                  </PanGestureHandler>
                   
                   {/* Creator Name Banner with Toggle - Floating on top */}
-                  <View style={{
+                  <Animated.View style={{
                     position: 'absolute',
                     top: 4,
                     left: '5%',
@@ -688,6 +760,13 @@ export default function ChatScreen() {
                     elevation: 6,
                     alignItems: 'center',
                     zIndex: 15,
+                    transform: [{ 
+                      translateX: swipeTranslateX.interpolate({
+                        inputRange: [-100, 0, 100],
+                        outputRange: [-10, 0, 10],
+                        extrapolate: 'clamp'
+                      })
+                    }]
                   }}>
                     {/* Top row - Creator info */}
               <View style={{
@@ -751,7 +830,7 @@ export default function ChatScreen() {
                 }}>
                   {/* Group Chat Button */}
                   <TouchableOpacity
-                    onPress={() => currentChatType !== 'group' && switchChatType()}
+                    onPress={() => currentChatType !== 'group' && switchChatTypeWithHaptic()}
                     style={{
                       flex: 1,
                       alignItems: 'center',
@@ -787,7 +866,7 @@ export default function ChatScreen() {
                   </TouchableOpacity>
                   {/* Direct Message Button */}
                   <TouchableOpacity
-                    onPress={() => currentChatType !== 'direct' && switchChatType()}
+                    onPress={() => currentChatType !== 'direct' && switchChatTypeWithHaptic()}
                     style={{
                       flex: 1,
                       alignItems: 'center',
@@ -822,7 +901,46 @@ export default function ChatScreen() {
                     </Text>
                   </TouchableOpacity>
                 </View>
-              </View>
+
+                    {/* Swipe Direction Indicators */}
+                    {isSwipeActive && (
+                      <>
+                        {/* Left Arrow (Swipe to Direct) */}
+                        <Animated.View style={{
+                          position: 'absolute',
+                          left: -40,
+                          top: '50%',
+                          opacity: swipeTranslateX.interpolate({
+                            inputRange: [-50, -20, 0],
+                            outputRange: [1, 0.5, 0],
+                            extrapolate: 'clamp'
+                          }),
+                          transform: [
+                            { translateY: -12 }
+                          ]
+                        }}>
+                          <Ionicons name="chevron-back" size={24} color="#FD6F3E" />
+                        </Animated.View>
+
+                        {/* Right Arrow (Swipe to Group) */}
+                        <Animated.View style={{
+                          position: 'absolute',
+                          right: -40,
+                          top: '50%',
+                          opacity: swipeTranslateX.interpolate({
+                            inputRange: [0, 20, 50],
+                            outputRange: [0, 0.5, 1],
+                            extrapolate: 'clamp'
+                          }),
+                          transform: [
+                            { translateY: -12 }
+                          ]
+                        }}>
+                          <Ionicons name="chevron-forward" size={24} color="#FD6F3E" />
+                        </Animated.View>
+                      </>
+                    )}
+              </Animated.View>
                   
                   {/* Bottom blur zone with rounded top corners - only show in group chat (box) */}
                   {currentChatType === 'group' && (

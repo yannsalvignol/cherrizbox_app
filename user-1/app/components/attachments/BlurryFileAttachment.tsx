@@ -1,3 +1,5 @@
+import { PaidContentPaymentModal } from '@/app/components/modals/PaidContentPaymentModal';
+import { dataCache } from '@/lib/data-cache';
 import { useGlobalContext } from '@/lib/global-provider';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -8,13 +10,15 @@ import {
   Alert,
   Image,
   Linking,
+  Modal,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { WebView } from 'react-native-webview';
 import { useMessageContext } from 'stream-chat-react-native';
 import { checkPaidContentPurchase } from '../../../lib/appwrite';
 
@@ -33,6 +37,9 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [fileDimensions, setFileDimensions] = useState({ width: 300, height: 200 });
   const [isPortraitMode, setIsPortraitMode] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showInAppViewer, setShowInAppViewer] = useState(false);
+  const insets = useSafeAreaInsets();
 
 
   // Get message context to access message sender info
@@ -86,13 +93,40 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
   const handleUnlock = async () => {
     if (isUnlocking) return;
     
-    console.log('Unlocking file directly');
+    // Debug: Log essential data for payment modal
+    console.log('Opening payment modal for PDF with data:', {
+      contentId: attachment?.paid_content_id,
+      creatorId: messageSender?.id,
+      creatorName: messageSender?.name,
+      price: attachment?.price,
+      title: attachment?.title
+    });
+    
+    // Show Stripe payment modal
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentSuccess = async () => {
+    console.log('💳 [BlurryFile] Payment successful for PDF content');
+    console.log('💳 [BlurryFile] Invalidating cache for contentId:', attachment?.paid_content_id);
+    
+    // Clear the purchase status from cache to force refresh
+    if (user?.$id && attachment?.paid_content_id) {
+      dataCache.delete(`purchase_${user.$id}_${attachment.paid_content_id}`);
+      console.log('✅ [BlurryFile] Cache invalidated - next check will query database');
+    }
+    
     setIsUnlocked(true);
+    setShowPaymentModal(false);
     
     // Haptic feedback
     if (Platform.OS === 'ios') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
+  };
+
+  const handlePaymentClose = () => {
+    setShowPaymentModal(false);
   };
 
 
@@ -103,7 +137,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
     try {
       setIsDownloading(true);
       
-      const fileUri = attachment?.local_file_uri || attachment?.image_url;
+      const fileUri = attachment?.file_url;
       if (!fileUri) {
         Alert.alert('Error', 'File not available for download');
         return;
@@ -291,32 +325,6 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
   );
 
   const UnlockedFileContent = ({ title, fileUri }: { title: string; fileUri: string }) => {
-    const fileExtension = fileUri.split('.').pop()?.toLowerCase() || '';
-    const isImage = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(fileExtension);
-    const isPDF = fileExtension === 'pdf';
-    const isText = ['txt', 'md', 'json', 'js', 'ts', 'jsx', 'tsx', 'css', 'html', 'xml', 'csv'].includes(fileExtension);
-    const isAudio = ['mp3', 'wav', 'aac', 'm4a', 'ogg'].includes(fileExtension);
-    
-    const [fileContent, setFileContent] = useState<string>('');
-    const [isLoading, setIsLoading] = useState(false);
-    
-    // Load file content for text files
-    useEffect(() => {
-      if (isText && fileUri) {
-        setIsLoading(true);
-        fetch(fileUri)
-          .then(response => response.text())
-          .then(text => {
-            setFileContent(text);
-            setIsLoading(false);
-          })
-          .catch(error => {
-            console.error('Error loading text file:', error);
-            setIsLoading(false);
-          });
-      }
-    }, [fileUri, isText]);
-    
     return (
       <View style={{
         width: fileDimensions.width,
@@ -334,7 +342,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
         shadowRadius: 4,
         elevation: 4,
       }}>
-        {/* File content preview */}
+        {/* File content - Always show PDF icon interface */}
         <View style={{
           flex: 1,
           justifyContent: 'center',
@@ -342,241 +350,66 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
           backgroundColor: '#FFFFFF',
           padding: 16,
         }}>
-          {isImage ? (
-            <Image 
-              source={{ uri: fileUri }}
-              style={{
-                width: '100%',
-                height: '100%',
-                resizeMode: 'cover',
-              }}
-            />
-          ) : isPDF ? (
-            <View style={{
-              width: '100%',
-              height: '100%',
-              justifyContent: 'center',
+          {/* PDF Icon and Open Button */}
+          <Image
+            source={require('@/assets/icon/pdf.png')}
+            style={{
+              width: 64,
+              height: 64,
+              resizeMode: 'contain',
+              marginBottom: 12,
+            }}
+          />
+          
+          <Text style={{
+            color: '#333333',
+            fontSize: 16,
+            fontWeight: '700',
+            textAlign: 'center',
+            marginBottom: 6,
+            fontFamily: 'Urbanist-Bold',
+          }}>
+            {title || 'PDF Document'}
+          </Text>
+          
+          <Text style={{
+            color: '#666666',
+            fontSize: 13,
+            textAlign: 'center',
+            marginBottom: 16,
+            fontFamily: 'Urbanist-Medium',
+          }}>
+            PDF File Ready
+          </Text>
+          
+          <TouchableOpacity
+            onPress={() => {
+              setShowInAppViewer(true);
+            }}
+            style={{
+              backgroundColor: '#333333',
+              paddingHorizontal: 28,
+              paddingVertical: 12,
+              borderRadius: 22,
+              flexDirection: 'row',
               alignItems: 'center',
-              backgroundColor: '#FFFFFF',
-              position: 'relative',
+              shadowColor: '#000000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+              elevation: 4,
+            }}
+          >
+            <Ionicons name="open-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+            <Text style={{
+              color: '#FFFFFF',
+              fontSize: 15,
+              fontWeight: '700',
+              fontFamily: 'Urbanist-Bold',
             }}>
-              {/* PDF Icon and Open Button */}
-              <Image
-                source={require('@/assets/icon/pdf.png')}
-                style={{
-                  width: 64,
-                  height: 64,
-                  resizeMode: 'contain',
-                  marginBottom: 12,
-                }}
-              />
-              
-              <Text style={{
-                color: '#333333',
-                fontSize: 16,
-                fontWeight: '700',
-                textAlign: 'center',
-                marginBottom: 6,
-                fontFamily: 'Urbanist-Bold',
-              }}>
-                {title || 'PDF Document'}
-              </Text>
-              
-              <Text style={{
-                color: '#666666',
-                fontSize: 13,
-                textAlign: 'center',
-                marginBottom: 16,
-                fontFamily: 'Urbanist-Medium',
-              }}>
-                PDF File Ready
-              </Text>
-              
-              <TouchableOpacity
-                onPress={async () => {
-                  try {
-                    const supported = await Linking.canOpenURL(fileUri);
-                    if (supported) {
-                      await Linking.openURL(fileUri);
-                    } else {
-                      if (await Sharing.isAvailableAsync()) {
-                        await Sharing.shareAsync(fileUri, {
-                          dialogTitle: 'Open PDF with...',
-                          UTI: 'com.adobe.pdf',
-                        });
-                      }
-                    }
-                  } catch (error) {
-                    console.error('Error opening PDF:', error);
-                    Alert.alert('Error', 'Could not open PDF file');
-                  }
-                }}
-                style={{
-                  backgroundColor: '#333333',
-                  paddingHorizontal: 28,
-                  paddingVertical: 12,
-                  borderRadius: 22,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  shadowColor: '#000000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                  elevation: 4,
-                }}
-              >
-                <Ionicons name="open-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-                <Text style={{
-                  color: '#FFFFFF',
-                  fontSize: 15,
-                  fontWeight: '700',
-                  fontFamily: 'Urbanist-Bold',
-                }}>
-                  Open File
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ) : isText ? (
-            <ScrollView 
-              style={{
-                width: '100%',
-                height: '100%',
-                backgroundColor: '#FFFFFF',
-              }}
-              contentContainerStyle={{
-                padding: 12,
-              }}
-            >
-              {isLoading ? (
-                <View style={{
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  minHeight: 100,
-                }}>
-                  <ActivityIndicator size="large" color="#4CAF50" />
-                  <Text style={{
-                    color: '#666666',
-                    fontSize: 12,
-                    marginTop: 8,
-                    fontFamily: 'Urbanist-Regular',
-                  }}>
-                    Loading text...
-                  </Text>
-                </View>
-              ) : (
-                <Text style={{
-                  color: '#000000',
-                  fontSize: 12,
-                  fontFamily: 'Urbanist-Regular',
-                  lineHeight: 16,
-                }}>
-                  {fileContent || 'Unable to load file content'}
-                </Text>
-              )}
-            </ScrollView>
-          ) : isAudio ? (
-            <View style={{
-              width: '100%',
-              height: '100%',
-              justifyContent: 'center',
-              alignItems: 'center',
-              backgroundColor: '#2A2A2A',
-            }}>
-              <Ionicons name="musical-notes" size={48} color="#4CAF50" />
-              <Text style={{
-                color: '#4CAF50',
-                fontSize: 12,
-                fontWeight: 'bold',
-                marginTop: 8,
-                textAlign: 'center',
-                fontFamily: 'Urbanist-SemiBold',
-              }}>
-                Audio File
-              </Text>
-              <Text style={{
-                color: '#CCCCCC',
-                fontSize: 10,
-                marginTop: 4,
-                textAlign: 'center',
-                fontFamily: 'Urbanist-Regular',
-              }}>
-                {fileExtension.toUpperCase()}
-              </Text>
-              <TouchableOpacity
-                onPress={async () => {
-                  try {
-                    console.log('Attempting to play audio:', fileUri);
-                    
-                    // First try sharing for audio files
-                    const isAvailable = await Sharing.isAvailableAsync();
-                    if (isAvailable) {
-                      await Sharing.shareAsync(fileUri, {
-                        dialogTitle: 'Play audio with...',
-                        UTI: attachment?.mime_type || 'public.audio',
-                      });
-                    } else {
-                      const supported = await Linking.canOpenURL(fileUri);
-                      if (supported) {
-                        await Linking.openURL(fileUri);
-                      } else {
-                        Alert.alert('Cannot play audio', 'No app available to play this audio file.');
-                      }
-                    }
-                  } catch (error) {
-                    console.error('Error playing audio:', error);
-                    Alert.alert('Error', 'Could not play audio file.');
-                  }
-                }}
-                style={{
-                  backgroundColor: '#4CAF50',
-                  paddingHorizontal: 16,
-                  paddingVertical: 8,
-                  borderRadius: 6,
-                  marginTop: 12,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                }}
-              >
-                <Ionicons name="play" size={16} color="#FFFFFF" />
-                <Text style={{
-                  color: '#FFFFFF',
-                  fontSize: 12,
-                  fontWeight: 'bold',
-                  marginLeft: 4,
-                  fontFamily: 'Urbanist-SemiBold',
-                }}>
-                  Play Audio
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <>
-              <Ionicons 
-                name="document" 
-                size={48} 
-                color="#4CAF50" 
-              />
-              <Text style={{
-                color: '#4CAF50',
-                fontSize: 12,
-                fontWeight: 'bold',
-                marginTop: 8,
-                textAlign: 'center',
-                fontFamily: 'Urbanist-SemiBold',
-              }}>
-                {fileExtension.toUpperCase()} File
-              </Text>
-              <Text style={{
-                color: '#CCCCCC',
-                fontSize: 10,
-                marginTop: 4,
-                textAlign: 'center',
-                fontFamily: 'Urbanist-Regular',
-              }}>
-                Tap "Open File" to view
-              </Text>
-            </>
-          )}
+              Open File
+            </Text>
+          </TouchableOpacity>
         </View>
         
         {/* Unlocked indicator */}
@@ -628,92 +461,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
           )}
         </TouchableOpacity>
         
-        {/* File info overlay - only show for non-PDF files */}
-        {!isPDF && (
-          <View style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            padding: 12,
-          }}>
-            <Text style={{
-              color: 'white',
-              fontSize: 14,
-              fontWeight: '600',
-              fontFamily: 'Urbanist-SemiBold',
-            }}>
-              {title}
-            </Text>
-            <TouchableOpacity
-              onPress={async () => {
-                try {
-                  console.log('Attempting to open file:', fileUri);
-                  
-                  // First try sharing which is more reliable for local files
-                  const isAvailable = await Sharing.isAvailableAsync();
-                  if (isAvailable) {
-                    await Sharing.shareAsync(fileUri, {
-                      dialogTitle: 'Open file with...',
-                      UTI: attachment?.mime_type || 'public.item',
-                    });
-                  } else {
-                    // Fallback to Linking
-                    const supported = await Linking.canOpenURL(fileUri);
-                    if (supported) {
-                      await Linking.openURL(fileUri);
-                    } else {
-                      Alert.alert(
-                        'Cannot open file', 
-                        'No app available to open this file type. Try downloading it instead.',
-                        [
-                          { text: 'OK', style: 'default' },
-                          { 
-                            text: 'Download', 
-                            style: 'default',
-                            onPress: () => handleDownload()
-                          }
-                        ]
-                      );
-                    }
-                  }
-                } catch (error) {
-                  console.error('Error opening file:', error);
-                  Alert.alert(
-                    'Error opening file', 
-                    'Could not open this file. Try downloading it instead.',
-                    [
-                      { text: 'OK', style: 'default' },
-                      { 
-                        text: 'Download', 
-                        style: 'default',
-                        onPress: () => handleDownload()
-                      }
-                    ]
-                  );
-                }
-              }}
-              style={{
-                backgroundColor: '#4CAF50',
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                borderRadius: 6,
-                marginTop: 8,
-                alignItems: 'center',
-              }}
-            >
-              <Text style={{
-                color: 'white',
-                fontSize: 12,
-                fontWeight: 'bold',
-                fontFamily: 'Urbanist-SemiBold',
-              }}>
-                Open File
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
+
         
         {/* Format toggle button */}
         <TouchableOpacity
@@ -777,10 +525,207 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
         ) : (
           <UnlockedFileContent 
             title={attachment.title || 'Paid File'}
-            fileUri={attachment.local_file_uri || attachment.image_url || ''}
+            fileUri={attachment.file_url || ''}
           />
         )}
       </View>
+
+      {/* Stripe Payment Modal for PDF Content */}
+      <PaidContentPaymentModal
+        visible={showPaymentModal}
+        onClose={handlePaymentClose}
+        onSuccess={handlePaymentSuccess}
+        amount={parseFloat(attachment?.price || '5.00')}
+        contentTitle={attachment?.title || 'Premium PDF File'}
+        contentId={attachment?.paid_content_id}
+        creatorId={messageSender?.id}
+        creatorName={messageSender?.name}
+        imageUrl={attachment?.file_url}
+        contentType="pdf"
+      />
+
+      {/* In-App PDF Viewer Modal */}
+      <Modal
+        visible={showInAppViewer}
+        transparent={false}
+        animationType="slide"
+        statusBarTranslucent={true}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: '#000000',
+          paddingTop: insets.top
+        }}>
+          {/* Header */}
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 20,
+            paddingVertical: 16,
+            backgroundColor: 'rgba(0, 0, 0, 0.95)',
+            borderBottomWidth: 0.5,
+            borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+            elevation: 8
+          }}>
+            {/* Close Button */}
+            <TouchableOpacity
+              onPress={() => setShowInAppViewer(false)}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingVertical: 10,
+                paddingHorizontal: 8
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="chevron-back" size={30} color="#FFFFFF" />
+              <Text style={{
+                fontSize: 16,
+                color: '#FFFFFF',
+                marginLeft: 6,
+                fontFamily: 'Urbanist-SemiBold'
+              }}>
+                Back
+              </Text>
+            </TouchableOpacity>
+
+            {/* Title */}
+            <Text style={{
+              fontSize: 18,
+              fontWeight: '700',
+              color: '#FFFFFF',
+              fontFamily: 'Urbanist-Bold',
+              flex: 1,
+              textAlign: 'center',
+              marginHorizontal: 20,
+              opacity: 0.95
+            }} numberOfLines={1}>
+              {attachment?.title || 'PDF Document'}
+            </Text>
+
+            {/* Share Button */}
+            <TouchableOpacity
+              onPress={async () => {
+                try {
+                  if (await Sharing.isAvailableAsync()) {
+                    await Sharing.shareAsync(attachment?.file_url || '', {
+                      dialogTitle: 'Share PDF',
+                      UTI: 'com.adobe.pdf',
+                    });
+                  }
+                } catch (error) {
+                  console.error('Error sharing PDF:', error);
+                }
+              }}
+              style={{
+                padding: 12
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="share-outline" size={30} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+
+          {/* PDF Viewer Container */}
+          <View style={{
+            flex: 1,
+            margin: 16,
+            borderRadius: 12,
+            overflow: 'hidden',
+            backgroundColor: '#FFFFFF',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.2,
+            shadowRadius: 12,
+            elevation: 8
+          }}>
+            <WebView
+              source={{ uri: attachment?.file_url || '' }}
+              style={{ 
+                flex: 1,
+                backgroundColor: '#FFFFFF'
+              }}
+              startInLoadingState={true}
+              showsVerticalScrollIndicator={false}
+              showsHorizontalScrollIndicator={false}
+              scalesPageToFit={true}
+              renderLoading={() => (
+                <View style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  backgroundColor: '#FFFFFF'
+                }}>
+                  <View style={{
+                    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                    borderRadius: 16,
+                    padding: 32,
+                    alignItems: 'center'
+                  }}>
+                    <ActivityIndicator size="large" color="#FD6F3E" />
+                    <Text style={{
+                      marginTop: 20,
+                      fontSize: 18,
+                      color: '#333',
+                      fontFamily: 'Urbanist-SemiBold'
+                    }}>
+                      Loading PDF...
+                    </Text>
+                    <Text style={{
+                      marginTop: 8,
+                      fontSize: 14,
+                      color: '#666',
+                      fontFamily: 'Urbanist-Regular',
+                      textAlign: 'center'
+                    }}>
+                      Please wait while we prepare your document
+                    </Text>
+                  </View>
+                </View>
+              )}
+            onError={(error) => {
+              console.error('WebView error:', error);
+              Alert.alert(
+                'Error Loading PDF',
+                'Could not load the PDF file. Would you like to open it externally?',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Open Externally',
+                    onPress: async () => {
+                      try {
+                        const supported = await Linking.canOpenURL(attachment?.file_url || '');
+                        if (supported) {
+                          await Linking.openURL(attachment?.file_url || '');
+                        } else {
+                          if (await Sharing.isAvailableAsync()) {
+                            await Sharing.shareAsync(attachment?.file_url || '', {
+                              dialogTitle: 'Open PDF with...',
+                              UTI: 'com.adobe.pdf',
+                            });
+                          }
+                        }
+                      } catch (err) {
+                        console.error('Error opening PDF externally:', err);
+                      }
+                    }
+                  }
+                ]
+              );
+            }}
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
