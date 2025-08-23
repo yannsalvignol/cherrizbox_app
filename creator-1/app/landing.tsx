@@ -7,18 +7,17 @@ import { Image, ImageBackground, KeyboardAvoidingView, Modal, Platform, StyleShe
 
 const LandingScreen = () => {
   const router = useRouter();
-  const { user, loading } = useGlobalContext();
+  const { user } = useGlobalContext();
   const [showUsernameModal, setShowUsernameModal] = useState(false);
   const [selectedNetwork, setSelectedNetwork] = useState('');
   const [username, setUsername] = useState('');
 
   // Handle navigation when user is logged in
   useEffect(() => {
-    // Only navigate if we're not loading and user is authenticated
-    if (!loading && user) {
+    if (user) {
       router.replace('/(root)/(tabs)');
     }
-  }, [user, loading, router]);
+  }, [user, router]);
 
   const networks = [
     { name: 'LinkedIn', icon: 'logo-linkedin', color: '#0077B5', type: 'ionicon' },
@@ -62,25 +61,6 @@ const LandingScreen = () => {
     setUsername('');
     setShowUsernameModal(false);
   };
-
-  // Show loading screen while checking authentication
-  if (loading) {
-    return (
-      <View style={[styles.container, { backgroundColor: '#DCDEDF', justifyContent: 'center', alignItems: 'center' }]}>
-        <Image 
-          source={require('../assets/icon/loading-icon.png')} 
-          style={{ width: 60, height: 60, marginBottom: 16 }} 
-        />
-        <Text style={{ 
-          color: 'black', 
-          fontSize: 18, 
-          fontFamily: 'questrial'
-        }}>
-          Loading...
-        </Text>
-      </View>
-    );
-  }
 
   return (
     <View style={styles.container}>

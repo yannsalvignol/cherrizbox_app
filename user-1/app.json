@@ -21,6 +21,7 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.yannsalvignol.cherripay",
       "requireFullScreen": true,
+      "usesAppleSignIn": true,
       "associatedDomains": [
         "applinks:cherrybox.app",
         "applinks:cherrybox.app"
@@ -45,7 +46,8 @@
         "NSPhotoLibraryUsageDescription": "Cherrizbox needs photo library access to let you select photos and videos to share with creators.",
         "NSMicrophoneUsageDescription": "Cherrizbox needs microphone access to record videos with sound.",
         "NSApplePayUsageDescription": "Cherrizbox uses Apple Pay to process secure payments for subscriptions and content purchases.",
-        "UIContentSizeCategory": "UICTContentSizeCategoryM"
+        "UIContentSizeCategory": "UICTContentSizeCategoryM",
+        "NSUserNotificationsUsageDescription": "Cherrizbox sends notifications to keep you updated on new content from creators you follow."
       }
     },
     "android": {
@@ -54,6 +56,12 @@
         "backgroundColor": "#FD6F3E"
       },
       "edgeToEdgeEnabled": true,
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "com.google.android.c2dm.permission.RECEIVE"
+      ],
       "intentFilters": [
         {
           "action": "VIEW",
@@ -129,6 +137,16 @@
             "./assets/fonts/Urbanist-Thin.ttf"
           ]
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#FD6F3E"
+        }
+      ],
+      [
+        "expo-apple-authentication"
       ]
     ],
     "experiments": {

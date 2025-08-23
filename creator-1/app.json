@@ -18,8 +18,7 @@
       "bundleIdentifier": "com.yannsalvignol.cherrizboxcreator",
       "buildNumber": "6",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false,
-        "UIContentSizeCategory": "UICTContentSizeCategoryM"
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {

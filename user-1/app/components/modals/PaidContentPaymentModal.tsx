@@ -163,6 +163,15 @@ export const PaidContentPaymentModal: React.FC<PaidContentPaymentModalProps> = (
       imageUrl,
       paymentType: 'paid_content',
     };
+    
+    // Debug logging for PDF payments
+    console.log('💳 [PaidContentPayment] Creating payment intent with metadata:');
+    console.log('💳 [PaidContentPayment] - contentId:', contentId);
+    console.log('💳 [PaidContentPayment] - contentType:', contentType);
+    console.log('💳 [PaidContentPayment] - imageUrl:', imageUrl);
+    console.log('💳 [PaidContentPayment] - creatorId:', creatorId);
+    console.log('💳 [PaidContentPayment] - userId:', user?.$id);
+    
     return await createPaidContentPaymentIntent(amount, 'usd', metadata);
   };
 

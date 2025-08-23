@@ -6,7 +6,7 @@ import { Animated, Image, ImageBackground, StyleSheet, Text, View } from 'react-
 
 const LoadingScreen = () => {
   const router = useRouter();
-  const { user, isStreamConnected, loading } = useGlobalContext();
+  const { user, isStreamConnected } = useGlobalContext();
 
   const [minimumTimeElapsed, setMinimumTimeElapsed] = useState(false);
   const [assetsLoaded, setAssetsLoaded] = useState(false);
@@ -124,23 +124,17 @@ const LoadingScreen = () => {
     return () => clearTimeout(timer);
   }, []);
 
-      // Navigate when user state is determined
+      // Navigate when user state is determined, minimum time elapsed, AND assets loaded
   useEffect(() => {
-    // Wait for authentication to complete (loading === false)
-    if (loading) return;
+    if (user === undefined || !minimumTimeElapsed || !assetsLoaded) return;
     
+    // Navigate immediately when ready
     if (user) {
-      // For logged-in users, wait for minimum time and assets to load
-      if (minimumTimeElapsed && assetsLoaded) {
-        router.replace('/(root)/(tabs)');
-      }
+      router.replace('/(root)/(tabs)');
     } else {
-      // For non-logged-in users, wait for minimum time before going to landing
-      if (minimumTimeElapsed) {
-        router.replace('/landing');
-      }
+      router.replace('/landing');
     }
-  }, [router, user, loading, isStreamConnected, minimumTimeElapsed, assetsLoaded]);
+  }, [router, user, isStreamConnected, minimumTimeElapsed, assetsLoaded]);
 
 
 
