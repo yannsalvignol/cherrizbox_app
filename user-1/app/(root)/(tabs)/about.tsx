@@ -32,7 +32,7 @@ export default function About() {
         <View style={{ backgroundColor: '#FFFFFF', borderRadius: 12, padding: 20, marginBottom: 20 }}>
           <View className="items-center mb-8">
             <Image 
-              source={require('../../../assets/images/cherry-icon.png')}
+              source={require('../../../assets/images/cherry-icon-low.png')}
               className="w-24 h-24 mb-4"
               resizeMode="contain"
             />

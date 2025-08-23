@@ -12,21 +12,27 @@ import { CustomPollComponent } from './CustomPollComponent';
 import CustomReactionList from './CustomReactionList';
 
 // Import components from main chat file and attachments
-import { CustomMessageAvatar } from '../(root)/chat';
 import { CustomPhotoAttachment } from './attachments/CustomPhotoAttachment';
+import { CustomMessageAvatar } from './CustomMessageAvatar';
 
 // Import the client from the parent context - we'll need to pass it as prop
 interface CustomMessageSimpleProps {
   client: any;
+  onThreadSelect: (message: any) => void;
   [key: string]: any; // Allow other props to be passed through
 }
 
-export const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = ({ client, ...props }) => {
+export const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = ({ client, onThreadSelect, ...props }) => {
   // Get message from useMessageContext hook
   const messageContext = useMessageContext();
   const message = messageContext?.message;
   const channel = messageContext?.channel;
   const { user } = useGlobalContext();
+  
+  // Check if message is deleted - completely hide deleted messages
+  if (message?.deleted_at || message?.type === 'deleted') {
+    return null; // Don't render anything for deleted messages
+  }
   
   // Check if this message contains a poll (check for poll_id)
   const hasPoll = message?.poll_id || message?.poll;
@@ -49,7 +55,7 @@ export const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = ({ client
   
   // If poll_id exists but no poll data, use default MessageSimple
   if (hasPoll) {
-    return <MessageSimple {...props} />;
+    return React.createElement(MessageSimple, props);
   }
   
 
@@ -114,6 +120,7 @@ export const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = ({ client
                   <CustomPhotoAttachment 
                     key={`custom-photo-${index}`}
                     attachment={attachment}
+                    onThreadSelect={onThreadSelect}
                   />
                   <CustomReactionList isAttachment={true} />
                 </View>
@@ -279,7 +286,7 @@ export const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = ({ client
   }
   
   // For regular text messages, let Channel-level ReactionListTop handle reactions
-  return <MessageSimple {...props} />;
+  return React.createElement(MessageSimple, props);
 };
 
 CustomMessageSimple.displayName = 'CustomMessageSimple';

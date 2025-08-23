@@ -1,3 +1,4 @@
+import { CustomMessageAvatar } from '@/app/components/CustomMessageAvatar';
 import { getTheme } from '@/lib/chat-theme';
 import { dataCache } from '@/lib/data-cache';
 import { useGlobalContext } from '@/lib/global-provider';
@@ -34,16 +35,6 @@ declare global {
     setShowCustomModal: (show: boolean) => void;
   } | null;
 }
-
-// Cache for profile images to avoid repeated database calls
-const profileImageCache = new Map<string, string>();
-
-// Custom Avatar component that fetches profile images
-export const CustomMessageAvatar = (props: any) => {
-  // Simply return null to hide all message avatars
-  // Caching infrastructure is preserved elsewhere for header avatar functionality
-  return null;
-};
 
 // Custom MessageStatus component that hides the default timestamp completely
 const CustomMessageStatus = () => {
@@ -565,7 +556,7 @@ export default function ChatScreen() {
                   handleThreadOpen(message);
                 }
               }}
-              MessageSimple={(props: any) => <CustomMessageSimple {...props} client={client} />}
+              MessageSimple={(props: any) => <CustomMessageSimple {...props} client={client} onThreadSelect={handleThreadOpen} />}
             MessageAvatar={CustomMessageAvatar}
             MessageStatus={CustomMessageStatus}
             ReactionListTop={CustomReactionList}
@@ -614,7 +605,7 @@ export default function ChatScreen() {
                   activeOpacity={0.7}
                 >
                   <Image 
-                    source={require('../../assets/images/cherry-icon.png')}
+                    source={require('../../assets/images/cherry-icon-low.png')}
                     style={{
                       width: 56,
                       height: 56,

@@ -23,17 +23,10 @@
       "requireFullScreen": true,
       "usesAppleSignIn": true,
       "associatedDomains": [
-        "applinks:cherrybox.app",
         "applinks:cherrybox.app"
       ],
       "infoPlist": {
         "CFBundleURLTypes": [
-          {
-            "CFBundleURLName": "OAuth Callback",
-            "CFBundleURLSchemes": [
-              "com.yannsalvignol.cherripay"
-            ]
-          },
           {
             "CFBundleURLName": "OAuth Callback",
             "CFBundleURLSchemes": [
@@ -56,26 +49,12 @@
         "backgroundColor": "#FD6F3E"
       },
       "edgeToEdgeEnabled": true,
-      "googleServicesFile": "./google-services.json",
       "permissions": [
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE",
         "com.google.android.c2dm.permission.RECEIVE"
       ],
       "intentFilters": [
-        {
-          "action": "VIEW",
-          "autoVerify": true,
-          "data": [
-            {
-              "scheme": "com.yannsalvignol.cherripay"
-            }
-          ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
-        },
         {
           "action": "VIEW",
           "autoVerify": true,
@@ -147,7 +126,8 @@
       ],
       [
         "expo-apple-authentication"
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true

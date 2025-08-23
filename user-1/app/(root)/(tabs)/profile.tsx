@@ -606,7 +606,7 @@ export default function Profile() {
           className="absolute left-4 z-10"
         >
           <Image 
-            source={require('../../../assets/images/cherry-icon.png')}
+            source={require('../../../assets/images/cherry-icon-low.png')}
             style={{
               width: 56,
               height: 56,

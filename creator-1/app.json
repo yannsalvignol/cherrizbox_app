@@ -21,6 +21,13 @@
         "ITSAppUsesNonExemptEncryption": false
       }
     },
+    "notification": {
+      "icon": "./assets/images/icon.png",
+      "color": "#FD6F3E",
+      "iosDisplayInForeground": true,
+      "androidMode": "default",
+      "androidCollapsedTitle": "New message from %(sender_name)s"
+    },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
@@ -41,6 +48,14 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#FD6F3E",
+          "defaultChannel": "default"
+        }
+      ],
       [
         "expo-splash-screen",
         {

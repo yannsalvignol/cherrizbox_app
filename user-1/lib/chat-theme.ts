@@ -63,6 +63,15 @@ export const getTheme = (): DeepPartial<Theme> => ({
           color: '#1A1A1A', // White text for italic text
         },
       },
+      deletedText: {
+        color: '#999999', // Gray text for deleted messages
+      },
+    },
+    // Deleted message styling - remove borders
+    deletedContainer: {
+      borderWidth: 0,
+      borderColor: 'transparent',
+      backgroundColor: 'transparent',
     },
   },
   

@@ -8,8 +8,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Text, TouchableOpacity, View } from 'react-native';
 import { useMessageContext } from 'stream-chat-react-native';
 import { checkPaidContentPurchase } from '../../../lib/appwrite';
-import { PaidContentPaymentModal } from '../modals/PaidContentPaymentModal';
 import { CherryLoadingIndicator } from '../CherryLoadingIndicator';
+import { PaidContentPaymentModal } from '../modals/PaidContentPaymentModal';
 
 interface PaidVideoAttachmentProps {
   attachment: any;

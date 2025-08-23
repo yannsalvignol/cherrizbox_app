@@ -542,7 +542,7 @@ export const FullScreenProfileModal: React.FC<FullScreenProfileModalProps> = ({
                 
                 {/* Cherrizbox logo in top right */}
                 <Image 
-                  source={require('../../../assets/images/cherry-icon.png')} 
+                  source={require('../../../assets/images/cherry-icon-low.png')} 
                   style={{ 
                     width: 56, 
                     height: 56, 

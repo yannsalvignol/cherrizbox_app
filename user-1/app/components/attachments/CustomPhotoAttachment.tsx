@@ -12,10 +12,11 @@ interface CustomPhotoAttachmentProps {
     caption?: string;
     uploading?: boolean;
   };
+  onThreadSelect: (message: any) => void;
 }
 
 export const CustomPhotoAttachment: React.FC<CustomPhotoAttachmentProps> = (props) => {
-  const { attachment } = props;
+  const { attachment, onThreadSelect } = props;
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [cachedImageUri, setCachedImageUri] = useState<string>(attachment.image_url);
@@ -190,7 +191,7 @@ export const CustomPhotoAttachment: React.FC<CustomPhotoAttachmentProps> = (prop
         </View>
       )}
 
-        {/* Timestamp in horizontal black footer */}
+        {/* Timestamp and thread replies in horizontal black footer */}
         {message?.created_at && (
           <View style={{
             position: 'absolute',
@@ -202,13 +203,32 @@ export const CustomPhotoAttachment: React.FC<CustomPhotoAttachmentProps> = (prop
             paddingVertical: 6,
             borderBottomLeftRadius: 12,
             borderBottomRightRadius: 12,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
           }}>
+            {/* Thread reply count on the left */}
+            <View>
+                {message.reply_count > 0 && (
+                    <TouchableOpacity onPress={() => onThreadSelect?.(message)}>
+                        <Text style={{
+                            color: 'black',
+                            fontSize: 12,
+                            fontWeight: '600',
+                            fontFamily: 'questrial',
+                        }}>
+                            {message.reply_count} Thread {message.reply_count > 1 ? 'Replies' : 'Reply'}
+                        </Text>
+                    </TouchableOpacity>
+                )}
+            </View>
+
+            {/* Timestamp on the right */}
             <Text style={{
               color: 'black',
               fontSize: 12,
               fontWeight: '600',
               fontFamily: 'questrial',
-              textAlign: 'right',
             }}>
               {new Date(message.created_at).toLocaleTimeString([], { 
                 hour: '2-digit', 

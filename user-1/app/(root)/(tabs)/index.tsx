@@ -169,7 +169,7 @@ export default function Index() {
                     activeOpacity={1}
                 >
                     <Animated.Image 
-                        source={require('../../../assets/images/cherry-icon.png')}
+                        source={require('../../../assets/images/cherry-icon-low.png')}
                         style={{
                             width: 56,
                             height: 56,
