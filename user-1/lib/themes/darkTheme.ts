@@ -32,7 +32,6 @@ export const darkTheme: Theme = {
   chatBackground: '#1A1A1A',
   messageBackground: '#2A2A2A',
   messageBackgroundOwn: '#FD6F3E',
-  bubblecolor:'#FF8A5B',
   
   // Card colors
   cardBackground: '#1A1A1A',

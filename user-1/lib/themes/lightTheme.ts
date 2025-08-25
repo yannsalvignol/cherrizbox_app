@@ -30,7 +30,6 @@ export const lightTheme = {
   chatBackground: '#DCDEDF',
   messageBackground: '#FFFFFF',
   messageBackgroundOwn: '#FD6F3E',
-  bubblecolor:'#FFFFFF',
   
   // Card colors
   cardBackground: '#FFFFFF',

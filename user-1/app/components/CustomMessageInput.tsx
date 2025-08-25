@@ -1,6 +1,5 @@
 import { uploadFileToAppwrite } from '@/lib/appwrite';
 import { formatPrice, getCurrencyInfo } from '@/lib/currency';
-import { useTheme } from '@/lib/themes/useTheme';
 import { createTipPaymentIntent } from '@/lib/tip-payment';
 import { Ionicons } from '@expo/vector-icons';
 // Video import removed - only supporting images now
@@ -41,7 +40,6 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
   creatorId,
   isThreadInput = false
 }) => {
-  const { theme } = useTheme();
   const [showAttachmentModal, setShowAttachmentModal] = useState(false);
   const [showStripeSheet, setShowStripeSheet] = useState(false);
   const [pendingMessageData, setPendingMessageData] = useState<any>(null);
@@ -362,11 +360,11 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
         <Ionicons 
           name="arrow-up-circle-outline" 
           size={30} 
-          color={theme.text} 
+          color="#1A1A1A" 
           style={{ marginRight: 8, marginTop: -30 }} 
         />
         <Text style={{
-          color: theme.text,
+          color: '#1A1A1A',
           fontSize: 25,
           fontFamily: 'MuseoModerno-Regular',
           textAlign: 'center',
@@ -385,11 +383,11 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
       <MessageInput 
         additionalTextInputProps={{
           placeholder: 'Reply to thread...',
-          placeholderTextColor: theme.textSecondary,
+          placeholderTextColor: '#999999',
           style: {
             fontSize: 16,
             fontFamily: 'questrial',
-            color: theme.text,
+            color: '#1A1A1A',
             paddingHorizontal: 16,
             paddingVertical: 12,
           }
@@ -400,7 +398,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
   
   // For direct messages, use custom message input with attachment button
   return (
-    <View style={{ backgroundColor: theme.backgroundSecondary, paddingBottom: 15 }}>
+    <View style={{ backgroundColor: 'white', paddingBottom: 15 }}>
             <MessageInput 
         InputButtons={() => (
           <TouchableOpacity
@@ -409,23 +407,15 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
               width: 40,
               height: 40,
               borderRadius: 20,
-              backgroundColor: 'transparent',
+              backgroundColor: '',
               justifyContent: 'center',
               alignItems: 'center',
               marginRight: 8,
             }}
           >
-            <Ionicons name="add-circle-outline" size={36} color={theme.text} />
+            <Ionicons name="add-circle-outline" size={36} color="#000000" />
           </TouchableOpacity>
         )}
-        additionalTextInputProps={{
-          placeholder: 'Send a message...',
-          placeholderTextColor: theme.textSecondary,
-          style: {
-            textAlignVertical: 'center',
-            paddingVertical: 12,
-          }
-        }}
       />
       
       {/* Attachment Modal with Preview */}
@@ -455,7 +445,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
           />
           <View
             style={{
-      backgroundColor: theme.modalBackground,
+      backgroundColor: '#1A1A1A',
               borderTopLeftRadius: 20,
               borderTopRightRadius: 20,
               paddingTop: 20,
@@ -468,7 +458,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
               style={{
                 width: 40,
                 height: 4,
-                backgroundColor: theme.textSecondary,
+                backgroundColor: '#666666',
                 borderRadius: 2,
                 alignSelf: 'center',
                 marginBottom: 20,
@@ -479,7 +469,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
               // Attachment selection view
               <>
                 <Text style={{
-                  color: theme.text,
+                  color: '#FFFFFF',
                   fontSize: 20,
                   fontFamily: 'questrial',
                   fontWeight: 'bold',
@@ -497,20 +487,20 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                       alignItems: 'center',
                       paddingVertical: 16,
                       paddingHorizontal: 20,
-                      backgroundColor: theme.cardBackground,
+                      backgroundColor: '#2A2A2A',
                       borderRadius: 12,
                     }}
                   >
-                    <Ionicons name="camera" size={24} color={theme.text} style={{ marginRight: 16 }} />
+                    <Ionicons name="camera" size={24} color="white" style={{ marginRight: 16 }} />
                     <Text style={{
-                      color: theme.text,
+                      color: '#FFFFFF',
                       fontSize: 16,
                       fontFamily: 'questrial',
                       flex: 1,
                     }}>
                       Camera
                     </Text>
-                    <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
+                    <Ionicons name="chevron-forward" size={20} color="#666666" />
                   </TouchableOpacity>
                   
                   <TouchableOpacity
@@ -520,20 +510,20 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                       alignItems: 'center',
                       paddingVertical: 16,
                       paddingHorizontal: 20,
-                      backgroundColor: theme.cardBackground,
+                      backgroundColor: '#2A2A2A',
                       borderRadius: 12,
                     }}
                   >
-                    <Ionicons name="images" size={24} color={theme.text} style={{ marginRight: 16 }} />
+                    <Ionicons name="images" size={24} color="white" style={{ marginRight: 16 }} />
                     <Text style={{
-                      color: theme.text,
+                      color: '#FFFFFF',
                       fontSize: 16,
                       fontFamily: 'questrial',
                       flex: 1,
                     }}>
                       Photo Library
                     </Text>
-                    <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
+                    <Ionicons name="chevron-forward" size={20} color="#666666" />
                   </TouchableOpacity>
                   
             <TouchableOpacity
@@ -543,20 +533,20 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                 alignItems: 'center',
                       paddingVertical: 16,
                       paddingHorizontal: 20,
-                      backgroundColor: theme.cardBackground,
+                      backgroundColor: '#2A2A2A',
                       borderRadius: 12,
                     }}
                   >
-                    <Ionicons name="document" size={24} color={theme.text} style={{ marginRight: 16 }} />
+                    <Ionicons name="document" size={24} color="white" style={{ marginRight: 16 }} />
                     <Text style={{
-                      color: theme.text,
+                      color: '#FFFFFF',
                       fontSize: 16,
                       fontFamily: 'questrial',
                       flex: 1,
                     }}>
                       PDF Document
                     </Text>
-                    <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
+                    <Ionicons name="chevron-forward" size={20} color="#666666" />
                   </TouchableOpacity>
                 </View>
                 
@@ -565,13 +555,13 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                   style={{
                     marginTop: 30,
                     paddingVertical: 16,
-                    backgroundColor: 'transparent',
+                    backgroundColor: '',
                     borderRadius: 12,
                 alignItems: 'center',
                   }}
                 >
                   <Text style={{
-                    color: theme.text,
+                    color: '#FFFFFF',
                     fontSize: 16,
                     fontFamily: 'questrial',
                     fontWeight: 'bold',
@@ -587,7 +577,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                 contentContainerStyle={{ paddingBottom: 20 }}
               >
                     <Text style={{
-                      color: theme.text,
+                      color: '#FFFFFF',
                   fontSize: 24,
                       fontFamily: 'questrial',
                   fontWeight: 'bold',
@@ -604,18 +594,18 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                   borderRadius: 12,
                   overflow: 'hidden',
                   marginBottom: 15,
-                  backgroundColor: theme.cardBackground,
+                  backgroundColor: '#1A1A1A',
                 }}>
                   {selectedAttachment?.type === 'document' ? (
                     <View style={{
                       flex: 1,
                       justifyContent: 'center',
               alignItems: 'center',
-                      backgroundColor: theme.cardBackground,
+                      backgroundColor: '#1A1A1A',
             }}>
-                      <Ionicons name="document" size={48} color={theme.primary} />
+                      <Ionicons name="document" size={48} color="" />
               <Text style={{
-                color: theme.text,
+                color: '#FFFFFF',
                         fontSize: 16,
                 fontFamily: 'questrial',
                         marginTop: 8,
@@ -637,7 +627,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                 
                 {/* Tip Amount */}
                 <Text style={{
-                  color: theme.text,
+                  color: '#FFFFFF',
                   fontSize: 18,
                   fontFamily: 'questrial',
                   fontWeight: 'bold',
@@ -652,7 +642,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                   marginBottom: 15,
                 }}>
                   <Text style={{
-                    color: theme.text,
+                    color: '#FFFFFF',
                     fontSize: 16,
                     fontFamily: 'questrial',
                     marginBottom: 8,
@@ -662,15 +652,13 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                   <View style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-      backgroundColor: theme.backgroundSecondary,
+      backgroundColor: '#2A2A2A',
       borderRadius: 12,
                     paddingHorizontal: 16,
                     paddingVertical: 12,
-                    borderWidth: 1,
-                    borderColor: theme.border,
                   }}>
       <Text style={{
-        color: theme.text,
+        color: '#FFFFFF',
                       fontSize: 18,
         fontFamily: 'questrial',
                       marginRight: 8,
@@ -688,12 +676,12 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                       keyboardType="numeric"
                       style={{
                         flex: 1,
-                        color: theme.text,
+                        color: '#FFFFFF',
                         fontSize: 18,
                         fontFamily: 'questrial',
                       }}
                       placeholder="0.00"
-                      placeholderTextColor={theme.textSecondary}
+                      placeholderTextColor="#666666"
                     />
                   </View>
                 </View>
@@ -704,7 +692,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                   marginBottom: 15,
                 }}>
         <Text style={{
-                    color: theme.text,
+                    color: '#FFFFFF',
                     fontSize: 16,
           fontFamily: 'questrial',
                     marginBottom: 8,
@@ -724,13 +712,13 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                           paddingHorizontal: 12,
                           paddingVertical: 8,
                 borderRadius: 8,
-                          backgroundColor: tipAmount === amount ? theme.primary : theme.backgroundSecondary,
+                          backgroundColor: tipAmount === amount ? '' : '#1A1A1A',
                           borderWidth: 1,
-                          borderColor: tipAmount === amount ? theme.primary : theme.border,
+                          borderColor: tipAmount === amount ? 'white' : '#666666',
                         }}
                       >
                         <Text style={{
-                          color: tipAmount === amount ? theme.textInverse : theme.text,
+                          color: '#FFFFFF',
                           fontSize: 14,
                           fontFamily: 'questrial',
                           fontWeight: tipAmount === amount ? 'bold' : 'normal',
@@ -744,7 +732,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                 
                 {/* Billing Policy Explanation */}
               <View style={{
-                  backgroundColor: theme.cardBackground,
+                  backgroundColor: '#2A2A2A',
                   borderRadius: 12,
                   padding: 16,
                   marginBottom: 20,
@@ -754,9 +742,9 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                     alignItems: 'flex-start',
                     marginBottom: 8,
                   }}>
-                    <Ionicons name="information-circle" size={20} color={theme.primary} style={{ marginRight: 8, marginTop: 2 }} />
+                    <Ionicons name="information-circle" size={20} color="" style={{ marginRight: 8, marginTop: 2 }} />
                   <Text style={{
-                    color: theme.text,
+                    color: '#FFFFFF',
                     fontSize: 14,
                     fontFamily: 'questrial',
                       fontWeight: 'bold',
@@ -766,7 +754,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                     </Text>
                   </View>
                   <Text style={{
-                    color: theme.textSecondary,
+                    color: '#CCCCCC',
                     fontSize: 13,
                     fontFamily: 'questrial',
                     lineHeight: 18,
@@ -789,13 +777,13 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                     style={{
                       flex: 1,
                       paddingVertical: 16,
-                      backgroundColor: theme.backgroundSecondary,
+                      backgroundColor: '#666666',
                       borderRadius: 12,
                       alignItems: 'center',
                     }}
                   >
                   <Text style={{
-                    color: theme.text,
+                    color: '#FFFFFF',
                       fontSize: 16,
                     fontFamily: 'questrial',
                     fontWeight: 'bold',
@@ -862,13 +850,13 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                     style={{
                       flex: 1,
                       paddingVertical: 16,
-                      backgroundColor: theme.primary,
+                      backgroundColor: '#FD6F3E',
                       borderRadius: 12,
                       alignItems: 'center',
                     }}
                   >
                     <Text style={{
-                      color: theme.textInverse,
+                      color: 'white',
                       fontSize: 16,
                       fontFamily: 'questrial',
                       fontWeight: 'bold',

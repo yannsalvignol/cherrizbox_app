@@ -1,46 +1,40 @@
 import { DeepPartial, Theme } from 'stream-chat-react-native';
-import { Theme as AppTheme } from './themes/lightTheme';
 
-// Custom theme for the chat - focused on timestamp visibility and dynamic theming
-export const getTheme = (appTheme: AppTheme): DeepPartial<Theme> => ({
-  // Main color palette - using dynamic app theme colors
+// Custom theme for the chat - focused on timestamp visibility
+export const getTheme = (): DeepPartial<Theme> => ({
+  // Main color palette - modify these to change the overall color scheme
   colors: {
-    black: appTheme.background,           // Main background color
-    white: appTheme.text,                 // Text color
-    primary: appTheme.primary,            // Primary accent color
-    grey: appTheme.backgroundSecondary,   // Secondary background color
-    grey_whisper: appTheme.cardBackground, // Card background color
-    grey_gainsboro: appTheme.border,      // Border color
-    grey_light: appTheme.textSecondary,   // Secondary text color
-    grey_medium: appTheme.textTertiary,   // Tertiary text color
-    grey_dark: appTheme.text,             // Dark text color
-    accent_blue: appTheme.primary,        // Blue accent using primary
-    accent_green: appTheme.success,       // Green accent using success color
-    accent_red: appTheme.error,           // Red accent using error color
+    black: '#1A1A1A',        // Main dark background color
+    white: '#FFFFFF',        // Text color on dark backgrounds
+    primary: 'black',      // Primary accent color (cherry red)
+    grey: '#2A2A2A',         // Secondary background color
+    grey_whisper: '#404040', // Tertiary background color
+    grey_gainsboro: '#666666', // Medium grey for borders/separators
+    grey_light: '#999999',   // Light grey for secondary text
+    grey_medium: '#CCCCCC',  // Medium grey for disabled elements
+    grey_dark: '#FFFFFF',    // Dark grey (currently white - might be a typo)
+    accent_blue: 'black',  // Blue accent (currently using primary red)
+    accent_green: 'black', // Green accent (currently using primary red)
+    accent_red: 'black',   // Red accent (currently using primary red)
   },
   
   // Message input area styling
   messageInput: {
     container: {
-      backgroundColor: appTheme.backgroundSecondary, // Background of the entire input area
+      backgroundColor: 'white', // Background of the entire input area
     },
     inputBoxContainer: {
-      backgroundColor: appTheme.background, // Background of the text input box - different from container
-      borderWidth: 1,
-      borderColor: appTheme.border,
-      borderRadius: 20,
+      backgroundColor: '#FFFFFF', // Background of the text input box
     },
     inputBox: {
-      color: appTheme.text, // Text color in the input box
-      paddingHorizontal: 16,
-      paddingVertical: 12,
+      color: '#000000', // Text color in the input box - black for visibility
     },
   },
   
   // Main chat message list area
   messageList: {
     container: {
-      backgroundColor: appTheme.backgroundTertiary, // Main chat background
+      backgroundColor: '#DCDEDF', // Main chat background - light gray theme
     },
   },
   
@@ -48,34 +42,53 @@ export const getTheme = (appTheme: AppTheme): DeepPartial<Theme> => ({
   messageSimple: {
     content: {
       containerInner: {
-        backgroundColor: appTheme.bubblecolor, // Message bubble background color
+        backgroundColor: '#FFFFFF', // Message bubble background color
         borderWidth: 0,
         borderColor: 'transparent',
       },
       textContainer: {
-        backgroundColor: appTheme.bubblecolor, // Text container background (usually same as bubble)
+        backgroundColor: '#FFFFFF', // Text container background (usually same as bubble)
       },
       markdown: {
         text: {
-          color: appTheme.text, // Text in message bubbles
+          color: '#1A1A1A', // White text in message bubbles
         },
         paragraph: {
-          color: appTheme.text, // Text for paragraphs
+          color: '#1A1A1A', // White text for paragraphs
         },
         strong: {
-          color: appTheme.text, // Text for bold text
+          color: '#1A1A1A', // White text for bold text
         },
         em: {
-          color: appTheme.text, // Text for italic text
+          color: '#1A1A1A', // White text for italic text
         },
       },
+      deletedText: {
+        color: '#999999', // Gray text for deleted messages
+      },
+    },
+    // Deleted message styling - remove borders
+    deletedContainer: {
+      borderWidth: 0,
+      borderColor: 'transparent',
+      backgroundColor: 'transparent',
+    },
+  },
+  
+  // Hide default reaction list since we're using custom reactions
+  reactionList: {
+    container: {
+      display: 'none', // Hide the default reaction list completely
+      height: 0,
+      width: 0,
+      opacity: 0,
     },
   },
   
   // Style for quoted reply previews (both in MessageInput header and in chat bubbles)
   reply: {
     container: {
-      backgroundColor: appTheme.background, // Reply preview background color
+      backgroundColor: '#FFFFFF', // Reply preview background color
       borderWidth: 0,
       borderColor: 'transparent',
       paddingVertical: 4,
@@ -88,27 +101,22 @@ export const getTheme = (appTheme: AppTheme): DeepPartial<Theme> => ({
   },
 });
 
-// DYNAMIC THEMING GUIDE:
+// BACKGROUND MODIFICATION GUIDE:
 // 
-// This chat theme now automatically adapts to the app's current theme (light/dark mode).
-// The theme is passed as a parameter and all colors are dynamically mapped:
+// To change the main chat background:
+// - Modify messageList.container.backgroundColor (currently '#2A2A2A')
 // 
-// Main backgrounds:
-// - Chat background: appTheme.backgroundTertiary
-// - Message input: appTheme.backgroundSecondary
-// - Input box: appTheme.cardBackground
-// - Message bubbles: appTheme.cardBackground
+// To change the message input area background:
+// - Modify messageInput.container.backgroundColor (currently '#1A1A1A')
+// - Modify messageInput.inputBoxContainer.backgroundColor (currently '#2A2A2A')
 // 
-// Text colors:
-// - Primary text: appTheme.text
-// - Secondary text: appTheme.textSecondary
-// - Input text: appTheme.text
+// To change message bubble backgrounds:
+// - Modify messageSimple.content.containerInner.backgroundColor (currently 'black')
+// - Modify messageSimple.content.textContainer.backgroundColor (currently 'black')
 // 
-// Accent colors:
-// - Primary: appTheme.primary
-// - Success: appTheme.success  
-// - Error: appTheme.error
+// To change reply preview backgrounds:
+// - Modify reply.container.backgroundColor (currently 'black')
 // 
-// To use this theme, call: getTheme(currentAppTheme) where currentAppTheme
-// is obtained from the useTheme() hook.
+// To change the overall color scheme:
+// - Modify the colors object at the top of the theme
 // - Key colors to change: black, grey, grey_whisper for backgrounds
