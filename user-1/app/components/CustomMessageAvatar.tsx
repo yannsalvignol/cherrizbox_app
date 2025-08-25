@@ -5,3 +5,4 @@ export const CustomMessageAvatar = (props: any) => {
   // Caching infrastructure is preserved elsewhere for header avatar functionality
   return null;
 };
+
