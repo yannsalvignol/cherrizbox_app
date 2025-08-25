@@ -35,7 +35,10 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (fontsLoaded) {
+      console.log('✅ All fonts loaded successfully, including MuseoModerno-Regular');
       SplashScreen.hideAsync();
+    } else {
+      console.log('⏳ Fonts still loading...');
     }
   }, [fontsLoaded]);
 

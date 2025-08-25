@@ -5,7 +5,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, FlatList, Image, Linking, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, Image, Linking, Modal, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { updateUserProfile, uploadProfilePicture } from '../../../lib/appwrite';
 import { useGlobalContext } from '../../../lib/global-provider';
@@ -316,7 +316,7 @@ export default function EditProfile() {
               style={{ resizeMode: 'cover' }}
             />
           ) : (
-            <Text className="text-2xl text-white font-bold">{name?.[0] || 'U'}</Text>
+            <Text className="text-2xl text-white ">{name?.[0] || 'U'}</Text>
           )}
           {!isUploadingImage && (
           <TouchableOpacity 
@@ -333,9 +333,9 @@ export default function EditProfile() {
         {/* Form Fields */}
         <View className="mt-8">
           {/* Name */}
-          <View className={`flex-row items-center bg-[#FFFFFF] rounded-lg px-5 py-4 mb-2 ${
+          <View className={`flex-row items-center bg-[#FFFFFF] rounded-lg px-5 mb-2 ${
             focusedInput === 'name' ? 'border border-[#FFFFFF]' : ''
-          }`}>
+          }`} style={{ paddingVertical: Platform.OS === 'android' ? 16 : 16 }}>
             <Ionicons 
               name="person-outline" 
               size={24} 
@@ -346,16 +346,22 @@ export default function EditProfile() {
               className="flex-1 text-white font-questrial text-lg h-9"
               value={name}
               editable={false}
-              style={{ textAlignVertical: 'center', color: 'black', paddingBottom: 12 }}
+              style={{ 
+                textAlignVertical: 'center', 
+                color: 'black', 
+                paddingBottom: Platform.OS === 'android' ? 0 : 12,
+                paddingTop: Platform.OS === 'android' ? 0 : 0
+              }}
             />
           </View>
 
           {/* Birth Date */}
           <TouchableOpacity 
             onPress={() => setShowDatePicker(true)}
-            className={`flex-row items-center bg-[#FFFFFF] rounded-lg px-5 py-4 mb-2 ${
+            className={`flex-row items-center bg-[#FFFFFF] rounded-lg px-5 mb-2 ${
               focusedInput === 'birthDate' ? 'border border-[#FFFFFF]' : ''
             }`}
+            style={{ paddingVertical: Platform.OS === 'android' ? 16 : 16 }}
           >
             <Ionicons 
               name="calendar-outline" 
@@ -367,14 +373,19 @@ export default function EditProfile() {
               className="flex-1 text-white font-questrial text-lg h-9"
               value={`${selectedMonth}/${selectedDay}/${selectedYear}`}
               editable={false}
-              style={{ textAlignVertical: 'center', color: 'black', paddingBottom: 12 }}
+              style={{ 
+                textAlignVertical: 'center', 
+                color: 'black', 
+                paddingBottom: Platform.OS === 'android' ? 0 : 12,
+                paddingTop: Platform.OS === 'android' ? 0 : 0
+              }}
             />
           </TouchableOpacity>
 
           {/* Email */}
-          <View className={`flex-row items-center bg-[#FFFFFF] rounded-lg px-5 py-4 mb-2 ${
+          <View className={`flex-row items-center bg-[#FFFFFF] rounded-lg px-5 mb-2 ${
             focusedInput === 'email' ? 'border border-[#FFFFFF]' : ''
-          }`}>
+          }`} style={{ paddingVertical: Platform.OS === 'android' ? 16 : 16 }}>
             <Ionicons 
               name="mail-outline" 
               size={24} 
@@ -385,7 +396,12 @@ export default function EditProfile() {
               className="flex-1 text-white font-questrial text-lg h-9"
               value={email}
               editable={false}
-              style={{ textAlignVertical: 'center', color: 'black', paddingBottom: 17 }}
+              style={{ 
+                textAlignVertical: 'center', 
+                color: 'black', 
+                paddingBottom: Platform.OS === 'android' ? 0 : 17,
+                paddingTop: Platform.OS === 'android' ? 0 : 0
+              }}
             />
           </View>
 
@@ -393,9 +409,10 @@ export default function EditProfile() {
           <View className="flex-row items-center mb-2">
             <TouchableOpacity 
               onPress={() => setShowCountryPicker(true)}
-              className={`flex-row items-center bg-[#FFFFFF] rounded-lg px-5 py-4 w-24 mr-2 ${
+              className={`flex-row items-center bg-[#FFFFFF] rounded-lg px-5 w-24 mr-2 ${
                 focusedInput === 'countryCode' ? 'border border-[#FFFFFF]' : ''
               }`}
+              style={{ paddingVertical: Platform.OS === 'android' ? 16 : 16 }}
               activeOpacity={0.7}
             >
               <Text className="text-white font-questrial text-lg mr-2" style={{ color: 'black' }}>{selectedCountry.flag}</Text>
@@ -403,9 +420,10 @@ export default function EditProfile() {
             </TouchableOpacity>
             <TouchableOpacity 
               onPress={() => setShowPhoneModal(true)}
-              className={`flex-row items-center bg-[#FFFFFF] rounded-lg px-5 py-4 flex-1 ${
+              className={`flex-row items-center bg-[#FFFFFF] rounded-lg px-5 flex-1 ${
                 focusedInput === 'phoneNumber' ? 'border border-[#FFFFFF]' : ''
               }`}
+              style={{ paddingVertical: Platform.OS === 'android' ? 16 : 16 }}
               activeOpacity={0.7}
             >
               <Ionicons 
@@ -414,7 +432,12 @@ export default function EditProfile() {
                 color={focusedInput === 'phoneNumber' ? '#FD6F3E' : '#666'} 
                 style={{ marginRight: 12 }}
               />
-              <Text className="flex-1 text-white font-questrial text-lg" style={{ color: 'black' }}>
+              <Text 
+                className="flex-1 text-white font-questrial text-lg" 
+                style={{ color: 'black' }}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
                 {phoneNumber || 'Enter your phone number'}
               </Text>
               <Ionicons name="chevron-forward" size={20} color="#666" />
@@ -491,7 +514,7 @@ export default function EditProfile() {
           <View className="flex-1 bg-black/50 justify-end">
             <View className="bg-[#FFFFFF] rounded-t-3xl p-4">
               <View className="flex-row justify-between items-center mb-4">
-                <Text className="text-black text-xl font-bold">Select Birth Date</Text>
+                <Text className="text-black text-xl">Select Birth Date</Text>
                 <TouchableOpacity onPress={() => setShowDatePicker(false)}>
                   <Ionicons name="close" size={30} color="#FD6F3E" />
                 </TouchableOpacity>
@@ -571,7 +594,7 @@ export default function EditProfile() {
             <View className="bg-[#FFFFFF] rounded-t-3xl max-h-[80%]">
               {/* Header */}
               <View className="flex-row justify-between items-center p-6 border-b border-gray-800">
-                <Text className="text-white text-2xl font-bold font-questrial">Select Country</Text>
+                <Text className="text-white text-2xl font-questrial">Select Country</Text>
                 <TouchableOpacity 
                   onPress={() => {
                     setShowCountryPicker(false);
@@ -603,7 +626,7 @@ export default function EditProfile() {
                       <Text className="text-white text-lg">{item.flag}</Text>
                     </View>
                     <View className="flex-1">
-                      <Text className="text-white text-lg font-questrial font-semibold">{item.name}</Text>
+                      <Text className="text-white text-lg font-questrial ">{item.name}</Text>
                       <Text className="text-gray-400 text-sm font-questrial">Country Code: {item.code} • {item.format}</Text>
                     </View>
                     <View className="w-8 h-8 bg-[#FD6F3E] rounded-full items-center justify-center">
@@ -619,7 +642,7 @@ export default function EditProfile() {
                       activeOpacity={0.8}
                     >
                       <Ionicons name="earth" size={20} color="white" style={{ marginRight: 8 }} />
-                      <Text className="text-white text-lg font-questrial font-semibold">Other</Text>
+                      <Text className="text-white text-lg font-questrial">Other</Text>
                     </TouchableOpacity>
                   ) : (
                     <TouchableOpacity
@@ -628,7 +651,7 @@ export default function EditProfile() {
                       activeOpacity={0.8}
                     >
                       <Ionicons name="arrow-back" size={20} color="white" style={{ marginRight: 8 }} />
-                      <Text className="text-white text-lg font-questrial font-semibold">Back to Main List</Text>
+                      <Text className="text-white text-lg font-questrial">Back to Main List</Text>
                     </TouchableOpacity>
                   )
                 }
@@ -650,8 +673,20 @@ export default function EditProfile() {
               <View className="bg-gradient-to-r from-[#FD6F3E] to-[#FF6B9D] p-6">
                 <View className="flex-row justify-between items-center">
                   <View>
-                    <Text className="text-white text-2xl font-bold font-questrial">Phone Number</Text>
-                    <Text className="text-white/80 text-sm font-questrial mt-1">Enter your contact number</Text>
+                    <Text 
+                      className="text-white text-2xl font-questrial"
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      Phone Number
+                    </Text>
+                    <Text 
+                      className="text-white/80 text-sm font-questrial mt-1"
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      Enter your contact number
+                    </Text>
                   </View>
                   <TouchableOpacity 
                     onPress={() => setShowPhoneModal(false)}
@@ -670,13 +705,19 @@ export default function EditProfile() {
                       <Text className="text-white text-2xl">{selectedCountry.flag}</Text>
                     </View>
                     <View className="bg-white rounded-xl px-4 py-3 border-2 border-[#FD6F3E]">
-                      <Text className="text-white text-lg font-questrial font-semibold">{selectedCountry.code}</Text>
+                      <Text className="text-white text-lg font-questrial ">{selectedCountry.code}</Text>
                     </View>
                   </View>
 
                 {/* Phone Number Input */}
                 <View className="mb-6">
-                  <Text className="text-white text-sm font-questrial mb-3 text-center">Enter your phone number</Text>
+                  <Text 
+                    className="text-white text-sm font-questrial mb-3 text-center"
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    Enter your phone number
+                  </Text>
                   <View className="bg-white rounded-xl px-4 py-4 border-2 border-[#FD6F3E]/30">
                     <TextInput
                       className="text-black text-3xl font-questrial text-center"
@@ -698,7 +739,8 @@ export default function EditProfile() {
                         letterSpacing: 2,
                         textAlign: 'center',
                         fontSize: 28,
-                        paddingHorizontal: 20
+                        paddingHorizontal: 20,
+                        paddingVertical: Platform.OS === 'android' ? 8 : 0
                       }}
                     />
                   </View>
@@ -711,19 +753,23 @@ export default function EditProfile() {
                     className="flex-1 bg-[#FF6247] rounded-xl py-4 items-center mr-2"
                     activeOpacity={0.7}
                   >
-                    <Text className="text-white font-questrial font-semibold">Cancel</Text>
+                    <Text className="text-white font-questrial">Cancel</Text>
                   </TouchableOpacity>
                   <TouchableOpacity 
                     onPress={() => setShowPhoneModal(false)}
                     className="flex-1 bg-[#22C55E] rounded-xl py-4 items-center ml-2"
                     activeOpacity={0.8}
                   >
-                    <Text className="text-white font-questrial font-semibold">Save</Text>
+                    <Text className="text-white font-questrial">Save</Text>
                   </TouchableOpacity>
                 </View>
 
                 {/* Info Text */}
-                <Text className="text-gray-400 text-xs text-center mt-4 font-questrial">
+                <Text 
+                  className="text-gray-400 text-xs text-center mt-4 font-questrial"
+                  numberOfLines={2}
+                  ellipsizeMode="tail"
+                >
                   Your phone number will be used for account verification
                 </Text>
               </View>

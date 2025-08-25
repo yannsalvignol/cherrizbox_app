@@ -154,7 +154,6 @@ const styles = StyleSheet.create({
   },
   cherrizbox: {
     fontSize: 50,
-    fontWeight: 'bold',
     color: 'white',
     fontFamily: 'MuseoModerno-Regular',
   },

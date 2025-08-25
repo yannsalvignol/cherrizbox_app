@@ -2,7 +2,7 @@ import { useGlobalContext } from '@/lib/global-provider';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Image, ImageBackground, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Image, ImageBackground, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { getSubscriptionCount, isUserSubscribed } from '../../../lib/appwrite';
 import StripePaymentSheet from '../../components/StripePaymentSheet';
 
@@ -312,7 +312,6 @@ const Property = () => {
                       <Text style={{ 
                         color: 'white', 
                         fontSize: 20, 
-                        fontWeight: 'bold', 
                         fontFamily: 'questrial',
                         flex: 1
                       }} numberOfLines={1}>
@@ -374,7 +373,6 @@ const Property = () => {
                             <Text style={{
                               color: 'white',
                               fontSize: 24,
-                              fontWeight: 'bold',
                               fontFamily: 'questrial',
                               marginBottom: 4
                             }}>
@@ -399,7 +397,6 @@ const Property = () => {
                             <Text style={{
                               color: 'white',
                               fontSize: 24,
-                              fontWeight: 'bold',
                               fontFamily: 'questrial',
                               marginBottom: 4
                             }} numberOfLines={1}>
@@ -443,7 +440,6 @@ const Property = () => {
                           fontSize: 18, 
                           fontFamily: 'questrial',
                           textAlign: 'center',
-                          fontWeight: 'bold',
                           marginBottom: 8
                         }}>
                           No bio available yet
@@ -479,7 +475,6 @@ const Property = () => {
                       <Text style={{ 
                         color: 'white', 
                         fontSize: 16, 
-                        fontWeight: 'bold', 
                         fontFamily: 'questrial'
                       }}>
                         Close
@@ -496,11 +491,28 @@ const Property = () => {
                 justifyContent: 'flex-end', 
                 alignItems: 'center', 
                 marginBottom: 8,
+                paddingBottom: Platform.OS === 'android' ? 20 : 0,
                 opacity: infoOpacity,
                 transform: [{ translateY: infoTranslateY }]
               }
             ]}>
-              <View style={{ width: '97%', height: '35%', backgroundColor: 'rgba(32, 32, 32, 0.92)', borderRadius: 40, padding: 20, alignItems: 'center' }}>
+              <View style={Platform.OS === 'android' ? {
+                width: '97%', 
+                minHeight: 280,
+                maxHeight: 320,
+                backgroundColor: 'rgba(32, 32, 32, 0.92)', 
+                borderRadius: 40, 
+                padding: 20, 
+                alignItems: 'center',
+                paddingBottom: 25
+              } : {
+                width: '97%', 
+                height: '35%',
+                backgroundColor: 'rgba(32, 32, 32, 0.92)', 
+                borderRadius: 40, 
+                padding: 20, 
+                alignItems: 'center'
+              }}>
                 <Text style={{ color: 'white', fontSize: 32, fontFamily: 'MuseoModerno-Regular', textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8 }} numberOfLines={2}>
                   {titleParam || post.title || 'Untitled'}
                 </Text>
@@ -511,7 +523,12 @@ const Property = () => {
                       {post.PhotosLocation || 'N/A'}
                     </Text>
                   </View>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 15 }}>
+                  <View style={{ 
+                    flexDirection: 'row', 
+                    justifyContent: 'space-between', 
+                    width: '100%', 
+                    marginTop: 15 
+                  }}>
                     <View style={{ paddingTop: 10 }}>
                       <Text style={{ color: 'white', fontSize: 24, textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }}>
                         {followerCount}
@@ -532,7 +549,7 @@ const Property = () => {
                           transform: [{ scale: selectedPricing === 'monthly' ? 1.05 : 1 }]
                         }}
                       >
-                        <Text style={{ color: 'white', fontSize: 28, fontWeight: 'bold', textShadowColor: 'rgba(255, 255, 255, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }}>
+                        <Text style={{ color: 'white', fontSize: 28, textShadowColor: 'rgba(255, 255, 255, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }}>
                           {formatPrice(JSON.parse(post.payment).monthlyPrice, post.currency || JSON.parse(post.payment).currency)}
                         </Text>
                         <Text style={{ color: 'white', fontSize: 16, textShadowColor: 'rgba(255, 255, 255, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial', marginTop: 4 }}>
@@ -557,7 +574,7 @@ const Property = () => {
                           transform: [{ scale: selectedPricing === 'yearly' ? 1.05 : 1 }]
                         }}
                       >
-                        <Text style={{ color: '#FD6F3E', fontSize: 28, fontWeight: 'bold', textShadowColor: 'rgba(251, 35, 85, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }}>
+                        <Text style={{ color: '#FD6F3E', fontSize: 28, textShadowColor: 'rgba(251, 35, 85, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }}>
                           {formatPrice(JSON.parse(post.payment).yearlyPrice, post.currency || JSON.parse(post.payment).currency)}
                         </Text>
                         <Text style={{ color: '#FD6F3E', fontSize: 16, textShadowColor: 'rgba(251, 35, 85, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial', marginTop: 4 }}>
@@ -577,7 +594,8 @@ const Property = () => {
                     flexDirection: 'row',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    opacity: isProcessingPayment ? 0.7 : 1
+                    opacity: isProcessingPayment ? 0.7 : 1,
+                    minHeight: 44 // Ensure minimum touch target
                   }}
                   onPress={handleJoinBox}
                   disabled={isProcessingPayment}
@@ -585,15 +603,14 @@ const Property = () => {
                   {isProcessingPayment ? (
                     <>
                       <ActivityIndicator size="small" color="white" style={{ marginRight: 10 }} />
-                      <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', fontFamily: 'questrial' }}>
+                      <Text style={{ color: 'white', fontSize: 18, fontFamily: 'questrial' }}>
                         Processing...
                       </Text>
                     </>
                   ) : (
                     <Text style={{ 
                       color: 'white', 
-                      fontSize: 18, 
-                      fontWeight: 'bold', 
+                      fontSize: 18,  
                       fontFamily: 'questrial',
                       textAlign: 'center',
                       flex: 1

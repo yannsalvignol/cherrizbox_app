@@ -617,7 +617,7 @@ export default function Profile() {
           />
         </TouchableOpacity>
         
-        <Text style={{ color: 'black', fontSize: 40, fontWeight: 'bold', textAlign: 'center', flex: 1, fontFamily: 'MuseoModerno-Regular', letterSpacing: 1, marginTop: 8 }}>
+        <Text style={{ color: 'black', fontSize: 40, textAlign: 'center', flex: 1, fontFamily: 'MuseoModerno-Regular', letterSpacing: 1, marginTop: 8 }}>
           cherrizbox
         </Text>
       </View>

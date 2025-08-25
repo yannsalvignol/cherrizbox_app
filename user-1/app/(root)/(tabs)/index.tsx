@@ -4,7 +4,7 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Dimensions, Image, Keyboard, RefreshControl, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Dimensions, Image, Keyboard, Platform, RefreshControl, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PhotoCard from '../../components/PhotoCard';
 import SearchInput from '../../components/SearchInput';
@@ -40,6 +40,12 @@ interface UserProfile {
 export default function Index() {
     const router = useRouter();
     const navigation = useNavigation();
+    
+    // Debug font loading on Android
+    useEffect(() => {
+        console.log(`📱 Platform: ${Platform.OS}`);
+        console.log(`🔤 Font family will be: MuseoModerno-Regular`);
+    }, []);
     const { user, profile, posts, loading, postsLoaded, refreshPosts, getCachedImageUrl, profileImage } = useGlobalContext();
     const [refreshing, setRefreshing] = useState(false);
     const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
@@ -184,7 +190,6 @@ export default function Index() {
                 <View className="flex-row items-center">
                     <Text style={{ 
                         fontSize: 40,
-                        fontWeight: 'bold',
                         color: '#1E1E1E',
                         fontFamily: 'MuseoModerno-Regular',
                         letterSpacing: 1

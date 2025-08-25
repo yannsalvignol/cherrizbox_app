@@ -141,7 +141,6 @@ export default function WelcomeAnimation() {
                         
                         <Text style={{
                             fontSize: 40,
-                            fontWeight: 'bold',
                             color: 'white',
                             fontFamily: 'MuseoModerno-Regular',
                             marginBottom: 16,
