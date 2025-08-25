@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Dimensions, Image, Keyboard, Platform, RefreshControl, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '../../../lib/themes/useTheme';
 import PhotoCard from '../../components/PhotoCard';
 import SearchInput from '../../components/SearchInput';
 import Trending from '../../components/Trending';
@@ -40,6 +41,7 @@ interface UserProfile {
 export default function Index() {
     const router = useRouter();
     const navigation = useNavigation();
+    const { theme } = useTheme();
     
     // Debug font loading on Android
     useEffect(() => {
@@ -166,9 +168,18 @@ export default function Index() {
     };
     
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#DCDEDF' }} edges={['top']}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: theme.backgroundTertiary }} edges={['top']}>
             {/* Header */}
-            <View className="flex-row items-center justify-between px-4 py-2 bg-black">
+            <View style={{ 
+                flexDirection: 'row', 
+                alignItems: 'center', 
+                justifyContent: 'space-between', 
+                paddingHorizontal: 16, 
+                paddingVertical: 8, 
+                backgroundColor: theme.backgroundTertiary,
+                borderBottomWidth: 1,
+                borderBottomColor:theme.backgroundTertiary
+            }}>
                 <TouchableOpacity
                     onPressIn={handleCherryIconPressIn}
                     onPressOut={handleCherryIconPressOut}
@@ -177,20 +188,20 @@ export default function Index() {
                     <Animated.Image 
                         source={require('../../../assets/images/cherry-icon-low.png')}
                         style={{
-                            width: 56,
-                            height: 56,
-                            borderRadius: 10, // Slightly rounded corners
-                            backgroundColor: 'white',
+                            width: Platform.OS === 'android' ? 52 : 56,
+                            height: Platform.OS === 'android' ? 52 : 56,
+                            borderRadius: Platform.OS === 'android' ? 9 : 10,
+                            backgroundColor: theme.cardBackground,
                             transform: [{ scale: cherryIconScale }],
                         }}
                         resizeMode="contain"
                     />
                 </TouchableOpacity>
                 
-                <View className="flex-row items-center">
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <Text style={{ 
                         fontSize: 40,
-                        color: '#1E1E1E',
+                        color: theme.text,
                         fontFamily: 'MuseoModerno-Regular',
                         letterSpacing: 1
                     }}>
@@ -201,10 +212,10 @@ export default function Index() {
             
                 <TouchableOpacity onPress={() => router.push('/profile')}>
                     <View style={{
-                        width: 67,
-                        height: 67,
-                        borderRadius: 36,
-                        backgroundColor: '#FD6F3E',
+                        width: Platform.OS === 'android' ? 60 : 67,
+                        height: Platform.OS === 'android' ? 60 : 67,
+                        borderRadius: Platform.OS === 'android' ? 30 : 36,
+                        backgroundColor: theme.primary,
                         alignItems: 'center',
                         justifyContent: 'center',
                         overflow: 'hidden'
@@ -217,8 +228,8 @@ export default function Index() {
                             />
                         ) : (
                             <Text style={{ 
-                                fontSize: 24, 
-                                color: 'white', 
+                                fontSize: Platform.OS === 'android' ? 22 : 24, 
+                                color: theme.textInverse, 
                                 fontWeight: 'bold' 
                             }}>
                                 {user?.name?.[0] || 'U'}
@@ -229,7 +240,7 @@ export default function Index() {
             </View>
 
             {/* Search input */}
-            <View className='px-4 mt-4 mb-4'>
+            <View style={{ paddingHorizontal: 16, marginTop: 16, marginBottom: 16 }}>
                 <SearchInput onSearch={handleSearch} onFocus={handleSearchFocus} />
             </View>
 
@@ -238,15 +249,15 @@ export default function Index() {
 
             {/* Content */}
             <Animated.ScrollView 
-                className="flex-1"
+                style={{ flex: 1 }}
                 contentContainerStyle={{ paddingBottom: 100 }}
                 showsVerticalScrollIndicator={false}
                 refreshControl={
                     <RefreshControl
                         refreshing={refreshing}
                         onRefresh={onRefresh}
-                        tintColor="#FD6F3E"
-                        colors={["#FD6F3E"]}
+                        tintColor={theme.primary}
+                        colors={[theme.primary]}
                     />
                 }
                 scrollEventThrottle={16}
@@ -259,18 +270,23 @@ export default function Index() {
                 onMomentumScrollEnd={() => setScrolling(false)}
             >
                 {/* Posts section */}
-                <View className="px-2 mt-[18px]">
-                    <Text className="text-white font-['Urbanist-Bold'] text-lg mb-1">
+                <View style={{ paddingHorizontal: 8, marginTop: 18 }}>
+                    <Text style={{ 
+                        color: theme.text, 
+                        fontFamily: 'Urbanist-Bold', 
+                        fontSize: 18, 
+                        marginBottom: 4 
+                    }}>
                         {isSearchFocused ? 'Search Results' : 'For You'}
                     </Text>
                     
                     {loading || !postsLoaded ? (
                         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 60 }}>
                             <Image source={require('../../../assets/icon/loading-icon.png')} style={{ width: 60, height: 60, marginBottom: 16 }} />
-                            <Text style={{ color: '#FD6F3E', fontSize: 18, marginBottom: 12 }}>Loading posts...</Text>
+                            <Text style={{ color: theme.primary, fontSize: 18, marginBottom: 12 }}>Loading posts...</Text>
                         </View>
                     ) : (filteredPosts.length > 0 || isSearchFocused) ? (
-                        <View className="flex-row flex-wrap justify-between">
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
                             {filteredPosts.map((post, index) => (
                                 post.type === "photo" ? (
                                     <View key={post.$id} style={{ marginBottom: 12, width: cardWidth }}>
@@ -292,7 +308,7 @@ export default function Index() {
                                                     }}
                                                 >
                                                     <View style={{
-                                                        backgroundColor: 'black',
+                                                        backgroundColor: theme.background,
                                                         borderRadius: 18,
                                                         overflow: 'hidden',
                                                         width: '100%',
@@ -322,16 +338,36 @@ export default function Index() {
                                 ) : (
                                     <TouchableOpacity 
                                         key={post.$id} 
-                                        className="bg-[#1A1A1A] rounded-lg mb-3 p-4 w-full"
+                                        style={{
+                                            backgroundColor: theme.cardBackground,
+                                            borderRadius: 8,
+                                            marginBottom: 12,
+                                            padding: 16,
+                                            width: '100%'
+                                        }}
                                         onPress={() => router.replace(`/properties/${post.$id}`)}
                                     >
-                                        <View className="flex-row items-center mb-2">
-                                            <Text className="font-['Urbanist-Bold'] text-white text-lg">
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                                            <Text style={{
+                                                fontFamily: 'Urbanist-Bold',
+                                                color: theme.text,
+                                                fontSize: 18
+                                            }}>
                                                 {post.title || 'Untitled'}
                                             </Text>
                                             {post.type && (
-                                                <View className="ml-2 px-2 py-1 bg-[#FD6F3E] rounded-full">
-                                                    <Text className="text-white text-xs font-['Urbanist-Bold']">
+                                                <View style={{
+                                                    marginLeft: 8,
+                                                    paddingHorizontal: 8,
+                                                    paddingVertical: 4,
+                                                    backgroundColor: theme.primary,
+                                                    borderRadius: 16
+                                                }}>
+                                                    <Text style={{
+                                                        color: theme.textInverse,
+                                                        fontSize: 12,
+                                                        fontFamily: 'Urbanist-Bold'
+                                                    }}>
                                                         {post.type}
                                                     </Text>
                                                 </View>
@@ -342,13 +378,13 @@ export default function Index() {
                             ))}
                         </View>
                     ) : (
-                        <View className="items-center justify-center py-20">
+                        <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 80 }}>
                             <Image 
                                 source={require('../../../assets/images/loading-icon.png')} 
                                 style={{ width: 80, height: 80, marginBottom: 16 }} 
                             />
                             <Text style={{ 
-                                color: 'white', 
+                                color: theme.text, 
                                 fontSize: 24, 
                                 fontFamily: 'Urbanist-Bold',
                                 marginBottom: 16,
@@ -357,7 +393,7 @@ export default function Index() {
                                 No posts found 😢
                             </Text>
                             <Text style={{ 
-                                color: 'white', 
+                                color: theme.textSecondary, 
                                 fontSize: 18, 
                                 textAlign: 'center',
                                 paddingHorizontal: 32

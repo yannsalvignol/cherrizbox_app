@@ -159,7 +159,10 @@ export const PaidContentAttachment: React.FC<PaidContentAttachmentProps> = ({ at
           {/* Blur Overlay (only if not unlocked) */}
           {!isUnlocked && (
             <BlurView
-              intensity={50}
+                            intensity={Platform.OS === 'ios' ? 50 : 30}
+                {...(Platform.OS === 'android' && {
+                  experimentalBlurMethod: 'dimezisBlurView'
+                })}
               style={{
                 position: 'absolute',
                 top: 0,

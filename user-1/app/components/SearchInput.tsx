@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { Keyboard, TextInput, TouchableOpacity, View } from 'react-native';
+import { Keyboard, Platform, TextInput, TouchableOpacity, View } from 'react-native';
+import { useTheme } from '../../lib/themes/useTheme';
 
 interface SearchInputProps {
     onSearch: (query: string) => void;
@@ -10,6 +11,7 @@ interface SearchInputProps {
 const SearchInput = ({ onSearch, onFocus }: SearchInputProps) => {
     const [isFocused, setIsFocused] = useState(false);
     const [searchText, setSearchText] = useState('');
+    const { theme } = useTheme();
 
     const handleFocus = () => {
         setIsFocused(true);
@@ -39,42 +41,61 @@ const SearchInput = ({ onSearch, onFocus }: SearchInputProps) => {
     };
 
     return (
-        <View className="flex-row items-center">
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             {isFocused && (
                 <TouchableOpacity 
                     onPress={handleBack} 
-                    className="mr-3 justify-center items-center"
-                    style={{ height: 40, width: 40 }}
+                    style={{ 
+                        marginRight: 12, 
+                        justifyContent: 'center', 
+                        alignItems: 'center',
+                        height: 40, 
+                        width: 40 
+                    }}
                 >
                     <Ionicons 
                         name="chevron-back-outline" 
                         size={34} 
-                        color="black" 
+                        color={theme.text} 
                     />
                 </TouchableOpacity>
             )}
-            <View className="flex-1 flex-row items-center bg-[#FFFFFF] px-5 py-4 rounded-full">
+            <View 
+                style={{ 
+                    flex: 1,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: theme.cardBackground,
+                    paddingHorizontal: 20,
+                    borderRadius: 25,
+                    paddingVertical: Platform.OS === 'android' ? 12 : 16 
+                }}
+            >
                 <TextInput
-                    className="flex-1 text-black font-['Questrial'] text-base"
+                    style={{ 
+                        flex: 1,
+                        color: theme.text,
+                        fontFamily: 'Questrial',
+                        fontSize: 16,
+                        paddingVertical: Platform.OS === 'android' ? 4 : 4,
+                        lineHeight: Platform.OS === 'android' ? 18 : 18,
+                        textAlignVertical: Platform.OS === 'android' ? 'center' : 'auto',
+                        includeFontPadding: false
+                    }}
                     placeholder="Search ..."
-                    placeholderTextColor="black"
+                    placeholderTextColor={theme.textSecondary}
                     value={searchText}
                     onChangeText={handleSearch}
                     onFocus={handleFocus}
                     onBlur={handleBlur}
                     blurOnSubmit={false}
                     returnKeyType="search"
-                    style={{ 
-                        paddingVertical: 4,
-                        color: 'black',
-                        lineHeight: 18
-                    }}
                 />
-                <TouchableOpacity onPress={handleFocus} className="ml-2">
+                <TouchableOpacity onPress={handleFocus} style={{ marginLeft: 8 }}>
                     <Ionicons 
                         name="search-outline" 
                         size={24} 
-                        color="black" 
+                        color={theme.textSecondary} 
                     />
                 </TouchableOpacity>
             </View>

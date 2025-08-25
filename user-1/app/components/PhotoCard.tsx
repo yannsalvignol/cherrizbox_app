@@ -45,8 +45,8 @@ const PhotoCard = ({ photo, index = 0, scrollY, isSubscribed = false, isCancelle
             console.log(
                 `PhotoCard Title: ${photo.title || 'Untitled'}\n` +
                 `  - Original URL: ${imageUrl}\n` +
-                `  - Used URL: ${cachedUrl}\n` +
-                `  - Is Cached: ${cachedUrl.startsWith('file://')}\n` +
+                `  - Used URL: ${cachedUrl || 'undefined'}\n` +
+                `  - Is Cached: ${cachedUrl?.startsWith('file://') || false}\n` +
                 `------------------------------------`
             );
         }
@@ -261,7 +261,6 @@ const PhotoCard = ({ photo, index = 0, scrollY, isSubscribed = false, isCancelle
                             )}
                             <Text style={{
                                 color: '#fff',
-                                fontWeight: '700',
                                 fontSize: 16,
                                 letterSpacing: 0.2,
                                 textShadowColor: 'rgba(0,0,0,0.3)',

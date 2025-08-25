@@ -4,23 +4,24 @@ import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
-  Modal,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Modal,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-  codeBasedPasswordReset,
-  logout,
-  verifyCodeAndResetPassword
+    codeBasedPasswordReset,
+    logout,
+    verifyCodeAndResetPassword
 } from "../../../lib/appwrite";
+import { useTheme } from "../../../lib/themes/useTheme";
 import FormField from "../../components/FormField";
 import OtpInput from "../../components/OtpInput";
 
-const PasswordCriteria = ({ password, isFocused }: { password: string; isFocused: boolean }) => {
+const PasswordCriteria = ({ password, isFocused, theme }: { password: string; isFocused: boolean; theme: any }) => {
   if (!isFocused) return null;
 
   const criteria = [
@@ -30,16 +31,32 @@ const PasswordCriteria = ({ password, isFocused }: { password: string; isFocused
   ];
 
   return (
-      <View className="mt-2 bg-gray-800 p-3 rounded-lg">
-          <Text className="text-sm font-['Urbanist-Bold'] text-gray-300 mb-2">Password Requirements:</Text>
+      <View style={{ 
+        marginTop: 8, 
+        backgroundColor: theme.cardBackground, 
+        padding: 12, 
+        borderRadius: 8 
+      }}>
+          <Text style={{ 
+            fontSize: 14, 
+            fontFamily: 'Urbanist-Bold', 
+            color: theme.textSecondary, 
+            marginBottom: 8 
+          }}>
+            Password Requirements:
+          </Text>
           {criteria.map((criterion, index) => (
-              <View key={index} className="flex-row items-center mt-1">
+              <View key={index} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
                   {criterion.met ? (
                       <Ionicons name="checkmark-circle" size={20} color="#22c55e" style={{ marginRight: 8 }} />
                   ) : (
                       <Ionicons name="close-circle" size={20} color="#ef4444" style={{ marginRight: 8 }} />
                   )}
-                  <Text className={`text-sm font-['Urbanist-Regular'] ${criterion.met ? 'text-green-400' : 'text-red-400'}`}>
+                  <Text style={{
+                    fontSize: 14,
+                    fontFamily: 'Urbanist-Regular',
+                    color: criterion.met ? '#22c55e' : '#ef4444'
+                  }}>
                       {criterion.label}
                   </Text>
               </View>
@@ -50,6 +67,7 @@ const PasswordCriteria = ({ password, isFocused }: { password: string; isFocused
 
 const ForgotPasswordLoggedIn = () => {
   const { user, refetch } = useGlobalContext();
+  const { theme } = useTheme();
   const [step, setStep] = useState(1); // 1: Email, 2: Code, 3: New Password
   const [email, setEmail] = useState(user?.email || "");
   const [code, setCode] = useState("");
@@ -166,7 +184,7 @@ const ForgotPasswordLoggedIn = () => {
   const { title, subtitle } = getStepInfo();
 
     return (
-    <SafeAreaView className="bg-black flex-1">
+    <SafeAreaView style={{ backgroundColor: theme.backgroundTertiary, flex: 1 }}>
       {!showSuccessModal && (
         <ScrollView
           contentContainerStyle={{
@@ -179,22 +197,37 @@ const ForgotPasswordLoggedIn = () => {
           <View>
             <TouchableOpacity
               onPress={() => router.back()}
-              className="absolute top-0 left-0 z-10 p-2"
+              style={{ position: 'absolute', top: 0, left: 0, zIndex: 10, padding: 8 }}
             >
-              <Ionicons name="chevron-back" size={32} color="black" />
+              <Ionicons name="chevron-back" size={32} color={theme.text} />
             </TouchableOpacity>
 
-            <View className="w-full mt-24">
-              <Text className="text-white font-['Urbanist-Bold'] text-3xl">
+            <View style={{ width: '100%', marginTop: 96 }}>
+              <Text style={{ 
+                color: theme.text, 
+                fontFamily: 'Urbanist-Bold', 
+                fontSize: 30 
+              }}>
                 {title}
               </Text>
-              <Text className="text-gray-400 font-['Urbanist-Regular'] text-base mt-3 mb-8">
+              <Text style={{ 
+                color: theme.textSecondary, 
+                fontFamily: 'Urbanist-Regular', 
+                fontSize: 16, 
+                marginTop: 12, 
+                marginBottom: 32 
+              }}>
                 {subtitle}
               </Text>
             </View>
 
             {error ? (
-              <Text style={{ color: '#ef4444' }} className="mb-4 text-center font-['Urbanist-SemiBold']">
+              <Text style={{ 
+                color: theme.error, 
+                marginBottom: 16, 
+                textAlign: 'center', 
+                fontFamily: 'Urbanist-SemiBold' 
+              }}>
                 {error}
               </Text>
             ) : null}
@@ -209,13 +242,24 @@ const ForgotPasswordLoggedIn = () => {
                 />
                 <TouchableOpacity
                   onPress={handleRequestCode}
-                  className="w-full bg-[#FD6F3E] py-4 rounded-full mt-8"
+                  style={{
+                    width: '100%',
+                    backgroundColor: theme.primary,
+                    paddingVertical: 16,
+                    borderRadius: 25,
+                    marginTop: 32
+                  }}
                   disabled={isLoading}
                 >
                   {isLoading ? (
-                    <ActivityIndicator color="white" />
+                    <ActivityIndicator color={theme.textInverse} />
                   ) : (
-                    <Text style={{ color: 'white' }} className="text-center font-['Urbanist-Bold'] text-lg">
+                    <Text style={{ 
+                      color: theme.textInverse, 
+                      textAlign: 'center', 
+                      fontFamily: 'Urbanist-Bold', 
+                      fontSize: 18 
+                    }}>
                       Send Code
                     </Text>
                   )}
@@ -231,13 +275,24 @@ const ForgotPasswordLoggedIn = () => {
                 />
                 <TouchableOpacity
                   onPress={handleVerifyCode}
-                  className="w-full bg-[#FD6F3E] py-4 rounded-full mt-8"
+                  style={{
+                    width: '100%',
+                    backgroundColor: theme.primary,
+                    paddingVertical: 16,
+                    borderRadius: 25,
+                    marginTop: 32
+                  }}
                   disabled={isLoading}
                 >
                   {isLoading ? (
-                    <ActivityIndicator color="white" />
+                    <ActivityIndicator color={theme.textInverse} />
                   ) : (
-                    <Text style={{ color: 'white' }} className="text-center font-['Urbanist-Bold'] text-lg">
+                    <Text style={{ 
+                      color: theme.textInverse, 
+                      textAlign: 'center', 
+                      fontFamily: 'Urbanist-Bold', 
+                      fontSize: 18 
+                    }}>
                       Verify
                     </Text>
                   )}
@@ -255,7 +310,7 @@ const ForgotPasswordLoggedIn = () => {
                   onFocus={() => setIsPasswordFocused(true)}
                   onBlur={() => setIsPasswordFocused(false)}
                 />
-                <PasswordCriteria password={password} isFocused={isPasswordFocused} />
+                <PasswordCriteria password={password} isFocused={isPasswordFocused} theme={theme} />
                     <FormField 
                   title="Confirm New Password"
                   value={confirmPassword}
@@ -265,13 +320,24 @@ const ForgotPasswordLoggedIn = () => {
                     />
                     <TouchableOpacity 
                   onPress={handleResetPassword}
-                  className="w-full bg-[#FD6F3E] py-4 rounded-full mt-8"
+                  style={{
+                    width: '100%',
+                    backgroundColor: theme.primary,
+                    paddingVertical: 16,
+                    borderRadius: 25,
+                    marginTop: 32
+                  }}
                   disabled={isLoading}
                 >
                   {isLoading ? (
-                    <ActivityIndicator color="white" />
+                    <ActivityIndicator color={theme.textInverse} />
                   ) : (
-                    <Text style={{ color: 'white' }} className="text-center font-['Urbanist-Bold'] text-lg">
+                    <Text style={{ 
+                      color: theme.textInverse, 
+                      textAlign: 'center', 
+                      fontFamily: 'Urbanist-Bold', 
+                      fontSize: 18 
+                    }}>
                       Reset Password
                         </Text>
                   )}
@@ -288,20 +354,53 @@ const ForgotPasswordLoggedIn = () => {
         visible={showSuccessModal}
         onRequestClose={handleLogout}
       >
-        <View className="flex-1 justify-center items-center bg-black/50">
-          <View className="bg-white w-4/5 p-8 rounded-2xl items-center shadow-lg">
-            <Ionicons name="checkmark-circle" size={80} color="#22c55e" />
-            <Text className="text-2xl font-['Urbanist-Bold'] mt-4 text-black">
+        <View style={{ 
+          flex: 1, 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          backgroundColor: theme.modalOverlay 
+        }}>
+          <View style={{ 
+            backgroundColor: theme.modalBackground, 
+            width: '80%', 
+            padding: 32, 
+            borderRadius: 16, 
+            alignItems: 'center' 
+          }}>
+            <Ionicons name="checkmark-circle" size={80} color={theme.success} />
+            <Text style={{ 
+              fontSize: 24, 
+              fontFamily: 'Urbanist-Bold', 
+              marginTop: 16, 
+              color: theme.text 
+            }}>
               Success!
             </Text>
-            <Text className="text-base font-['Urbanist-Regular'] text-gray-600 mt-2 text-center">
+            <Text style={{ 
+              fontSize: 16, 
+              fontFamily: 'Urbanist-Regular', 
+              color: theme.textSecondary, 
+              marginTop: 8, 
+              textAlign: 'center' 
+            }}>
               Your password has been changed. You will now be logged out.
                         </Text>
             <TouchableOpacity
               onPress={handleLogout}
-              className="w-full bg-[#FD6F3E] py-3 rounded-full mt-8"
+              style={{
+                width: '100%',
+                backgroundColor: theme.primary,
+                paddingVertical: 12,
+                borderRadius: 25,
+                marginTop: 32
+              }}
             >
-              <Text style={{ color: 'white' }} className="text-center font-['Urbanist-Bold'] text-lg">
+              <Text style={{ 
+                color: theme.textInverse, 
+                textAlign: 'center', 
+                fontFamily: 'Urbanist-Bold', 
+                fontSize: 18 
+              }}>
                 Log Out
                             </Text>
                         </TouchableOpacity>

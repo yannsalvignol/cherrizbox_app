@@ -1,6 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import React, { useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useTheme } from '../../lib/themes/useTheme';
 
 interface TrendingProps {
   onTrendsChange?: (trends: string[]) => void;
@@ -17,6 +18,7 @@ const trendingTopics = [
 
 const Trending = ({ onTrendsChange }: TrendingProps) => {
   const [selectedTrends, setSelectedTrends] = useState<string[]>([]);
+  const { theme } = useTheme();
 
   const handleTrendPress = (trend: string) => {
     // Trigger haptic feedback
@@ -32,7 +34,7 @@ const Trending = ({ onTrendsChange }: TrendingProps) => {
   };
 
   return (
-    <View className="px-4 -mt-2 mb-6">
+    <View style={{ paddingHorizontal: 16, marginTop: -8, marginBottom: 24 }}>
       <View>
         {trendingTopics.map((row, rowIndex) => (
           <View key={rowIndex} style={{ marginBottom: 5 }}>
@@ -49,15 +51,19 @@ const Trending = ({ onTrendsChange }: TrendingProps) => {
                   <TouchableOpacity 
                     key={index}
                     onPress={() => handleTrendPress(topic)}
-                    className={`py-2 px-4 rounded-full mr-2 border ${
-                      isSelected 
-                        ? 'bg-[#FFFFFF] border-[#FFFFFF]' 
-                        : 'bg-[#DCDEDF] border-[#676767]'
-                    }`}
+                    style={{
+                      paddingVertical: 8,
+                      paddingHorizontal: 16,
+                      borderRadius: 20,
+                      marginRight: 8,
+                      borderWidth: 1,
+                      backgroundColor: isSelected ? theme.primary : theme.cardBackground,
+                      borderColor: isSelected ? theme.primary : theme.cardBackground
+                    }}
                   >
                     <Text 
                       style={{
-                        color: 'black',
+                        color: isSelected ? theme.textInverse : theme.text,
                         fontFamily: 'Urbanist-Regular'
                       }}
                     >

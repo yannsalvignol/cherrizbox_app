@@ -1,4 +1,5 @@
 import { GlobalProvider } from "@/lib/global-provider";
+import { ThemeProvider } from "@/lib/themes/useTheme";
 import Constants from 'expo-constants';
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
@@ -53,18 +54,20 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={styles.container}>
-      <StripeProvider publishableKey={publishableKey}>
-      <GlobalProvider>
-        <Stack 
-          screenOptions={{ 
-            headerShown: false,
-            gestureEnabled: true,
-            gestureDirection: 'horizontal',
-            animation: 'slide_from_right',
-          }} 
-        />
-      </GlobalProvider>
-      </StripeProvider>
+      <ThemeProvider>
+        <StripeProvider publishableKey={publishableKey}>
+          <GlobalProvider>
+            <Stack 
+              screenOptions={{ 
+                headerShown: false,
+                gestureEnabled: true,
+                gestureDirection: 'horizontal',
+                animation: 'slide_from_right',
+              }} 
+            />
+          </GlobalProvider>
+        </StripeProvider>
+      </ThemeProvider>
     </GestureHandlerRootView>
   );
 }

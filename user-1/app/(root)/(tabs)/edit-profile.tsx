@@ -9,6 +9,7 @@ import { Alert, FlatList, Image, Linking, Modal, Platform, ScrollView, Text, Tex
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { updateUserProfile, uploadProfilePicture } from '../../../lib/appwrite';
 import { useGlobalContext } from '../../../lib/global-provider';
+import { useTheme } from '../../../lib/themes/useTheme';
 
 interface ProfileData {
   userId: string;
@@ -68,6 +69,7 @@ const genders = [
 export default function EditProfile() {
   const router = useRouter();
   const { user: globalUser, profile: globalProfile, setProfile, setProfileImage: setGlobalProfileImage } = useGlobalContext();
+  const { theme } = useTheme();
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -277,17 +279,17 @@ export default function EditProfile() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#DCDEDF' }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.backgroundTertiary }} edges={['top']}>
       {/* Header with back and settings */}
       <View className="flex-row items-center px-4 pt-2 pb-4">
         <TouchableOpacity onPress={() => router.back()} className="flex-row items-center">
           <Ionicons 
             name="chevron-back-outline" 
             size={32} 
-            color="black" 
+            color={theme.text} 
             style={{ marginRight: 4 }}
           />
-          <Text style={{ color: 'black', fontSize: 21, marginLeft: 8, fontFamily: 'Nunito-Bold' }}>
+          <Text style={{ color: theme.text, fontSize: 21, marginLeft: 8, fontFamily: 'Nunito-Bold' }}>
             Edit Profile
           </Text>
         </TouchableOpacity>
@@ -296,27 +298,41 @@ export default function EditProfile() {
           <Ionicons 
             name="settings-sharp" 
             size={28} 
-            color="black" 
+            color={theme.text} 
           />
         </TouchableOpacity>
       </View>
 
       {/* Avatar */}
       <View className="items-center mt-8 mb-4">
-        <View className="w-36 h-36 rounded-full bg-[#FD6F3E] items-center justify-center relative">
+        <View style={{ 
+          width: 144, 
+          height: 144, 
+          borderRadius: 72, 
+          backgroundColor: theme.primary, 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          position: 'relative' 
+        }}>
           {isUploadingImage ? (
-            <View className="w-36 h-36 rounded-full bg-[#FFFFFF] items-center justify-center">
+            <View style={{ 
+              width: 144, 
+              height: 144, 
+              borderRadius: 72, 
+              backgroundColor: theme.cardBackground, 
+              alignItems: 'center', 
+              justifyContent: 'center' 
+            }}>
               <Image source={require('../../../assets/icon/loading-icon.png')} style={{ width: 48, height: 48 }} />
-              <Text className="text-white text-sm mt-2 font-questrial">Uploading...</Text>
+              <Text style={{ color: theme.text, fontSize: 14, marginTop: 8, fontFamily: 'questrial' }}>Uploading...</Text>
             </View>
           ) : localProfileImage ? (
             <Image 
               source={{ uri: localProfileImage }} 
-              className="w-36 h-36 rounded-full"
-              style={{ resizeMode: 'cover' }}
+              style={{ width: 144, height: 144, borderRadius: 72, resizeMode: 'cover' }}
             />
           ) : (
-            <Text className="text-2xl text-white ">{name?.[0] || 'U'}</Text>
+            <Text style={{ fontSize: 24, color: theme.textInverse }}>{name?.[0] || 'U'}</Text>
           )}
           {!isUploadingImage && (
           <TouchableOpacity 
@@ -333,22 +349,30 @@ export default function EditProfile() {
         {/* Form Fields */}
         <View className="mt-8">
           {/* Name */}
-          <View className={`flex-row items-center bg-[#FFFFFF] rounded-lg px-5 mb-2 ${
-            focusedInput === 'name' ? 'border border-[#FFFFFF]' : ''
-          }`} style={{ paddingVertical: Platform.OS === 'android' ? 16 : 16 }}>
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: theme.cardBackground,
+            borderRadius: 8,
+            paddingHorizontal: 20,
+            marginBottom: 8,
+            paddingVertical: Platform.OS === 'android' ? 16 : 16,
+            borderWidth: focusedInput === 'name' ? 1 : 0,
+            borderColor: theme.primary
+          }}>
             <Ionicons 
               name="person-outline" 
               size={24} 
-              color={focusedInput === 'name' ? '#FD6F3E' : '#666'} 
+              color={focusedInput === 'name' ? theme.primary : theme.textSecondary} 
               style={{ marginRight: 12 }}
             />
             <TextInput
-              className="flex-1 text-white font-questrial text-lg h-9"
+              className="flex-1 font-questrial text-lg h-9"
               value={name}
               editable={false}
               style={{ 
                 textAlignVertical: 'center', 
-                color: 'black', 
+                color: theme.text, 
                 paddingBottom: Platform.OS === 'android' ? 0 : 12,
                 paddingTop: Platform.OS === 'android' ? 0 : 0
               }}
@@ -358,24 +382,31 @@ export default function EditProfile() {
           {/* Birth Date */}
           <TouchableOpacity 
             onPress={() => setShowDatePicker(true)}
-            className={`flex-row items-center bg-[#FFFFFF] rounded-lg px-5 mb-2 ${
-              focusedInput === 'birthDate' ? 'border border-[#FFFFFF]' : ''
-            }`}
-            style={{ paddingVertical: Platform.OS === 'android' ? 16 : 16 }}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: theme.cardBackground,
+              borderRadius: 8,
+              paddingHorizontal: 20,
+              marginBottom: 8,
+              paddingVertical: Platform.OS === 'android' ? 16 : 16,
+              borderWidth: focusedInput === 'birthDate' ? 1 : 0,
+              borderColor: theme.primary
+            }}
           >
             <Ionicons 
               name="calendar-outline" 
               size={24} 
-              color={focusedInput === 'birthDate' ? '#FD6F3E' : '#666'} 
+              color={focusedInput === 'birthDate' ? theme.primary : theme.textSecondary} 
               style={{ marginRight: 12 }}
             />
             <TextInput
-              className="flex-1 text-white font-questrial text-lg h-9"
+              className="flex-1 font-questrial text-lg h-9"
               value={`${selectedMonth}/${selectedDay}/${selectedYear}`}
               editable={false}
               style={{ 
                 textAlignVertical: 'center', 
-                color: 'black', 
+                color: theme.text, 
                 paddingBottom: Platform.OS === 'android' ? 0 : 12,
                 paddingTop: Platform.OS === 'android' ? 0 : 0
               }}
@@ -383,22 +414,30 @@ export default function EditProfile() {
           </TouchableOpacity>
 
           {/* Email */}
-          <View className={`flex-row items-center bg-[#FFFFFF] rounded-lg px-5 mb-2 ${
-            focusedInput === 'email' ? 'border border-[#FFFFFF]' : ''
-          }`} style={{ paddingVertical: Platform.OS === 'android' ? 16 : 16 }}>
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: theme.cardBackground,
+            borderRadius: 8,
+            paddingHorizontal: 20,
+            marginBottom: 8,
+            paddingVertical: Platform.OS === 'android' ? 16 : 16,
+            borderWidth: focusedInput === 'email' ? 1 : 0,
+            borderColor: theme.primary
+          }}>
             <Ionicons 
               name="mail-outline" 
               size={24} 
-              color={focusedInput === 'email' ? '#FD6F3E' : '#666'} 
+              color={focusedInput === 'email' ? theme.primary : theme.textSecondary} 
               style={{ marginRight: 12 }}
             />
             <TextInput
-              className="flex-1 text-white font-questrial text-lg h-9"
+              className="flex-1 font-questrial text-lg h-9"
               value={email}
               editable={false}
               style={{ 
                 textAlignVertical: 'center', 
-                color: 'black', 
+                color: theme.text, 
                 paddingBottom: Platform.OS === 'android' ? 0 : 17,
                 paddingTop: Platform.OS === 'android' ? 0 : 0
               }}
@@ -409,38 +448,53 @@ export default function EditProfile() {
           <View className="flex-row items-center mb-2">
             <TouchableOpacity 
               onPress={() => setShowCountryPicker(true)}
-              className={`flex-row items-center bg-[#FFFFFF] rounded-lg px-5 w-24 mr-2 ${
-                focusedInput === 'countryCode' ? 'border border-[#FFFFFF]' : ''
-              }`}
-              style={{ paddingVertical: Platform.OS === 'android' ? 16 : 16 }}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: theme.cardBackground,
+                borderRadius: 8,
+                paddingHorizontal: 20,
+                width: 96,
+                marginRight: 8,
+                paddingVertical: Platform.OS === 'android' ? 16 : 16,
+                borderWidth: focusedInput === 'countryCode' ? 1 : 0,
+                borderColor: theme.primary
+              }}
               activeOpacity={0.7}
             >
-              <Text className="text-white font-questrial text-lg mr-2" style={{ color: 'black' }}>{selectedCountry.flag}</Text>
-              <Text className="text-white font-questrial text-lg" style={{ color: 'black' }}>{selectedCountry.code}</Text>
+              <Text style={{ color: theme.text, fontFamily: 'questrial', fontSize: 18, marginRight: 8 }}>{selectedCountry.flag}</Text>
+              <Text style={{ color: theme.text, fontFamily: 'questrial', fontSize: 18 }}>{selectedCountry.code}</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               onPress={() => setShowPhoneModal(true)}
-              className={`flex-row items-center bg-[#FFFFFF] rounded-lg px-5 flex-1 ${
-                focusedInput === 'phoneNumber' ? 'border border-[#FFFFFF]' : ''
-              }`}
-              style={{ paddingVertical: Platform.OS === 'android' ? 16 : 16 }}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: theme.cardBackground,
+                borderRadius: 8,
+                paddingHorizontal: 20,
+                flex: 1,
+                paddingVertical: Platform.OS === 'android' ? 16 : 16,
+                borderWidth: focusedInput === 'phoneNumber' ? 1 : 0,
+                borderColor: theme.primary
+              }}
               activeOpacity={0.7}
             >
               <Ionicons 
                 name="call-outline" 
                 size={24} 
-                color={focusedInput === 'phoneNumber' ? '#FD6F3E' : '#666'} 
+                color={focusedInput === 'phoneNumber' ? theme.primary : theme.textSecondary} 
                 style={{ marginRight: 12 }}
               />
               <Text 
-                className="flex-1 text-white font-questrial text-lg" 
-                style={{ color: 'black' }}
+                className="flex-1 font-questrial text-lg" 
+                style={{ color: theme.text }}
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
                 {phoneNumber || 'Enter your phone number'}
               </Text>
-              <Ionicons name="chevron-forward" size={20} color="#666" />
+              <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -452,7 +506,7 @@ export default function EditProfile() {
                   key={gender.value}
                   onPress={() => setSelectedGender(gender)}
                   style={{
-                    backgroundColor: selectedGender?.value === gender.value ? '#FD6F3E' : 'white',
+                    backgroundColor: selectedGender?.value === gender.value ? theme.primary : theme.cardBackground,
                     borderRadius: 18,
                     paddingVertical: 12,
                     paddingHorizontal: 0,
@@ -460,12 +514,12 @@ export default function EditProfile() {
                     flex: 1,
                     marginRight: gender.value !== 'other' ? 12 : 0,
                     borderWidth: selectedGender?.value === gender.value ? 0 : 1,
-                    borderColor: '#FFFFFF',
+                    borderColor: theme.border,
                     alignItems: 'center',
                   }}
                 >
                   <Text style={{ 
-                    color: selectedGender?.value === gender.value ? 'white' : 'black', 
+                    color: selectedGender?.value === gender.value ? theme.textInverse : theme.text, 
                     fontFamily: 'questrial', 
                     fontSize: 17,
                     textAlign: 'center',
@@ -479,12 +533,23 @@ export default function EditProfile() {
 
           {/* Update Button */}
           <TouchableOpacity 
-            className="bg-[#FD6F3E] rounded-lg py-4 mt-2 mb-2"
+            style={{
+              backgroundColor: theme.primary,
+              borderRadius: 8,
+              paddingVertical: 16,
+              marginTop: 8,
+              marginBottom: 8
+            }}
             activeOpacity={0.8}
             onPress={handleUpdateProfile}
             disabled={saving}
           >
-            <Text className="text-white text-center font-questrial text-lg">
+            <Text style={{ 
+              color: theme.textInverse, 
+              textAlign: 'center', 
+              fontFamily: 'questrial', 
+              fontSize: 18 
+            }}>
               {saving ? 'Updating...' : 'Update Profile'}
             </Text>
           </TouchableOpacity>
@@ -492,7 +557,7 @@ export default function EditProfile() {
           {/* Success Message */}
           {showSuccess && (
             <Text style={{ 
-              color: '#4CAF50', 
+              color: theme.success, 
               textAlign: 'center', 
               fontFamily: 'Nunito-Bold',
               fontSize: 12,
@@ -511,18 +576,18 @@ export default function EditProfile() {
           animationType="slide"
           onRequestClose={() => setShowDatePicker(false)}
         >
-          <View className="flex-1 bg-black/50 justify-end">
-            <View className="bg-[#FFFFFF] rounded-t-3xl p-4">
+          <View style={{ flex: 1, backgroundColor: theme.modalOverlay, justifyContent: 'flex-end' }}>
+            <View style={{ backgroundColor: theme.modalBackground, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 16 }}>
               <View className="flex-row justify-between items-center mb-4">
-                <Text className="text-black text-xl">Select Birth Date</Text>
+                <Text style={{ color: theme.text, fontSize: 20 }}>Select Birth Date</Text>
                 <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                  <Ionicons name="close" size={30} color="#FD6F3E" />
+                  <Ionicons name="close" size={30} color={theme.primary} />
                 </TouchableOpacity>
               </View>
               <View className="flex-row justify-between">
                 {/* Month Picker */}
                 <View className="flex-1">
-                  <Text className="text-black text-center mb-2">Month</Text>
+                  <Text style={{ color: theme.text, textAlign: 'center', marginBottom: 8 }}>Month</Text>
                   <Picker
                     selectedValue={selectedMonth}
                     onValueChange={(value) => {
@@ -533,33 +598,33 @@ export default function EditProfile() {
                         setSelectedDay(daysInMonth.toString());
                       }
                     }}
-                    style={{ color: 'black' }}
-                    itemStyle={{ color: 'black' }}
+                    style={{ color: theme.text }}
+                    itemStyle={{ color: theme.text }}
                   >
                     {months.map((month) => (
-                      <Picker.Item key={month} label={month} value={month} color="black" />
+                      <Picker.Item key={month} label={month} value={month} color={theme.text} />
                     ))}
                   </Picker>
                 </View>
 
                 {/* Day Picker */}
                 <View className="flex-1">
-                  <Text className="text-black text-center mb-2">Day</Text>
+                  <Text style={{ color: theme.text, textAlign: 'center', marginBottom: 8 }}>Day</Text>
                   <Picker
                     selectedValue={selectedDay}
                     onValueChange={setSelectedDay}
-                    style={{ color: 'black' }}
-                    itemStyle={{ color: 'black' }}
+                    style={{ color: theme.text }}
+                    itemStyle={{ color: theme.text }}
                   >
                     {days.map((day) => (
-                      <Picker.Item key={day} label={day} value={day} color="black" />
+                      <Picker.Item key={day} label={day} value={day} color={theme.text} />
                     ))}
                   </Picker>
                 </View>
 
                 {/* Year Picker */}
                 <View className="flex-1">
-                  <Text className="text-black text-center mb-2">Year</Text>
+                  <Text style={{ color: theme.text, textAlign: 'center', marginBottom: 8 }}>Year</Text>
                   <Picker
                     selectedValue={selectedYear}
                     onValueChange={(value) => {
@@ -570,11 +635,11 @@ export default function EditProfile() {
                         setSelectedDay(daysInMonth.toString());
                       }
                     }}
-                    style={{ color: 'black' }}
-                    itemStyle={{ color: 'black' }}
+                    style={{ color: theme.text }}
+                    itemStyle={{ color: theme.text }}
                   >
                     {years.map((year) => (
-                      <Picker.Item key={year} label={year} value={year} color="black" />
+                      <Picker.Item key={year} label={year} value={year} color={theme.text} />
                     ))}
                   </Picker>
                 </View>

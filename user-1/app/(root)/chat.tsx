@@ -4,13 +4,14 @@ import { dataCache } from '@/lib/data-cache';
 import { useGlobalContext } from '@/lib/global-provider';
 import { imageCache } from '@/lib/image-cache';
 import { client, connectUser } from '@/lib/stream-chat';
+import { useTheme } from '@/lib/themes/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Image, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { Animated, Image, Platform, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { Client, Databases, Query } from 'react-native-appwrite';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -58,6 +59,7 @@ const customReactions: ReactionData[] = [
 export default function ChatScreen() {
   const { channelId, creatorName, chatType } = useLocalSearchParams();
   const { user, isStreamConnected, setIsStreamConnected, posts } = useGlobalContext();
+  const { theme: appTheme } = useTheme();
   const insets = useSafeAreaInsets();
   const [groupChannel, setGroupChannel] = useState<any>(null);
   const [dmChannel, setDmChannel] = useState<any>(null);
@@ -145,7 +147,7 @@ export default function ChatScreen() {
       console.log(`✅ [ChatScreen] Cleanup completed`);
     };
   }, [creatorThumbnail]);
-  const [theme, setTheme] = useState(getTheme());
+  const [chatTheme, setChatTheme] = useState(getTheme(appTheme));
   const router = useRouter();
   const bounceAnim = useRef(new Animated.Value(0)).current;
 
@@ -250,8 +252,8 @@ export default function ChatScreen() {
   };
 
   useEffect(() => {
-    setTheme(getTheme());
-  }, [colorScheme]);
+    setChatTheme(getTheme(appTheme));
+  }, [appTheme]);
 
   useEffect(() => {
     if (loading) {
@@ -492,7 +494,7 @@ export default function ChatScreen() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#DCDEDF', paddingTop: insets.top }}>
+      <View style={{ flex: 1, backgroundColor: appTheme.backgroundTertiary, paddingTop: insets.top }}>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <Animated.Image
@@ -500,7 +502,7 @@ export default function ChatScreen() {
             style={{ width: 60, height: 60, marginBottom: 16, transform: [{ translateY: bounceAnim }] }}
             resizeMode="contain"
           />
-          <Text style={{ color: '#1A1A1A', fontSize: 16, fontFamily: 'questrial' }}>
+          <Text style={{ color: appTheme.text, fontSize: 16, fontFamily: 'questrial' }}>
             Loading chat...
           </Text>
         </View>
@@ -510,22 +512,22 @@ export default function ChatScreen() {
 
   if (error || !currentChannel) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#DCDEDF', paddingTop: insets.top }}>
+      <View style={{ flex: 1, backgroundColor: appTheme.backgroundTertiary, paddingTop: insets.top }}>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 }}>
-          <Text style={{ color: '#1A1A1A', fontSize: 18, fontFamily: 'questrial', textAlign: 'center', marginBottom: 16 }}>
+          <Text style={{ color: appTheme.text, fontSize: 18, fontFamily: 'questrial', textAlign: 'center', marginBottom: 16 }}>
             {error || 'Channel not found'}
           </Text>
           <TouchableOpacity
             onPress={() => router.back()}
             style={{
-              backgroundColor: '',
+              backgroundColor: appTheme.primary,
               paddingHorizontal: 24,
               paddingVertical: 12,
               borderRadius: 8,
             }}
           >
-            <Text style={{ color: '#FFFFFF', fontSize: 16, fontFamily: 'questrial' }}>
+            <Text style={{ color: appTheme.textInverse, fontSize: 16, fontFamily: 'questrial' }}>
               Go Back
             </Text>
           </TouchableOpacity>
@@ -535,13 +537,13 @@ export default function ChatScreen() {
   }
 
     return (
-      <View style={{ flex: 1, backgroundColor: '#DCDEDF', paddingTop: insets.top }}>
+      <View style={{ flex: 1, backgroundColor: appTheme.backgroundTertiary, paddingTop: insets.top }}>
         <Stack.Screen options={{ headerShown: false }} />
       <StatusBar style="light" />
         
 
       <OverlayProvider>
-        <Chat client={client} style={theme}>
+        <Chat client={client} style={chatTheme}>
           <Channel
             channel={currentChannel}
             keyboardVerticalOffset={0}
@@ -572,7 +574,7 @@ export default function ChatScreen() {
               justifyContent: 'center',
               paddingHorizontal: 16,
               paddingVertical: 16,
-              backgroundColor: '#DCDEDF',
+              backgroundColor: appTheme.backgroundTertiary,
               position: 'relative'
             }}>
               {/* Thread back button */}
@@ -584,11 +586,11 @@ export default function ChatScreen() {
                     left: 16,
                     zIndex: 10,
                     padding: 8,
-                    backgroundColor: '#DCDEDF',
+                    backgroundColor: appTheme.backgroundTertiary,
                     borderRadius: 20,
                 }}
               >
-                  <Ionicons name="chevron-back-outline" size={24} color="black" />
+                  <Ionicons name="chevron-back-outline" size={24} color={appTheme.text} />
               </TouchableOpacity>
               )}
               
@@ -604,13 +606,13 @@ export default function ChatScreen() {
                   }}
                   activeOpacity={0.7}
                 >
-                  <Image 
+                                      <Image 
                     source={require('../../assets/images/cherry-icon-low.png')}
                     style={{
                       width: 56,
                       height: 56,
                       borderRadius: 10,
-                      backgroundColor: 'white',
+                      backgroundColor: appTheme.cardBackground,
                     }}
                     resizeMode="contain"
                   />
@@ -624,8 +626,7 @@ export default function ChatScreen() {
               }}>
                 <Text style={{ 
                   fontSize: thread ? 20 : 40,
-                  fontWeight: 'bold',
-                  color: 'black', 
+                  color: appTheme.text, 
                   fontFamily: thread ? 'questrial' : 'MuseoModerno-Regular'
                 }}>
                   {thread ? 'Thread' : 'cherrizbox'}
@@ -642,7 +643,7 @@ export default function ChatScreen() {
                   width: 64,
                   height: 64,
                   borderRadius: 32,
-                  backgroundColor: '#2A2A2A',
+                  backgroundColor: appTheme.primary,
                   alignItems: 'center',
                   justifyContent: 'center',
                   overflow: 'hidden'
@@ -663,7 +664,7 @@ export default function ChatScreen() {
               <Text style={{ 
                       fontSize: 24,
                       fontWeight: 'bold',
-                color: 'white', 
+                color: appTheme.textInverse, 
                 fontFamily: 'questrial'
               }}>
                       {(creatorName as string)?.charAt(0)?.toUpperCase() || 'C'}
@@ -715,13 +716,13 @@ export default function ChatScreen() {
                       <MessageList 
                         DateHeader={() => null}
                         EmptyStateIndicator={() => (
-                          <View style={{ flex: 1, backgroundColor: '#DCDEDF', justifyContent: 'center', alignItems: 'center', padding: 32 }}>
+                          <View style={{ flex: 1, backgroundColor: appTheme.backgroundTertiary, justifyContent: 'center', alignItems: 'center', padding: 32 }}>
                             <Image
                               source={loadingIcon}
                               style={{ width: 60, height: 60, marginBottom: 18, opacity: 0.8 }}
                               resizeMode="contain"
                             />
-                            <Text style={{ color: '#1A1A1A', fontSize: 18, fontFamily: 'questrial', textAlign: 'center', opacity: 0.7 }}>
+                            <Text style={{ color: appTheme.text, fontSize: 18, fontFamily: 'questrial', textAlign: 'center', opacity: 0.7 }}>
                               No messages yet. Start the conversation!
                             </Text>
                           </View>
@@ -737,7 +738,7 @@ export default function ChatScreen() {
                     top: 4,
                     left: '5%',
                     width: '90%',
-                    backgroundColor: 'white',
+                    backgroundColor: appTheme.cardBackground,
                     paddingHorizontal: 16,
                     paddingVertical: 16,
                     borderRadius: 20,
@@ -773,7 +774,7 @@ export default function ChatScreen() {
                           width: 48,
                           height: 48,
                           borderRadius: 24,
-                backgroundColor: '#1A1A1A',
+                backgroundColor: appTheme.primary,
                           alignItems: 'center',
                           justifyContent: 'center',
                           overflow: 'hidden',
@@ -789,7 +790,7 @@ export default function ChatScreen() {
                           />
                         ) : (
                           <Text style={{
-                            color: 'white',
+                            color: appTheme.textInverse,
                             fontSize: 14,
                             fontWeight: 'bold',
                           }}>
@@ -800,9 +801,8 @@ export default function ChatScreen() {
                       
                       {/* Creator Name */}
                       <Text style={{
-                        color: '#1A1A1A',
+                        color: appTheme.text,
                         fontSize: 24,
-                        fontWeight: 'bold',
                         fontFamily: 'MuseoModerno-Regular',
                       }}>
                         {creatorName || 'Creator'}
@@ -812,7 +812,7 @@ export default function ChatScreen() {
                     {/* Bottom row - Chat Type Toggle */}
                 <View style={{
                       width: '80%',
-                      backgroundColor: '#F5F5F5',
+                      backgroundColor: appTheme.backgroundSecondary,
                   borderRadius: 25,
                   height: 40,
                   overflow: 'hidden',
@@ -828,11 +828,11 @@ export default function ChatScreen() {
                       justifyContent: 'center',
                       flexDirection: 'row',
                       gap: 6,
-                          backgroundColor: currentChatType === 'group' ? 'white' : 'transparent',
+                          backgroundColor: currentChatType === 'group' ? appTheme.cardBackground : 'transparent',
                           borderRadius: 20,
                       height: '100%',
                           borderWidth: currentChatType === 'group' ? 1 : 0,
-                          borderColor: currentChatType === 'group' ? '#E0E0E0' : 'transparent',
+                          borderColor: currentChatType === 'group' ? appTheme.border : 'transparent',
                           shadowColor: currentChatType === 'group' ? '#000' : 'transparent',
                           shadowOffset: { width: 0, height: 1 },
                           shadowOpacity: currentChatType === 'group' ? 0.1 : 0,
@@ -844,13 +844,13 @@ export default function ChatScreen() {
                     <Ionicons 
                       name="people" 
                       size={16} 
-                      color={currentChatType === 'group' ? '#18181b' : '#888'} 
+                      color={currentChatType === 'group' ? appTheme.text : appTheme.textSecondary} 
                     />
                     <Text style={{
-                          color: currentChatType === 'group' ? 'black' : 'black',
+                          color: currentChatType === 'group' ? appTheme.text : appTheme.textSecondary,
                       fontSize: 13,
                           fontFamily: 'MuseoModerno-Regular',
-                      fontWeight: currentChatType === 'group' ? 'bold' : '500'
+
                     }}>
                           Box
                     </Text>
@@ -864,11 +864,11 @@ export default function ChatScreen() {
                       justifyContent: 'center',
                       flexDirection: 'row',
                       gap: 6,
-                          backgroundColor: currentChatType === 'direct' ? 'white' : 'transparent',
+                          backgroundColor: currentChatType === 'direct' ? appTheme.cardBackground : 'transparent',
                           borderRadius: 20,
                       height: '100%',
                           borderWidth: currentChatType === 'direct' ? 1 : 0,
-                          borderColor: currentChatType === 'direct' ? '#E0E0E0' : 'transparent',
+                          borderColor: currentChatType === 'direct' ? appTheme.border : 'transparent',
                           shadowColor: currentChatType === 'direct' ? '#000' : 'transparent',
                           shadowOffset: { width: 0, height: 1 },
                           shadowOpacity: currentChatType === 'direct' ? 0.1 : 0,
@@ -880,13 +880,13 @@ export default function ChatScreen() {
                     <Ionicons 
                       name="chatbubble-ellipses" 
                       size={16} 
-                      color={currentChatType === 'direct' ? '#18181b' : '#888'} 
+                      color={currentChatType === 'direct' ? appTheme.text : appTheme.textSecondary} 
                     />
                     <Text style={{
-                          color: currentChatType === 'direct' ? 'black' : 'black',
+                          color: currentChatType === 'direct' ? appTheme.text : appTheme.textSecondary,
                       fontSize: 13,
                           fontFamily: 'MuseoModerno-Regular',
-                      fontWeight: currentChatType === 'direct' ? 'bold' : '500'
+
                     }}>
                       One on One
                     </Text>
@@ -910,7 +910,7 @@ export default function ChatScreen() {
                             { translateY: -12 }
                           ]
                         }}>
-                          <Ionicons name="chevron-back" size={24} color="#FD6F3E" />
+                          <Ionicons name="chevron-back" size={24} color={appTheme.primary} />
                         </Animated.View>
 
                         {/* Right Arrow (Swipe to Group) */}
@@ -927,7 +927,7 @@ export default function ChatScreen() {
                             { translateY: -12 }
                           ]
                         }}>
-                          <Ionicons name="chevron-forward" size={24} color="#FD6F3E" />
+                          <Ionicons name="chevron-forward" size={24} color={appTheme.primary} />
                         </Animated.View>
                       </>
                     )}
@@ -947,7 +947,11 @@ export default function ChatScreen() {
                       pointerEvents: 'none',
                     }}>
                       <BlurView
-                        intensity={25}
+                        intensity={Platform.OS === 'ios' ? 25 : 5}
+                        {...(Platform.OS === 'android' && {
+                          tint: 'dark',
+                          experimentalBlurMethod: 'dimezisBlurView'
+                        })}
                         style={{
                           width: '100%',
                           height: '100%',
