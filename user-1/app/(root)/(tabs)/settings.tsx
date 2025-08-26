@@ -3,7 +3,7 @@ import { useTheme } from '@/lib/themes/useTheme'
 import { Ionicons } from '@expo/vector-icons'
 import { useNavigation, useRouter } from 'expo-router'
 import React, { useState } from 'react'
-import { GestureResponderEvent, Platform, Switch, Text, TouchableOpacity, View } from 'react-native'
+import { GestureResponderEvent, Platform, ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { logout } from '../../../lib/appwrite'
 
@@ -13,6 +13,7 @@ export default function Settings() {
   const { refetch } = useGlobalContext();
   const { theme, themeMode, setThemeMode } = useTheme();
   const [pushNotifications, setPushNotifications] = useState(true);
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
 
   // Enable swipe to go back
   React.useEffect(() => {
@@ -46,13 +47,20 @@ export default function Settings() {
     setThemeMode(themeMode === 'light' ? 'dark' : 'light');
   };
 
+  const handleDeleteAccount = () => {
+    // TODO: Add delete account logic later
+    console.log('Delete account pressed - logic to be implemented');
+  };
+
   const renderSettingItem = (
     title: string,
     onPress: ((event: GestureResponderEvent) => void) | null | undefined,
     hasSwitch = false,
     isLogout = false,
     isLast = false,
-    isThemeSwitch = false
+    isThemeSwitch = false,
+    isExpandable = false,
+    isDangerous = false
   ) => (
     <TouchableOpacity 
       className="flex-row items-center justify-between"
@@ -64,7 +72,7 @@ export default function Settings() {
       onPress={onPress || undefined}
       disabled={hasSwitch || isThemeSwitch}
     >
-      <Text className={`font-questrial text-lg ${isLogout ? 'text-[#FD6F3E]' : 'text-black'}`} style={{ color: isLogout ? theme.primary : theme.text }}>{title}</Text>
+      <Text className={`font-questrial text-lg`} style={{ color: isLogout ? theme.primary : isDangerous ? theme.error : theme.text }}>{title}</Text>
       {hasSwitch ? (
         <Switch
           value={pushNotifications}
@@ -84,6 +92,18 @@ export default function Settings() {
           name="log-out-outline" 
           size={24} 
           color={theme.primary} 
+        />
+      ) : isExpandable ? (
+        <Ionicons 
+          name={showAdvancedSettings ? "chevron-up" : "chevron-down"} 
+          size={24} 
+          color={theme.textTertiary} 
+        />
+      ) : isDangerous ? (
+        <Ionicons 
+          name="trash-outline" 
+          size={24} 
+          color={theme.error} 
         />
       ) : (
         <Ionicons 
@@ -112,7 +132,11 @@ export default function Settings() {
         </TouchableOpacity>
       </View>
 
-      <View className="flex-1 px-4">
+      <ScrollView 
+        className="flex-1 px-4"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 32 }}
+      >
         {/* Account Settings Section */}
         <View className="mb-8">
           <Text style={{ color: theme.primary, fontFamily: 'Nunito-Bold', fontSize: 18, marginBottom: 8 }}>Account Settings</Text>
@@ -121,6 +145,15 @@ export default function Settings() {
             {renderSettingItem('Change Password', handleChangePassword)}
             {renderSettingItem('Payment methods', () => router.push('/payment-methods'))}
             {renderSettingItem('Push Notifications', null, true)}
+            {renderSettingItem('Advanced Account Settings', () => setShowAdvancedSettings(!showAdvancedSettings), false, false, false, false, true)}
+            
+            {/* Expandable Advanced Settings */}
+            {showAdvancedSettings && (
+              <>
+                {renderSettingItem('Delete Account', handleDeleteAccount, false, false, false, false, false, true)}
+              </>
+            )}
+            
             {renderSettingItem('Logout', handleLogout, false, true)}
           </View>
         </View>
@@ -142,7 +175,7 @@ export default function Settings() {
             {renderSettingItem('Terms and Conditions', () => router.push('/terms'), false, false, true)}
           </View>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 } 

@@ -30,6 +30,12 @@ export const lightTheme = {
   chatBackground: '#DCDEDF',
   messageBackground: '#FFFFFF',
   messageBackgroundOwn: '#FD6F3E',
+  bubbleColor: '#FFFFFF',
+  toogleSwitchColor: '#FFFFFF',
+  toogleBackgroundSwitchColor: '#F5F5F5',
+  creatorNameBanner: '#FD6F3E',
+  audioBarColorLive: 'black',
+  audioBarColorNotLive: '#E0E0E0',
   
   // Card colors
   cardBackground: '#FFFFFF',

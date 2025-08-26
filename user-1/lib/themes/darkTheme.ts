@@ -32,6 +32,12 @@ export const darkTheme: Theme = {
   chatBackground: '#1A1A1A',
   messageBackground: '#2A2A2A',
   messageBackgroundOwn: '#FD6F3E',
+  bubbleColor: '#FF8A5B',
+  toogleSwitchColor: '#FD6F3E',
+  toogleBackgroundSwitchColor: 'black',
+  creatorNameBanner: '#FD6F3E',
+  audioBarColorLive: '#FF8A5B',
+  audioBarColorNotLive: '#FFFFFF',
   
   // Card colors
   cardBackground: '#1A1A1A',

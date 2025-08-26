@@ -1,3 +1,4 @@
+import { useTheme } from '@/lib/themes/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useRef } from 'react';
 import { FlatList, KeyboardAvoidingView, Platform, Text, View } from 'react-native';
@@ -40,6 +41,7 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
   client,
   threadMessagesCache
 }) => {
+  const { theme } = useTheme();
   const threadContext = useThreadContext();
   const thread = threadContext?.thread;
   const threadMessages = threadContext?.threadMessages || [];
@@ -145,7 +147,7 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
 
   return (
     <KeyboardAvoidingView 
-      style={{ flex: 1, backgroundColor: '#DCDEDF' }}
+      style={{ flex: 1, backgroundColor: theme.backgroundTertiary }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={0}
     >
@@ -157,14 +159,14 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
               paddingHorizontal: 16,
               paddingTop: 12,
               paddingBottom: 8,
-              backgroundColor: '#DCDEDF',
+              backgroundColor: theme.backgroundTertiary,
             }}
           >
             <View
               style={{
-                backgroundColor: '#FFFFFF',
+                backgroundColor: theme.cardBackground,
                 borderWidth: 1,
-                borderColor: '#E5E5EA',
+                borderColor: theme.border,
                 borderRadius: 16,
                 padding: 12,
                 shadowColor: '#000',
@@ -176,7 +178,7 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
               }}
             >
               {/* Accent bar */}
-              <View style={{ width: 3, backgroundColor: '#FD6F3E', borderRadius: 2, marginRight: 12 }} />
+              <View style={{ width: 3, backgroundColor: theme.primary, borderRadius: 2, marginRight: 12 }} />
 
               {/* Content */}
               <View style={{ flex: 1 }}>
@@ -187,21 +189,21 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
                       width: 24,
                       height: 24,
                       borderRadius: 12,
-                      backgroundColor: '#F0F0F0',
+                      backgroundColor: theme.backgroundSecondary,
                       alignItems: 'center',
                       justifyContent: 'center',
                       marginRight: 8,
                     }}
                   >
-                    <Text style={{ color: '#1A1A1A', fontSize: 12, fontFamily: 'questrial' }}>
+                    <Text style={{ color: theme.text, fontSize: 12, fontFamily: 'questrial' }}>
                       {(thread.user?.name || thread.user?.id || 'U').toString().charAt(0).toUpperCase()}
                     </Text>
                   </View>
-                  <Text style={{ color: '#1A1A1A', fontSize: 13, fontFamily: 'questrial', fontWeight: '600' }}>
+                  <Text style={{ color: theme.text, fontSize: 13, fontFamily: 'questrial', fontWeight: '600' }}>
                     {thread.user?.name || 'User'}
                   </Text>
                   {!!createdAtLabel && (
-                    <Text style={{ color: '#999999', fontSize: 12, fontFamily: 'questrial', marginLeft: 8 }}>
+                    <Text style={{ color: theme.textSecondary, fontSize: 12, fontFamily: 'questrial', marginLeft: 8 }}>
                       {createdAtLabel}
                     </Text>
                   )}
@@ -210,7 +212,7 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
                 {/* Message text */}
                 <Text
                   style={{
-                    color: '#1A1A1A',
+                    color: theme.text,
                     fontSize: 15,
                     fontFamily: 'questrial',
                     lineHeight: 20,
@@ -235,17 +237,17 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
                           style={{
                             flexDirection: 'row',
                             alignItems: 'center',
-                            backgroundColor: '#F8F9FA',
+                            backgroundColor: theme.backgroundSecondary,
                             borderWidth: 1,
-                            borderColor: '#E5E5EA',
+                            borderColor: theme.border,
                             borderRadius: 14,
                             paddingHorizontal: 8,
                             paddingVertical: 4,
                             marginRight: 6,
                           }}
                         >
-                          <Ionicons name={icon} size={14} color="#666666" style={{ marginRight: 4 }} />
-                          <Text style={{ color: '#666666', fontSize: 12, fontFamily: 'questrial' }}>
+                          <Ionicons name={icon} size={14} color={theme.textSecondary} style={{ marginRight: 4 }} />
+                          <Text style={{ color: theme.textSecondary, fontSize: 12, fontFamily: 'questrial' }}>
                             {att.title || att.file_name || type.split('/')[0] || 'Attachment'}
                           </Text>
                         </View>
@@ -254,15 +256,15 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
                     {parentAttachments.length > 3 && (
                       <View
                         style={{
-                          backgroundColor: '#F8F9FA',
+                          backgroundColor: theme.backgroundSecondary,
                           borderWidth: 1,
-                          borderColor: '#E5E5EA',
+                          borderColor: theme.border,
                           borderRadius: 14,
                           paddingHorizontal: 8,
                           paddingVertical: 4,
                         }}
                       >
-                        <Text style={{ color: '#666666', fontSize: 12, fontFamily: 'questrial' }}>
+                        <Text style={{ color: theme.textSecondary, fontSize: 12, fontFamily: 'questrial' }}>
                           +{parentAttachments.length - 3} more
                         </Text>
                       </View>
@@ -281,7 +283,7 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
           EmptyStateIndicator={() => (
             <View style={{ 
               flex: 1, 
-              backgroundColor: '#DCDEDF', 
+              backgroundColor: theme.backgroundTertiary, 
               justifyContent: 'center', 
               alignItems: 'center', 
               padding: 32 
@@ -289,7 +291,7 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
               {isLoadingThread ? (
                 <>
                   <Text style={{ 
-                    color: '#1A1A1A', 
+                    color: theme.text, 
                     fontSize: 16, 
                     fontFamily: 'questrial',
                     textAlign: 'center',
@@ -301,7 +303,7 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
                 </>
               ) : (
                 <Text style={{ 
-                  color: '#1A1A1A', 
+                  color: theme.text, 
                   fontSize: 16, 
                   fontFamily: 'questrial',
                   textAlign: 'center',
@@ -329,9 +331,9 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
         
         {/* Thread Message Input */}
         <View style={{
-          backgroundColor: '#FFFFFF',
+          backgroundColor: theme.background,
           borderTopWidth: 1,
-          borderTopColor: '#E5E5EA',
+          borderTopColor: theme.border,
           paddingTop: 8,
         }}>
           <CustomMessageInput 

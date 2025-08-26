@@ -1,21 +1,22 @@
 import { PaidContentPaymentModal } from '@/app/components/modals/PaidContentPaymentModal';
 import { dataCache } from '@/lib/data-cache';
 import { useGlobalContext } from '@/lib/global-provider';
+import { useTheme } from '@/lib/themes/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as Sharing from 'expo-sharing';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Linking,
-  Modal,
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    Image,
+    Linking,
+    Modal,
+    Platform,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
@@ -30,13 +31,12 @@ interface BlurryFileAttachmentProps {
 }
 
 const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
+  const { theme } = useTheme();
   const { attachment, userCurrency, formatPrice } = props;
   const { user } = useGlobalContext();
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [fileDimensions, setFileDimensions] = useState({ width: 300, height: 200 });
-  const [isPortraitMode, setIsPortraitMode] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showInAppViewer, setShowInAppViewer] = useState(false);
   const insets = useSafeAreaInsets();
@@ -69,26 +69,9 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
     checkPurchaseStatus();
   }, [attachment?.paid_content_id, user?.$id]);
 
-  // Try to guess file format from URL or attachment data
-  useEffect(() => {
-    if (attachment?.title && attachment.title.toLowerCase().includes('vertical')) {
-      setFileDimensions({ width: 225, height: 400 }); // Portrait format
-      setIsPortraitMode(true);
-    } else if (attachment?.title && attachment.title.toLowerCase().includes('portrait')) {
-      setFileDimensions({ width: 225, height: 400 }); // Portrait format
-      setIsPortraitMode(true);
-    }
-  }, [attachment]);
 
-  const toggleFileFormat = () => {
-    if (isPortraitMode) {
-      setFileDimensions({ width: 300, height: 200 }); // Landscape
-      setIsPortraitMode(false);
-    } else {
-      setFileDimensions({ width: 225, height: 400 }); // Portrait
-      setIsPortraitMode(true);
-    }
-  };
+
+
 
   const handleUnlock = async () => {
     if (isUnlocking) return;
@@ -173,15 +156,15 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
     title: string; 
   }) => (
     <View style={{
-      width: fileDimensions.width,
-      height: fileDimensions.height,
+      width: 300,
+      height: 200,
       borderRadius: 12,
       marginVertical: 8,
       position: 'relative',
       borderWidth: 1,
-      borderColor: '#E0E0E0',
+      borderColor: theme.border,
       overflow: 'hidden',
-      backgroundColor: '#FFFFFF',
+      backgroundColor: theme.cardBackground,
       shadowColor: '#000000',
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.1,
@@ -219,22 +202,22 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
             position: 'absolute',
             bottom: -3,
             right: -3,
-            backgroundColor: '#666666',
+            backgroundColor: theme.textSecondary,
             borderRadius: 12,
             width: 26,
             height: 26,
             justifyContent: 'center',
             alignItems: 'center',
             borderWidth: 2,
-            borderColor: '#FFFFFF',
+            borderColor: theme.cardBackground,
           }}>
-            <Ionicons name="lock-closed" size={12} color="#FFFFFF" />
+            <Ionicons name="lock-closed" size={12} color={theme.textInverse} />
           </View>
         </View>
         
         {/* File title */}
         <Text style={{
-          color: '#333333',
+          color: theme.text,
           fontSize: 18,
           fontWeight: '700',
           textAlign: 'center',
@@ -245,7 +228,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
         </Text>
         
         <Text style={{
-          color: '#666666',
+          color: theme.textSecondary,
           fontSize: 14,
           textAlign: 'center',
           marginBottom: 16,
@@ -257,7 +240,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
         <TouchableOpacity
           onPress={onUnlock}
           style={{
-            backgroundColor: '#999999',
+            backgroundColor: theme.primary,
             paddingHorizontal: 24,
             paddingVertical: 12,
             borderRadius: 25,
@@ -270,7 +253,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
           }}
         >          
           <Text style={{
-            color: '#FFFFFF',
+            color: theme.textInverse,
             fontSize: 16,
             fontWeight: '700',
             fontFamily: 'Urbanist-Bold',
@@ -280,35 +263,13 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
         </TouchableOpacity>
       </View>
       
-      {/* Format toggle button */}
-      <TouchableOpacity
-        onPress={toggleFileFormat}
-        style={{
-          position: 'absolute',
-          top: 8,
-          right: 8,
-          backgroundColor: 'rgba(0, 0, 0, 0.1)',
-          borderRadius: 20,
-          width: 40,
-          height: 40,
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}
-      >
-        <Ionicons 
-          name={isPortraitMode ? "phone-portrait" : "phone-landscape"} 
-          size={20} 
-          color="#666666" 
-        />
-      </TouchableOpacity>
-
       {/* Timestamp in bottom right corner */}
       {message?.created_at && (
         <Text style={{
           position: 'absolute',
           bottom: 8,
           right: 8,
-          color: '#666666',
+          color: theme.textSecondary,
           fontSize: 12,
           fontWeight: '600',
           fontFamily: 'questrial',
@@ -327,14 +288,14 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
   const UnlockedFileContent = ({ title, fileUri }: { title: string; fileUri: string }) => {
     return (
       <View style={{
-        width: fileDimensions.width,
-        height: fileDimensions.height,
+        width: 300,
+        height: 200,
         borderRadius: 12,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: theme.cardBackground,
         marginVertical: 8,
         position: 'relative',
         borderWidth: 1,
-        borderColor: '#E0E0E0',
+        borderColor: theme.border,
         overflow: 'hidden',
         shadowColor: '#000000',
         shadowOffset: { width: 0, height: 2 },
@@ -347,7 +308,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
           flex: 1,
           justifyContent: 'center',
           alignItems: 'center',
-          backgroundColor: '#FFFFFF',
+          backgroundColor: theme.cardBackground,
           padding: 16,
         }}>
           {/* PDF Icon and Open Button */}
@@ -362,7 +323,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
           />
           
           <Text style={{
-            color: '#333333',
+            color: theme.text,
             fontSize: 16,
             fontWeight: '700',
             textAlign: 'center',
@@ -373,7 +334,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
           </Text>
           
           <Text style={{
-            color: '#666666',
+            color: theme.textSecondary,
             fontSize: 13,
             textAlign: 'center',
             marginBottom: 16,
@@ -387,7 +348,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
               setShowInAppViewer(true);
             }}
             style={{
-              backgroundColor: '#333333',
+              backgroundColor: theme.primary,
               paddingHorizontal: 28,
               paddingVertical: 12,
               borderRadius: 22,
@@ -400,9 +361,9 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
               elevation: 4,
             }}
           >
-            <Ionicons name="open-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+            <Ionicons name="open-outline" size={16} color={theme.textInverse} style={{ marginRight: 6 }} />
             <Text style={{
-              color: '#FFFFFF',
+              color: theme.textInverse,
               fontSize: 15,
               fontWeight: '700',
               fontFamily: 'Urbanist-Bold',
@@ -417,16 +378,16 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
           position: 'absolute',
           top: 8,
           left: 8,
-          backgroundColor: '#4CAF50',
+          backgroundColor: theme.success,
           borderRadius: 12,
           paddingHorizontal: 8,
           paddingVertical: 4,
           flexDirection: 'row',
           alignItems: 'center',
         }}>
-          <Ionicons name="checkmark-circle" size={16} color="#FFFFFF" />
+          <Ionicons name="checkmark-circle" size={16} color={theme.textInverse} />
           <Text style={{
-            color: '#FFFFFF',
+            color: theme.textInverse,
             fontSize: 12,
             fontWeight: 'bold',
             marginLeft: 4,
@@ -444,54 +405,30 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
             position: 'absolute',
             top: 8,
             right: 8,
-            backgroundColor: 'rgba(0, 0, 0, 0.05)',
+            backgroundColor: theme.backgroundSecondary,
             borderRadius: 20,
             width: 36,
             height: 36,
             justifyContent: 'center',
             alignItems: 'center',
             borderWidth: 1,
-            borderColor: '#E0E0E0',
+            borderColor: theme.border,
           }}
         >
           {isDownloading ? (
-            <ActivityIndicator size="small" color="#333333" />
+            <ActivityIndicator size="small" color={theme.primary} />
           ) : (
-            <Ionicons name="download" size={18} color="#333333" />
+            <Ionicons name="download" size={18} color={theme.text} />
           )}
         </TouchableOpacity>
         
-
-        
-        {/* Format toggle button */}
-        <TouchableOpacity
-          onPress={toggleFileFormat}
-          style={{
-            position: 'absolute',
-            bottom: 12,
-            right: 12,
-            backgroundColor: 'rgba(255, 255, 255, 0.2)',
-            borderRadius: 20,
-            width: 40,
-            height: 40,
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-        >
-          <Ionicons 
-            name={isPortraitMode ? "phone-portrait" : "phone-landscape"} 
-            size={20} 
-            color="#FFFFFF" 
-          />
-        </TouchableOpacity>
-
         {/* Timestamp in bottom right corner */}
         {message?.created_at && (
           <Text style={{
             position: 'absolute',
             bottom: 8,
             right: 8,
-            color: '#666666',
+            color: theme.textSecondary,
             fontSize: 12,
             fontWeight: '600',
             fontFamily: 'questrial',
@@ -553,7 +490,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
       >
         <View style={{
           flex: 1,
-          backgroundColor: '#000000',
+          backgroundColor: theme.backgroundSecondary,
           paddingTop: insets.top
         }}>
           {/* Header */}
@@ -563,9 +500,9 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
             justifyContent: 'space-between',
             paddingHorizontal: 20,
             paddingVertical: 16,
-            backgroundColor: 'rgba(0, 0, 0, 0.95)',
+            backgroundColor: theme.backgroundSecondary,
             borderBottomWidth: 0.5,
-            borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+            borderBottomColor: theme.border,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.3,
@@ -583,10 +520,10 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
               }}
               activeOpacity={0.7}
             >
-              <Ionicons name="chevron-back" size={30} color="#FFFFFF" />
+              <Ionicons name="chevron-back" size={30} color={theme.text} />
               <Text style={{
                 fontSize: 16,
-                color: '#FFFFFF',
+                color: theme.text,
                 marginLeft: 6,
                 fontFamily: 'Urbanist-SemiBold'
               }}>
@@ -598,7 +535,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
             <Text style={{
               fontSize: 18,
               fontWeight: '700',
-              color: '#FFFFFF',
+              color: theme.text,
               fontFamily: 'Urbanist-Bold',
               flex: 1,
               textAlign: 'center',
@@ -627,7 +564,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
               }}
               activeOpacity={0.7}
             >
-              <Ionicons name="share-outline" size={30} color="#FFFFFF" />
+              <Ionicons name="share-outline" size={30} color={theme.text} />
             </TouchableOpacity>
           </View>
 
@@ -637,7 +574,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
             margin: 16,
             borderRadius: 12,
             overflow: 'hidden',
-            backgroundColor: '#FFFFFF',
+            backgroundColor: theme.background,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.2,
@@ -648,7 +585,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
               source={{ uri: attachment?.file_url || '' }}
               style={{ 
                 flex: 1,
-                backgroundColor: '#FFFFFF'
+                backgroundColor: theme.background
               }}
               startInLoadingState={true}
               showsVerticalScrollIndicator={false}
@@ -663,19 +600,19 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
                   bottom: 0,
                   justifyContent: 'center',
                   alignItems: 'center',
-                  backgroundColor: '#FFFFFF'
+                  backgroundColor: theme.background
                 }}>
                   <View style={{
-                    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                    backgroundColor: theme.backgroundSecondary,
                     borderRadius: 16,
                     padding: 32,
                     alignItems: 'center'
                   }}>
-                    <ActivityIndicator size="large" color="#FD6F3E" />
+                    <ActivityIndicator size="large" color={theme.primary} />
                     <Text style={{
                       marginTop: 20,
                       fontSize: 18,
-                      color: '#333',
+                      color: theme.text,
                       fontFamily: 'Urbanist-SemiBold'
                     }}>
                       Loading PDF...
@@ -683,7 +620,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
                     <Text style={{
                       marginTop: 8,
                       fontSize: 14,
-                      color: '#666',
+                      color: theme.textSecondary,
                       fontFamily: 'Urbanist-Regular',
                       textAlign: 'center'
                     }}>

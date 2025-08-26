@@ -1,3 +1,4 @@
+import { useTheme } from '@/lib/themes/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import React, { useEffect, useRef, useState } from 'react';
@@ -8,6 +9,8 @@ interface AudioAttachment {
   type: string;
   asset_url?: string;
   duration?: string;
+  timestamp?: string;
+  created_at?: string;
 }
 
 interface CustomAudioAttachmentProps {
@@ -15,6 +18,7 @@ interface CustomAudioAttachmentProps {
 }
 
 export const CustomAudioAttachment: React.FC<CustomAudioAttachmentProps> = ({ attachment }) => {
+  const { theme } = useTheme();
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -22,8 +26,8 @@ export const CustomAudioAttachment: React.FC<CustomAudioAttachmentProps> = ({ at
   const [forceUpdate, setForceUpdate] = useState(0);
   
   // Refs for managing intervals and timeouts
-  const statusCheckRef = useRef<NodeJS.Timeout | null>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const statusCheckRef = useRef<any>(null);
+  const timeoutRef = useRef<any>(null);
 
   // Get message context to access message actions
   const messageContext = useMessageContext();
@@ -367,18 +371,18 @@ export const CustomAudioAttachment: React.FC<CustomAudioAttachmentProps> = ({ at
           
           if (!isPlaying) {
             // Not playing - all bars light gray
-            barColor = '#E9ECEF';
+            barColor = theme.border;
           } else {
             // During playback, use progress to determine colors
             if (index < activeBars) {
-              // Played section - bright pink
-              barColor = '#FD6F3E';
+              // Played section - primary theme color
+              barColor = theme.primary;
             } else if (index === activeBars && activeBars < totalBars) {
-              // Currently playing bar - lighter pink
-              barColor = '#FF6B8A';
+              // Currently playing bar - lighter primary
+              barColor = theme.primary;
             } else {
               // Unplayed section - light gray
-              barColor = '#F8F9FA';
+              barColor = theme.backgroundSecondary;
             }
           }
           
@@ -416,7 +420,7 @@ export const CustomAudioAttachment: React.FC<CustomAudioAttachmentProps> = ({ at
       }}
     >
       <View style={{
-        backgroundColor: '#FFFFFF',
+        backgroundColor: theme.cardBackground,
         borderRadius: 16,
         padding: 16,
         flexDirection: 'row',
@@ -436,18 +440,18 @@ export const CustomAudioAttachment: React.FC<CustomAudioAttachmentProps> = ({ at
             width: 44,
             height: 44,
             borderRadius: 22,
-            backgroundColor: '#FFFFFF',
+            backgroundColor: theme.background,
             justifyContent: 'center',
             alignItems: 'center',
             marginRight: 16,
             borderWidth: 1.5,
-            borderColor: '#E5E5EA', // Apple-like thin border
+            borderColor: 'transparent', // Apple-like thin border
           }}
         >
           <Ionicons 
             name={isPlaying ? "pause" : "play"} 
             size={22} 
-            color="#000000"
+            color={theme.text}
             style={{ marginLeft: isPlaying ? 0 : 2 }} // Center play icon
           />
         </TouchableOpacity>
@@ -462,7 +466,7 @@ export const CustomAudioAttachment: React.FC<CustomAudioAttachmentProps> = ({ at
             zIndex: 1,
           }}>
             <Text style={{
-              color: '#A1A1A1',
+              color: theme.textSecondary,
               fontSize: 11,
               fontFamily: 'questrial',
               fontWeight: '600',
@@ -480,13 +484,13 @@ export const CustomAudioAttachment: React.FC<CustomAudioAttachmentProps> = ({ at
             bottom: -20,
             right: 0,
             zIndex: 1,
-            backgroundColor: 'rgba(255, 255, 255, 0.9)', // Add background for visibility
+            backgroundColor: theme.cardBackground, // Add background for visibility
             paddingHorizontal: 4,
             paddingVertical: 1,
             borderRadius: 4,
           }}>
             <Text style={{
-              color: '#000000',
+              color: theme.text,
               fontSize: 11,
               fontFamily: 'questrial',
               fontWeight: '600',
@@ -527,20 +531,20 @@ export const CustomAudioAttachment: React.FC<CustomAudioAttachmentProps> = ({ at
               
               if (!isPlaying) {
                 // Not playing - all bars light gray with varied heights
-                barColor = '#E5E5EA';
+                barColor = theme.audioBarColorNotLive;
                 barHeight = heights[index];
               } else {
                 if (index < activeBars) {
-                  // Played section - black
-                  barColor = '#000000';
+                  // Played section - theme text color
+                  barColor = theme.audioBarColorLive;
                   barHeight = heights[index];
                 } else if (index === activeBars && activeBars < totalBars) {
-                  // Currently playing bar - black and slightly taller
-                  barColor = '#000000';
+                  // Currently playing bar - theme text color and slightly taller
+                  barColor = theme.audioBarColorLive;
                   barHeight = heights[index] + 2;
                 } else {
                   // Unplayed section - light gray
-                  barColor = '#F2F2F7';
+                  barColor = theme.backgroundSecondary;
                   barHeight = heights[index];
                 }
               }
@@ -571,12 +575,12 @@ export const CustomAudioAttachment: React.FC<CustomAudioAttachmentProps> = ({ at
               width: 28,
               height: 28,
               borderRadius: 14,
-              backgroundColor: '#F2F2F7',
+              backgroundColor: theme.backgroundSecondary,
               justifyContent: 'center',
               alignItems: 'center',
             }}
           >
-            <Ionicons name="stop" size={14} color="#000000" />
+            <Ionicons name="stop" size={14} color={theme.text} />
           </TouchableOpacity>
         )}
       </View>

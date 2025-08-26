@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { updateUserProfile, uploadProfilePicture } from '../../../lib/appwrite';
 import { useGlobalContext } from '../../../lib/global-provider';
 import { useTheme } from '../../../lib/themes/useTheme';
+import DoubleSpinnerLoading from '../../components/DoubleSpinnerLoading';
 
 interface ProfileData {
   userId: string;
@@ -87,6 +88,17 @@ export default function EditProfile() {
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [showOtherCountries, setShowOtherCountries] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showUnsavedChangesModal, setShowUnsavedChangesModal] = useState(false);
+  const [originalValuesInitialized, setOriginalValuesInitialized] = useState(false);
+  
+  // Original values for comparison
+  const [originalValues, setOriginalValues] = useState({
+    dateOfBirth: '',
+    gender: '',
+    phoneNumber: '',
+    profileImage: ''
+  });
 
   const months = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
   const currentYear = new Date().getFullYear();
@@ -130,15 +142,19 @@ export default function EditProfile() {
           setEmail(globalUser.email || '');
     }
     if (globalProfile) {
-      setLocalProfileImage(globalProfile.profileImageUri || null);
+      const profileImage = globalProfile.profileImageUri || '';
+      setLocalProfileImage(profileImage);
 
+      let gender = '';
       if (globalProfile.gender) {
         const genderOption = genders.find(g => g.value === globalProfile.gender);
         setSelectedGender(genderOption || null);
-              }
+        gender = globalProfile.gender;
+      }
 
+      let phoneData = '';
       if (globalProfile.phoneNumber) {
-        const phoneData = globalProfile.phoneNumber;
+        phoneData = globalProfile.phoneNumber;
               if (phoneData.startsWith('+')) {
                 const country = countries.find(c => phoneData.startsWith(c.code));
                 if (country) {
@@ -151,14 +167,68 @@ export default function EditProfile() {
               }
             }
 
+      let dateOfBirth = '';
       if (globalProfile.dateOfBirth) {
         const [year, month, day] = globalProfile.dateOfBirth.split('-');
               setSelectedYear(year);
               setSelectedMonth(month);
               setSelectedDay(day);
+              dateOfBirth = globalProfile.dateOfBirth;
             }
-          }
+
+      // Store original values for comparison
+      setOriginalValues({
+        dateOfBirth,
+        gender,
+        phoneNumber: phoneData,
+        profileImage
+      });
+      setOriginalValuesInitialized(true);
+    }
   }, [globalUser, globalProfile]);
+
+  // Check for unsaved changes
+  useEffect(() => {
+    // Only check for changes if original values have been properly initialized
+    if (!originalValuesInitialized) {
+      setHasUnsavedChanges(false);
+      return;
+    }
+
+    const currentValues = {
+      dateOfBirth: `${selectedYear}-${selectedMonth}-${selectedDay}`,
+      gender: selectedGender?.value || '',
+      phoneNumber: phoneNumber ? `${selectedCountry.code}${phoneNumber}` : '',
+      profileImage: localProfileImage || ''
+    };
+
+    const hasChanges = 
+      currentValues.dateOfBirth !== originalValues.dateOfBirth ||
+      currentValues.gender !== originalValues.gender ||
+      currentValues.phoneNumber !== originalValues.phoneNumber ||
+      currentValues.profileImage !== originalValues.profileImage;
+
+    setHasUnsavedChanges(hasChanges);
+  }, [selectedYear, selectedMonth, selectedDay, selectedGender, phoneNumber, selectedCountry, localProfileImage, originalValues, originalValuesInitialized]);
+
+  const handleBackPress = () => {
+    if (hasUnsavedChanges) {
+      setShowUnsavedChangesModal(true);
+    } else {
+      router.back();
+    }
+  };
+
+  const handleDiscardChanges = () => {
+    setShowUnsavedChangesModal(false);
+    router.back();
+  };
+
+  const handleSaveAndExit = async () => {
+    setShowUnsavedChangesModal(false);
+    await handleUpdateProfile();
+    router.back();
+  };
 
   const pickImage = async () => {
     try {
@@ -268,7 +338,17 @@ export default function EditProfile() {
       
       // Show success message and trigger haptic feedback
       setShowSuccess(true);
+      setHasUnsavedChanges(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      // Update original values to current values
+      const newOriginalValues = {
+        dateOfBirth: `${selectedYear}-${selectedMonth}-${selectedDay}`,
+        gender: selectedGender?.value || '',
+        phoneNumber: phoneNumber ? `${selectedCountry.code}${phoneNumber}` : '',
+        profileImage: localProfileImage || ''
+      };
+      setOriginalValues(newOriginalValues);
 
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -282,7 +362,7 @@ export default function EditProfile() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.backgroundTertiary }} edges={['top']}>
       {/* Header with back and settings */}
       <View className="flex-row items-center px-4 pt-2 pb-4">
-        <TouchableOpacity onPress={() => router.back()} className="flex-row items-center">
+        <TouchableOpacity onPress={handleBackPress} className="flex-row items-center">
           <Ionicons 
             name="chevron-back-outline" 
             size={32} 
@@ -538,20 +618,27 @@ export default function EditProfile() {
               borderRadius: 8,
               paddingVertical: 16,
               marginTop: 8,
-              marginBottom: 8
+              marginBottom: 8,
+              alignItems: 'center',
+              justifyContent: 'center',
+              minHeight: 56
             }}
             activeOpacity={0.8}
             onPress={handleUpdateProfile}
             disabled={saving}
           >
-            <Text style={{ 
-              color: theme.textInverse, 
-              textAlign: 'center', 
-              fontFamily: 'questrial', 
-              fontSize: 18 
-            }}>
-              {saving ? 'Updating...' : 'Update Profile'}
-            </Text>
+            {saving ? (
+              <DoubleSpinnerLoading size={36} strokeWidth={2} />
+            ) : (
+              <Text style={{ 
+                color: theme.textInverse, 
+                textAlign: 'center', 
+                fontFamily: 'questrial', 
+                fontSize: 18 
+              }}>
+                Update Profile
+              </Text>
+            )}
           </TouchableOpacity>
 
           {/* Success Message */}
@@ -576,18 +663,96 @@ export default function EditProfile() {
           animationType="slide"
           onRequestClose={() => setShowDatePicker(false)}
         >
-          <View style={{ flex: 1, backgroundColor: theme.modalOverlay, justifyContent: 'flex-end' }}>
-            <View style={{ backgroundColor: theme.modalBackground, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 16 }}>
-              <View className="flex-row justify-between items-center mb-4">
-                <Text style={{ color: theme.text, fontSize: 20 }}>Select Birth Date</Text>
-                <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                  <Ionicons name="close" size={30} color={theme.primary} />
+          <View style={{ flex: 1, backgroundColor: 'transparent', justifyContent: 'flex-end' }}>
+            <View style={{ 
+              backgroundColor: theme.modalBackground, 
+              borderTopLeftRadius: 24, 
+              borderTopRightRadius: 24, 
+              padding: 20,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: -4 },
+              shadowOpacity: 0.1,
+              shadowRadius: 8,
+              elevation: 8
+            }}>
+              {/* Header */}
+              <View className="flex-row justify-between items-center mb-6">
+                <View>
+                  <Text style={{ 
+                    color: theme.text, 
+                    fontSize: 24, 
+                    fontFamily: 'Nunito-Bold',
+                    marginBottom: 4
+                  }}>
+                    Birth Date
+                  </Text>
+                  <Text style={{ 
+                    color: theme.textSecondary, 
+                    fontSize: 16, 
+                    fontFamily: 'questrial'
+                  }}>
+                    Select your date of birth
+                  </Text>
+                </View>
+                <TouchableOpacity 
+                  onPress={() => setShowDatePicker(false)}
+                  style={{
+                    backgroundColor: theme.backgroundSecondary,
+                    borderRadius: 20,
+                    width: 40,
+                    height: 40,
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <Ionicons name="close" size={24} color={theme.text} />
                 </TouchableOpacity>
               </View>
+
+              {/* Current Selection Display */}
+              <View style={{
+                backgroundColor: theme.primary,
+                borderRadius: 16,
+                padding: 16,
+                marginBottom: 20,
+                alignItems: 'center'
+              }}>
+                <Text style={{ 
+                  color: theme.textInverse, 
+                  fontSize: 14, 
+                  fontFamily: 'questrial',
+                  marginBottom: 4
+                }}>
+                  Selected Date
+                </Text>
+                <Text style={{ 
+                  color: theme.textInverse, 
+                  fontSize: 28, 
+                  fontFamily: 'Nunito-Bold'
+                }}>
+                  {selectedMonth}/{selectedDay}/{selectedYear}
+                </Text>
+              </View>
+
+              {/* Date Pickers */}
               <View className="flex-row justify-between">
                 {/* Month Picker */}
-                <View className="flex-1">
-                  <Text style={{ color: theme.text, textAlign: 'center', marginBottom: 8 }}>Month</Text>
+                <View className="flex-1" style={{ marginRight: 8 }}>
+                  <View style={{
+                    backgroundColor: theme.backgroundSecondary,
+                    borderRadius: 12,
+                    padding: 8,
+                    marginBottom: 8
+                  }}>
+                    <Text style={{ 
+                      color: theme.text, 
+                      textAlign: 'center', 
+                      fontSize: 16,
+                      fontFamily: 'Nunito-Bold'
+                    }}>
+                      Month
+                    </Text>
+                  </View>
                   <Picker
                     selectedValue={selectedMonth}
                     onValueChange={(value) => {
@@ -608,8 +773,22 @@ export default function EditProfile() {
                 </View>
 
                 {/* Day Picker */}
-                <View className="flex-1">
-                  <Text style={{ color: theme.text, textAlign: 'center', marginBottom: 8 }}>Day</Text>
+                <View className="flex-1" style={{ marginHorizontal: 4 }}>
+                  <View style={{
+                    backgroundColor: theme.backgroundSecondary,
+                    borderRadius: 12,
+                    padding: 8,
+                    marginBottom: 8
+                  }}>
+                    <Text style={{ 
+                      color: theme.text, 
+                      textAlign: 'center', 
+                      fontSize: 16,
+                      fontFamily: 'Nunito-Bold'
+                    }}>
+                      Day
+                    </Text>
+                  </View>
                   <Picker
                     selectedValue={selectedDay}
                     onValueChange={setSelectedDay}
@@ -623,8 +802,22 @@ export default function EditProfile() {
                 </View>
 
                 {/* Year Picker */}
-                <View className="flex-1">
-                  <Text style={{ color: theme.text, textAlign: 'center', marginBottom: 8 }}>Year</Text>
+                <View className="flex-1" style={{ marginLeft: 8 }}>
+                  <View style={{
+                    backgroundColor: theme.backgroundSecondary,
+                    borderRadius: 12,
+                    padding: 8,
+                    marginBottom: 8
+                  }}>
+                    <Text style={{ 
+                      color: theme.text, 
+                      textAlign: 'center', 
+                      fontSize: 16,
+                      fontFamily: 'Nunito-Bold'
+                    }}>
+                      Year
+                    </Text>
+                  </View>
                   <Picker
                     selectedValue={selectedYear}
                     onValueChange={(value) => {
@@ -644,6 +837,26 @@ export default function EditProfile() {
                   </Picker>
                 </View>
               </View>
+
+              {/* Done Button */}
+              <TouchableOpacity 
+                onPress={() => setShowDatePicker(false)}
+                style={{
+                  backgroundColor: theme.primary,
+                  borderRadius: 12,
+                  paddingVertical: 16,
+                  marginTop: 20,
+                  alignItems: 'center'
+                }}
+              >
+                <Text style={{ 
+                  color: theme.textInverse, 
+                  fontSize: 18, 
+                  fontFamily: 'Nunito-Bold'
+                }}>
+                  Done
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         </Modal>
@@ -837,6 +1050,107 @@ export default function EditProfile() {
                 >
                   Your phone number will be used for account verification
                 </Text>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Unsaved Changes Modal */}
+        <Modal
+          visible={showUnsavedChangesModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowUnsavedChangesModal(false)}
+        >
+          <View style={{ 
+            flex: 1, 
+            backgroundColor: 'rgba(0,0,0,0.5)', 
+            justifyContent: 'center', 
+            alignItems: 'center',
+            paddingHorizontal: 20
+          }}>
+            <View style={{ 
+              backgroundColor: theme.modalBackground, 
+              borderRadius: 16,
+              padding: 24, 
+              width: '100%',
+              maxWidth: 340,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.2,
+              shadowRadius: 12,
+              elevation: 8
+            }}>
+              <View style={{ alignItems: 'center', marginBottom: 16 }}>
+                <Ionicons name="warning-outline" size={48} color={theme.primary} />
+              </View>
+              
+              <Text style={{ 
+                color: theme.text, 
+                fontSize: 20, 
+                fontFamily: 'Nunito-Bold', 
+                textAlign: 'center',
+                marginBottom: 8
+              }}>
+                Unsaved Changes
+              </Text>
+              
+              <Text style={{ 
+                color: theme.textSecondary, 
+                fontSize: 16,
+                fontFamily: 'Nunito-Regular', 
+                textAlign: 'center',
+                marginBottom: 24,
+                lineHeight: 22
+              }}>
+                You have unsaved changes that will be lost if you leave this page. Do you want to save your changes?
+              </Text>
+              
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <TouchableOpacity 
+                  onPress={handleDiscardChanges}
+                  style={{ 
+                    flex: 1, 
+                    backgroundColor: theme.backgroundSecondary,
+                    borderRadius: 12,
+                    paddingVertical: 14,
+                    alignItems: 'center'
+                  }}
+                >
+                  <Text style={{ 
+                    color: theme.text, 
+                    fontSize: 16, 
+                    fontFamily: 'Nunito-SemiBold'
+                  }}>
+                    Discard
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  onPress={handleSaveAndExit}
+                  style={{ 
+                    flex: 1, 
+                    backgroundColor: theme.primary,
+                    borderRadius: 12,
+                    paddingVertical: 14,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    minHeight: 48
+                  }}
+                  disabled={saving}
+                >
+                  {saving ? (
+                    <DoubleSpinnerLoading size={32} strokeWidth={2} />
+                  ) : (
+                    <Text style={{ 
+                      color: theme.textInverse, 
+                      fontSize: 16, 
+                      fontFamily: 'Nunito-SemiBold'
+                    }}>
+                      Save & Exit
+                    </Text>
+                  )}
+                </TouchableOpacity>
               </View>
             </View>
           </View>

@@ -1,4 +1,5 @@
 import { imageCache } from '@/lib/image-cache';
+import { useTheme } from '@/lib/themes/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Modal, Share, Text, TouchableOpacity, View } from 'react-native';
@@ -16,6 +17,7 @@ interface CustomPhotoAttachmentProps {
 }
 
 export const CustomPhotoAttachment: React.FC<CustomPhotoAttachmentProps> = (props) => {
+  const { theme } = useTheme();
   const { attachment, onThreadSelect } = props;
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -114,7 +116,7 @@ export const CustomPhotoAttachment: React.FC<CustomPhotoAttachmentProps> = (prop
         width: 250,
         height: 200,
         borderRadius: 12,
-        backgroundColor: '#1A1A1A',
+        backgroundColor: theme.backgroundSecondary,
         justifyContent: 'center',
                 alignItems: 'center',
         position: 'relative',
@@ -128,11 +130,11 @@ export const CustomPhotoAttachment: React.FC<CustomPhotoAttachmentProps> = (prop
             alignItems: 'center',
             width: '100%',
                     height: '100%',
-            backgroundColor: 'rgba(26, 26, 26, 0.9)',
+            backgroundColor: theme.backgroundSecondary,
             borderRadius: 12,
             zIndex: 2,
           }}>
-            <ActivityIndicator size="large" color="black" />
+            <ActivityIndicator size="large" color={theme.primary} />
                 </View>
               )}
 
@@ -143,9 +145,9 @@ export const CustomPhotoAttachment: React.FC<CustomPhotoAttachmentProps> = (prop
         alignItems: 'center',
             width: '100%',
                     height: '100%',
-            backgroundColor: '#1A1A1A',
+            backgroundColor: theme.backgroundSecondary,
           }}>
-            <Ionicons name="image-outline" size={40} color="#666" />
+            <Ionicons name="image-outline" size={40} color={theme.textSecondary} />
       </View>
               )}
 
@@ -181,7 +183,7 @@ export const CustomPhotoAttachment: React.FC<CustomPhotoAttachmentProps> = (prop
             borderBottomRightRadius: 12,
         }}>
           <Text style={{
-            color: '#FFFFFF',
+            color: theme.textInverse,
               fontSize: 14,
             fontFamily: 'questrial',
               lineHeight: 18,
@@ -198,7 +200,7 @@ export const CustomPhotoAttachment: React.FC<CustomPhotoAttachmentProps> = (prop
             bottom: 0,
             left: 0,
             right: 0,
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            backgroundColor: theme.cardBackground,
             paddingHorizontal: 12,
             paddingVertical: 6,
             borderBottomLeftRadius: 12,
@@ -209,10 +211,10 @@ export const CustomPhotoAttachment: React.FC<CustomPhotoAttachmentProps> = (prop
           }}>
             {/* Thread reply count on the left */}
             <View>
-                {message.reply_count > 0 && (
+                {message?.reply_count && message.reply_count > 0 && (
                     <TouchableOpacity onPress={() => onThreadSelect?.(message)}>
                         <Text style={{
-                            color: 'black',
+                            color: theme.text,
                             fontSize: 12,
                             fontWeight: '600',
                             fontFamily: 'questrial',
@@ -225,7 +227,7 @@ export const CustomPhotoAttachment: React.FC<CustomPhotoAttachmentProps> = (prop
 
             {/* Timestamp on the right */}
             <Text style={{
-              color: 'black',
+              color: theme.text,
               fontSize: 12,
               fontWeight: '600',
               fontFamily: 'questrial',
@@ -249,7 +251,7 @@ export const CustomPhotoAttachment: React.FC<CustomPhotoAttachmentProps> = (prop
     >
       <View style={{
         flex: 1,
-        backgroundColor: 'black',
+        backgroundColor: theme.backgroundSecondary,
         justifyContent: 'center',
         alignItems: 'center'
       }}>
@@ -277,12 +279,12 @@ export const CustomPhotoAttachment: React.FC<CustomPhotoAttachmentProps> = (prop
               width: 44,
               height: 44,
               borderRadius: 22,
-              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              backgroundColor: theme.cardBackground,
               justifyContent: 'center',
               alignItems: 'center'
             }}
           >
-            <Ionicons name="close" size={24} color="white" />
+            <Ionicons name="close" size={24} color={theme.text} />
           </TouchableOpacity>
         </View>
 
@@ -296,12 +298,12 @@ export const CustomPhotoAttachment: React.FC<CustomPhotoAttachmentProps> = (prop
             width: 50,
             height: 50,
             borderRadius: 25,
-            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            backgroundColor: theme.cardBackground,
             justifyContent: 'center',
             alignItems: 'center'
           }}
         >
-          <Ionicons name="information-circle-outline" size={26} color="white" />
+          <Ionicons name="information-circle-outline" size={26} color={theme.text} />
         </TouchableOpacity>
 
         {/* Bottom Right - Share Button */}
@@ -314,12 +316,12 @@ export const CustomPhotoAttachment: React.FC<CustomPhotoAttachmentProps> = (prop
             width: 50,
             height: 50,
             borderRadius: 25,
-            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            backgroundColor: theme.cardBackground,
             justifyContent: 'center',
             alignItems: 'center'
           }}
         >
-          <Ionicons name="share-outline" size={26} color="white" />
+          <Ionicons name="share-outline" size={26} color={theme.text} />
         </TouchableOpacity>
 
         {/* Bottom Caption (if available) */}
@@ -335,7 +337,7 @@ export const CustomPhotoAttachment: React.FC<CustomPhotoAttachmentProps> = (prop
             borderRadius: 12
           }}>
             <Text style={{
-              color: 'white',
+              color: theme.textInverse,
               fontSize: 16,
               fontFamily: 'questrial',
               textAlign: 'center',
