@@ -1,3 +1,4 @@
+import { useTheme } from '@/lib/useTheme';
 import React from 'react';
 import { Dimensions, Text, View } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
@@ -9,8 +10,9 @@ interface EarningsChartProps {
 }
 
 const EarningsChart: React.FC<EarningsChartProps> = ({ dailyEarnings, timeframe, currency }) => {
+  const { theme } = useTheme();
   const screenWidth = Dimensions.get('window').width;
-  const chartWidth = screenWidth - 80; // Account for card padding
+  const chartWidth = screenWidth -60; // Reduced padding for more horizontal space
 
   // Prepare data based on timeframe
   const prepareChartData = () => {
@@ -96,8 +98,8 @@ const EarningsChart: React.FC<EarningsChartProps> = ({ dailyEarnings, timeframe,
 
   const chartConfig = {
     backgroundColor: 'transparent',
-    backgroundGradientFrom: 'white',
-    backgroundGradientTo: 'white',
+    backgroundGradientFrom: theme.backgroundSecondary,
+    backgroundGradientTo: theme.backgroundSecondary,
     color: (opacity = 1) => `rgba(253, 111, 62, ${opacity})`,
     strokeWidth: 3,
     barPercentage: 0.7,
@@ -107,16 +109,17 @@ const EarningsChart: React.FC<EarningsChartProps> = ({ dailyEarnings, timeframe,
       r: '5',
       strokeWidth: '2',
       stroke: '#FD6F3E',
-      fill: 'white'
+      fill: theme.backgroundSecondary
     },
     propsForBackgroundLines: {
       strokeWidth: 0.5,
-      stroke: '#E8E8E8',
+      stroke: theme.border,
       strokeDasharray: '0'
     },
     propsForLabels: {
       fontSize: 11,
-      fontFamily: 'Urbanist-Medium'
+      fontFamily: 'Urbanist-Medium',
+      fill: theme.text
     },
     formatYLabel: (yValue: string) => {
       const num = parseFloat(yValue);
@@ -133,7 +136,7 @@ const EarningsChart: React.FC<EarningsChartProps> = ({ dailyEarnings, timeframe,
 
   return (
     <View style={{
-      backgroundColor: '#FAFAFA',
+      backgroundColor: theme.backgroundSecondary,
       borderRadius: 8,
       padding: 8,
       marginVertical: 4,
@@ -142,7 +145,7 @@ const EarningsChart: React.FC<EarningsChartProps> = ({ dailyEarnings, timeframe,
       <Text style={{
         fontSize: 12,
         fontFamily: 'Urbanist-Medium',
-        color: '#666666',
+        color: theme.textSecondary,
         textAlign: 'center',
         marginBottom: 8,
       }}>

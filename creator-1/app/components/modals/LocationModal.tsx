@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Keyboard, Modal, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import Animated from 'react-native-reanimated';
+import { useTheme } from '../../../lib/useTheme';
 
 interface LocationModalProps {
   visible: boolean;
@@ -18,6 +19,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({
   setTempLocation,
   onSave
 }) => {
+  const { theme } = useTheme();
   const handleSave = () => {
     Keyboard.dismiss();
     onSave(tempLocation);
@@ -43,13 +45,13 @@ export const LocationModal: React.FC<LocationModalProps> = ({
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={{ 
           flex: 1, 
-          backgroundColor: 'rgba(0,0,0,0.75)', 
+          backgroundColor: theme.modalOverlay, 
           justifyContent: 'center', 
           alignItems: 'center',
           backdropFilter: 'blur(10px)'
         }}>
           <Animated.View style={{
-            backgroundColor: '#FFFFFF',
+            backgroundColor: theme.modalBackground,
             borderRadius: 24,
             padding: 32,
             width: '90%',
@@ -60,7 +62,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({
             shadowRadius: 40,
             elevation: 20,
             borderWidth: 1,
-            borderColor: '#676767',
+            borderColor: theme.borderDark,
             alignItems: 'center',
           }}>
             <View style={{ 
@@ -69,19 +71,19 @@ export const LocationModal: React.FC<LocationModalProps> = ({
               marginBottom: 24,
               paddingBottom: 16,
               borderBottomWidth: 1,
-              borderBottomColor: '#E0E0E0',
+              borderBottomColor: theme.border,
               width: '100%'
             }}>
               <View style={{
-                backgroundColor: 'rgba(251, 35, 85, 0.1)',
+                backgroundColor: 'rgba(253, 111, 62, 0.1)',
                 borderRadius: 12,
                 padding: 8,
                 marginRight: 12
               }}>
-                <Ionicons name="location-outline" size={24} color="#FD6F3E" />
+                <Ionicons name="location-outline" size={24} color={theme.primary} />
               </View>
               <Text style={{ 
-                color: 'black', 
+                color: theme.text, 
                 fontSize: 20, 
                 fontWeight: '600', 
                 fontFamily: 'questrial',
@@ -91,14 +93,14 @@ export const LocationModal: React.FC<LocationModalProps> = ({
             
             <TextInput
               style={{
-                backgroundColor: '#F8F8F8',
-                color: 'black',
+                backgroundColor: theme.inputBackground,
+                color: theme.inputText,
                 borderRadius: 16,
                 paddingHorizontal: 20,
                 paddingVertical: 16,
                 fontSize: 16,
                 borderWidth: 1,
-                borderColor: '#676767',
+                borderColor: theme.borderDark,
                 marginBottom: 24,
                 width: '100%',
                 textAlign: 'center',
@@ -107,7 +109,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({
               value={tempLocation}
               onChangeText={setTempLocation}
               placeholder="Enter your location..."
-              placeholderTextColor="rgba(0,0,0,0.5)"
+              placeholderTextColor={theme.inputPlaceholder}
               returnKeyType="done"
               blurOnSubmit={true}
               onSubmitEditing={handleSubmit}
@@ -122,12 +124,12 @@ export const LocationModal: React.FC<LocationModalProps> = ({
               <TouchableOpacity 
                 style={{ 
                   flex: 1, 
-                  backgroundColor: '#676767', 
+                  backgroundColor: theme.textTertiary, 
                   borderRadius: 16, 
                   paddingVertical: 16, 
                   alignItems: 'center',
                   borderWidth: 1,
-                  borderColor: '#676767'
+                  borderColor: theme.textTertiary
                 }}
                 onPress={() => {
                   Keyboard.dismiss();
@@ -135,7 +137,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({
                 }}
               >
                 <Text style={{ 
-                  color: 'white', 
+                  color: theme.textInverse, 
                   fontSize: 16, 
                   fontFamily: 'questrial',
                   fontWeight: '500'
@@ -144,11 +146,11 @@ export const LocationModal: React.FC<LocationModalProps> = ({
               <TouchableOpacity 
                 style={{ 
                   flex: 1, 
-                  backgroundColor: '#FD6F3E', 
+                  backgroundColor: theme.primary, 
                   borderRadius: 16, 
                   paddingVertical: 16, 
                   alignItems: 'center',
-                  shadowColor: '#FD6F3E',
+                  shadowColor: theme.primary,
                   shadowOffset: { width: 0, height: 4 },
                   shadowOpacity: 0.3,
                   shadowRadius: 8,
@@ -157,7 +159,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({
                 onPress={handleSave}
               >
                 <Text style={{ 
-                  color: 'black', 
+                  color: theme.textInverse, 
                   fontSize: 16, 
                   fontFamily: 'questrial', 
                   fontWeight: '600'

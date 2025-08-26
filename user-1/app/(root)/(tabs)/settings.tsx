@@ -87,9 +87,14 @@ export default function Settings() {
               // On error, go back to settings
               router.replace('/(root)/(tabs)/settings');
               
+              // Check if this is a subscription cancellation failure
+              const isSubscriptionError = error.message?.includes('subscription(s) failed to cancel');
+              
               Alert.alert(
-                'Deletion Failed',
-                `Failed to delete account:\n\n${error.message}`,
+                isSubscriptionError ? 'Subscription Cancellation Failed' : 'Deletion Failed',
+                isSubscriptionError 
+                  ? `We couldn't cancel all your subscriptions, so your account was not deleted to prevent ongoing charges.\n\n${error.message}\n\nPlease contact support for assistance.`
+                  : `Failed to delete account:\n\n${error.message}`,
                 [{ text: 'OK' }],
                 { 
                   userInterfaceStyle: themeMode === 'dark' ? 'dark' : 'light'

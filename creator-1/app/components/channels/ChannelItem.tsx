@@ -1,18 +1,19 @@
 import {
-  type Channel,
-  formatLastMessageTime,
-  getChannelAvatar,
-  getChannelDisplayName
+    type Channel,
+    formatLastMessageTime,
+    getChannelAvatar,
+    getChannelDisplayName
 } from '@/lib/index-utils';
+import { useTheme } from '@/lib/useTheme';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
-  Animated,
-  Image,
-  Text,
-  TouchableOpacity,
-  View
+    Animated,
+    Image,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 
@@ -46,6 +47,7 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
   onTipCollected
 }) => {
   const router = useRouter();
+  const { theme } = useTheme();
   const displayName = getChannelDisplayName(channel, currentUserId);
   const avatar = getChannelAvatar(channel, currentUserId, profileImage, userName);
   const isDM = channel.id.startsWith('dm-');
@@ -132,13 +134,13 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
           flexDirection: 'row',
           alignItems: 'center',
           padding: isGroupChat ? 16 : 12,
-          backgroundColor: isGroupChat ? 'white' : (hasTip ? 'rgba(40, 158, 65, 0.36)' : '#FFFFFF'), // Pale green for tipped DMs
+          backgroundColor: isGroupChat ? theme.cardBackground : (hasTip ? 'rgba(40, 158, 65, 0.36)' : theme.cardBackground), // Pale green for tipped DMs
           marginHorizontal: 16,
           marginVertical: isGroupChat ? 4 : 2,
           borderRadius: isGroupChat ? 16 : 8,
           borderWidth: isGroupChat ? 2 : 1,
-          borderColor: isGroupChat ? '#676767' : (hasTip ? 'rgba(67, 255, 107, 0.16)' : '#333333'), // Darker green border for tipped DMs
-          shadowColor: isGroupChat ? 'black' : 'transparent',
+          borderColor: isGroupChat ? theme.borderDark : (hasTip ? 'rgba(67, 255, 107, 0.16)' : theme.border), // Darker green border for tipped DMs
+          shadowColor: isGroupChat ? theme.shadow : 'transparent',
           shadowOffset: isGroupChat ? { width: 0, height: 2 } : { width: 0, height: 0 },
           shadowOpacity: isGroupChat ? 0.3 : 0,
           shadowRadius: isGroupChat ? 8 : 0,
@@ -151,7 +153,7 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
         width: isGroupChat ? 48 : 40,
         height: isGroupChat ? 48 : 40,
         borderRadius: isGroupChat ? 24 : 20,
-        backgroundColor: isGroupChat ? '#FD6F3E' : 'transparent',
+        backgroundColor: isGroupChat ? theme.primary : 'transparent',
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: isGroupChat ? 14 : 10,
@@ -170,7 +172,7 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
           />
         ) : (
           <Text style={{ 
-            color: 'black', 
+            color: isGroupChat ? theme.textInverse : theme.text, 
             fontSize: isGroupChat ? 18 : 16, 
             fontWeight: 'bold',
             fontFamily: 'Urbanist-Bold'
@@ -188,7 +190,7 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
           marginBottom: isGroupChat ? 4 : 2 
         }}>
           <Text style={{ 
-            color: 'black', 
+            color: theme.text, 
             fontSize: isGroupChat ? 18 : 16, 
             fontWeight: 'bold',
             fontFamily: 'Urbanist-Bold',
@@ -199,7 +201,7 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
         </View>
         
         <Text style={{ 
-          color: hasUnread ? 'black' : (isGroupChat ? 'black' : '#888888'), 
+          color: hasUnread ? theme.text : (isGroupChat ? theme.text : theme.textTertiary), 
           fontSize: isGroupChat ? 14 : 13,
           fontFamily: hasUnread ? 'Urbanist-Bold' : 'Urbanist-Regular',
         }}>
@@ -213,7 +215,7 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
         }}>
           {!isDM && (
             <Text style={{ 
-              color: isGroupChat ? 'black' : '#666666', 
+              color: isGroupChat ? theme.text : theme.textSecondary, 
               fontSize: isGroupChat ? 12 : 11,
               fontFamily: 'Urbanist-Regular',
               fontWeight: isGroupChat ? 'bold' : 'normal',
@@ -226,7 +228,7 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
           
           {channel.lastMessageAt && (
             <Text style={{ 
-              color: isGroupChat ? 'black' : 'black', 
+              color: isGroupChat ? theme.text : theme.text, 
               fontSize: isGroupChat ? 12 : 11,
               fontFamily: 'Urbanist-Regular',
               marginLeft: isDM ? 0 : 8,
@@ -240,7 +242,7 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
             <View style={{
               width: 8,
               height: 8,
-              backgroundColor: 'black',
+              backgroundColor: theme.text,
               borderRadius: 4,
               marginLeft: 8,
             }} />
@@ -260,7 +262,7 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
           paddingHorizontal: 8,
         }}>
           <Text style={{
-            color: 'white',
+            color: theme.textInverse,
             fontSize: 12,
             fontWeight: 'bold',
             fontFamily: 'Urbanist-Bold',
@@ -276,7 +278,7 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
           justifyContent: 'center',
         }}>
           <Text style={{ 
-            color: isGroupChat ? 'black' : '#666666', 
+            color: isGroupChat ? theme.text : theme.textSecondary, 
             fontSize: isGroupChat ? 16 : 14 
           }}>›</Text>
         </View>

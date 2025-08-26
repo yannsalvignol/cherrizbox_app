@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { FlatList, Modal, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import Animated from 'react-native-reanimated';
+import { useTheme } from '../../../lib/useTheme';
 
 interface Country {
   name: string;
@@ -25,6 +26,7 @@ export const CountryPickerModal: React.FC<CountryPickerModalProps> = ({
   selectedCountry,
   onSelectCountry
 }) => {
+  const { theme } = useTheme();
   return (
     <Modal
       visible={visible}
@@ -35,13 +37,13 @@ export const CountryPickerModal: React.FC<CountryPickerModalProps> = ({
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={{ 
           flex: 1, 
-          backgroundColor: 'rgba(0,0,0,0.75)', 
+          backgroundColor: theme.modalOverlay, 
           justifyContent: 'center', 
           alignItems: 'center',
           backdropFilter: 'blur(10px)'
         }}>
           <Animated.View style={{
-            backgroundColor: 'white',
+            backgroundColor: theme.modalBackground,
             borderRadius: 24,
             padding: 32,
             width: '90%',
@@ -53,7 +55,7 @@ export const CountryPickerModal: React.FC<CountryPickerModalProps> = ({
             shadowRadius: 40,
             elevation: 20,
             borderWidth: 1,
-            borderColor: '#676767',
+            borderColor: theme.borderDark,
             alignItems: 'center',
           }}>
             <View style={{ 
@@ -62,19 +64,19 @@ export const CountryPickerModal: React.FC<CountryPickerModalProps> = ({
               marginBottom: 24,
               paddingBottom: 16,
               borderBottomWidth: 1,
-              borderBottomColor: 'rgba(255,255,255,0.1)',
+              borderBottomColor: theme.border,
               width: '100%'
             }}>
               <View style={{
-                backgroundColor: 'rgba(251, 35, 85, 0.1)',
+                backgroundColor: 'rgba(253, 111, 62, 0.1)',
                 borderRadius: 12,
                 padding: 8,
                 marginRight: 12
               }}>
-                <Ionicons name="globe-outline" size={24} color="#FD6F3E" />
+                <Ionicons name="globe-outline" size={24} color={theme.primary} />
               </View>
               <Text style={{ 
-                color: 'black', 
+                color: theme.text, 
                 fontSize: 20, 
                 fontWeight: '600', 
                 fontFamily: 'questrial',
@@ -97,10 +99,10 @@ export const CountryPickerModal: React.FC<CountryPickerModalProps> = ({
                     marginVertical: 2,
                     borderRadius: 16,
                     backgroundColor: selectedCountry.code === item.code && selectedCountry.name === item.name 
-                      ? 'rgba(251, 35, 85, 0.1)' 
+                      ? 'rgba(253, 111, 62, 0.1)' 
                       : 'transparent',
                     borderWidth: selectedCountry.code === item.code && selectedCountry.name === item.name ? 1 : 0,
-                    borderColor: 'rgba(251, 35, 85, 0.3)',
+                    borderColor: 'rgba(253, 111, 62, 0.3)',
                   }}
                   onPress={() => {
                     onSelectCountry(item);
@@ -109,7 +111,7 @@ export const CountryPickerModal: React.FC<CountryPickerModalProps> = ({
                   activeOpacity={0.7}
                 >
                   <View style={{
-                    backgroundColor: '#676767',
+                    backgroundColor: theme.textTertiary,
                     borderRadius: 12,
                     padding: 8,
                     marginRight: 16,
@@ -120,7 +122,7 @@ export const CountryPickerModal: React.FC<CountryPickerModalProps> = ({
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={{ 
-                      color: 'black', 
+                      color: theme.text, 
                       fontSize: 16, 
                       fontFamily: 'questrial',
                       fontWeight: '500'
@@ -130,16 +132,16 @@ export const CountryPickerModal: React.FC<CountryPickerModalProps> = ({
                   </View>
                   <View style={{
                     backgroundColor: selectedCountry.code === item.code && selectedCountry.name === item.name 
-                      ? '#FD6F3E' 
-                      : '#676767',
+                      ? theme.primary 
+                      : theme.textTertiary,
                     borderRadius: 8,
                     paddingHorizontal: 12,
                     paddingVertical: 6
                   }}>
                     <Text style={{ 
                       color: selectedCountry.code === item.code && selectedCountry.name === item.name 
-                        ? 'black' 
-                        : 'white', 
+                        ? theme.textInverse 
+                        : theme.textInverse, 
                       fontSize: 14, 
                       fontFamily: 'questrial',
                       fontWeight: '600'
@@ -153,19 +155,19 @@ export const CountryPickerModal: React.FC<CountryPickerModalProps> = ({
             
             <TouchableOpacity 
               style={{ 
-                backgroundColor: '#676767', 
+                backgroundColor: theme.textTertiary, 
                 borderRadius: 16, 
                 paddingVertical: 16, 
                 paddingHorizontal: 32,
                 marginTop: 24,
                 borderWidth: 1,
-                borderColor: '#676767',
+                borderColor: theme.textTertiary,
                 alignSelf: 'center'
               }}
               onPress={onClose}
             >
               <Text style={{ 
-                color: 'white', 
+                color: theme.textInverse, 
                 fontSize: 16, 
                 fontFamily: 'questrial',
                 fontWeight: '500'

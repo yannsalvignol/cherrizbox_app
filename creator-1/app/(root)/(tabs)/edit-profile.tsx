@@ -8,6 +8,7 @@ import { ActivityIndicator, Alert, Animated, Image, Modal, ScrollView, Text, Tex
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { config, databases, getUserPhoto, getUserProfile, updateCreatorPayment, updateUserProfile, uploadProfilePicture } from '../../../lib/appwrite';
 import { useGlobalContext } from '../../../lib/global-provider';
+import { useTheme } from '../../../lib/useTheme';
 import { BioModal, CountryPickerModal, CreatorNameModal, DatePickerModal, GenderPickerModal, LocationModal, PhoneNumberModal, ProfilePreviewModal, SubscriptionsModal } from '../../components/modals';
 
 interface ProfileData {
@@ -75,6 +76,7 @@ const trendingTopics = [
 export default function EditProfile() {
   const router = useRouter();
   const { user: globalUser, refreshChannelConditions, userCurrency, getCachedProfile, preloadProfileData, clearProfileCache } = useGlobalContext();
+  const { theme } = useTheme();
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [name, setName] = useState('');
@@ -1063,37 +1065,37 @@ export default function EditProfile() {
 
   if (loading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#DCDEDF' }} edges={[]}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.backgroundTertiary }} edges={[]}>
         <View className="flex-1 items-center justify-center">
           <Image 
             source={require('../../../assets/icon/loading-icon.png')} 
             style={{ width: 48, height: 48, marginBottom: 16 }}
             resizeMode="contain"
           />
-          <Text style={{ color: 'black', fontSize: 16, fontFamily: 'Urbanist-Medium' }}>Loading...</Text>
+          <Text style={{ color: theme.text, fontSize: 16, fontFamily: 'Urbanist-Medium' }}>Loading...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#DCDEDF' }} edges={[]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.backgroundTertiary }} edges={[]}>
       {/* Header with back and settings */}
       <View style={{ 
         paddingTop: 60,
         paddingHorizontal: 16,
         paddingBottom: 16,
-        backgroundColor: '#DCDEDF'
+        backgroundColor: theme.backgroundTertiary
       }}>
         <View className="flex-row items-center">
         <TouchableOpacity onPress={handleBackPress} className="flex-row items-center">
           <Ionicons 
             name="chevron-back-outline" 
             size={32} 
-            color="black" 
+            color={theme.text} 
             style={{ marginRight: 4 }}
           />
-          <Text style={{ color: 'black', fontSize: 21, marginLeft: 8, fontFamily: 'Nunito-Bold' }}>
+          <Text style={{ color: theme.text, fontSize: 21, marginLeft: 8, fontFamily: 'Nunito-Bold' }}>
               Edit Profile
           </Text>
         </TouchableOpacity>
@@ -1102,7 +1104,7 @@ export default function EditProfile() {
           <Ionicons 
             name="settings-outline" 
             size={32} 
-            color="black"
+            color={theme.text}
           />
         </TouchableOpacity>
         </View>
@@ -1132,7 +1134,7 @@ export default function EditProfile() {
                 style={{ resizeMode: 'cover' }}
               />
             ) : (
-              <Text className="text-2xl text-black font-bold">{name?.[0] || 'U'}</Text>
+              <Text className="text-2xl font-bold" style={{ color: theme.textInverse }}>{name?.[0] || 'U'}</Text>
             )}
             <TouchableOpacity 
               className="absolute bottom-0 right-0"
@@ -1155,19 +1157,19 @@ export default function EditProfile() {
               left: 16,
               top: '100%',
               transform: [{ translateY: -20 }],
-              backgroundColor: 'white',
+              backgroundColor: theme.cardBackground,
               borderRadius: 12,
               paddingHorizontal: 16,
               paddingVertical: 10,
               flexDirection: 'row',
               alignItems: 'center',
               borderWidth: 1,
-              borderColor: '#676767'
+              borderColor: theme.borderDark
             }}
           >
-            <Ionicons name="eye-outline" size={20} color="#FD6F3E" />
+            <Ionicons name="eye-outline" size={20} color={theme.primary} />
             <Text style={{ 
-              color: 'black', 
+              color: theme.text, 
               fontSize: 14, 
               fontFamily: 'questrial',
               marginLeft: 8,
@@ -1181,60 +1183,66 @@ export default function EditProfile() {
         {/* Form Fields */}
         <View className="mt-8">
           {/* Name */}
-          <View className={`flex-row items-center rounded-lg px-5 py-4 mb-2 ${
-            focusedInput === 'name' ? 'border border-[#FD6F3E]' : ''
-          }`} style={{ backgroundColor: '#FFFFFF' }}>
+          <View className={`flex-row items-center rounded-lg px-5 py-4 mb-2`} style={{ 
+            backgroundColor: theme.cardBackground,
+            borderWidth: focusedInput === 'name' ? 1 : 0,
+            borderColor: focusedInput === 'name' ? theme.primary : 'transparent'
+          }}>
             <Ionicons 
               name="person-outline" 
               size={24} 
-              color={focusedInput === 'name' ? '#FD6F3E' : '#666'} 
+              color={focusedInput === 'name' ? theme.primary : theme.textSecondary} 
               style={{ marginRight: 12 }}
             />
             <TextInput
-              className="flex-1 text-black font-questrial text-lg h-9"
+              className="flex-1 font-questrial text-lg h-9"
               value={name}
               editable={false}
-              style={{ textAlignVertical: 'center', color: 'black', paddingBottom: 12 }}
+              style={{ textAlignVertical: 'center', color: theme.text, paddingBottom: 12 }}
             />
           </View>
 
           {/* Birth Date */}
           <TouchableOpacity 
             onPress={() => setShowDatePicker(true)}
-            className={`flex-row items-center rounded-lg px-5 py-4 mb-2 ${
-              focusedInput === 'birthDate' ? 'border border-[#FD6F3E]' : ''
-            }`}
-            style={{ backgroundColor: '#FFFFFF' }}
+            className="flex-row items-center rounded-lg px-5 py-4 mb-2"
+            style={{ 
+              backgroundColor: theme.cardBackground,
+              borderWidth: focusedInput === 'birthDate' ? 1 : 0,
+              borderColor: focusedInput === 'birthDate' ? theme.primary : 'transparent'
+            }}
           >
             <Ionicons 
               name="calendar-outline" 
               size={24} 
-              color={focusedInput === 'birthDate' ? '#FD6F3E' : '#666'} 
+              color={focusedInput === 'birthDate' ? theme.primary : theme.textSecondary} 
               style={{ marginRight: 12 }}
             />
             <TextInput
-              className="flex-1 text-black font-questrial text-lg h-9"
+              className="flex-1 font-questrial text-lg h-9"
               value={`${selectedMonth}/${selectedDay}/${selectedYear}`}
               editable={false}
-              style={{ textAlignVertical: 'center', color: 'black', paddingBottom: 12 }}
+              style={{ textAlignVertical: 'center', color: theme.text, paddingBottom: 12 }}
             />
           </TouchableOpacity>
 
           {/* Email */}
-          <View className={`flex-row items-center rounded-lg px-5 py-4 mb-2 ${
-            focusedInput === 'email' ? 'border border-[#FD6F3E]' : ''
-          }`} style={{ backgroundColor: '#FFFFFF' }}>
+          <View className="flex-row items-center rounded-lg px-5 py-4 mb-2" style={{ 
+            backgroundColor: theme.cardBackground,
+            borderWidth: focusedInput === 'email' ? 1 : 0,
+            borderColor: focusedInput === 'email' ? theme.primary : 'transparent'
+          }}>
             <Ionicons 
               name="mail-outline" 
               size={24} 
-              color={focusedInput === 'email' ? '#FD6F3E' : '#666'} 
+              color={focusedInput === 'email' ? theme.primary : theme.textSecondary} 
               style={{ marginRight: 12 }}
             />
             <TextInput
-              className="flex-1 text-black font-questrial text-lg h-9"
+              className="flex-1 font-questrial text-lg h-9"
               value={email}
               editable={false}
-              style={{ textAlignVertical: 'center', color: 'black', paddingBottom: 17 }}
+              style={{ textAlignVertical: 'center', color: theme.text, paddingBottom: 17 }}
             />
           </View>
 
@@ -1242,18 +1250,20 @@ export default function EditProfile() {
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
             <TouchableOpacity 
               onPress={() => setShowCountryPicker(true)}
-              className={`flex-row items-center rounded-lg px-5 py-5 w-24 mr-2 ${
-                focusedInput === 'countryCode' ? 'border border-[#FD6F3E]' : ''
-              }`}
-              style={{ backgroundColor: '#FFFFFF' }}
+              className="flex-row items-center rounded-lg px-5 py-5 w-24 mr-2"
+              style={{ 
+                backgroundColor: theme.cardBackground,
+                borderWidth: focusedInput === 'countryCode' ? 1 : 0,
+                borderColor: focusedInput === 'countryCode' ? theme.primary : 'transparent'
+              }}
               activeOpacity={0.7}
             >
-              <Text style={{ color: 'black', fontSize: 20, marginRight: 8 }}>{selectedCountry.flag}</Text>
-              <Text style={{ color: 'black', fontFamily: 'questrial', fontSize: 16 }}>{selectedCountry.code}</Text>
+              <Text style={{ color: theme.text, fontSize: 20, marginRight: 8 }}>{selectedCountry.flag}</Text>
+              <Text style={{ color: theme.text, fontFamily: 'questrial', fontSize: 16 }}>{selectedCountry.code}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               className="flex-row items-center rounded-lg px-5 py-5 flex-1"
-              style={{ backgroundColor: '#FFFFFF' }}
+              style={{ backgroundColor: theme.cardBackground }}
               activeOpacity={0.8}
               onPress={() => {
                 setTempPhoneNumber(phoneNumber);
@@ -1263,13 +1273,13 @@ export default function EditProfile() {
               <Ionicons 
                 name="call-outline" 
                 size={24} 
-                color="#666" 
+                color={theme.textSecondary} 
                 style={{ marginRight: 12 }}
               />
-              <Text style={{ color: 'black', fontFamily: 'Nunito-Regular', fontSize: 17, flex: 1 }}>
+              <Text style={{ color: theme.text, fontFamily: 'Nunito-Regular', fontSize: 17, flex: 1 }}>
                 {phoneNumber ? phoneNumber : 'Enter phone number'}
               </Text>
-              <Ionicons name="chevron-forward" size={20} color="#666" />
+              <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -1281,7 +1291,7 @@ export default function EditProfile() {
                     key={gender.value}
                     onPress={() => setSelectedGender(gender)}
                     style={{
-                      backgroundColor: selectedGender?.value === gender.value ? '#FD6F3E' : '#FFFFFF',
+                      backgroundColor: selectedGender?.value === gender.value ? theme.primary : theme.cardBackground,
                       borderRadius: 18,
                       paddingVertical: 12,
                       paddingHorizontal: 0,
@@ -1289,12 +1299,12 @@ export default function EditProfile() {
                       flex: 1,
                       marginRight: gender.value !== 'other' ? 12 : 0,
                       borderWidth: selectedGender?.value === gender.value ? 1 : 0,
-                      borderColor: selectedGender?.value === gender.value ? '#FD6F3E' : 'transparent',
+                      borderColor: selectedGender?.value === gender.value ? theme.primary : 'transparent',
                       alignItems: 'center',
                     }}
                   >
                   <Text style={{ 
-                    color: selectedGender?.value === gender.value ? 'black' : 'black', 
+                    color: selectedGender?.value === gender.value ? theme.textInverse : theme.text, 
                     fontFamily: 'questrial', 
                     fontSize: 17,
                     textAlign: 'center',
@@ -1310,7 +1320,7 @@ export default function EditProfile() {
           <View style={{ marginBottom: 8 }}>
             <TouchableOpacity
               className="rounded-lg px-5 py-5 flex-row items-center"
-              style={{ backgroundColor: '#FFFFFF' }}
+              style={{ backgroundColor: theme.cardBackground }}
               activeOpacity={0.8}
               onPress={() => {
                 setTempCreatorName(creatorName);
@@ -1318,9 +1328,9 @@ export default function EditProfile() {
               }}
               disabled={showCreatorNameWarning}
             >
-              <Ionicons name="person-circle-outline" size={22} color={showCreatorNameWarning ? "#444" : "#666"} style={{ marginRight: 10 }} />
+              <Ionicons name="person-circle-outline" size={22} color={showCreatorNameWarning ? theme.textTertiary : theme.textSecondary} style={{ marginRight: 10 }} />
               <Text style={{ 
-                color: showCreatorNameWarning ? '#666' : 'black', 
+                color: showCreatorNameWarning ? theme.textSecondary : theme.text, 
                 fontFamily: 'Nunito-Regular', 
                 fontSize: 18, 
                 flex: 1 
@@ -1344,7 +1354,7 @@ export default function EditProfile() {
                   </Text>
                 </View>
               ) : (
-              <Ionicons name="chevron-forward" size={20} color="#666" />
+              <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
               )}
             </TouchableOpacity>
             
@@ -1377,25 +1387,25 @@ export default function EditProfile() {
           <View style={{ marginBottom: 8 }}>
             <TouchableOpacity
               className="rounded-lg px-5 py-4 flex-row items-center"
-              style={{ backgroundColor: '#FFFFFF' }}
+              style={{ backgroundColor: theme.cardBackground }}
               activeOpacity={0.8}
               onPress={() => {
                 setTempBio(bio);
                 setShowBioModal(true);
               }}
             >
-              <Ionicons name="document-text-outline" size={22} color="#666" style={{ marginRight: 10 }} />
+              <Ionicons name="document-text-outline" size={22} color={theme.textSecondary} style={{ marginRight: 10 }} />
               <View className="flex-1">
-                <Text style={{ color: 'black', fontFamily: 'Nunito-Regular', fontSize: 18 }}>
+                <Text style={{ color: theme.text, fontFamily: 'Nunito-Regular', fontSize: 18 }}>
                   {bio ? bio : 'Tell us about yourself'}
                 </Text>
                 {bio && (
-                  <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>
+                  <Text style={{ color: theme.textTertiary, fontSize: 14, marginTop: 4 }}>
                     {bio.length}/300 characters
                   </Text>
                 )}
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#666" />
+              <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -1403,18 +1413,18 @@ export default function EditProfile() {
           <View style={{ marginBottom: 8 }}>
             <TouchableOpacity
               className="rounded-lg px-5 py-5 flex-row items-center"
-              style={{ backgroundColor: '#FFFFFF' }}
+              style={{ backgroundColor: theme.cardBackground }}
               activeOpacity={0.8}
               onPress={() => {
                 setTempLocation(location);
                 setShowLocationModal(true);
               }}
             >
-              <Ionicons name="location-outline" size={22} color="#666" style={{ marginRight: 10 }} />
-              <Text style={{ color: 'black', fontFamily: 'Nunito-Regular', fontSize: 18, flex: 1 }}>
+              <Ionicons name="location-outline" size={22} color={theme.textSecondary} style={{ marginRight: 10 }} />
+              <Text style={{ color: theme.text, fontFamily: 'Nunito-Regular', fontSize: 18, flex: 1 }}>
                 {location ? location : 'Enter your location'}
               </Text>
-              <Ionicons name="chevron-forward" size={20} color="#666" />
+              <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -1423,12 +1433,12 @@ export default function EditProfile() {
            
             <TouchableOpacity
               className="rounded-lg px-5 py-5 mb-2 flex-row items-center"
-              style={{ backgroundColor: '#FFFFFF' }}
+              style={{ backgroundColor: theme.cardBackground }}
               activeOpacity={0.8}
               onPress={() => setShowTopicsModal(true)}
             >
-              <Ionicons name="chatbubble-ellipses-outline" size={22} color="#FD6F3E" style={{ marginRight: 10 }} />
-              <Text style={{ color: 'black', fontFamily: 'Nunito-Regular', fontSize: 18 }}>
+              <Ionicons name="chatbubble-ellipses-outline" size={22} color={theme.primary} style={{ marginRight: 10 }} />
+              <Text style={{ color: theme.text, fontFamily: 'Nunito-Regular', fontSize: 18 }}>
                 {topics.length > 0 ? (
                   topics.length <= 3 
                     ? topics.join(', ')
@@ -1442,9 +1452,9 @@ export default function EditProfile() {
               animationType="slide"
               onRequestClose={() => setShowTopicsModal(false)}
             >
-              <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' }}>
-                <View style={{ backgroundColor: 'white', borderRadius: 24, padding: 24, width: '90%' }}>
-                  <Text style={{ color: 'black', fontSize: 18, fontFamily: 'questrial', marginBottom: 16, textAlign: 'center' }}>
+              <View style={{ flex: 1, backgroundColor: theme.modalOverlay, justifyContent: 'center', alignItems: 'center' }}>
+                <View style={{ backgroundColor: theme.modalBackground, borderRadius: 24, padding: 24, width: '90%' }}>
+                  <Text style={{ color: theme.text, fontSize: 18, fontFamily: 'questrial', marginBottom: 16, textAlign: 'center' }}>
                     Choose your topics
                   </Text>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -1461,16 +1471,16 @@ export default function EditProfile() {
                             );
                           }}
                           style={{
-                            backgroundColor: selected ? '#FD6F3E' : '#FFFFFF',
+                            backgroundColor: selected ? theme.primary : theme.cardBackground,
                             borderRadius: 18,
                             paddingVertical: 7,
                             paddingHorizontal: 16,
                             margin: 4,
                             borderWidth: 1,
-                            borderColor: selected ? '#FD6F3E' : '#676767',
+                            borderColor: selected ? theme.primary : theme.borderDark,
                           }}
                         >
-                          <Text style={{ color: selected ? 'black' : 'black', fontFamily: 'questrial', fontSize: 15 }}>
+                          <Text style={{ color: selected ? theme.textInverse : theme.text, fontFamily: 'questrial', fontSize: 15 }}>
                             {topic}
                           </Text>
                         </TouchableOpacity>
@@ -1478,10 +1488,10 @@ export default function EditProfile() {
                     })}
                   </View>
                   <TouchableOpacity
-                    style={{ marginTop: 24, backgroundColor: '#FD6F3E', borderRadius: 16, paddingVertical: 12 }}
+                    style={{ marginTop: 24, backgroundColor: theme.primary, borderRadius: 16, paddingVertical: 12 }}
                     onPress={() => setShowTopicsModal(false)}
                   >
-                    <Text style={{ color: 'black', fontSize: 16, fontFamily: 'questrial', textAlign: 'center', fontWeight: 'bold' }}>
+                    <Text style={{ color: theme.textInverse, fontSize: 16, fontFamily: 'questrial', textAlign: 'center', fontWeight: 'bold' }}>
                       Done
                     </Text>
                   </TouchableOpacity>
@@ -1491,15 +1501,15 @@ export default function EditProfile() {
             {/* Subscriptions Button */}
             <TouchableOpacity 
               className="rounded-lg py-4 mb-1 flex-row items-center justify-center"
-              style={{ backgroundColor: '#FFFFFF' }}
+              style={{ backgroundColor: theme.cardBackground }}
               activeOpacity={0.8}
               onPress={async () => {
                 await loadExistingPaymentData();
                 setShowSubscriptionsModal(true);
               }}
             >
-              <Ionicons name="card-outline" size={22} color="#FD6F3E" style={{ marginRight: 10 }} />
-              <Text style={{ color: 'black', textAlign: 'center', fontFamily: 'questrial', fontSize: 18 }}>
+              <Ionicons name="card-outline" size={22} color={theme.primary} style={{ marginRight: 10 }} />
+              <Text style={{ color: theme.text, textAlign: 'center', fontFamily: 'questrial', fontSize: 18 }}>
                 Subscriptions
               </Text>
             </TouchableOpacity>
@@ -1507,25 +1517,29 @@ export default function EditProfile() {
 
           {/* Update Button */}
           <TouchableOpacity 
-            className={`bg-[#FD6F3E] rounded-lg py-4 mt-2 mb-2${!profileImage ? ' opacity-50' : ''}`}
+            className="rounded-lg py-4 mt-2 mb-2"
+            style={{ 
+              backgroundColor: !profileImage ? theme.textTertiary : theme.primary,
+              opacity: !profileImage ? 0.5 : 1
+            }}
             activeOpacity={0.8}
             onPress={handleUpdateProfile}
             disabled={saving || !profileImage}
           >
-            <Text className="text-black text-center font-questrial text-lg">
+            <Text style={{ color: theme.textInverse, textAlign: 'center', fontFamily: 'questrial', fontSize: 18 }}>
               {saving ? 'Updating...' : 'Update Profile'}
             </Text>
           </TouchableOpacity>
           {/* Show a message if no profile image */}
           {!profileImage && (
-            <Text style={{ color: '#FD6F3E', textAlign: 'center', marginBottom: 8, fontFamily: 'questrial', fontWeight: '600' }}>
+            <Text style={{ color: theme.primary, textAlign: 'center', marginBottom: 8, fontFamily: 'questrial', fontWeight: '600' }}>
               Please add a profile picture to update your profile.
             </Text>
           )}
 
           {/* Success Message */}
           {successMessage && (
-            <Text className="text-[#4CAF50] text-center mt-2 font-questrial">
+            <Text style={{ color: theme.success, textAlign: 'center', marginTop: 8, fontFamily: 'questrial' }}>
                 {successMessage}
             </Text>
           )}
@@ -1657,13 +1671,13 @@ export default function EditProfile() {
       >
           <View style={{ 
             flex: 1, 
-          backgroundColor: 'rgba(0,0,0,0.8)', 
+          backgroundColor: theme.modalOverlay, 
             justifyContent: 'center', 
             alignItems: 'center',
           paddingHorizontal: 20
         }}>
           <View style={{ 
-            backgroundColor: 'white', 
+            backgroundColor: theme.modalBackground, 
             borderRadius: 20, 
             padding: 40, 
               alignItems: 'center',
@@ -1732,7 +1746,7 @@ export default function EditProfile() {
             </View>
             
                 <Text style={{ 
-              color: 'black', 
+              color: theme.text, 
               fontSize: 18, 
               fontFamily: 'Nunito-Bold', 
                   textAlign: 'center', 
@@ -1742,7 +1756,7 @@ export default function EditProfile() {
                 </Text>
             
                   <Text style={{ 
-              color: '#666', 
+              color: theme.textSecondary, 
                     fontSize: 14,
               fontFamily: 'Nunito-Regular', 
               textAlign: 'center',
@@ -1763,24 +1777,24 @@ export default function EditProfile() {
       >
           <View style={{ 
             flex: 1, 
-          backgroundColor: 'rgba(0,0,0,0.5)', 
+          backgroundColor: theme.modalOverlay, 
             justifyContent: 'center', 
             alignItems: 'center',
           paddingHorizontal: 20
             }}>
               <View style={{ 
-            backgroundColor: 'white', 
+            backgroundColor: theme.modalBackground, 
                   borderRadius: 16,
             padding: 24, 
                   width: '100%',
             maxWidth: 340
           }}>
             <View style={{ alignItems: 'center', marginBottom: 16 }}>
-              <Ionicons name="warning-outline" size={48} color="#FD6F3E" />
+              <Ionicons name="warning-outline" size={48} color={theme.primary} />
               </View>
             
                 <Text style={{ 
-                  color: 'black', 
+                  color: theme.text, 
                   fontSize: 20, 
               fontFamily: 'Nunito-Bold', 
               textAlign: 'center',
@@ -1790,7 +1804,7 @@ export default function EditProfile() {
             </Text>
             
             <Text style={{ 
-              color: '#666', 
+              color: theme.textSecondary, 
                   fontSize: 16,
               fontFamily: 'Nunito-Regular', 
                   textAlign: 'center',
@@ -1805,14 +1819,14 @@ export default function EditProfile() {
                 onPress={handleDiscardChanges}
                   style={{ 
                     flex: 1, 
-                  backgroundColor: '#f5f5f5',
+                  backgroundColor: theme.backgroundSecondary,
                   borderRadius: 12,
                   paddingVertical: 14,
                   alignItems: 'center'
                   }}
                 >
                   <Text style={{ 
-                  color: '#666', 
+                  color: theme.textSecondary, 
                     fontSize: 16, 
                   fontFamily: 'Nunito-SemiBold'
                 }}>
@@ -1824,7 +1838,7 @@ export default function EditProfile() {
                 onPress={handleSaveAndExit}
                   style={{ 
                     flex: 1, 
-                  backgroundColor: !profileImage ? '#ccc' : '#FD6F3E',
+                  backgroundColor: !profileImage ? theme.textTertiary : theme.primary,
                   borderRadius: 12,
                   paddingVertical: 14,
                   alignItems: 'center'
@@ -1832,7 +1846,7 @@ export default function EditProfile() {
                 disabled={saving || !profileImage}
                 >
                   <Text style={{ 
-                  color: !profileImage ? '#666' : 'white', 
+                  color: !profileImage ? theme.textSecondary : theme.textInverse, 
                     fontSize: 16, 
                   fontFamily: 'Nunito-SemiBold'
                 }}>
@@ -1843,7 +1857,7 @@ export default function EditProfile() {
             
             {!profileImage && (
               <Text style={{ 
-                color: '#FD6F3E', 
+                color: theme.primary, 
                 fontSize: 14, 
                 fontFamily: 'Nunito-Regular', 
                    textAlign: 'center', 

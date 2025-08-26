@@ -1,3 +1,4 @@
+import { useTheme } from '@/lib/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
@@ -6,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function PaymentMethods() {
   const router = useRouter();
+  const { theme } = useTheme();
 
   const PaymentMethodItem = ({ 
     icon, 
@@ -19,12 +21,12 @@ export default function PaymentMethods() {
     isComingSoon?: boolean;
   }) => (
     <View style={{
-      backgroundColor: '#FFFFFF',
+      backgroundColor: theme.cardBackground,
       borderRadius: 12,
       padding: 20,
       marginBottom: 16,
       borderWidth: 1,
-      borderColor: isComingSoon ? '#E0E0E0' : '#FD6F3E',
+      borderColor: isComingSoon ? theme.border : theme.primary,
       opacity: isComingSoon ? 0.7 : 1
     }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
@@ -32,7 +34,7 @@ export default function PaymentMethods() {
           width: 48,
           height: 48,
           borderRadius: 24,
-          backgroundColor: isComingSoon ? '#F0F0F0' : 'rgba(253, 111, 62, 0.1)',
+          backgroundColor: isComingSoon ? theme.backgroundSecondary : 'rgba(253, 111, 62, 0.1)',
           alignItems: 'center',
           justifyContent: 'center',
           marginRight: 16
@@ -40,13 +42,13 @@ export default function PaymentMethods() {
           <Ionicons 
             name={icon as any} 
             size={24} 
-            color={isComingSoon ? '#888888' : '#FD6F3E'} 
+            color={isComingSoon ? theme.textTertiary : theme.primary} 
           />
         </View>
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Text style={{
-              color: 'black',
+              color: theme.text,
               fontSize: 18,
               fontFamily: 'Urbanist-Bold',
               marginRight: 8
@@ -55,13 +57,13 @@ export default function PaymentMethods() {
             </Text>
             {isComingSoon && (
               <View style={{
-                backgroundColor: '#FD6F3E',
+                backgroundColor: theme.primary,
                 borderRadius: 12,
                 paddingHorizontal: 8,
                 paddingVertical: 4
               }}>
                 <Text style={{
-                  color: 'white',
+                  color: theme.textInverse,
                   fontSize: 12,
                   fontFamily: 'Urbanist-Bold'
                 }}>
@@ -71,7 +73,7 @@ export default function PaymentMethods() {
             )}
           </View>
           <Text style={{
-            color: '#666666',
+            color: theme.textSecondary,
             fontSize: 14,
             fontFamily: 'Urbanist-Regular',
             lineHeight: 20,
@@ -85,17 +87,17 @@ export default function PaymentMethods() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#DCDEDF' }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.backgroundTertiary }} edges={['top']}>
       {/* Header */}
       <View className="flex-row items-center px-4 pt-2 pb-4">
         <TouchableOpacity onPress={() => router.back()} className="flex-row items-center">
           <Ionicons 
             name="chevron-back-outline" 
             size={32} 
-            color="black" 
+            color={theme.text} 
             style={{ marginRight: 4 }}
           />
-          <Text style={{ color: 'black', fontSize: 20, marginLeft: 8, fontFamily: 'Nunito-Bold' }}>
+          <Text style={{ color: theme.text, fontSize: 20, marginLeft: 8, fontFamily: 'Nunito-Bold' }}>
             Payment Methods
           </Text>
         </TouchableOpacity>
@@ -104,11 +106,11 @@ export default function PaymentMethods() {
       <ScrollView 
         className="flex-1 px-4"
         contentContainerStyle={{ paddingBottom: 40 }}
-        style={{ backgroundColor: '#DCDEDF' }}
+        style={{ backgroundColor: theme.backgroundTertiary }}
       >
         {/* Header Info */}
         <View style={{ 
-          backgroundColor: '#FFFFFF', 
+          backgroundColor: theme.cardBackground, 
           borderRadius: 12, 
           padding: 20, 
           marginBottom: 24,
@@ -123,10 +125,10 @@ export default function PaymentMethods() {
             justifyContent: 'center',
             marginBottom: 16
           }}>
-            <Ionicons name="card-outline" size={32} color="#FD6F3E" />
+            <Ionicons name="card-outline" size={32} color={theme.primary} />
           </View>
           <Text style={{
-            color: 'black',
+            color: theme.text,
             fontSize: 24,
             fontFamily: 'Urbanist-Bold',
             textAlign: 'center',
@@ -135,7 +137,7 @@ export default function PaymentMethods() {
             Supported Payment Methods
           </Text>
           <Text style={{
-            color: '#666666',
+            color: theme.textSecondary,
             fontSize: 16,
             fontFamily: 'Urbanist-Regular',
             textAlign: 'center',
@@ -147,7 +149,7 @@ export default function PaymentMethods() {
 
         {/* Payment Methods */}
         <Text style={{
-          color: '#FD6F3E',
+          color: theme.primary,
           fontSize: 18,
           fontFamily: 'Urbanist-Bold',
           marginBottom: 16
@@ -174,7 +176,7 @@ export default function PaymentMethods() {
         />
 
         <Text style={{
-          color: '#888888',
+          color: theme.textTertiary,
           fontSize: 18,
           fontFamily: 'Urbanist-Bold',
           marginBottom: 16,
@@ -192,17 +194,17 @@ export default function PaymentMethods() {
 
         {/* Security Info */}
         <View style={{ 
-          backgroundColor: '#FFFFFF', 
+          backgroundColor: theme.cardBackground, 
           borderRadius: 12, 
           padding: 20, 
           marginTop: 24,
           borderLeftWidth: 4,
-          borderLeftColor: '#FD6F3E'
+          borderLeftColor: theme.primary
         }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-            <Ionicons name="shield-checkmark" size={24} color="#FD6F3E" style={{ marginRight: 12 }} />
+            <Ionicons name="shield-checkmark" size={24} color={theme.primary} style={{ marginRight: 12 }} />
             <Text style={{
-              color: 'black',
+              color: theme.text,
               fontSize: 18,
               fontFamily: 'Urbanist-Bold'
             }}>
@@ -210,7 +212,7 @@ export default function PaymentMethods() {
             </Text>
           </View>
           <Text style={{
-            color: '#666666',
+            color: theme.textSecondary,
             fontSize: 15,
             fontFamily: 'Urbanist-Regular',
             lineHeight: 22
@@ -221,15 +223,15 @@ export default function PaymentMethods() {
 
         {/* Support Info */}
         <View style={{ 
-          backgroundColor: '#FFFFFF', 
+          backgroundColor: theme.cardBackground, 
           borderRadius: 12, 
           padding: 20, 
           marginTop: 16
         }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-            <Ionicons name="help-circle" size={24} color="#FD6F3E" style={{ marginRight: 12 }} />
+            <Ionicons name="help-circle" size={24} color={theme.primary} style={{ marginRight: 12 }} />
             <Text style={{
-              color: 'black',
+              color: theme.text,
               fontSize: 18,
               fontFamily: 'Urbanist-Bold'
             }}>
@@ -237,7 +239,7 @@ export default function PaymentMethods() {
             </Text>
           </View>
           <Text style={{
-            color: '#666666',
+            color: theme.textSecondary,
             fontSize: 15,
             fontFamily: 'Urbanist-Regular',
             lineHeight: 22

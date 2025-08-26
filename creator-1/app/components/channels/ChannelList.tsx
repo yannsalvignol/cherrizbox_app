@@ -1,5 +1,6 @@
 import { type Channel } from '@/lib/index-utils';
 import { client } from '@/lib/stream-chat';
+import { useTheme } from '@/lib/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -60,6 +61,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
   onChannelUpdate,
   onTipCollected
 }) => {
+  const { theme } = useTheme();
   // Local state for real-time unread counts
   const [liveUnreadCounts, setLiveUnreadCounts] = useState<Map<string, number>>(new Map());
 
@@ -239,14 +241,14 @@ export const ChannelList: React.FC<ChannelListProps> = ({
         flex: 1, 
         alignItems: 'center', 
         justifyContent: 'center',
-        backgroundColor: '#DCDEDF'
+        backgroundColor: theme.backgroundTertiary
       }}>
         <Image 
           source={require('../../../assets/icon/loading-icon.png')} 
           style={{ width: 80, height: 80, marginBottom: 16 }} 
         />
         <Text style={{ 
-          color: 'black', 
+          color: theme.text, 
           fontSize: 18, 
           marginTop: 12,
           fontFamily: 'Urbanist-Bold'
@@ -266,27 +268,27 @@ export const ChannelList: React.FC<ChannelListProps> = ({
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#FD6F3E"
-            colors={["#FD6F3E"]}
-            progressBackgroundColor="#DCDEDF"
+            tintColor={theme.primary}
+            colors={[theme.primary]}
+            progressBackgroundColor={theme.backgroundTertiary}
           />
         }
         contentContainerStyle={{
           flex: 1,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#DCDEDF',
+          backgroundColor: theme.backgroundTertiary,
           paddingHorizontal: 32
         }}
-        style={{ backgroundColor: '#DCDEDF' }}
+        style={{ backgroundColor: theme.backgroundTertiary }}
         ListEmptyComponent={
           <View style={{
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-            <Ionicons name="chatbubbles-outline" size={80} color="#333333" style={{ marginBottom: 24 }} />
+            <Ionicons name="chatbubbles-outline" size={80} color={theme.textTertiary} style={{ marginBottom: 24 }} />
             <Text style={{ 
-              color: '#888888', 
+              color: theme.textTertiary, 
               fontSize: 20, 
               fontFamily: 'Urbanist-Bold',
               marginBottom: 8,
@@ -295,7 +297,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
               No chats yet
             </Text>
             <Text style={{ 
-              color: '#666666', 
+              color: theme.textSecondary, 
               fontSize: 16, 
               fontFamily: 'Urbanist-Regular',
               textAlign: 'center',
@@ -305,7 +307,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
               Start chatting with your fans and subscribers to build your community
             </Text>
             <Text style={{ 
-              color: '#FD6F3E', 
+              color: theme.primary, 
               fontSize: 14, 
               fontFamily: 'Urbanist-Medium',
               textAlign: 'center',
@@ -328,9 +330,9 @@ export const ChannelList: React.FC<ChannelListProps> = ({
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
-          tintColor="#FD6F3E"
-          colors={["#FD6F3E"]}
-          progressBackgroundColor="#DCDEDF"
+          tintColor={theme.primary}
+          colors={[theme.primary]}
+          progressBackgroundColor={theme.backgroundTertiary}
         />
       }
       renderItem={({ item, index }) => {
@@ -344,11 +346,11 @@ export const ChannelList: React.FC<ChannelListProps> = ({
               <View style={{
                 paddingHorizontal: 20,
                 paddingVertical: 20,
-                backgroundColor: '#DCDEDF',
+                backgroundColor: theme.backgroundTertiary,
                 marginTop: 16,
               }}>
                 <Text style={{
-                  color: '#888888',
+                  color: theme.textTertiary,
                   fontSize: 14,
                   fontWeight: 'bold',
                   fontFamily: 'Urbanist-Bold',
@@ -365,11 +367,11 @@ export const ChannelList: React.FC<ChannelListProps> = ({
               <View style={{
                 paddingHorizontal: 20,
                 paddingVertical: 8,
-                backgroundColor: '#DCDEDF',
+                backgroundColor: theme.backgroundTertiary,
                 marginBottom: 8,
               }}>
                 <Text style={{
-                  color: 'black',
+                  color: theme.text,
                   fontSize: 14,
                   fontWeight: 'bold',
                   fontFamily: 'Urbanist-Bold',
@@ -422,7 +424,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ 
         paddingVertical: 6,
-        backgroundColor: '#DCDEDF'
+        backgroundColor: theme.backgroundTertiary
       }}
       style={{ backgroundColor: '#DCDEDF' }}
       // Performance optimizations
@@ -443,8 +445,8 @@ export const ChannelList: React.FC<ChannelListProps> = ({
         if (isLoadingMore) {
           return (
             <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-              <ActivityIndicator size="small" color="black" />
-              <Text style={{ color: '#888888', fontFamily: 'Urbanist-Regular', fontSize: 14, marginTop: 8 }}>
+              <ActivityIndicator size="small" color={theme.text} />
+              <Text style={{ color: theme.textTertiary, fontFamily: 'Urbanist-Regular', fontSize: 14, marginTop: 8 }}>
                 Loading more chats...
               </Text>
             </View>
@@ -453,7 +455,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
         if (!hasMoreChannels && channels.length >= channelsPerPage && !searchQuery) {
           return (
             <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-              <Text style={{ color: '#888888', fontFamily: 'Urbanist-Regular', fontSize: 14 }}>
+              <Text style={{ color: theme.textTertiary, fontFamily: 'Urbanist-Regular', fontSize: 14 }}>
                 All chats loaded
               </Text>
             </View>
@@ -465,11 +467,11 @@ export const ChannelList: React.FC<ChannelListProps> = ({
         if (searchQuery) {
           return (
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 100 }}>
-              <Ionicons name="search" size={60} color="#333333" style={{ marginBottom: 16 }} />
-              <Text style={{ color: '#888888', fontSize: 18, fontFamily: 'Urbanist-Bold', marginBottom: 8 }}>
+              <Ionicons name="search" size={60} color={theme.textTertiary} style={{ marginBottom: 16 }} />
+              <Text style={{ color: theme.textTertiary, fontSize: 18, fontFamily: 'Urbanist-Bold', marginBottom: 8 }}>
                 No results found
               </Text>
-              <Text style={{ color: '#666666', fontSize: 14, fontFamily: 'Urbanist-Regular' }}>
+              <Text style={{ color: theme.textSecondary, fontSize: 14, fontFamily: 'Urbanist-Regular' }}>
                 Try searching with a different term
               </Text>
             </View>

@@ -1,3 +1,4 @@
+import { useTheme } from '@/lib/useTheme';
 import React from 'react';
 import { Dimensions, Text, View } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
@@ -8,8 +9,9 @@ interface SubscriberChartProps {
 }
 
 const SubscriberChart: React.FC<SubscriberChartProps> = ({ dailySubscribersStats, timeframe }) => {
+  const { theme } = useTheme();
   const screenWidth = Dimensions.get('window').width;
-  const chartWidth = screenWidth - 80; // Account for card padding
+  const chartWidth = screenWidth - 60; // Reduced padding for more horizontal space
 
   // Prepare data based on timeframe
   const prepareChartData = () => {
@@ -111,8 +113,8 @@ const SubscriberChart: React.FC<SubscriberChartProps> = ({ dailySubscribersStats
 
   const chartConfig = {
     backgroundColor: 'transparent',
-    backgroundGradientFrom: 'white',
-    backgroundGradientTo: 'white',
+    backgroundGradientFrom: theme.cardBackground,
+    backgroundGradientTo: theme.cardBackground,
     color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
     strokeWidth: 3,
     barPercentage: 0.7,
@@ -124,12 +126,23 @@ const SubscriberChart: React.FC<SubscriberChartProps> = ({ dailySubscribersStats
     },
     propsForBackgroundLines: {
       strokeWidth: 0.5,
-      stroke: '#E8E8E8',
+      stroke: theme.border,
       strokeDasharray: '0'
     },
     propsForLabels: {
       fontSize: 11,
-      fontFamily: 'MuseoModerno-Regular'
+      fontFamily: 'MuseoModerno-Regular',
+      fill: theme.text
+    },
+    propsForHorizontalLabels: {
+      fontSize: 11,
+      fontFamily: 'MuseoModerno-Regular',
+      fill: theme.text
+    },
+    propsForVerticalLabels: {
+      fontSize: 11,
+      fontFamily: 'MuseoModerno-Regular',
+      fill: theme.text
     },
     formatYLabel: (yValue: string) => {
       const num = parseFloat(yValue);
@@ -144,7 +157,7 @@ const SubscriberChart: React.FC<SubscriberChartProps> = ({ dailySubscribersStats
 
   return (
     <View style={{
-      backgroundColor: '#FAFAFA',
+      backgroundColor: theme.cardBackground,
       borderRadius: 8,
       padding: 8,
       marginVertical: 4,
@@ -153,7 +166,7 @@ const SubscriberChart: React.FC<SubscriberChartProps> = ({ dailySubscribersStats
       <Text style={{
         fontSize: 12,
         fontFamily: 'MuseoModerno-Regular',
-        color: '#666666',
+        color: theme.textSecondary,
         textAlign: 'center',
         marginBottom: 8,
       }}>
@@ -180,7 +193,7 @@ const SubscriberChart: React.FC<SubscriberChartProps> = ({ dailySubscribersStats
           <Text style={{
             fontSize: 10,
             fontFamily: 'MuseoModerno-Regular',
-            color: '#666666',
+            color: theme.textSecondary,
           }}>
             Gained
           </Text>
@@ -196,7 +209,7 @@ const SubscriberChart: React.FC<SubscriberChartProps> = ({ dailySubscribersStats
           <Text style={{
             fontSize: 10,
             fontFamily: 'MuseoModerno-Regular',
-            color: '#666666',
+            color: theme.textSecondary,
           }}>
             Lost
           </Text>

@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Modal, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useTheme } from '../../../lib/useTheme';
 
 interface Country {
   name: string;
@@ -28,6 +29,7 @@ export const PhoneNumberModal: React.FC<PhoneNumberModalProps> = ({
   onSave,
   formatPhoneNumber
 }) => {
+  const { theme } = useTheme();
   const handleSave = () => {
     onSave(tempPhoneNumber);
     onClose();
@@ -40,20 +42,20 @@ export const PhoneNumberModal: React.FC<PhoneNumberModalProps> = ({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View className="flex-1 bg-black/80 justify-center items-center">
-        <View className="rounded-3xl w-[90%] max-w-md overflow-hidden" style={{ backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: '#FD6F3E' }}>
+      <View style={{ flex: 1, backgroundColor: theme.modalOverlay, justifyContent: 'center', alignItems: 'center' }}>
+        <View className="rounded-3xl w-[90%] max-w-md overflow-hidden" style={{ backgroundColor: theme.modalBackground, borderWidth: 2, borderColor: theme.primary }}>
           {/* Header */}
-          <View className="bg-gradient-to-r from-[#FD6F3E] to-[#FF6B9D] p-6">
+          <View style={{ backgroundColor: theme.primary, padding: 24 }}>
             <View className="flex-row justify-between items-center">
               <View>
-                <Text style={{ color: 'black', fontSize: 24, fontFamily: 'questrial', fontWeight: 'bold' }}>Phone Number</Text>
-                <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, fontFamily: 'questrial', marginTop: 4 }}>Enter your contact number</Text>
+                <Text style={{ color: theme.textInverse, fontSize: 24, fontFamily: 'questrial', fontWeight: 'bold' }}>Phone Number</Text>
+                <Text style={{ color: 'rgba(0,0,0,0.8)', fontSize: 14, fontFamily: 'questrial', marginTop: 4 }}>Enter your contact number</Text>
               </View>
               <TouchableOpacity 
                 onPress={onClose}
-                className="w-10 h-10 bg-black/20 rounded-full items-center justify-center"
+                style={{ width: 40, height: 40, backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: 20, alignItems: 'center', justifyContent: 'center' }}
               >
-                <Ionicons name="close" size={20} color="black" />
+                <Ionicons name="close" size={20} color={theme.textInverse} />
               </TouchableOpacity>
             </View>
           </View>
@@ -62,22 +64,22 @@ export const PhoneNumberModal: React.FC<PhoneNumberModalProps> = ({
           <View className="p-6">
             {/* Country Code Display */}
             <View className="flex-row items-center justify-center mb-6">
-              <View className="rounded-xl px-4 py-3 mr-3 border border-[#676767]" style={{ backgroundColor: '#F8F8F8' }}>
-                <Text style={{ color: 'black', fontSize: 24 }}>{selectedCountry.flag}</Text>
+              <View className="rounded-xl px-4 py-3 mr-3" style={{ backgroundColor: theme.inputBackground, borderWidth: 1, borderColor: theme.borderDark }}>
+                <Text style={{ color: theme.text, fontSize: 24 }}>{selectedCountry.flag}</Text>
               </View>
-              <View className="rounded-xl px-4 py-3 border border-[#676767]" style={{ backgroundColor: '#F8F8F8' }}>
-                <Text style={{ color: 'black', fontSize: 18, fontFamily: 'questrial', fontWeight: '600' }}>{selectedCountry.code}</Text>
+              <View className="rounded-xl px-4 py-3" style={{ backgroundColor: theme.inputBackground, borderWidth: 1, borderColor: theme.borderDark }}>
+                <Text style={{ color: theme.text, fontSize: 18, fontFamily: 'questrial', fontWeight: '600' }}>{selectedCountry.code}</Text>
               </View>
             </View>
 
             {/* Phone Number Input */}
             <View className="mb-6">
-              <Text style={{ color: 'black', fontSize: 14, fontFamily: 'Nunito-Regular', marginBottom: 12, textAlign: 'center' }}>Enter your phone number</Text>
-              <View className="rounded-xl px-4 py-4 border-2 border-[#676767]" style={{ backgroundColor: '#F8F8F8' }}>
+              <Text style={{ color: theme.text, fontSize: 14, fontFamily: 'Nunito-Regular', marginBottom: 12, textAlign: 'center' }}>Enter your phone number</Text>
+              <View className="rounded-xl px-4 py-4" style={{ backgroundColor: theme.inputBackground, borderWidth: 2, borderColor: theme.borderDark }}>
                 <TextInput
-                  className="text-black text-3xl Nunito-Regular text-center"
+                  className="text-3xl Nunito-Regular text-center"
                   placeholder={selectedCountry.format}
-                  placeholderTextColor="rgba(0,0,0,0.5)"
+                  placeholderTextColor={theme.inputPlaceholder}
                   value={tempPhoneNumber}
                   onChangeText={(text) => {
                     // Remove formatting to get raw digits
@@ -90,7 +92,7 @@ export const PhoneNumberModal: React.FC<PhoneNumberModalProps> = ({
                   returnKeyType="done"
                   onSubmitEditing={handleSave}
                   style={{ 
-                    color: 'black', 
+                    color: theme.inputText, 
                     letterSpacing: 2,
                     textAlign: 'center', 
                     fontSize: 28,
@@ -102,10 +104,11 @@ export const PhoneNumberModal: React.FC<PhoneNumberModalProps> = ({
 
             {/* Save Button */}
             <TouchableOpacity 
-              className="bg-[#FD6F3E] rounded-xl py-4 items-center"
+              className="rounded-xl py-4 items-center"
+              style={{ backgroundColor: theme.primary }}
               onPress={handleSave}
             >
-              <Text style={{ color: 'black', fontSize: 18, fontFamily: 'questrial', fontWeight: '600' }}>Save Phone Number</Text>
+              <Text style={{ color: theme.textInverse, fontSize: 18, fontFamily: 'questrial', fontWeight: '600' }}>Save Phone Number</Text>
             </TouchableOpacity>
           </View>
         </View>

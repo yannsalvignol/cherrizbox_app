@@ -2,11 +2,11 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Platform, Text, TouchableOpacity, View } from 'react-native';
 import {
-  Chat,
-  MessageInput,
-  MessageList,
-  OverlayProvider,
-  useThreadContext
+    Chat,
+    MessageInput,
+    MessageList,
+    OverlayProvider,
+    useThreadContext
 } from 'stream-chat-react-native';
 import { getChatTheme } from '../../../lib/chat-theme';
 import CustomMessageSimple from './CustomMessageSimple';

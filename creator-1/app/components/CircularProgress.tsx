@@ -1,3 +1,4 @@
+import { useTheme } from '@/lib/useTheme';
 import React from 'react';
 import { Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
@@ -19,12 +20,13 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
   size = 60,
   strokeWidth = 4,
   color = '#000000',
-  backgroundColor = '#F0F0F0',
-  textColor = '#000000',
+  backgroundColor,
+  textColor,
   fontSize = 12,
   completedColor = '#4CAF50',
   incompleteColor = '#FD6F3E',
 }) => {
+  const { theme } = useTheme();
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const strokeDasharray = circumference;
@@ -47,7 +49,7 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={backgroundColor}
+          stroke={backgroundColor || theme.backgroundSecondary}
           strokeWidth={strokeWidth}
           fill="transparent"
         />
@@ -93,7 +95,7 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
       >
         <Text
           style={{
-            color: textColor,
+            color: textColor || theme.text,
             fontSize: fontSize,
             fontFamily: 'Urbanist-Bold',
           }}

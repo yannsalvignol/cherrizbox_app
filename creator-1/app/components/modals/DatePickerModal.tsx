@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import React from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
+import { useTheme } from '../../../lib/useTheme';
 
 interface DatePickerModalProps {
   visible: boolean;
@@ -26,6 +27,7 @@ export const DatePickerModal: React.FC<DatePickerModalProps> = ({
   onYearChange,
   getDaysInMonth
 }) => {
+  const { theme } = useTheme();
   const months = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 100 }, (_, i) => (currentYear - i).toString());
@@ -42,18 +44,18 @@ export const DatePickerModal: React.FC<DatePickerModalProps> = ({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View className="flex-1 bg-black/50 justify-end">
-        <View className="rounded-t-3xl p-4" style={{ backgroundColor: '#FFFFFF' }}>
+      <View style={{ flex: 1, backgroundColor: theme.modalOverlay, justifyContent: 'flex-end' }}>
+        <View className="rounded-t-3xl p-4" style={{ backgroundColor: theme.modalBackground }}>
           <View className="flex-row justify-between items-center mb-4">
-            <Text className="text-black text-xl font-bold">Select Birth Date</Text>
+            <Text style={{ color: theme.text, fontSize: 20, fontWeight: 'bold' }}>Select Birth Date</Text>
             <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={30} color="#FD6F3E" />
+              <Ionicons name="close" size={30} color={theme.primary} />
             </TouchableOpacity>
           </View>
           <View className="flex-row justify-between">
             {/* Month Picker */}
             <View className="flex-1">
-              <Text className="text-black text-center mb-2">Month</Text>
+              <Text style={{ color: theme.text, textAlign: 'center', marginBottom: 8 }}>Month</Text>
               <Picker
                 selectedValue={selectedMonth}
                 onValueChange={(value) => {
@@ -64,33 +66,33 @@ export const DatePickerModal: React.FC<DatePickerModalProps> = ({
                     onDayChange(daysInMonth.toString());
                   }
                 }}
-                style={{ color: 'black' }}
-                itemStyle={{ color: 'black' }}
+                style={{ color: theme.text }}
+                itemStyle={{ color: theme.text }}
               >
                 {months.map((month) => (
-                  <Picker.Item key={month} label={month} value={month} color="black" />
+                  <Picker.Item key={month} label={month} value={month} color={theme.text} />
                 ))}
               </Picker>
             </View>
 
             {/* Day Picker */}
             <View className="flex-1">
-              <Text className="text-black text-center mb-2">Day</Text>
+              <Text style={{ color: theme.text, textAlign: 'center', marginBottom: 8 }}>Day</Text>
               <Picker
                 selectedValue={selectedDay}
                 onValueChange={onDayChange}
-                style={{ color: 'black' }}
-                itemStyle={{ color: 'black' }}
+                style={{ color: theme.text }}
+                itemStyle={{ color: theme.text }}
               >
                 {days.map((day) => (
-                  <Picker.Item key={day} label={day} value={day} color="black" />
+                  <Picker.Item key={day} label={day} value={day} color={theme.text} />
                 ))}
               </Picker>
             </View>
 
             {/* Year Picker */}
             <View className="flex-1">
-              <Text className="text-black text-center mb-2">Year</Text>
+              <Text style={{ color: theme.text, textAlign: 'center', marginBottom: 8 }}>Year</Text>
               <Picker
                 selectedValue={selectedYear}
                 onValueChange={(value) => {
@@ -101,11 +103,11 @@ export const DatePickerModal: React.FC<DatePickerModalProps> = ({
                     onDayChange(daysInMonth.toString());
                   }
                 }}
-                style={{ color: 'black' }}
-                itemStyle={{ color: 'black' }}
+                style={{ color: theme.text }}
+                itemStyle={{ color: theme.text }}
               >
                 {years.map((year) => (
-                  <Picker.Item key={year} label={year} value={year} color="black" />
+                  <Picker.Item key={year} label={year} value={year} color={theme.text} />
                 ))}
               </Picker>
             </View>

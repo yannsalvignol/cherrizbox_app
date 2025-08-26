@@ -1,3 +1,4 @@
+import { useTheme } from '@/lib/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
@@ -26,6 +27,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   onSearchCancel,
   hasChannels
 }) => {
+  const { theme } = useTheme();
   // Don't render if no channels and search is not active
   if (!hasChannels && !showSearch) return null;
 
@@ -33,32 +35,32 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     <View style={{
       paddingHorizontal: 16,
       paddingVertical: 4,
-      backgroundColor: '#DCDEDF',
+      backgroundColor: theme.backgroundTertiary,
       borderBottomWidth: showSearch ? 1 : 0,
-      borderBottomColor: '#333333',
+      borderBottomColor: theme.border,
     }}>
       {showSearch ? (
         <View style={{
           flexDirection: 'row',
           alignItems: 'center',
-          backgroundColor: 'white',
+          backgroundColor: theme.cardBackground,
           borderRadius: 10,
           paddingHorizontal: 12,
           paddingVertical: 8,
           borderWidth: 1,
-          borderColor: '#333333',
+          borderColor: theme.border,
         }}>
-          <Ionicons name="search" size={20} color="#888888" style={{ marginRight: 8 }} />
+          <Ionicons name="search" size={20} color={theme.textTertiary} style={{ marginRight: 8 }} />
           <TextInput
             style={{
               flex: 1,
-              color: '#1A1A1A',
+              color: theme.text,
               fontSize: 16,
               fontFamily: 'Urbanist-Regular',
               padding: 0,
             }}
             placeholder="Search chats..."
-            placeholderTextColor="#1A1A1A"
+            placeholderTextColor={theme.textTertiary}
             value={searchQuery}
             onChangeText={onSearchChange}
             autoFocus
@@ -67,14 +69,14 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={onSearchClear}>
-              <Ionicons name="close-circle" size={20} color="#1A1A1A" style={{ marginLeft: 8 }} />
+              <Ionicons name="close-circle" size={20} color={theme.text} style={{ marginLeft: 8 }} />
             </TouchableOpacity>
           )}
           <TouchableOpacity
             onPress={onSearchCancel}
             style={{ marginLeft: 12 }}
           >
-            <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 14 }}>Cancel</Text>
+            <Text style={{ color: theme.text, fontFamily: 'Urbanist-Bold', fontSize: 14 }}>Cancel</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -84,15 +86,15 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: 'white',
+            backgroundColor: theme.cardBackground,
             borderRadius: 10,
             paddingVertical: 10,
             borderWidth: 1,
-            borderColor: '#333333',
+            borderColor: theme.border,
           }}
         >
-          <Ionicons name="search" size={20} color="#888888" style={{ marginRight: 8 }} />
-          <Text style={{ color: '#888888', fontSize: 16, fontFamily: 'Urbanist-Regular' }}>
+          <Ionicons name="search" size={20} color={theme.textTertiary} style={{ marginRight: 8 }} />
+          <Text style={{ color: theme.textTertiary, fontSize: 16, fontFamily: 'Urbanist-Regular' }}>
             Search chats...
           </Text>
         </TouchableOpacity>

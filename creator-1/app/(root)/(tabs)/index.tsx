@@ -21,6 +21,7 @@ import {
   type Channel
 } from '@/lib/index-utils';
 import { client, connectUser } from '@/lib/stream-chat';
+import { useTheme } from '@/lib/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
@@ -68,6 +69,7 @@ interface StripeConnectProfile {
 
 export default function Index() {
     const router = useRouter();
+    const { theme } = useTheme();
     const { 
       user, 
       missingChannelConditions, 
@@ -1416,7 +1418,7 @@ export default function Index() {
   };
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#DCDEDF' }} edges={['top']}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: theme.backgroundTertiary }} edges={['top']}>
             {/* Custom Notification */}
             <CustomNotificationModal
               visible={showNotification}
@@ -1426,7 +1428,7 @@ export default function Index() {
             />
             
             {/* Header */}
-            <View className="flex-row items-center justify-between px-4 py-2 bg-#DCDEDF">
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 8, backgroundColor: theme.backgroundTertiary }}>
                 <TouchableOpacity onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)} activeOpacity={0.8}>
                   <Image 
                       source={require('../../../assets/images/cherry-icon.png')}
@@ -1440,7 +1442,7 @@ export default function Index() {
                         <Text style={{
                             fontSize: 39,
                             fontWeight: 'bold',
-                            color: 'black',
+                            color: theme.text,
                             fontFamily: 'MuseoModerno-Regular',
                             textAlign: 'center',
                         }}>
@@ -1451,15 +1453,15 @@ export default function Index() {
                 </View>
                 
         <TouchableOpacity onPress={() => router.push('/edit-profile')}>
-                    <View className="w-[61px] h-[61px] rounded-full bg-[#FD6F3E] items-center justify-center overflow-hidden">
+                    <View style={{ width: 61, height: 61, borderRadius: 30.5, backgroundColor: theme.primary, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                         {profileImage ? (
                             <Image
                                 source={{ uri: profileImage }}
-                                className="w-full h-full"
+                                style={{ width: '100%', height: '100%' }}
                                 resizeMode="cover"
                             />
                         ) : (
-                            <Text className="text-2xl text-white font-bold">
+                            <Text style={{ fontSize: 24, color: theme.textInverse, fontWeight: 'bold' }}>
                                 {user?.name?.[0] || 'U'}
                             </Text>
                         )}
@@ -1469,7 +1471,7 @@ export default function Index() {
 
       {/* Toggle Picker */}
       <View style={{
-        backgroundColor: '#DCDEDF',
+        backgroundColor: theme.backgroundTertiary,
         paddingVertical: 8,
       }}>
         <FlatList
@@ -1486,9 +1488,9 @@ export default function Index() {
                 paddingVertical: 10,
                 paddingHorizontal: 20,
                 borderRadius: 25,
-                backgroundColor: selectedTab === item.id ? 'white' : '#DCDEDF',
+                backgroundColor: selectedTab === item.id ? theme.cardBackground : theme.backgroundTertiary,
                 borderWidth: 1,
-                borderColor: selectedTab === item.id ? 'transparent' : '#676767',
+                borderColor: selectedTab === item.id ? 'transparent' : theme.borderDark,
                 alignItems: 'center',
                 justifyContent: 'center',
                 minWidth: 80,
@@ -1503,10 +1505,10 @@ export default function Index() {
                 <Ionicons 
                   name={item.icon as any} 
                   size={16} 
-                  color={selectedTab === item.id ? 'black' : 'black'}
+                  color={theme.text}
                 />
                 <Text style={{
-                  color: selectedTab === item.id ? 'black' : 'black',
+                  color: theme.text,
                   fontSize: 14,
                   fontWeight: selectedTab === item.id ? 'bold' : 'normal',
                   fontFamily: selectedTab === item.id ? 'Urbanist-Bold' : 'Urbanist-Regular',
@@ -1523,7 +1525,7 @@ export default function Index() {
       {/* Content based on selected tab */}
       {selectedTab === 'chats' && (
         <KeyboardAvoidingView 
-          style={{ flex: 1, backgroundColor: '#DCDEDF' }}
+          style={{ flex: 1, backgroundColor: theme.backgroundTertiary }}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         >
@@ -1572,16 +1574,16 @@ export default function Index() {
                 flex: 1, 
                 alignItems: 'center', 
                 justifyContent: 'center',
-                backgroundColor: '#DCDEDF',
+                backgroundColor: theme.backgroundTertiary,
                 paddingHorizontal: 32
               }}
               refreshControl={
                 <RefreshControl
                   refreshing={refreshing}
                   onRefresh={onRefresh}
-                  tintColor="#676767"
-                  colors={["#676767"]}
-                  progressBackgroundColor="#DCDEDF"
+                  tintColor={theme.textTertiary}
+                  colors={[theme.textTertiary]}
+                  progressBackgroundColor={theme.backgroundTertiary}
                 />
               }
             >
@@ -1592,7 +1594,7 @@ export default function Index() {
                     style={{ width: 80, height: 80, marginBottom: 16 }} 
                   />
                   <Text style={{ 
-                    color: 'black', 
+                    color: theme.text, 
                     fontSize: 18, 
                     fontFamily: 'Urbanist-Bold',
                     marginBottom: 12,
@@ -1600,7 +1602,7 @@ export default function Index() {
                   }}>
                     Checking requirements...
                   </Text>
-                  <ActivityIndicator size="large" color="black" />
+                  <ActivityIndicator size="large" color={theme.text} />
                 </>
               ) : showInlineVerification ? (
                 <SocialMediaVerificationModal
@@ -1648,7 +1650,7 @@ export default function Index() {
                     </View>
                     
                     <Text style={{ 
-                      color: 'black', 
+                      color: theme.text, 
                       fontSize: 22, 
                       fontFamily: 'Urbanist-Bold',
                       marginBottom: 8,
@@ -1658,7 +1660,7 @@ export default function Index() {
                     </Text>
                     
                     <Text style={{ 
-                      color: 'black', 
+                      color: theme.text, 
                       fontSize: 16, 
                       textAlign: 'center',
                       fontFamily: 'Urbanist-Regular',
@@ -1707,7 +1709,7 @@ export default function Index() {
                             <Ionicons name={iconName as any} size={14} color={iconColor} />
                           </View>
                           <Text style={{ 
-                            color: 'black', 
+                            color: theme.text, 
                             fontSize: 15, 
                             fontFamily: 'Urbanist-Medium',
                             flex: 1
@@ -1749,7 +1751,7 @@ export default function Index() {
                           <Ionicons name="cash-outline" size={20} color="white" style={{ marginRight: 8 }} />
                         )}
                         <Text style={{ 
-                          color: 'black', 
+                          color: theme.textInverse, 
                           fontSize: 17, 
                           fontFamily: 'Urbanist-Bold'
                         }}>
@@ -1760,7 +1762,7 @@ export default function Index() {
                   </View>
                   
                   <Text style={{ 
-                    color: 'black', 
+                    color: theme.text, 
                     fontSize: 14, 
                     textAlign: 'center',
                     fontFamily: 'Urbanist-Regular',
@@ -1776,7 +1778,7 @@ export default function Index() {
                     style={{ width: 80, height: 80, marginBottom: 16 }} 
                   />
                   <Text style={{ 
-                    color: 'white', 
+                    color: theme.text, 
                     fontSize: 24, 
                     fontFamily: 'Urbanist-Bold',
                     marginBottom: 16,
@@ -1785,7 +1787,7 @@ export default function Index() {
                     No channels yet 😢
                   </Text>
                   <Text style={{ 
-                    color: 'white', 
+                    color: theme.text, 
                     fontSize: 18, 
                     textAlign: 'center',
                     fontFamily: 'Urbanist-Regular'
@@ -1803,7 +1805,7 @@ export default function Index() {
         <ScrollView 
           style={{ 
               flex: 1, 
-            backgroundColor: '#DCDEDF'
+            backgroundColor: theme.backgroundTertiary
           }}
           contentContainerStyle={{
             paddingHorizontal: 20,
@@ -1817,21 +1819,21 @@ export default function Index() {
                 await loadCreatorFinancials();
                 setIsLoadingInsights(false);
               }}
-              tintColor="#676767"
-              colors={["#676767"]}
-              progressBackgroundColor="#DCDEDF"
+              tintColor={theme.textTertiary}
+              colors={[theme.textTertiary]}
+              progressBackgroundColor={theme.backgroundTertiary}
             />
           }
         >
           {/* Big Total Subscribers Card with Weekly Stats */}
             <View style={{
-              backgroundColor: 'white',
+              backgroundColor: theme.cardBackground,
             borderRadius: 16,
             padding: 24,
             marginBottom: 20,
           }}>
               <Text style={{ 
-                color: 'black', 
+                color: theme.text, 
               fontFamily: 'MuseoModerno-Regular', 
               fontSize: 18,
               marginBottom: 16,
@@ -1842,7 +1844,7 @@ export default function Index() {
             
             {/* Total Number */}
             <Text style={{ 
-              color: 'black', 
+              color: theme.text, 
               fontFamily: 'MuseoModerno-Regular', 
               fontSize: 48, 
               textAlign: 'center',
@@ -1878,7 +1880,7 @@ export default function Index() {
                       </Text>
               </View>
                     <Text style={{ 
-                      color: '#888888', 
+                      color: theme.textTertiary, 
                       fontFamily: 'MuseoModerno-Regular', 
                       fontSize: 12,
                       textAlign: 'center'
@@ -1903,7 +1905,7 @@ export default function Index() {
                       </Text>
               </View>
                     <Text style={{ 
-                      color: '#888888', 
+                      color: theme.textTertiary, 
                       fontFamily: 'MuseoModerno-Regular', 
                       fontSize: 12,
                       textAlign: 'center'
@@ -1918,13 +1920,13 @@ export default function Index() {
 
           {/* Subscriber Growth Chart with Tabs */}
             <View style={{
-              backgroundColor: 'white',
+              backgroundColor: theme.cardBackground,
               borderRadius: 16,
             padding: 20,
             marginBottom: 20,
           }}>
             <Text style={{
-              color: 'black',
+              color: theme.text,
               fontSize: 18,
               fontFamily: 'MuseoModerno-Regular',
               marginBottom: 16,
@@ -1935,7 +1937,7 @@ export default function Index() {
             {/* Tabs */}
             <View style={{
               flexDirection: 'row',
-              backgroundColor: '#F0F0F0',
+              backgroundColor: theme.backgroundSecondary,
               borderRadius: 12,
               padding: 4,
               marginBottom: 16,
@@ -1948,11 +1950,11 @@ export default function Index() {
                     flex: 1,
                     paddingVertical: 10,
                     borderRadius: 10,
-                    backgroundColor: subscriberTimeframe === timeframe ? 'white' : 'transparent',
+                    backgroundColor: subscriberTimeframe === timeframe ? theme.cardBackground : 'transparent',
                   }}
                 >
                   <Text style={{
-                    color: subscriberTimeframe === timeframe ? 'black' : '#888888',
+                    color: subscriberTimeframe === timeframe ? theme.text : theme.textTertiary,
                     fontFamily: 'MuseoModerno-Regular',
                     fontSize: 14,
                     textAlign: 'center',
@@ -1986,7 +1988,7 @@ export default function Index() {
                       {stats.net >= 0 ? '+' : ''}{stats.net}
                     </Text>
                     <Text style={{
-                      color: '#888888',
+                      color: theme.textTertiary,
                       fontSize: 14,
                       fontFamily: 'MuseoModerno-Regular',
                       marginBottom: 8,
@@ -2018,42 +2020,44 @@ export default function Index() {
             </View>
             
             {/* Subscriber Chart */}
-            {(() => {
-              let dailyStats = {};
-              try {
-                dailyStats = creatorFinancials?.dailySubscribersStats ? JSON.parse(creatorFinancials.dailySubscribersStats) : {};
-              } catch (e) {
-                dailyStats = {};
-              }
-              
-              // Only show chart if we have data
-              const hasData = Object.keys(dailyStats).length > 0;
-              
-              return hasData ? (
-                <SubscriberChart
-                  dailySubscribersStats={dailyStats}
-                  timeframe={subscriberTimeframe}
-                />
-              ) : (
-                <View style={{
-                  height: 200,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: '#F8F8F8',
-                  borderRadius: 12,
-                  marginVertical: 8,
-                }}>
-                  <Text style={{
-                    color: '#888888',
-                    fontSize: 14,
-                    fontFamily: 'MuseoModerno-Regular',
-                    textAlign: 'center',
-                  }}>
-                    No subscriber data available yet.{'\n'}Chart will appear once you have subscriber activity.
-              </Text>
+            <View style={{ alignItems: 'center', marginHorizontal: -20 }}>
+              {(() => {
+                let dailyStats = {};
+                try {
+                  dailyStats = creatorFinancials?.dailySubscribersStats ? JSON.parse(creatorFinancials.dailySubscribersStats) : {};
+                } catch (e) {
+                  dailyStats = {};
+                }
+                
+                // Only show chart if we have data
+                const hasData = Object.keys(dailyStats).length > 0;
+                
+                return hasData ? (
+                  <SubscriberChart
+                    dailySubscribersStats={dailyStats}
+                    timeframe={subscriberTimeframe}
+                  />
+                ) : (
+                                    <View style={{
+                      height: 200,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: theme.background,
+                      borderRadius: 12,
+                      marginVertical: 8,
+                    }}>
+                      <Text style={{
+                        color: theme.textTertiary,
+                        fontSize: 14,
+                        fontFamily: 'MuseoModerno-Regular',
+                        textAlign: 'center',
+                      }}>
+                        No subscriber data available yet.{'\n'}Chart will appear once you have subscriber activity.
+                </Text>
+              </View>
+                );
+              })()}
             </View>
-              );
-            })()}
           </View>
 
 
@@ -2061,7 +2065,7 @@ export default function Index() {
           {/* Content Purchases Section */}
           <View style={{ marginBottom: 16 }}>
             <Text style={{ 
-              color: 'black', 
+              color: theme.text, 
               fontFamily: 'MuseoModerno-Regular', 
               fontSize: 20, 
               marginBottom: 16,
@@ -2074,52 +2078,52 @@ export default function Index() {
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 32 }}>
             {/* Photos */}
               <View style={{
-              backgroundColor: 'white',
+              backgroundColor: theme.cardBackground,
                 borderRadius: 16,
               width: '32%',
               padding: 12,
             }}>
               <View style={{ alignItems: 'center', marginBottom: 8 }}>
-                <View style={{ backgroundColor: '#666666', borderRadius: 8, padding: 6, marginBottom: 6 }}>
-                  <Ionicons name="image" size={16} color="white" />
+                <View style={{ backgroundColor: theme.textTertiary, borderRadius: 8, padding: 6, marginBottom: 6 }}>
+                  <Ionicons name="image" size={16} color={theme.textInverse} />
                 </View>
-                <Text style={{ color: 'black', fontFamily: 'MuseoModerno-Regular', fontSize: 12, textAlign: 'center' }}>Photos</Text>
+                <Text style={{ color: theme.text, fontFamily: 'MuseoModerno-Regular', fontSize: 12, textAlign: 'center' }}>Photos</Text>
               </View>
-              <Text style={{ color: '#333333', fontFamily: 'MuseoModerno-Regular', fontSize: 20, textAlign: 'center' }}>
+              <Text style={{ color: theme.textSecondary, fontFamily: 'MuseoModerno-Regular', fontSize: 20, textAlign: 'center' }}>
                 {creatorFinancials?.number_of_photos ?? '—'}
               </Text>
               </View>
               {/* Videos */}
               <View style={{
-                backgroundColor: 'white',
+                backgroundColor: theme.cardBackground,
                 borderRadius: 16,
                 width: '32%',
               padding: 12,
             }}>
               <View style={{ alignItems: 'center', marginBottom: 8 }}>
-                <View style={{ backgroundColor: '#777777', borderRadius: 8, padding: 6, marginBottom: 6 }}>
-                  <Ionicons name="videocam" size={16} color="white" />
+                <View style={{ backgroundColor: theme.textTertiary, borderRadius: 8, padding: 6, marginBottom: 6 }}>
+                  <Ionicons name="videocam" size={16} color={theme.textInverse} />
                 </View>
-                <Text style={{ color: 'black', fontFamily: 'MuseoModerno-Regular', fontSize: 12, textAlign: 'center' }}>Videos</Text>
+                <Text style={{ color: theme.text, fontFamily: 'MuseoModerno-Regular', fontSize: 12, textAlign: 'center' }}>Videos</Text>
               </View>
-              <Text style={{ color: '#333333', fontFamily: 'MuseoModerno-Regular', fontSize: 20, textAlign: 'center' }}>
+              <Text style={{ color: theme.textSecondary, fontFamily: 'MuseoModerno-Regular', fontSize: 20, textAlign: 'center' }}>
                 {creatorFinancials?.number_of_videos ?? '—'}
               </Text>
               </View>
               {/* Files */}
               <View style={{
-                backgroundColor: 'white',
+                backgroundColor: theme.cardBackground,
                 borderRadius: 16,
                 width: '32%',
               padding: 12,
             }}>
               <View style={{ alignItems: 'center', marginBottom: 8 }}>
-                <View style={{ backgroundColor: '#888888', borderRadius: 8, padding: 6, marginBottom: 6 }}>
-                  <Ionicons name="document" size={16} color="white" />
+                <View style={{ backgroundColor: theme.textTertiary, borderRadius: 8, padding: 6, marginBottom: 6 }}>
+                  <Ionicons name="document" size={16} color={theme.textInverse} />
                 </View>
-                <Text style={{ color: 'black', fontFamily: 'MuseoModerno-Regular', fontSize: 12, textAlign: 'center' }}>Files</Text>
+                <Text style={{ color: theme.text, fontFamily: 'MuseoModerno-Regular', fontSize: 12, textAlign: 'center' }}>Files</Text>
               </View>
-              <Text style={{ color: '#333333', fontFamily: 'MuseoModerno-Regular', fontSize: 20, textAlign: 'center' }}>
+              <Text style={{ color: theme.textSecondary, fontFamily: 'MuseoModerno-Regular', fontSize: 20, textAlign: 'center' }}>
                 {creatorFinancials?.number_of_files ?? '—'}
               </Text>
               </View>
@@ -2130,24 +2134,24 @@ export default function Index() {
       )}
 
       {selectedTab === 'audience' && (
-        <View style={{ flex: 1, backgroundColor: '#DCDEDF' }}>
+        <View style={{ flex: 1, backgroundColor: theme.backgroundTertiary }}>
           {/* Fixed Header with Search and Filters */}
           <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 16 }}>
             {/* Search Bar */}
             <View style={{ width: '100%', marginBottom: 12 }}>
                 <View style={{
-                backgroundColor: 'white',
+                backgroundColor: theme.cardBackground,
                 borderRadius: 12,
                 flexDirection: 'row',
                 alignItems: 'center',
                 paddingHorizontal: 12,
                 paddingVertical: 8,
               }}>
-                <Ionicons name="search" size={20} color="black" style={{ marginRight: 4 }} />
+                <Ionicons name="search" size={20} color={theme.text} style={{ marginRight: 4 }} />
                 <TextInput
                   style={{
                     flex: 1,
-                    color: 'white',
+                    color: theme.text,
                     fontFamily: 'Urbanist-Regular',
                     fontSize: 16,
                     backgroundColor: 'transparent',
@@ -2155,7 +2159,7 @@ export default function Index() {
                     letterSpacing: 0.2,
                   }}
                   placeholder="Search by username..."
-                  placeholderTextColor="#888"
+                  placeholderTextColor={theme.textTertiary}
                   value={audienceSearch}
                   onChangeText={setAudienceSearch}
                   autoCapitalize="none"
@@ -2163,7 +2167,7 @@ export default function Index() {
                 />
                 {audienceSearch.length > 0 && (
                   <TouchableOpacity onPress={() => setAudienceSearch('')}>
-                    <Ionicons name="close-circle" size={18} color="#888" />
+                    <Ionicons name="close-circle" size={18} color={theme.textTertiary} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -2179,17 +2183,17 @@ export default function Index() {
                   key={tag.key}
                   onPress={() => setAudienceFilter(tag.key as 'recent' | 'income_high' | 'income_low')}
                   style={{
-                    backgroundColor: audienceFilter === tag.key ? 'white' : '#DCDEDF',
+                    backgroundColor: audienceFilter === tag.key ? theme.cardBackground : theme.backgroundTertiary,
                     borderRadius: 20,
                     paddingVertical: 7,
                     paddingHorizontal: 16,
                     marginHorizontal: 2,
                     borderWidth: audienceFilter === tag.key ? 1.5 : 1,
-                    borderColor: audienceFilter === tag.key ? 'white' : '#676767',
+                    borderColor: audienceFilter === tag.key ? theme.cardBackground : theme.borderDark,
                   }}
                 >
                   <Text style={{
-                    color: audienceFilter === tag.key ? 'black' : 'black',
+                    color: theme.text,
                     fontFamily: audienceFilter === tag.key ? 'Urbanist-Bold' : 'Urbanist-Regular',
                     fontSize: 14,
                   }}>{tag.label}</Text>
@@ -2202,7 +2206,7 @@ export default function Index() {
           <ScrollView 
             style={{ 
               flex: 1, 
-              backgroundColor: '#DCDEDF',
+              backgroundColor: theme.backgroundTertiary,
               paddingHorizontal: 0
             }}
             contentContainerStyle={{
@@ -2215,9 +2219,9 @@ export default function Index() {
               <RefreshControl
                 refreshing={refreshing || isLoadingAudience}
                 onRefresh={onRefresh}
-                tintColor="black"
-                colors={["black"]}
-                progressBackgroundColor="#DCDEDF"
+                tintColor={theme.text}
+                colors={[theme.text]}
+                progressBackgroundColor={theme.backgroundTertiary}
               />
             }
           >
@@ -2229,11 +2233,11 @@ export default function Index() {
                   style={{ width: 48, height: 48, marginBottom: 12 }}
                   resizeMode="contain"
                 />
-                <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>Loading subscribers...</Text>
+                <Text style={{ color: theme.text, fontFamily: 'Urbanist-Bold', fontSize: 16 }}>Loading subscribers...</Text>
               </View>
             ) : filteredAudience.length === 0 ? (
               <Text style={{ 
-                color: '#888888', 
+                color: theme.textTertiary, 
                 fontSize: 16, 
                 textAlign: 'center',
                     fontFamily: 'Urbanist-Regular',
@@ -2254,12 +2258,12 @@ export default function Index() {
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    backgroundColor: 'white',
+                    backgroundColor: theme.cardBackground,
                     borderRadius: 14,
                     padding: 14,
                     marginBottom: 12,
                     borderWidth: 1,
-                    borderColor: '#23232B',
+                    borderColor: theme.borderDark,
                     shadowColor: '#000',
                     shadowOffset: { width: 0, height: 2 },
                     shadowOpacity: 0.10,
@@ -2275,31 +2279,31 @@ export default function Index() {
                     width: 48,
                     height: 48,
                     borderRadius: 24,
-                    backgroundColor: '#d3d3d3',
+                    backgroundColor: theme.backgroundSecondary,
                     alignItems: 'center',
                     justifyContent: 'center',
                     marginRight: 16,
                     overflow: 'hidden',
                   }}>
-                    <Text style={{ color: 'black', fontSize: 22, fontWeight: 'bold', fontFamily: 'Urbanist-Bold' }}>
+                    <Text style={{ color: theme.text, fontSize: 22, fontWeight: 'bold', fontFamily: 'Urbanist-Bold' }}>
                       {sub.userName ? sub.userName[0]?.toUpperCase() : (sub.customerEmail ? sub.customerEmail[0]?.toUpperCase() : 'U')}
                 </Text>
               </View>
                   {/* Info */}
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 17 }}>
+                    <Text style={{ color: theme.text, fontFamily: 'Urbanist-Bold', fontSize: 17 }}>
                       {sub.userName || sub.customerEmail || 'No name'}
                     </Text>
-                    <Text style={{ color: '#CCCCCC', fontFamily: 'Urbanist-Regular', fontSize: 14 }}>
+                    <Text style={{ color: theme.textSecondary, fontFamily: 'Urbanist-Regular', fontSize: 14 }}>
                       {sub.customerEmail && sub.userName ? sub.customerEmail : ''}
                     </Text>
                   </View>
                   {/* Plan info */}
                   <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={{ color: 'black', fontFamily: 'Urbanist-Bold', fontSize: 14 }}>
+                    <Text style={{ color: theme.text, fontFamily: 'Urbanist-Bold', fontSize: 14 }}>
                       {sub.planInterval ? sub.planInterval.charAt(0).toUpperCase() + sub.planInterval.slice(1) : ''}
                     </Text>
-                    <Text style={{ color: '#FFD700', fontFamily: 'Urbanist-Bold', fontSize: 14 }}>
+                    <Text style={{ color: theme.warning, fontFamily: 'Urbanist-Bold', fontSize: 14 }}>
                       {sub.planAmount ? `$${(sub.planAmount / 100).toFixed(2)}` : ''}
                     </Text>
                   </View>
@@ -2316,7 +2320,7 @@ export default function Index() {
           ref={earningsScrollRef}
           style={{ 
             flex: 1, 
-            backgroundColor: '#DCDEDF',
+            backgroundColor: theme.backgroundTertiary,
           }}
           contentContainerStyle={{
             flexGrow: 1,
@@ -2327,9 +2331,9 @@ export default function Index() {
             <RefreshControl
               refreshing={isLoadingFinancials}
               onRefresh={handleUpdateStripeData}
-              tintColor="#676767"
-              colors={["#676767"]}
-              progressBackgroundColor="#DCDEDF"
+              tintColor={theme.textTertiary}
+              colors={[theme.textTertiary]}
+              progressBackgroundColor={theme.backgroundTertiary}
             />
           }
         >
@@ -2350,7 +2354,7 @@ export default function Index() {
               {/* Available Card */}
               <View style={{
                 flex: 1,
-                backgroundColor: 'white',
+                backgroundColor: theme.cardBackground,
                 borderRadius: 16,
                 padding: 16,
 
@@ -2371,13 +2375,13 @@ export default function Index() {
                     height: 18,
                     borderRadius: 9,
                     borderWidth: 1,
-                    borderColor: 'black',
+                    borderColor: theme.text,
                     backgroundColor: 'transparent',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}>
                     <Text style={{
-                      color: 'black',
+                      color: theme.text,
                       fontSize: 12,
                       fontFamily: 'Urbanist-Bold',
                     }}>
@@ -2389,7 +2393,7 @@ export default function Index() {
                 {/* Centered content */}
                 <View style={{ alignItems: 'center', paddingTop: 8 }}>
                   <Text style={{
-                    color: 'black',
+                    color: theme.text,
                     fontSize: 20,
                     fontFamily: 'MuseoModerno-Regular',
                     marginBottom: 8,
@@ -2397,7 +2401,7 @@ export default function Index() {
                     Available
                   </Text>
                   <Text style={{
-                    color: 'black',
+                    color: theme.text,
                     fontSize: 28,
                     fontFamily: 'MuseoModerno-Regular',
                   }}>
@@ -2409,13 +2413,13 @@ export default function Index() {
                     position: 'absolute',
                     top: 45,
                     right: 0,
-                    backgroundColor: 'black',
+                    backgroundColor: theme.text,
                     borderRadius: 8,
                     padding: 10,
                     minWidth: 180,
                     zIndex: 10,
                   }}>
-                    <Text style={{ color: 'white', fontSize: 12, fontFamily: 'Urbanist-Regular' }}>
+                    <Text style={{ color: theme.textInverse, fontSize: 12, fontFamily: 'Urbanist-Regular' }}>
                       Funds that are available for payout to your bank account.
                     </Text>
                   </View>
@@ -2425,7 +2429,7 @@ export default function Index() {
               {/* Pending Card */}
               <View style={{
                 flex: 1,
-                backgroundColor: 'white',
+                backgroundColor: theme.cardBackground,
                 borderRadius: 16,
                 padding: 16,
 
@@ -2446,13 +2450,13 @@ export default function Index() {
                     height: 18,
                     borderRadius: 9,
                     borderWidth: 1,
-                    borderColor: 'black',
+                    borderColor: theme.text,
                     backgroundColor: 'transparent',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}>
                     <Text style={{
-                      color: 'black',
+                      color: theme.text,
                       fontSize: 12,
                       fontFamily: 'Urbanist-Bold',
                     }}>
@@ -2464,7 +2468,7 @@ export default function Index() {
                 {/* Centered content */}
                 <View style={{ alignItems: 'center', paddingTop: 8 }}>
                   <Text style={{
-                    color: 'black',
+                    color: theme.text,
                     fontSize: 20,
                     fontFamily: 'MuseoModerno-Regular',
                     marginBottom: 8,
@@ -2472,7 +2476,7 @@ export default function Index() {
                     Pending
                   </Text>
                   <Text style={{
-                    color: 'black',
+                    color: theme.text,
                     fontSize: 28,
                     fontFamily: 'MuseoModerno-Regular',
                   }}>
@@ -2484,7 +2488,7 @@ export default function Index() {
                     position: 'absolute',
                     top: 45,
                     right: 0,
-                    backgroundColor: 'black',
+                    backgroundColor: theme.text,
                     borderRadius: 8,
                     padding: 10,
                     minWidth: 180,
@@ -2503,7 +2507,7 @@ export default function Index() {
               {/* Total Card */}
               <View style={{
                 flex: 1,
-                backgroundColor: 'white',
+                backgroundColor: theme.cardBackground,
                 borderRadius: 16,
                 padding: 16,
 
@@ -2524,13 +2528,13 @@ export default function Index() {
                     height: 18,
                     borderRadius: 9,
                     borderWidth: 1,
-                    borderColor: 'black',
+                    borderColor: theme.text,
                     backgroundColor: 'transparent',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}>
                     <Text style={{
-                      color: 'black',
+                      color: theme.text,
                       fontSize: 12,
                       fontFamily: 'Urbanist-Bold',
                     }}>
@@ -2542,7 +2546,7 @@ export default function Index() {
                 {/* Centered content */}
                 <View style={{ alignItems: 'center', paddingTop: 8 }}>
                   <Text style={{
-                    color: 'black',
+                    color: theme.text,
                     fontSize: 20,
                     fontFamily: 'MuseoModerno-Regular',
                     marginBottom: 8,
@@ -2550,7 +2554,7 @@ export default function Index() {
                     Total
                   </Text>
                   <Text style={{
-                    color: 'black',
+                    color: theme.text,
                     fontSize: 28,
                     fontFamily: 'MuseoModerno-Regular',
                   }}>
@@ -2566,7 +2570,7 @@ export default function Index() {
                     position: 'absolute',
                     top: 45,
                     right: 0,
-                    backgroundColor: 'black',
+                    backgroundColor: theme.text,
                     borderRadius: 8,
                     padding: 10,
                     minWidth: 180,
@@ -2582,7 +2586,7 @@ export default function Index() {
               {/* In Transit Card */}
               <View style={{
                 flex: 1,
-                backgroundColor: 'white',
+                backgroundColor: theme.cardBackground,
                 borderRadius: 16,
                 padding: 16,
 
@@ -2603,13 +2607,13 @@ export default function Index() {
                     height: 18,
                     borderRadius: 9,
                     borderWidth: 1,
-                    borderColor: 'black',
+                    borderColor: theme.text,
                     backgroundColor: 'transparent',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}>
                     <Text style={{
-                      color: 'black',
+                      color: theme.text,
                       fontSize: 12,
                       fontFamily: 'Urbanist-Bold',
                     }}>
@@ -2621,7 +2625,7 @@ export default function Index() {
                 {/* Centered content */}
                 <View style={{ alignItems: 'center', paddingTop: 8 }}>
                   <Text style={{
-                    color: 'black',
+                    color: theme.text,
                     fontSize: 20,
                     fontFamily: 'MuseoModerno-Regular',
                     marginBottom: 8,
@@ -2629,7 +2633,7 @@ export default function Index() {
                     In Transit
                   </Text>
                   <Text style={{
-                    color: 'black',
+                    color: theme.text,
                     fontSize: 28,
                     fontFamily: 'MuseoModerno-Regular',
                   }}>
@@ -2641,7 +2645,7 @@ export default function Index() {
                     position: 'absolute',
                     top: 45,
                     right: 0,
-                    backgroundColor: 'black',
+                    backgroundColor: theme.text,
                     borderRadius: 8,
                     padding: 10,
                     minWidth: 180,
@@ -2660,14 +2664,14 @@ export default function Index() {
               {/* Today's Goal Card */}
               <View style={{
                 flex: 1,
-                backgroundColor: 'white',
+                backgroundColor: theme.cardBackground,
                 borderRadius: 16,
                 padding: 16,
               }}>
                 {/* Centered content */}
                 <View style={{ alignItems: 'center' }}>
                   <Text style={{
-                    color: 'black',
+                    color: theme.text,
                     fontSize: 16,
                     fontFamily: 'MuseoModerno-Regular',
                     marginBottom: 4,
@@ -2675,7 +2679,7 @@ export default function Index() {
                     Today's Goal
                   </Text>
                   <Text style={{
-                    color: '#888888',
+                    color: theme.textTertiary,
                     fontSize: 12,
                     fontFamily: 'MuseoModerno-Regular',
                     marginBottom: 12,
@@ -2704,7 +2708,7 @@ export default function Index() {
                       );
                     })()}
                     <Text style={{
-                      color: 'black',
+                      color: theme.text,
                       fontSize: 24,
                       fontFamily: 'MuseoModerno-Regular',
                     }}>
@@ -2737,7 +2741,7 @@ export default function Index() {
                       size={60}
                       strokeWidth={4}
                       backgroundColor="#F0F0F0"
-                      textColor="black"
+                      textColor={theme.text}
                       fontSize={12}
                       completedColor="#4CAF50"
                       incompleteColor="#FD6F3E"
@@ -2750,14 +2754,14 @@ export default function Index() {
               {/* Weekly Goal Card */}
               <View style={{
                 flex: 1,
-                backgroundColor: 'white',
+                backgroundColor: theme.cardBackground,
                 borderRadius: 16,
                 padding: 16,
               }}>
                 {/* Centered content */}
                 <View style={{ alignItems: 'center' }}>
                   <Text style={{
-                    color: 'black',
+                    color: theme.text,
                     fontSize: 16,
                     fontFamily: 'MuseoModerno-Regular',
                     marginBottom: 4,
@@ -2765,7 +2769,7 @@ export default function Index() {
                     Weekly Goal
                   </Text>
                   <Text style={{
-                    color: '#888888',
+                    color: theme.textTertiary,
                     fontSize: 12,
                     fontFamily: 'MuseoModerno-Regular',
                     marginBottom: 12,
@@ -2793,7 +2797,7 @@ export default function Index() {
                       );
                     })()}
                     <Text style={{
-                      color: 'black',
+                      color: theme.text,
                       fontSize: 24,
                       fontFamily: 'MuseoModerno-Regular',
                     }}>
@@ -2837,7 +2841,7 @@ export default function Index() {
 
             {/* Total Earnings Card with Tabs */}
             <View style={{
-              backgroundColor: 'white',
+              backgroundColor: theme.backgroundSecondary,
               borderRadius: 16,
               padding: 20,
               marginBottom: 16,
@@ -2845,7 +2849,7 @@ export default function Index() {
             }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                 <Text style={{
-                  color: 'black',
+                  color: theme.text,
                   fontSize: 24,
                   fontFamily: 'MuseoModerno-Regular',
                 }}>
@@ -2857,13 +2861,13 @@ export default function Index() {
                     height: 20,
                     borderRadius: 10,
                     borderWidth: 1,
-                    borderColor: 'black',
+                    borderColor: theme.text,
                     backgroundColor: 'transparent',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}>
                     <Text style={{
-                      color: 'black',
+                      color: theme.text,
                       fontSize: 14,
                       fontFamily: 'Urbanist-Bold',
                     }}>
@@ -2877,7 +2881,7 @@ export default function Index() {
               {/* Earnings Display */}
               <View style={{ alignItems: 'center', marginBottom: 16 }}>
                 <Text style={{
-                  color: 'black',
+                  color: theme.text,
                   fontSize: 40,
                   fontFamily: 'MuseoModerno-Regular',
                   marginBottom: 8,
@@ -2894,7 +2898,7 @@ export default function Index() {
                   })()}
                 </Text>
                 <Text style={{
-                  color: '#888888',
+                  color: theme.textTertiary,
                   fontSize: 14,
                   fontFamily: 'Urbanist-Regular',
                 }}>
@@ -2907,7 +2911,7 @@ export default function Index() {
               {/* Tabs */}
               <View style={{
                 flexDirection: 'row',
-                backgroundColor: '#F0F0F0',
+                backgroundColor: theme.background,
                 borderRadius: 12,
                 padding: 4,
                 marginBottom: 8,
@@ -2920,11 +2924,11 @@ export default function Index() {
                       flex: 1,
                       paddingVertical: 10,
                       borderRadius: 10,
-                      backgroundColor: earningsTimeframe === timeframe ? 'white' : 'transparent',
+                      backgroundColor: earningsTimeframe === timeframe ? theme.primary : theme.background,
                     }}
                   >
                     <Text style={{
-                      color: earningsTimeframe === timeframe ? 'black' : '#888888',
+                      color: earningsTimeframe === timeframe ? 'white' : theme.textTertiary,
                       fontFamily: earningsTimeframe === timeframe ? 'Urbanist-Bold' : 'Urbanist-Regular',
                       fontSize: 14,
                       textAlign: 'center',
@@ -2938,7 +2942,7 @@ export default function Index() {
               
               {/* Net Average Display */}
                 <Text style={{
-                color: '#666666',
+                color: theme.textSecondary,
                 fontSize: 12,
                   fontFamily: 'MuseoModerno-Regular',
                 textAlign: 'center',
@@ -2975,43 +2979,45 @@ export default function Index() {
                 </Text>
               
               {/* Earnings Chart */}
-              {(() => {
-                let dailyEarnings = {};
-                try {
-                  dailyEarnings = creatorFinancials?.dailyEarnings ? JSON.parse(creatorFinancials.dailyEarnings) : {};
-                } catch (e) {
-                  dailyEarnings = {};
-                }
-                
-                // Only show chart if we have data
-                const hasData = Object.keys(dailyEarnings).length > 0;
-                
-                return hasData ? (
-                  <EarningsChart
-                    dailyEarnings={dailyEarnings}
-                    timeframe={earningsTimeframe}
-                    currency={userCurrency}
-                  />
-                ) : (
-                  <View style={{
-                    height: 200,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: '#F8F8F8',
-                    borderRadius: 12,
-                    marginVertical: 8,
-                  }}>
-                    <Text style={{
-                      color: '#888888',
-                      fontSize: 14,
-                      fontFamily: 'Urbanist-Regular',
-                      textAlign: 'center',
+              <View style={{ alignItems: 'center', marginHorizontal: -20 }}>
+                {(() => {
+                  let dailyEarnings = {};
+                  try {
+                    dailyEarnings = creatorFinancials?.dailyEarnings ? JSON.parse(creatorFinancials.dailyEarnings) : {};
+                  } catch (e) {
+                    dailyEarnings = {};
+                  }
+                  
+                  // Only show chart if we have data
+                  const hasData = Object.keys(dailyEarnings).length > 0;
+                  
+                  return hasData ? (
+                    <EarningsChart
+                      dailyEarnings={dailyEarnings}
+                      timeframe={earningsTimeframe}
+                      currency={userCurrency}
+                    />
+                  ) : (
+                    <View style={{
+                      height: 200,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: theme.backgroundSecondary,
+                      borderRadius: 12,
+                      marginVertical: 8,
                     }}>
-                      No earnings data available yet.{'\n'}Chart will appear once you start earning.
-                    </Text>
-                  </View>
-                );
-              })()}
+                      <Text style={{
+                        color: theme.textTertiary,
+                        fontSize: 14,
+                        fontFamily: 'Urbanist-Regular',
+                        textAlign: 'center',
+                      }}>
+                        No earnings data available yet.{'\n'}Chart will appear once you start earning.
+                      </Text>
+                    </View>
+                  );
+                })()}
+              </View>
               
               {openInfoBubble === 'earnings' && (
                 <View style={{
@@ -3039,7 +3045,7 @@ export default function Index() {
               !creatorFinancials.stripeConnectPayoutsEnabled || 
               !creatorFinancials.stripeConnectVerified) && (
                 <View style={{
-                  backgroundColor: 'white',
+                  backgroundColor: theme.cardBackground,
                   borderRadius: 16,
                   padding: 20,
                 width: '100%',
@@ -3054,7 +3060,7 @@ export default function Index() {
                     marginBottom: 16 
                 }}>
                   <Text style={{
-                    color: 'black',
+                    color: theme.text,
                     fontSize: 18,
                     fontWeight: 'bold',
                       fontFamily: 'Urbanist-Bold'
@@ -3073,7 +3079,7 @@ export default function Index() {
                       }}
                     >
                       <Text style={{
-                        color: 'black',
+                        color: theme.text,
                         fontSize: 14,
                         fontWeight: 'bold',
                         fontFamily: 'Urbanist-Bold'
@@ -3086,14 +3092,14 @@ export default function Index() {
                 <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <Ionicons name="shield-checkmark-outline" size={20} color="#4CAF50" style={{ marginRight: 10 }} />
-                    <Text style={{ color: 'black', fontFamily: 'Urbanist-Regular' }}>Setup Complete</Text>
+                    <Text style={{ color: theme.text, fontFamily: 'Urbanist-Regular' }}>Setup Complete</Text>
                   </View>
                   <Text style={{ color: '#4CAF50', fontFamily: 'Urbanist-Bold' }}>Yes</Text>
                 </View>
                 <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <Ionicons name={creatorFinancials.stripeConnectEnabled ? "card-outline" : "alert-circle-outline"} size={20} color={creatorFinancials.stripeConnectEnabled ? '#4CAF50' : '#F44336'} style={{ marginRight: 10 }} />
-                    <Text style={{ color: 'black', fontFamily: 'Urbanist-Regular' }}>Payments Active</Text>
+                    <Text style={{ color: theme.text, fontFamily: 'Urbanist-Regular' }}>Payments Active</Text>
                   </View>
                   <Text style={{ color: creatorFinancials.stripeConnectEnabled ? '#4CAF50' : '#F44336', fontFamily: 'Urbanist-Bold' }}>
                     {creatorFinancials.stripeConnectEnabled ? 'Yes' : 'No'}
@@ -3102,7 +3108,7 @@ export default function Index() {
                 <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <Ionicons name={creatorFinancials.stripeConnectPayoutsEnabled ? "cash-outline" : "alert-circle-outline"} size={20} color={creatorFinancials.stripeConnectPayoutsEnabled ? '#4CAF50' : '#F44336'} style={{ marginRight: 10 }} />
-                    <Text style={{ color: 'black', fontFamily: 'Urbanist-Regular' }}>Payouts Active</Text>
+                    <Text style={{ color: theme.text, fontFamily: 'Urbanist-Regular' }}>Payouts Active</Text>
                   </View>
                   <Text style={{ color: creatorFinancials.stripeConnectPayoutsEnabled ? '#4CAF50' : '#F44336', fontFamily: 'Urbanist-Bold' }}>
                     {creatorFinancials.stripeConnectPayoutsEnabled ? 'Yes' : 'No'}
@@ -3111,7 +3117,7 @@ export default function Index() {
                 <View style={{ marginBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <Ionicons name={creatorFinancials.stripeConnectVerified ? "person-circle-outline" : "alert-circle-outline"} size={20} color={creatorFinancials.stripeConnectVerified ? '#4CAF50' : '#FF9800'} style={{ marginRight: 10 }} />
-                    <Text style={{ color: 'black', fontFamily: 'Urbanist-Regular' }}>Account Verified</Text>
+                    <Text style={{ color: theme.text, fontFamily: 'Urbanist-Regular' }}>Account Verified</Text>
                   </View>
                   <Text style={{ color: creatorFinancials.stripeConnectVerified ? '#4CAF50' : '#FF9800', fontFamily: 'Urbanist-Bold' }}>
                     {creatorFinancials.stripeConnectVerified ? 'Yes' : 'Pending'}
@@ -3144,7 +3150,7 @@ export default function Index() {
                 <Ionicons name="information-circle-outline" size={32} color="#676767" style={{ marginRight: 16 }} />
                 <View style={{ flex: 1 }}>
                   <Text style={{
-                    color: 'black',
+                    color: theme.text,
                     fontSize: 16,
                     fontFamily: 'Urbanist-Bold',
                     marginBottom: 4
@@ -3152,7 +3158,7 @@ export default function Index() {
                     Get Paid
                   </Text>
                   <Text style={{
-                    color: 'black',
+                    color: theme.text,
                     fontSize: 14,
                     fontFamily: 'Urbanist-Regular',
                     lineHeight: 20
@@ -3168,7 +3174,7 @@ export default function Index() {
             <TouchableOpacity
               onPress={handleOpenDashboard}
               style={{
-                backgroundColor: '#333',
+                backgroundColor: theme.textSecondary,
                 borderRadius: 12,
                 paddingVertical: 14,
                 marginTop: 16,
@@ -3177,8 +3183,8 @@ export default function Index() {
                 flexDirection: 'row'
               }}
             >
-              <Ionicons name="open-outline" size={20} color="white" style={{ marginRight: 8 }} />
-              <Text style={{ color: 'white', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>
+              <Ionicons name="open-outline" size={20} color={theme.textInverse} style={{ marginRight: 8 }} />
+              <Text style={{ color: theme.textInverse, fontFamily: 'Urbanist-Bold', fontSize: 16 }}>
                 View Dashboard
               </Text>
             </TouchableOpacity>
@@ -3223,10 +3229,10 @@ export default function Index() {
                     }
                   }}
                 >
-                <Ionicons name="card-outline" size={22} color="white" style={{ marginRight: 12 }} />
+                <Ionicons name="card-outline" size={22} color={theme.textInverse} style={{ marginRight: 12 }} />
                 <View>
             <Text style={{ 
-              color: 'white', 
+              color: theme.textInverse, 
                     fontSize: 18, 
                     fontWeight: 'bold',
               fontFamily: 'Urbanist-Bold',
@@ -3353,7 +3359,7 @@ export default function Index() {
             paddingHorizontal: 20
           }}>
             <View style={{
-              backgroundColor: '#FFFFFF',
+              backgroundColor: theme.modalBackground,
               borderRadius: 20,
               padding: 24,
               width: '100%',
@@ -3372,7 +3378,7 @@ export default function Index() {
                 marginBottom: 20
               }}>
                 <Text style={{
-                  color: 'black',
+                  color: theme.text,
                   fontSize: 20,
                   fontWeight: 'bold',
                   fontFamily: 'Urbanist-Bold'
@@ -3385,19 +3391,19 @@ export default function Index() {
                     width: 30,
                     height: 30,
                     borderRadius: 15,
-                    backgroundColor: '#F0F0F0',
+                    backgroundColor: theme.backgroundSecondary,
                     alignItems: 'center',
                     justifyContent: 'center'
                   }}
                 >
-                  <Ionicons name="close" size={18} color="black" />
+                  <Ionicons name="close" size={18} color={theme.text} />
                 </TouchableOpacity>
               </View>
 
               {/* Content */}
               <View style={{ marginBottom: 20 }}>
                 <Text style={{
-                  color: 'black',
+                  color: theme.text,
                   fontSize: 16,
                   fontFamily: 'Urbanist-Regular',
                   lineHeight: 24,
@@ -3407,7 +3413,7 @@ export default function Index() {
                 </Text>
                 
                 <Text style={{
-                  color: 'black',
+                  color: theme.text,
                   fontSize: 16,
                   fontFamily: 'Urbanist-Bold',
                   marginBottom: 8
@@ -3416,7 +3422,7 @@ export default function Index() {
                 </Text>
                 
                 <Text style={{
-                  color: 'black',
+                  color: theme.text,
                   fontSize: 15,
                   fontFamily: 'Urbanist-Regular',
                   lineHeight: 22
@@ -3432,14 +3438,14 @@ export default function Index() {
               <TouchableOpacity
                 onPress={() => setShowPaymentStatusInfo(false)}
                 style={{
-                  backgroundColor: '#FD6F3E',
+                  backgroundColor: theme.primary,
                   borderRadius: 12,
                   paddingVertical: 14,
                   alignItems: 'center'
                 }}
               >
                 <Text style={{
-                  color: 'white',
+                  color: theme.textInverse,
                   fontSize: 16,
                   fontWeight: 'bold',
                   fontFamily: 'Urbanist-Bold'

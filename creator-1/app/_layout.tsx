@@ -1,4 +1,5 @@
 import { GlobalProvider } from "@/lib/global-provider";
+import { ThemeProvider } from "@/lib/useTheme";
 import { StripeProvider } from "@stripe/stripe-react-native";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
@@ -35,20 +36,22 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <StripeProvider
-        publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''}
-        merchantIdentifier="merchant.com.cherrybox.app" // Replace with your actual merchant ID
-      >
-      <GlobalProvider>
-        <Stack 
-          screenOptions={{ 
-            headerShown: false,
-          }} 
+      <ThemeProvider>
+        <StripeProvider
+          publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''}
+          merchantIdentifier="merchant.com.cherrybox.app" // Replace with your actual merchant ID
         >
-          <Stack.Screen name="chat/[id]" />
-        </Stack>
-      </GlobalProvider>
-      </StripeProvider>
+        <GlobalProvider>
+          <Stack 
+            screenOptions={{ 
+              headerShown: false,
+            }} 
+          >
+            <Stack.Screen name="chat/[id]" />
+          </Stack>
+        </GlobalProvider>
+        </StripeProvider>
+      </ThemeProvider>
     </GestureHandlerRootView>
   );
 }
