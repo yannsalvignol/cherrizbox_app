@@ -3,9 +3,9 @@ import { useTheme } from '@/lib/themes/useTheme'
 import { Ionicons } from '@expo/vector-icons'
 import { useNavigation, useRouter } from 'expo-router'
 import React, { useState } from 'react'
-import { GestureResponderEvent, Platform, ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native'
+import { Alert, GestureResponderEvent, Platform, ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { logout } from '../../../lib/appwrite'
+import { deleteAccount, logout } from '../../../lib/appwrite'
 
 export default function Settings() {
   const router = useRouter();
@@ -14,6 +14,7 @@ export default function Settings() {
   const { theme, themeMode, setThemeMode } = useTheme();
   const [pushNotifications, setPushNotifications] = useState(true);
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   // Enable swipe to go back
   React.useEffect(() => {
@@ -47,9 +48,63 @@ export default function Settings() {
     setThemeMode(themeMode === 'light' ? 'dark' : 'light');
   };
 
-  const handleDeleteAccount = () => {
-    // TODO: Add delete account logic later
-    console.log('Delete account pressed - logic to be implemented');
+
+
+  const handleDeleteAccount = async () => {
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to delete your account? This action cannot be undone and will:\n\n• Cancel all your active subscriptions\n• Delete all your personal data\n• Remove your account permanently',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete Account',
+          style: 'destructive',
+          onPress: async () => {
+            console.log('🗑️ Starting account deletion process...');
+            setIsDeletingAccount(true);
+            
+            // Clear navigation history and navigate to delete screen
+            router.dismissAll();
+            router.replace('/delete');
+            
+            try {
+              const result = await deleteAccount();
+              
+              console.log('✅ Account deleted successfully:', result);
+              
+              // Update global state to reflect that user is no longer logged in
+              refetch();
+              
+              // Trigger success state on delete screen
+              router.replace('/delete?success=true');
+              
+            } catch (error: any) {
+              console.error('❌ Error deleting account:', error);
+              
+              // On error, go back to settings
+              router.replace('/(root)/(tabs)/settings');
+              
+              Alert.alert(
+                'Deletion Failed',
+                `Failed to delete account:\n\n${error.message}`,
+                [{ text: 'OK' }],
+                { 
+                  userInterfaceStyle: themeMode === 'dark' ? 'dark' : 'light'
+                }
+              );
+            } finally {
+              setIsDeletingAccount(false);
+            }
+          },
+        },
+      ],
+      { 
+        userInterfaceStyle: themeMode === 'dark' ? 'dark' : 'light'
+      }
+    );
   };
 
   const renderSettingItem = (
@@ -150,7 +205,11 @@ export default function Settings() {
             {/* Expandable Advanced Settings */}
             {showAdvancedSettings && (
               <>
-                {renderSettingItem('Delete Account', handleDeleteAccount, false, false, false, false, false, true)}
+                {renderSettingItem(
+                  isDeletingAccount ? 'Deleting Account...' : 'Delete Account', 
+                  isDeletingAccount ? null : handleDeleteAccount, 
+                  false, false, false, false, false, true
+                )}
               </>
             )}
             

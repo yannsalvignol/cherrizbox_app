@@ -34,7 +34,7 @@ const Trending = ({ onTrendsChange }: TrendingProps) => {
   };
 
   return (
-    <View style={{ paddingHorizontal: 16, marginTop: -8, marginBottom: 24 }}>
+    <View style={{ paddingHorizontal: 16, marginTop: 8, marginBottom: 24 }}>
       <View>
         {trendingTopics.map((row, rowIndex) => (
           <View key={rowIndex} style={{ marginBottom: 5 }}>

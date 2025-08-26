@@ -261,35 +261,51 @@ export async function login() {
     }
 }
 
-export async function loginWithApple() {
+export async function loginWithApple(authorizationCode: string, firstName?: string, lastName?: string) {
     try {
-        const redirectUri = getAppwriteRedirectUri();
-        const scheme = `appwrite-callback-${config.projectId}://`;
-        console.log("[Apple OAuth] redirectUri:", redirectUri);
+        console.log("[Apple OAuth] Starting Dart function authentication...");
+        
+        const APPLE_FUNCTION_ID = process.env.EXPO_PUBLIC_APPLE_SIGNIN_FUNCTION_ID;
+        if (!APPLE_FUNCTION_ID) {
+            throw new Error('Apple Sign-In function ID not configured. Please set EXPO_PUBLIC_APPLE_SIGNIN_FUNCTION_ID in your environment variables.');
+        }
 
-        const loginUrl = await account.createOAuth2Session(
-            OAuthProvider.Apple,
-            redirectUri,
-            redirectUri,
-            ["name", "email"]
+        console.log("[Apple OAuth] Calling Dart function with authorization code");
+        
+        // Call the Dart function with the authorization code
+        const execution = await functions.createExecution(
+            APPLE_FUNCTION_ID,
+            JSON.stringify({
+                code: authorizationCode,
+                firstName: firstName || '',
+                lastName: lastName || ''
+            }),
+            false,
+            '/',
+            ExecutionMethod.POST,
+            { 'Content-Type': 'application/json' }
         );
 
-        const loginUrlObjApple = loginUrl as URL;
-        console.log("[Apple OAuth] loginUrl:", loginUrlObjApple.toString());
-        if (!loginUrl) throw new Error("Failed to create Apple OAuth2 token");
+        console.log("[Apple OAuth] Function execution status:", execution.status);
+        console.log("[Apple OAuth] Function response:", execution.responseBody);
 
-        const browserResult = await openAuthSessionAsync(loginUrlObjApple.toString(), scheme);
-        console.log("[Apple OAuth] browserResult:", browserResult);
-        if (browserResult.type !== "success") throw new Error("Apple OAuth flow was cancelled or failed");
+        if (execution.status === 'failed') {
+            const errorResponse = JSON.parse(execution.responseBody);
+            throw new Error(errorResponse.message || 'Apple Sign-In function failed');
+        }
 
-        const url = new URL(browserResult.url);
-        const secret = url.searchParams.get("secret")?.toString();
-        const userId = url.searchParams.get("userId")?.toString();
-        console.log("[Apple OAuth] Parsed secret present:", !!secret, "userId present:", !!userId);
-        if (!secret || !userId) throw new Error("Missing Apple OAuth credentials in redirect URL");
+        const response = JSON.parse(execution.responseBody);
+        const { secret, userId, expire } = response;
 
+        if (!secret || !userId) {
+            throw new Error('Invalid response from Apple Sign-In function');
+        }
+
+        console.log("[Apple OAuth] Creating session with userId:", userId);
+        
+        // Create session using the token from Dart function
         await account.createSession(userId, secret);
-        console.log("[Apple OAuth] Session created successfully for user", userId);
+        console.log("[Apple OAuth] Session created successfully");
         
         // Get user info to check email
         const user = await account.get();
@@ -1367,4 +1383,71 @@ export async function ensureUserDocument() {
       avatar: avatars.getInitials(username),
     }
   );
+}
+
+export async function deleteAccount() {
+    try {
+        console.log('🗑️ [deleteAccount] Starting account deletion process...');
+        
+        // Get current user
+        const user = await account.get();
+        const userId = user.$id;
+        
+        console.log(`🗑️ [deleteAccount] Deleting account for user: ${userId}`);
+        
+        // Get the delete account function ID from environment
+        const DELETE_ACCOUNT_FUNCTION_ID = process.env.EXPO_PUBLIC_DELETE_ACCOUNT_FUNCTION_ID;
+        
+        if (!DELETE_ACCOUNT_FUNCTION_ID) {
+            throw new Error('Delete account function ID not configured');
+        }
+        
+        // Call the delete account function
+        const execution = await functions.createExecution(
+            DELETE_ACCOUNT_FUNCTION_ID,
+            JSON.stringify({ userId }),
+            false,
+            '/delete-account',
+            ExecutionMethod.POST,
+            { 
+                'Content-Type': 'application/json'
+                // Don't pass x-appwrite-key header - let function use its own server API key
+            }
+        );
+        
+        console.log('🗑️ [deleteAccount] Function execution response:', execution.responseBody);
+        
+        // Parse the response
+        let result;
+        try {
+            result = JSON.parse(execution.responseBody);
+        } catch (parseError) {
+            console.error('🗑️ [deleteAccount] Error parsing response:', parseError);
+            throw new Error('Invalid response from delete account function');
+        }
+        
+        if (!result.success) {
+            throw new Error(result.error || 'Account deletion failed');
+        }
+        
+        console.log('✅ [deleteAccount] Account deleted successfully');
+        console.log(`✅ [deleteAccount] Cancelled ${result.subscriptionsCancelled} subscriptions`);
+        
+        // IMPORTANT: Clear the local session since the account was deleted on the server
+        // This prevents the app from thinking the user is still logged in
+        try {
+            console.log('🗑️ [deleteAccount] Clearing local session...');
+            await account.deleteSession("current");
+            console.log('✅ [deleteAccount] Local session cleared successfully');
+        } catch (sessionError) {
+            // Session might already be invalid due to account deletion, which is fine
+            console.log('⚠️ [deleteAccount] Session cleanup warning (this is normal):', sessionError);
+        }
+        
+        return result;
+        
+    } catch (error: any) {
+        console.error('❌ [deleteAccount] Error deleting account:', error);
+        throw new Error(error.message || 'Failed to delete account');
+    }
 }

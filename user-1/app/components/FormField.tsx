@@ -27,7 +27,7 @@ const FormField = ({ title, value, handleChangeText, otherStyles, keyboardType, 
             <View style={{ 
                 flexDirection: 'row', 
                 alignItems: 'center', 
-                backgroundColor: theme.cardBackground, 
+                backgroundColor: '#ECECEC', 
                 borderRadius: 8 
             }}>
                 <TextInput
@@ -41,13 +41,13 @@ const FormField = ({ title, value, handleChangeText, otherStyles, keyboardType, 
                     onBlur={onBlur}
                     textContentType={disableAutofill ? 'oneTimeCode' : 'none'}
                     passwordRules={disableAutofill ? '' : undefined}
-                    style={{ 
-                        flex: 1, 
-                        paddingHorizontal: 20, 
-                        paddingVertical: 24, 
-                        fontFamily: 'Urbanist-Regular',
-                        color: theme.text
-                    }}
+                                    style={{
+                    flex: 1,
+                    paddingHorizontal: 20,
+                    paddingVertical: 24,
+                    fontFamily: 'Urbanist-Regular',
+                    color: 'black'
+                }}
                     placeholderTextColor={theme.textSecondary}
                     secureTextEntry={(title.toLowerCase().includes('password') || secureTextEntry) && !showPassword}
                 />

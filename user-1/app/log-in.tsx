@@ -1,5 +1,6 @@
 import { useGlobalContext } from '@/lib/global-provider';
 import { Ionicons } from '@expo/vector-icons';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -51,7 +52,43 @@ const LoginScreen = () => {
 
     const handleAppleLogin = async () => {
         try {
-            const result = await loginWithApple();
+            console.log('[Apple Login] Starting Apple Authentication...');
+            
+            // Check if Apple Authentication is available
+            const isAvailable = await AppleAuthentication.isAvailableAsync();
+            if (!isAvailable) {
+                Alert.alert('Apple Sign-In Not Available', 'Apple Sign-In is not available on this device.');
+                return;
+            }
+
+            // Request Apple Authentication
+            const credential = await AppleAuthentication.signInAsync({
+                requestedScopes: [
+                    AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+                    AppleAuthentication.AppleAuthenticationScope.EMAIL,
+                ],
+            });
+
+            console.log('[Apple Login] Apple credential received:', {
+                user: credential.user,
+                email: credential.email,
+                fullName: credential.fullName,
+                authorizationCode: !!credential.authorizationCode
+            });
+
+            if (!credential.authorizationCode) {
+                throw new Error('No authorization code received from Apple');
+            }
+
+            // Extract name information
+            const firstName = credential.fullName?.givenName || '';
+            const lastName = credential.fullName?.familyName || '';
+
+            console.log('[Apple Login] Calling Dart function with authorization code...');
+            
+            // Call our updated loginWithApple function with the authorization code
+            const result = await loginWithApple(credential.authorizationCode, firstName, lastName);
+            
             if(result){
                 const preloadPromise = preloadCommonImages();
                 await refetch();
@@ -68,6 +105,11 @@ const LoginScreen = () => {
                 console.log('Apple Login Failed');
             }
         } catch (error: any) {
+            if (error?.code === 'ERR_REQUEST_CANCELED') {
+                console.log('Apple Sign-In was canceled by user');
+                return;
+            }
+            
             if (error?.message === "CREATOR_EMAIL_BLOCKED") {
                 router.push('/email-exists-error');
             } else {
@@ -122,25 +164,28 @@ const LoginScreen = () => {
                         Welcome back! Glad to see you, Again!
                     </Text>
                     
-                    <FormField 
-                        title="Email" 
-                        value={form.email} 
-                        handleChangeText={(e: string) => {
-                            setForm({...form, email: e});
-                            setError('');
-                        }} 
-                        otherStyles="mt-7" 
-                        keyboardType="email-address" 
-                    />
-                    <FormField 
-                        title="Password" 
-                        value={form.password} 
-                        handleChangeText={(e: string) => {
-                            setForm({...form, password: e});
-                            setError('');
-                        }} 
-                        otherStyles="mt-7" 
-                    />
+                    <View style={{ marginTop: 20 }}>
+                        <FormField 
+                            title="Email" 
+                            value={form.email} 
+                            handleChangeText={(e: string) => {
+                                setForm({...form, email: e});
+                                setError('');
+                            }} 
+                            keyboardType="email-address" 
+                        />
+                    </View>
+
+                    <View style={{ marginTop: 12 }}>
+                        <FormField 
+                            title="Password" 
+                            value={form.password} 
+                            handleChangeText={(e: string) => {
+                                setForm({...form, password: e});
+                                setError('');
+                            }} 
+                        />
+                    </View>
                     
                     {error ? (
                         <Text style={{ color: '#ef4444' }} className="mt-2 text-center font-['Urbanist-SemiBold']">

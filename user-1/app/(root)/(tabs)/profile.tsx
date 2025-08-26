@@ -35,7 +35,8 @@ const getPurchasedContent = async (
       queries.push(Query.equal('creatorId', creatorId));
     }
     
-    console.log(`[Query] Filtering purchased content with:`, { userId, contentType, creatorId });
+    console.log(`🔍 [DB Query] Filtering purchased content with:`, { userId, contentType, creatorId });
+    console.log(`🔍 [DB Query] Queries:`, queries.map(q => q.toString()));
 
     const response = await databases.listDocuments(
       config.databaseId!,
@@ -43,14 +44,29 @@ const getPurchasedContent = async (
       queries
     );
     
-    console.log(`[Query Result] Found ${response.documents.length} documents.`);
+    console.log(`📊 [DB Result] Found ${response.documents.length} documents.`);
+    
+    // First, let's see ALL documents for this user (without content type filter)
+    if (contentType) {
+      console.log(`🔍 [DB Debug] Checking ALL purchases for user (no content type filter)...`);
+      const allUserPurchases = await databases.listDocuments(
+        config.databaseId!,
+        '686a99d3002ec49567b3',
+        [Query.equal('userId', userId)]
+      );
+      console.log(`📊 [DB Debug] Total purchases for user: ${allUserPurchases.documents.length}`);
+      allUserPurchases.documents.forEach((doc, index) => {
+        console.log(`  -> All Doc ${index + 1}: ID=${doc.$id}, Type="${doc.contentType}", Title="${doc.title || 'N/A'}", CreatorId="${doc.creatorId || 'N/A'}"`);
+      });
+    }
+    
     response.documents.forEach((doc, index) => {
-      console.log(` -> Doc ${index + 1}: ID=${doc.$id}, Type=${doc.contentType}, Title=${doc.title || 'N/A'}`);
+      console.log(`  -> Filtered Doc ${index + 1}: ID=${doc.$id}, Type="${doc.contentType}", Title="${doc.title || 'N/A'}", CreatorId="${doc.creatorId || 'N/A'}"`);
     });
 
     return response.documents;
   } catch (error) {
-    console.error('Error fetching purchased content:', error);
+    console.error('❌ [DB Error] Error fetching purchased content:', error);
     return [];
   }
 };
@@ -186,7 +202,8 @@ export default function Profile() {
     switch (contentType) {
       case 'image': return '.jpg';
       case 'video': return '.mp4';
-      case 'file': return '.pdf';
+      case 'pdf': return '.pdf';
+      case 'file': return '.pdf'; // fallback for old 'file' type
       default: return '.file';
     }
   };
@@ -365,13 +382,31 @@ export default function Profile() {
           dbContentType = 'image';
           break;
         case 'Files':
-          dbContentType = 'file';
+          dbContentType = 'pdf';
           break;
       }
       
       const creatorId = selectedCreatorId === 'all' ? undefined : selectedCreatorId;
       
+      console.log(`🔍 [DEBUG] Loading content with params:`, {
+        userId: user.$id,
+        selectedContentType,
+        dbContentType,
+        selectedCreatorId,
+        creatorId
+      });
+      
       const content = await getPurchasedContent(user.$id, dbContentType, creatorId);
+      
+      console.log(`📊 [DEBUG] Raw content results:`, content);
+      console.log(`📋 [DEBUG] Content details:`, content.map(item => ({
+        id: item.$id,
+        contentType: item.contentType,
+        title: item.title,
+        creatorId: item.creatorId,
+        hasImageUri: !!item.imageUri
+      })));
+      
       setPurchasedContent(content);
       
       // Clear and repopulate cached content IDs by checking which items are actually cached
@@ -389,9 +424,9 @@ export default function Profile() {
       // Reset preload flag for new content
       hasPreloadedForCurrentContent.current = '';
       
-      console.log(`Loaded ${content.length} items, ${cachedContentIds.current.size} already cached`);
+      console.log(`✅ [DEBUG] Final results: ${content.length} items loaded, ${cachedContentIds.current.size} already cached`);
     } catch (error) {
-      console.error('Error loading purchased content:', error);
+      console.error('❌ [DEBUG] Error loading purchased content:', error);
       setPurchasedContent([]);
     } finally {
       setIsLoadingContent(false);
@@ -457,6 +492,7 @@ export default function Profile() {
     
     const contentType = selectedContentItem.contentType || '';
     const isImageOrVideo = contentType === 'image' || contentType === 'video';
+    const isPdf = contentType === 'pdf' || contentType === 'file';
     
     if (isProcessing) {
       return isImageOrVideo ? 'Downloading...' : 'Sharing...';
@@ -486,7 +522,8 @@ export default function Profile() {
         switch (type) {
           case 'image': return 'jpg';
           case 'video': return 'mp4';
-          case 'file': return 'pdf';
+          case 'pdf': return 'pdf';
+          case 'file': return 'pdf'; // fallback for old 'file' type
           default: return 'file';
         }
       };
@@ -510,6 +547,7 @@ export default function Profile() {
       // Check if it's an image or video
       const contentType = selectedContentItem.contentType || '';
       const isImageOrVideo = contentType === 'image' || contentType === 'video';
+      const isPdf = contentType === 'pdf' || contentType === 'file';
 
       if (isImageOrVideo) {
         // For photos/videos: Save to device gallery
@@ -1142,7 +1180,9 @@ export default function Profile() {
                       
                       <View style={{ padding: 8 }}>
                         <Text style={{ color: theme.text, fontSize: 12, fontFamily: 'questrial' }} numberOfLines={1}>
-                          {item.contentType === 'video' ? 'Video Content' : item.contentType === 'image' ? 'Photo Content' : 'File Content'}
+                          {item.contentType === 'video' ? 'Video Content' : 
+                           item.contentType === 'image' ? 'Photo Content' : 
+                           (item.contentType === 'pdf' || item.contentType === 'file') ? 'PDF Document' : 'File Content'}
                         </Text>
                       </View>
                     </TouchableOpacity>
@@ -1293,7 +1333,8 @@ export default function Profile() {
                   textAlign: 'center'
                 }}>
                   {selectedContentItem.contentType === 'video' ? 'Video Content' : 
-                   selectedContentItem.contentType === 'image' ? 'Photo Content' : 'File Content'}
+                   selectedContentItem.contentType === 'image' ? 'Photo Content' : 
+                   (selectedContentItem.contentType === 'pdf' || selectedContentItem.contentType === 'file') ? 'PDF Document' : 'File Content'}
                 </Text>
                 <Text style={{ 
                   color: theme.textSecondary, 

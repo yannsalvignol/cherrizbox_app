@@ -265,9 +265,7 @@ const Property = () => {
                   style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }} 
                   onPress={() => setShowBioModal(true)}
                 >
-                  <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: 'white', marginHorizontal: 2 }} />
-                  <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: 'white', marginHorizontal: 2 }} />
-                  <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: 'white', marginHorizontal: 2 }} />
+                  <Ionicons name="ellipsis-horizontal-sharp" size={36} color="white" />
                 </TouchableOpacity>
               </View>
             </View>

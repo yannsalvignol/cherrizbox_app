@@ -1,6 +1,7 @@
 import { checkIfEmailIsCreator, checkIfUserExists, createUser, ensureUserDocument, login, loginWithApple, sendVerificationEmailViaFunction, SignIn } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
 import { Ionicons } from '@expo/vector-icons';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { Redirect, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -234,7 +235,43 @@ const App = () => {
 
     const handleAppleLogin = async () => {
         try {
-            const result = await loginWithApple();
+            console.log('[Apple Sign-Up] Starting Apple Authentication...');
+            
+            // Check if Apple Authentication is available
+            const isAvailable = await AppleAuthentication.isAvailableAsync();
+            if (!isAvailable) {
+                Alert.alert('Apple Sign-In Not Available', 'Apple Sign-In is not available on this device.');
+                return;
+            }
+
+            // Request Apple Authentication
+            const credential = await AppleAuthentication.signInAsync({
+                requestedScopes: [
+                    AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+                    AppleAuthentication.AppleAuthenticationScope.EMAIL,
+                ],
+            });
+
+            console.log('[Apple Sign-Up] Apple credential received:', {
+                user: credential.user,
+                email: credential.email,
+                fullName: credential.fullName,
+                authorizationCode: !!credential.authorizationCode
+            });
+
+            if (!credential.authorizationCode) {
+                throw new Error('No authorization code received from Apple');
+            }
+
+            // Extract name information
+            const firstName = credential.fullName?.givenName || '';
+            const lastName = credential.fullName?.familyName || '';
+
+            console.log('[Apple Sign-Up] Calling Dart function with authorization code...');
+            
+            // Call our updated loginWithApple function with the authorization code
+            const result = await loginWithApple(credential.authorizationCode, firstName, lastName);
+            
             if(result){
                 await ensureUserDocument();
                 refetch();
@@ -246,6 +283,11 @@ const App = () => {
                 console.log('Apple Login Failed');
             }
         } catch (error: any) {
+            if (error?.code === 'ERR_REQUEST_CANCELED') {
+                console.log('Apple Sign-In was canceled by user');
+                return;
+            }
+            
             if (error?.message === "CREATOR_EMAIL_BLOCKED") {
                 router.push('/email-exists-error');
             } else {
@@ -319,40 +361,47 @@ const App = () => {
                     <Text className="text-black font-['Urbanist-Bold'] text-4xl mt-6">    
                         Hello! Register to get in the Cherrizbox.
                     </Text>
-                    <FormField 
-                        title="Username" 
-                        value={form.username}
-                        handleChangeText={(text) => setForm({ ...form, username: text })}
-                        otherStyles="mt-7" 
-                    />
-                    <FormField 
-                        title="Email" 
-                        value={form.email}
-                        handleChangeText={(text) => setForm({ ...form, email: text })}
-                        otherStyles="mt-7" 
-                        keyboardType="email-address" 
-                    />
-                    <FormField 
-                        title="Password" 
-                        value={form.password}
-                        handleChangeText={(text) => setForm({ ...form, password: text })}
-                        otherStyles="mt-7"
-                                secureTextEntry
-                                disableAutofill
-                                onFocus={() => setIsPasswordFocused(true)}
-                                onBlur={() => setIsPasswordFocused(false)}
-                    />
-                            <PasswordCriteria password={form.password} isFocused={isPasswordFocused} />
-                    <FormField 
-                        title="Confirm Password" 
-                        value={form.confirmPassword}
-                        handleChangeText={(text) => setForm({ ...form, confirmPassword: text })}
-                        otherStyles="mt-7"
-                                secureTextEntry
-                                disableAutofill
-                    />
+                    <View style={{ marginTop: 20 }}>
+                        <FormField 
+                            title="Username" 
+                            value={form.username}
+                            handleChangeText={(text) => setForm({ ...form, username: text })}
+                        />
+                    </View>
+                    
+                    <View style={{ marginTop: -5 }}>
+                        <FormField 
+                            title="Email" 
+                            value={form.email}
+                            handleChangeText={(text) => setForm({ ...form, email: text })}
+                            keyboardType="email-address" 
+                        />
+                    </View>
+                    
+                    <View style={{ marginTop: -5 }}>
+                        <FormField 
+                            title="Password" 
+                            value={form.password}
+                            handleChangeText={(text) => setForm({ ...form, password: text })}
+                            secureTextEntry
+                            disableAutofill
+                            onFocus={() => setIsPasswordFocused(true)}
+                            onBlur={() => setIsPasswordFocused(false)}
+                        />
+                        <PasswordCriteria password={form.password} isFocused={isPasswordFocused} />
+                    </View>
+                    
+                    <View style={{ marginTop: -5 }}>
+                        <FormField 
+                            title="Confirm Password" 
+                            value={form.confirmPassword}
+                            handleChangeText={(text) => setForm({ ...form, confirmPassword: text })}
+                            secureTextEntry
+                            disableAutofill
+                        />
+                    </View>
                     <TouchableOpacity 
-                        className={`w-full bg-[#FD6F3E] py-6 rounded-full mt-7 ${isSubmitting ? 'opacity-50' : ''}`}
+                        className={`w-full bg-[#FD6F3E] py-6 rounded-full mt-10 ${isSubmitting ? 'opacity-50' : ''}`}
                                 onPress={handleSendVerification}
                         disabled={isSubmitting}
                     >
@@ -361,7 +410,7 @@ const App = () => {
                         </Text>
                     </TouchableOpacity>
 
-                    <View className="flex-row items-center justify-center mt-7">
+                    <View className="flex-row items-center justify-center mt-10">
                         <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }} />
                         <Text style={{ color: '#9CA3AF', fontFamily: 'Urbanist-Bold', marginHorizontal: 16 }}>
                             Or register with
@@ -397,7 +446,7 @@ const App = () => {
                         </TouchableOpacity>
                     </View>
 
-                    <View className="flex-row justify-center items-center mt-1">
+                    <View className="flex-row justify-center items-center mt-6">
                         <Text className="text-black font-['Urbanist-Bold']">
                             Already have an account?{' '}
                         </Text>

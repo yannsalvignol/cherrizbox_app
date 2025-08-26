@@ -240,7 +240,7 @@ export default function Index() {
             </View>
 
             {/* Search input */}
-            <View style={{ paddingHorizontal: 16, marginTop: 16, marginBottom: 16 }}>
+            <View style={{ paddingHorizontal: 16, marginTop: 16, marginBottom: 8 }}>
                 <SearchInput onSearch={handleSearch} onFocus={handleSearchFocus} />
             </View>
 
@@ -270,7 +270,7 @@ export default function Index() {
                 onMomentumScrollEnd={() => setScrolling(false)}
             >
                 {/* Posts section */}
-                <View style={{ paddingHorizontal: 8, marginTop: 18 }}>
+                <View style={{ paddingHorizontal: 8, marginTop: 8 }}>
                     <Text style={{ 
                         color: theme.text, 
                         fontFamily: 'Urbanist-Bold', 
