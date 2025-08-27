@@ -2,9 +2,9 @@ import { useGlobalContext } from '@/lib/global-provider';
 import React from 'react';
 import { View } from 'react-native';
 import {
-  MessageSimple,
-  useMessageContext,
-  useThreadContext
+    MessageSimple,
+    useMessageContext,
+    useThreadContext
 } from 'stream-chat-react-native';
 import { formatPrice } from '../../../lib/currency-utils';
 import BlurryFileAttachment from './attachments/BlurryFileAttachment';

@@ -1,4 +1,5 @@
 import { useGlobalContext } from '@/lib/global-provider';
+import { useTheme } from '@/lib/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
@@ -28,6 +29,7 @@ interface CustomPollComponentProps {
 
 const CustomPollComponent = ({ message, poll }: CustomPollComponentProps) => {
   const { user } = useGlobalContext();
+  const { theme } = useTheme();
   const { client } = useChatContext();
   const [isVoting, setIsVoting] = useState(false);
   const [userVotes, setUserVotes] = useState<string[]>([]);
@@ -159,24 +161,24 @@ const CustomPollComponent = ({ message, poll }: CustomPollComponentProps) => {
       marginRight: -5,  // Use margin for negative values
     }}>
       <View style={{
-        backgroundColor: '#FFFFFF',
+        backgroundColor: theme.cardBackground,
         borderRadius: 16,
         padding: 20,
         marginVertical: 10,
-        shadowColor: '#000000',
+        shadowColor: theme.shadow,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 8,
         elevation: 4,
         borderWidth: 1,
-        borderColor: '#F0F0F0',
+        borderColor: theme.border,
         width: 300,  // Fixed width for polls
       }}>
       {/* Poll Header */}
       <View style={{ marginBottom: 16 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
           <View style={{
-            backgroundColor: '#000000',
+            backgroundColor: theme.primary,
             width: 32,
             height: 32,
             borderRadius: 16,
@@ -184,10 +186,10 @@ const CustomPollComponent = ({ message, poll }: CustomPollComponentProps) => {
             justifyContent: 'center',
             marginRight: 10,
           }}>
-            <Ionicons name="stats-chart" size={16} color="#FFFFFF" />
+            <Ionicons name="stats-chart" size={16} color={theme.textInverse} />
           </View>
           <Text style={{
-            color: '#1A1A1A',
+            color: theme.text,
             fontSize: 18,
             fontWeight: '700',
             fontFamily: 'questrial',
@@ -199,7 +201,7 @@ const CustomPollComponent = ({ message, poll }: CustomPollComponentProps) => {
         
         {poll?.description && (
           <Text style={{
-            color: '#666666',
+            color: theme.textSecondary,
             fontSize: 14,
             fontFamily: 'questrial',
             lineHeight: 20,
@@ -222,12 +224,12 @@ const CustomPollComponent = ({ message, poll }: CustomPollComponentProps) => {
             <TouchableOpacity
               key={option.id || index}
               style={{
-                backgroundColor: isVoted ? '#F8F9FA' : '#FFFFFF',
+                backgroundColor: isVoted ? theme.backgroundSecondary : theme.cardBackground,
                 borderRadius: 12,
                 marginBottom: 10,
                 overflow: 'hidden',
                 borderWidth: isVoted ? 2 : 1,
-                borderColor: isVoted ? '#000000' : '#E5E5EA',
+                borderColor: isVoted ? theme.primary : theme.border,
                 opacity: isVoting ? 0.6 : 1,
               }}
               onPress={() => handleVote(option.id)}
@@ -242,7 +244,7 @@ const CustomPollComponent = ({ message, poll }: CustomPollComponentProps) => {
                   top: 0,
                   bottom: 0,
                   width: `${percentage}%`,
-                  backgroundColor: isVoted ? '#E5E5EA' : '#F8F9FA',
+                  backgroundColor: isVoted ? theme.primary + '40' : theme.backgroundSecondary,
                 }} />
               )}
               
@@ -258,21 +260,21 @@ const CustomPollComponent = ({ message, poll }: CustomPollComponentProps) => {
                     width: 22,
                     height: 22,
                     borderRadius: poll.max_votes_allowed === 1 ? 11 : 4,
-                    backgroundColor: isVoted ? '#000000' : 'transparent',
+                    backgroundColor: isVoted ? theme.primary : 'transparent',
                     borderWidth: 2,
-                    borderColor: isVoted ? '#000000' : '#CCCCCC',
+                    borderColor: isVoted ? theme.primary : theme.textSecondary,
                     marginRight: 12,
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}>
                     {isVoted && (
-                      <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                      <Ionicons name="checkmark" size={14} color={theme.textInverse} />
                     )}
                   </View>
 
                   {/* Option text */}
                   <Text style={{
-                    color: '#1A1A1A',
+                    color: theme.text,
                     fontSize: 15,
                     fontFamily: 'questrial',
                     flex: 1,
@@ -285,7 +287,7 @@ const CustomPollComponent = ({ message, poll }: CustomPollComponentProps) => {
                 {/* Vote stats */}
                 <View style={{ alignItems: 'flex-end', marginLeft: 12 }}>
                   <Text style={{
-                    color: isVoted ? '#000000' : '#666666',
+                    color: isVoted ? theme.text : theme.textSecondary,
                     fontSize: 14,
                     fontFamily: 'questrial',
                     fontWeight: '600',
@@ -293,7 +295,7 @@ const CustomPollComponent = ({ message, poll }: CustomPollComponentProps) => {
                     {percentage}%
                   </Text>
                   <Text style={{
-                    color: '#999999',
+                    color: theme.textTertiary,
                     fontSize: 11,
                     fontFamily: 'questrial',
                     marginTop: 2,
@@ -314,12 +316,12 @@ const CustomPollComponent = ({ message, poll }: CustomPollComponentProps) => {
         alignItems: 'center',
         paddingTop: 12,
         borderTopWidth: 1,
-        borderTopColor: '#F0F0F0',
+        borderTopColor: theme.border,
       }}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Ionicons name="people-outline" size={14} color="#999999" />
+          <Ionicons name="people-outline" size={14} color={theme.textTertiary} />
           <Text style={{
-            color: '#999999',
+            color: theme.textTertiary,
             fontSize: 12,
             fontFamily: 'questrial',
             marginLeft: 6,
@@ -330,7 +332,7 @@ const CustomPollComponent = ({ message, poll }: CustomPollComponentProps) => {
 
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Text style={{
-            color: '#999999',
+            color: theme.textTertiary,
             fontSize: 12,
             fontFamily: 'questrial',
           }}>
@@ -346,7 +348,7 @@ const CustomPollComponent = ({ message, poll }: CustomPollComponentProps) => {
       {/* Poll status badge */}
       {poll.is_closed && (
         <View style={{
-          backgroundColor: '#F0F0F0',
+          backgroundColor: theme.backgroundSecondary,
           borderRadius: 8,
           padding: 8,
           marginTop: 12,
@@ -354,11 +356,11 @@ const CustomPollComponent = ({ message, poll }: CustomPollComponentProps) => {
           flexDirection: 'row',
           justifyContent: 'center',
           borderWidth: 1,
-          borderColor: '#E5E5EA',
+          borderColor: theme.border,
         }}>
-          <Ionicons name="lock-closed" size={12} color="#666666" style={{ marginRight: 6 }} />
+          <Ionicons name="lock-closed" size={12} color={theme.textSecondary} style={{ marginRight: 6 }} />
           <Text style={{
-            color: '#666666',
+            color: theme.textSecondary,
             fontSize: 12,
             fontFamily: 'questrial',
             fontWeight: '600',

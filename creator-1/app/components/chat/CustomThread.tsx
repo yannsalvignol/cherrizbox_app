@@ -2,13 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Platform, Text, TouchableOpacity, View } from 'react-native';
 import {
-    Chat,
-    MessageInput,
-    MessageList,
-    OverlayProvider,
-    useThreadContext
+  Chat,
+  MessageInput,
+  MessageList,
+  OverlayProvider,
+  useThreadContext
 } from 'stream-chat-react-native';
-import { getChatTheme } from '../../../lib/chat-theme';
 import CustomMessageSimple from './CustomMessageSimple';
 
 interface CustomThreadProps {
@@ -40,18 +39,15 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
   const flatListRef = useRef<FlatList>(null);
   const [isLoadingThread, setIsLoadingThread] = useState(false);
   
-  // Get thread-specific theme with no negative margins
+  // Get thread-specific theme with no negative margins (hardcoded for now)
   const threadTheme = {
-    ...getChatTheme(),
     messageSimple: {
-      ...getChatTheme().messageSimple,
       container: {
         marginLeft: 0,  // Remove negative margin for threads
         marginRight: 0,
       },
     },
     messageList: {
-      ...getChatTheme().messageList,
       container: {
         backgroundColor: 'transparent',  // Make background transparent
         paddingHorizontal: 0,  // Remove padding that might affect positioning
@@ -61,7 +57,6 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
       },
     },
     colors: {
-      ...getChatTheme().colors,
       white: '#DCDEDF',  // Override white to use our background color
     },
   };
@@ -276,13 +271,9 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
           backgroundColor: '#DCDEDF', // Ensure background color is set
         }}>
           <OverlayProvider value={{ style: threadTheme }}>
-            <Chat client={client} style={threadTheme}>
+            <Chat client={client} style={threadTheme} MessageSimple={(props) => <CustomMessageSimple {...props} isInThread={true} />}>
               <MessageList
-            ref={flatListRef}
             DateHeader={() => null}
-            MessageSimple={(props: any) => (
-              <CustomMessageSimple {...props} isInThread={true} />
-            )}
             additionalFlatListProps={{
               style: {
                 backgroundColor: '#DCDEDF', // Set background color for the FlatList
@@ -290,6 +281,19 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
               contentContainerStyle: {
                 paddingHorizontal: 0, // Remove padding to allow messages to reach edges
                 backgroundColor: '#DCDEDF', // Ensure content has the right background
+              },
+              initialScrollIndex: threadMessages.length > 0 ? threadMessages.length - 1 : 0,
+              getItemLayout: (data: any, index: number) => ({
+                length: 100, // Estimated item height
+                offset: 100 * index,
+                index,
+              }),
+              onScrollToIndexFailed: (info: any) => {
+                // Handle scroll failure gracefully
+                console.log('Scroll to index failed:', info);
+                setTimeout(() => {
+                  flatListRef.current?.scrollToEnd({ animated: false });
+                }, 100);
               }
             }}
             EmptyStateIndicator={() => (
@@ -326,19 +330,6 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
               )}
             </View>
           )}
-          initialScrollIndex={threadMessages.length > 0 ? threadMessages.length - 1 : 0}
-          getItemLayout={(data, index) => ({
-            length: 100, // Estimated item height
-            offset: 100 * index,
-            index,
-          })}
-          onScrollToIndexFailed={(info) => {
-            // Handle scroll failure gracefully
-            console.log('Scroll to index failed:', info);
-            setTimeout(() => {
-              flatListRef.current?.scrollToEnd({ animated: false });
-            }, 100);
-          }}
         />
             </Chat>
           </OverlayProvider>

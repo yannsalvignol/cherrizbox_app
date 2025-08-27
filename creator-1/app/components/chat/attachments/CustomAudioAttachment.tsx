@@ -526,7 +526,7 @@ const CustomAudioAttachment = ({ attachment }: CustomAudioAttachmentProps) => {
               
               if (!isPlaying) {
                 // Not playing - all bars light gray with varied heights
-                barColor = theme.border;
+                barColor = theme.audioBarColorNotLive;
                 barHeight = heights[index];
               } else {
                 if (index < activeBars) {
@@ -539,7 +539,7 @@ const CustomAudioAttachment = ({ attachment }: CustomAudioAttachmentProps) => {
                   barHeight = heights[index] + 2;
                 } else {
                   // Unplayed section - use theme audio bar color for not live
-                  barColor = theme.audioBarColorNotLive;
+                  barColor = theme.backgroundSecondary;
                   barHeight = heights[index];
                 }
               }
