@@ -17,7 +17,6 @@ import CustomReactionList from './CustomReactionList';
 
 interface CustomMessageSimpleProps {
   [key: string]: any; // Stream Chat props
-  isInThread?: boolean; // Flag to indicate if message is in thread context
 }
 
 interface MessageContextData {
@@ -42,7 +41,7 @@ interface ThreadContextData {
  */
 const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = (props) => {
   // Filter out custom props that aren't compatible with MessageSimple
-  const { isInThread: _, ...messageSimpleProps } = props;
+  const { ...messageSimpleProps } = props;
   
   // Get message context and global state
   const messageContext = useMessageContext() as MessageContextData;
@@ -174,8 +173,8 @@ const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = (props) => {
     return (
       <View style={{ 
         alignItems: isMyMessage ? 'flex-end' : 'flex-start',  // Align based on sender
-        paddingRight: props.isInThread && isMyMessage ? 8 : 5, // Closer to right edge for sent
-        paddingLeft: props.isInThread && !isMyMessage ? 8 : 0, // Closer to left edge for received
+        paddingRight: isInThread && isMyMessage ? 8 : 5, // Closer to right edge for sent
+        paddingLeft: isInThread && !isMyMessage ? 8 : 0, // Closer to left edge for received
         marginTop: 8, // Increased space between day timestamp and audio attachment
         marginBottom: 8, // Increased space underneath audio attachment for better separation
         marginRight: isMyMessage ? -2 : 0, // Move sent audio messages to the left
@@ -237,8 +236,8 @@ const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = (props) => {
   return (
     <View style={{
       // Override negative margins in thread context for received messages
-      marginLeft: (props.isInThread && !isMyMessage ? 8 : 0) + receivedDmOffset,  // Nudge received DMs
-      marginRight: props.isInThread && isMyMessage ? 8 : 0,   // Reduced - closer to right edge
+      marginLeft: (isInThread && !isMyMessage ? 8 : 0) + receivedDmOffset,  // Nudge received DMs
+      marginRight: isInThread && isMyMessage ? 8 : 0,   // Reduced - closer to right edge
     }}>
       {/* Render the default MessageSimple with its default timestamp */}
       <MessageSimple {...messageSimpleProps} />

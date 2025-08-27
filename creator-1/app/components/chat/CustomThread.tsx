@@ -1,18 +1,15 @@
+import { useTheme } from '@/lib/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Platform, Text, TouchableOpacity, View } from 'react-native';
 import {
-  Chat,
   MessageInput,
   MessageList,
-  OverlayProvider,
   useThreadContext
 } from 'stream-chat-react-native';
-import CustomMessageSimple from './CustomMessageSimple';
 
 interface CustomThreadProps {
   channel: any;
-  client: any;
   threadMessagesCache?: React.MutableRefObject<Map<string, any[]>>;
   user: any;
   userCurrency: string;
@@ -24,7 +21,6 @@ interface CustomThreadProps {
 
 export const CustomThread: React.FC<CustomThreadProps> = ({
   channel,
-  client,
   threadMessagesCache,
   user,
   userCurrency,
@@ -38,29 +34,8 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
   const threadMessages = threadContext?.threadMessages || [];
   const flatListRef = useRef<FlatList>(null);
   const [isLoadingThread, setIsLoadingThread] = useState(false);
+  const { theme } = useTheme();
   
-  // Get thread-specific theme with no negative margins (hardcoded for now)
-  const threadTheme = {
-    messageSimple: {
-      container: {
-        marginLeft: 0,  // Remove negative margin for threads
-        marginRight: 0,
-      },
-    },
-    messageList: {
-      container: {
-        backgroundColor: 'transparent',  // Make background transparent
-        paddingHorizontal: 0,  // Remove padding that might affect positioning
-      },
-      listContainer: {
-        backgroundColor: '#DCDEDF',  // Set the correct background color
-      },
-    },
-    colors: {
-      white: '#DCDEDF',  // Override white to use our background color
-    },
-  };
-
   // Helper function to format the original message preview
   const getOriginalMessagePreview = (message: any) => {
     if (!message) return 'Original message';
@@ -190,16 +165,16 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
 
   return (
     <KeyboardAvoidingView 
-      style={{ flex: 1, backgroundColor: '#DCDEDF' }}
+      style={{ flex: 1, backgroundColor: theme.chatBackground }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={0}
     >
       <View style={{ flex: 1 }}>
         {/* Thread Header with Back Button and Original Message */}
     <View style={{
-          backgroundColor: '#FFFFFF',
+          backgroundColor: theme.background,
         borderBottomWidth: 1,
-          borderBottomColor: '#E5E5EA',
+          borderBottomColor: theme.border,
           paddingHorizontal: 16,
           paddingVertical: 12,
         flexDirection: 'row',
@@ -213,13 +188,13 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
               width: 40,
               height: 40,
               borderRadius: 20,
-              backgroundColor: '#F8F9FA',
+              backgroundColor: theme.backgroundSecondary,
               alignItems: 'center',
               justifyContent: 'center',
             marginRight: 12,
           }}
         >
-            <Ionicons name="arrow-back" size={20} color="#1A1A1A" />
+            <Ionicons name="arrow-back" size={20} color={theme.text} />
         </TouchableOpacity>
 
           {/* Original Message Info */}
@@ -227,7 +202,7 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
           <Text style={{
               fontSize: 14,
               fontFamily: 'questrial',
-              color: '#666666',
+              color: theme.textSecondary,
             marginBottom: 2,
           }}>
               Thread • {getUserDisplayName(thread)}
@@ -235,7 +210,7 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
           <Text style={{
               fontSize: 16,
               fontFamily: 'questrial',
-              color: '#1A1A1A',
+              color: theme.text,
               fontWeight: '500',
             }}>
               {getOriginalMessagePreview(thread)}
@@ -245,7 +220,7 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
           {/* Thread Reply Count */}
           {thread?.reply_count && thread.reply_count > 0 && (
             <View style={{
-              backgroundColor: '#999999',
+              backgroundColor: theme.textTertiary,
               paddingHorizontal: 10,
               paddingVertical: 5,
               borderRadius: 14,
@@ -253,7 +228,7 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
               flexDirection: 'row',
             }}>
               <Text style={{
-                color: '#FFFFFF',
+                color: theme.textInverse,
                 fontSize: 12,
                 fontFamily: 'questrial',
                 fontWeight: '600',
@@ -268,19 +243,18 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
       <View style={{
           flex: 1,
           paddingHorizontal: 0, // Reduced padding to allow messages to get closer to edges
-          backgroundColor: '#DCDEDF', // Ensure background color is set
+          backgroundColor: theme.chatBackground, // Ensure background color is set
         }}>
-          <OverlayProvider value={{ style: threadTheme }}>
-            <Chat client={client} style={threadTheme} MessageSimple={(props) => <CustomMessageSimple {...props} isInThread={true} />}>
-              <MessageList
+          <MessageList
             DateHeader={() => null}
             additionalFlatListProps={{
+              ref: flatListRef,
               style: {
-                backgroundColor: '#DCDEDF', // Set background color for the FlatList
+                backgroundColor: theme.chatBackground, // Set background color for the FlatList
               },
               contentContainerStyle: {
                 paddingHorizontal: 0, // Remove padding to allow messages to reach edges
-                backgroundColor: '#DCDEDF', // Ensure content has the right background
+                backgroundColor: theme.chatBackground, // Ensure content has the right background
               },
               initialScrollIndex: threadMessages.length > 0 ? threadMessages.length - 1 : 0,
               getItemLayout: (data: any, index: number) => ({
@@ -299,7 +273,7 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
             EmptyStateIndicator={() => (
         <View style={{
               flex: 1, 
-              backgroundColor: '#DCDEDF', 
+              backgroundColor: theme.chatBackground, 
               justifyContent: 'center', 
           alignItems: 'center',
               padding: 32 
@@ -307,7 +281,7 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
               {isLoadingThread ? (
                 <>
           <Text style={{
-                    color: '#1A1A1A', 
+                    color: theme.text, 
                     fontSize: 16, 
                     fontFamily: 'questrial',
                     textAlign: 'center',
@@ -319,7 +293,7 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
                 </>
               ) : (
           <Text style={{
-                  color: '#1A1A1A', 
+                  color: theme.text, 
                   fontSize: 16, 
                   fontFamily: 'questrial',
                   textAlign: 'center',
@@ -331,22 +305,20 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
             </View>
           )}
         />
-            </Chat>
-          </OverlayProvider>
         </View>
         
         {/* Thread Message Input - Using default Stream Chat input */}
         <View style={{
-          backgroundColor: '#FFFFFF',
+          backgroundColor: theme.background,
           borderTopWidth: 1,
-          borderTopColor: '#E5E5EA',
+          borderTopColor: theme.border,
           paddingVertical: 8,
         }}>
           <MessageInput 
             InputButtons={() => null}  // Hide custom input buttons in threads
             additionalTextInputProps={{
               placeholder: "Reply in thread...",
-              placeholderTextColor: "#8E8E93",
+              placeholderTextColor: theme.inputPlaceholder,
               style: {
                 flex: 1,
                 minHeight: 32,

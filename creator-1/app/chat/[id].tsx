@@ -471,7 +471,6 @@ export default function ChatScreen() {
               {thread ? (
                 <CustomThread 
                   channel={channel}
-                  client={client}
                   threadMessagesCache={threadMessagesCache}
                   user={user}
                   userCurrency={userCurrency}
