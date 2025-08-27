@@ -35,9 +35,10 @@ export const darkTheme: Theme = {
   bubbleColor: '#FF8A5B',
   toogleSwitchColor: '#FD6F3E',
   toogleBackgroundSwitchColor: 'black',
-  creatorNameBanner: '#FD6F3E',
+  creatorNameBanner: '#2A2A2A',
   audioBarColorLive: '#FF8A5B',
   audioBarColorNotLive: '#FFFFFF',
+  creatorbannerShadow: '#FF8A5B',
   
   // Card colors
   cardBackground: '#1A1A1A',

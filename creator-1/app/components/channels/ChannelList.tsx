@@ -426,7 +426,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
         paddingVertical: 6,
         backgroundColor: theme.backgroundTertiary
       }}
-      style={{ backgroundColor: '#DCDEDF' }}
+      style={{ backgroundColor: theme.backgroundTertiary }}
       // Performance optimizations
       removeClippedSubviews={true}
       maxToRenderPerBatch={10}

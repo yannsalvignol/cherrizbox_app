@@ -1,5 +1,6 @@
 import { checkPaidContentPurchase } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
+import { useTheme } from '@/lib/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as Sharing from 'expo-sharing';
@@ -17,6 +18,7 @@ interface BlurryFileAttachmentProps {
 const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
   const { attachment, userCurrency, formatPrice } = props;
   const { user } = useGlobalContext();
+  const { theme } = useTheme();
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -131,10 +133,10 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
       marginVertical: 8,
       position: 'relative',
       borderWidth: 1,
-      borderColor: '#E0E0E0',
+      borderColor: theme.border,
       overflow: 'hidden',
-      backgroundColor: '#FFFFFF',
-      shadowColor: '#000000',
+      backgroundColor: theme.cardBackground,
+      shadowColor: theme.shadow,
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.1,
       shadowRadius: 4,
@@ -171,22 +173,22 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
             position: 'absolute',
             bottom: -3,
             right: -3,
-            backgroundColor: '#666666',
+            backgroundColor: theme.textSecondary,
             borderRadius: 12,
             width: 26,
             height: 26,
             justifyContent: 'center',
             alignItems: 'center',
             borderWidth: 2,
-            borderColor: '#FFFFFF',
+            borderColor: theme.cardBackground,
           }}>
-            <Ionicons name="lock-closed" size={12} color="#FFFFFF" />
+            <Ionicons name="lock-closed" size={12} color={theme.textInverse} />
           </View>
         </View>
         
         {/* File title */}
         <Text style={{
-          color: '#333333',
+          color: theme.text,
           fontSize: 18,
           fontWeight: '700',
           textAlign: 'center',
@@ -197,7 +199,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
         </Text>
         
         <Text style={{
-          color: '#666666',
+          color: theme.textSecondary,
           fontSize: 14,
           textAlign: 'center',
           marginBottom: 16,
@@ -209,11 +211,11 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
         <TouchableOpacity
           onPress={onUnlock}
           style={{
-            backgroundColor: '#999999',
+            backgroundColor: theme.primary,
             paddingHorizontal: 24,
             paddingVertical: 12,
             borderRadius: 25,
-            shadowColor: '#000000',
+            shadowColor: theme.shadow,
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.1,
             shadowRadius: 4,
@@ -222,7 +224,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
           }}
         >          
           <Text style={{
-            color: '#FFFFFF',
+            color: theme.textInverse,
             fontSize: 16,
             fontWeight: '700',
             fontFamily: 'Urbanist-Bold',
@@ -240,7 +242,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
           position: 'absolute',
           bottom: 8,
           right: 8,
-          color: '#666666',
+          color: theme.textSecondary,
           fontSize: 12,
           fontWeight: '600',
           fontFamily: 'questrial',
@@ -288,13 +290,13 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
         width: fileDimensions.width,
         height: fileDimensions.height,
         borderRadius: 12,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: theme.cardBackground,
         marginVertical: 8,
         position: 'relative',
         borderWidth: 1,
-        borderColor: '#E0E0E0',
+        borderColor: theme.border,
         overflow: 'hidden',
-        shadowColor: '#000000',
+        shadowColor: theme.shadow,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
@@ -305,7 +307,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
           flex: 1,
           justifyContent: 'center',
           alignItems: 'center',
-          backgroundColor: '#FFFFFF',
+          backgroundColor: theme.cardBackground,
           padding: 16,
         }}>
           {isImage ? (
@@ -323,7 +325,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
               height: '100%',
               justifyContent: 'center',
               alignItems: 'center',
-              backgroundColor: '#FFFFFF',
+              backgroundColor: theme.cardBackground,
               position: 'relative',
             }}>
               {/* PDF Icon and Open Button */}
@@ -338,7 +340,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
               />
               
               <Text style={{
-                color: '#333333',
+                color: theme.text,
                 fontSize: 16,
                 fontWeight: '700',
                 textAlign: 'center',
@@ -349,7 +351,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
               </Text>
               
               <Text style={{
-                color: '#666666',
+                color: theme.textSecondary,
                 fontSize: 13,
                 textAlign: 'center',
                 marginBottom: 16,
@@ -378,22 +380,22 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
                   }
                 }}
                 style={{
-                  backgroundColor: '#333333',
+                  backgroundColor: theme.primary,
                   paddingHorizontal: 28,
                   paddingVertical: 12,
                   borderRadius: 22,
                   flexDirection: 'row',
                   alignItems: 'center',
-                  shadowColor: '#000000',
+                  shadowColor: theme.shadow,
                   shadowOffset: { width: 0, height: 2 },
                   shadowOpacity: 0.1,
                   shadowRadius: 4,
                   elevation: 4,
                 }}
               >
-                <Ionicons name="open-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Ionicons name="open-outline" size={16} color={theme.textInverse} style={{ marginRight: 6 }} />
                 <Text style={{
-                  color: '#FFFFFF',
+                  color: theme.textInverse,
                   fontSize: 15,
                   fontWeight: '700',
                   fontFamily: 'Urbanist-Bold',
@@ -407,7 +409,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
               style={{
                 width: '100%',
                 height: '100%',
-                backgroundColor: '#FFFFFF',
+                backgroundColor: theme.cardBackground,
               }}
               contentContainerStyle={{
                 padding: 12,
@@ -419,9 +421,9 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
                   alignItems: 'center',
                   minHeight: 100,
                 }}>
-                  <ActivityIndicator size="large" color="#4CAF50" />
+                  <ActivityIndicator size="large" color={theme.success} />
                   <Text style={{
-                    color: '#666666',
+                    color: theme.textSecondary,
                     fontSize: 12,
                     marginTop: 8,
                     fontFamily: 'Urbanist-Regular',
@@ -431,7 +433,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
                 </View>
               ) : (
                 <Text style={{
-                  color: '#000000',
+                  color: theme.text,
                   fontSize: 12,
                   fontFamily: 'Urbanist-Regular',
                   lineHeight: 16,
@@ -446,11 +448,11 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
               height: '100%',
               justifyContent: 'center',
               alignItems: 'center',
-              backgroundColor: '#2A2A2A',
+              backgroundColor: theme.backgroundSecondary,
             }}>
-              <Ionicons name="musical-notes" size={48} color="#4CAF50" />
+              <Ionicons name="musical-notes" size={48} color={theme.success} />
               <Text style={{
-                color: '#4CAF50',
+                color: theme.success,
                 fontSize: 12,
                 fontWeight: 'bold',
                 marginTop: 8,
@@ -460,7 +462,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
                 Audio File
               </Text>
               <Text style={{
-                color: '#CCCCCC',
+                color: theme.textSecondary,
                 fontSize: 10,
                 marginTop: 4,
                 textAlign: 'center',
@@ -481,7 +483,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
                   }
                 }}
                 style={{
-                  backgroundColor: '#4CAF50',
+                  backgroundColor: theme.success,
                   paddingHorizontal: 16,
                   paddingVertical: 8,
                   borderRadius: 6,
@@ -490,9 +492,9 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
                   alignItems: 'center',
                 }}
               >
-                <Ionicons name="play" size={16} color="#FFFFFF" />
+                <Ionicons name="play" size={16} color={theme.textInverse} />
                 <Text style={{
-                  color: '#FFFFFF',
+                  color: theme.textInverse,
                   fontSize: 12,
                   fontWeight: 'bold',
                   marginLeft: 4,
@@ -507,10 +509,10 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
               <Ionicons 
                 name="document" 
                 size={48} 
-                color="#4CAF50" 
+                color={theme.success} 
               />
               <Text style={{
-                color: '#4CAF50',
+                color: theme.success,
                 fontSize: 12,
                 fontWeight: 'bold',
                 marginTop: 8,
@@ -520,7 +522,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
                 {fileExtension.toUpperCase()} File
               </Text>
               <Text style={{
-                color: '#CCCCCC',
+                color: theme.textSecondary,
                 fontSize: 10,
                 marginTop: 4,
                 textAlign: 'center',
@@ -537,16 +539,16 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
           position: 'absolute',
           top: 8,
           left: 8,
-          backgroundColor: '#4CAF50',
+          backgroundColor: theme.success,
           borderRadius: 12,
           paddingHorizontal: 8,
           paddingVertical: 4,
           flexDirection: 'row',
           alignItems: 'center',
         }}>
-          <Ionicons name="checkmark-circle" size={16} color="#FFFFFF" />
+          <Ionicons name="checkmark-circle" size={16} color={theme.textInverse} />
           <Text style={{
-            color: '#FFFFFF',
+            color: theme.textInverse,
             fontSize: 12,
             fontWeight: 'bold',
             marginLeft: 4,
@@ -564,20 +566,20 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
             position: 'absolute',
             top: 8,
             right: 8,
-            backgroundColor: 'rgba(0, 0, 0, 0.05)',
+            backgroundColor: theme.backgroundSecondary,
             borderRadius: 20,
             width: 36,
             height: 36,
             justifyContent: 'center',
             alignItems: 'center',
             borderWidth: 1,
-            borderColor: '#E0E0E0',
+            borderColor: theme.border,
           }}
         >
           {isDownloading ? (
-            <ActivityIndicator size="small" color="#333333" />
+            <ActivityIndicator size="small" color={theme.text} />
           ) : (
-            <Ionicons name="download" size={18} color="#333333" />
+            <Ionicons name="download" size={18} color={theme.text} />
           )}
         </TouchableOpacity>
         
@@ -589,7 +591,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
             position: 'absolute',
             bottom: 8,
             right: 8,
-            color: '#666666',
+            color: theme.textSecondary,
             fontSize: 12,
             fontWeight: '600',
             fontFamily: 'questrial',

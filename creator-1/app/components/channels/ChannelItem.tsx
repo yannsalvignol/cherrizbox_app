@@ -1,19 +1,19 @@
 import {
-    type Channel,
-    formatLastMessageTime,
-    getChannelAvatar,
-    getChannelDisplayName
+  type Channel,
+  formatLastMessageTime,
+  getChannelAvatar,
+  getChannelDisplayName
 } from '@/lib/index-utils';
 import { useTheme } from '@/lib/useTheme';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
-    Animated,
-    Image,
-    Text,
-    TouchableOpacity,
-    View
+  Animated,
+  Image,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 
@@ -253,7 +253,7 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
       {/* Arrow or Unread Count Badge */}
       {channel.unreadCount > 0 ? (
         <View style={{
-          backgroundColor: 'rgba(20, 20, 20, 0.62)',
+          backgroundColor: theme.primary,
           borderRadius: 12,
           minWidth: 24,
           height: 24,

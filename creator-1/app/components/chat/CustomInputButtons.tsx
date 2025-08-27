@@ -5,6 +5,7 @@ import React from 'react';
 import { Alert, TouchableOpacity, View } from 'react-native';
 import { useChannelContext } from 'stream-chat-react-native';
 import { config, storage } from '../../../lib/appwrite';
+import { useTheme } from '../../../lib/useTheme';
 
 // Global state for recording modal - this is a simple solution
 // In a production app, you might want to use a more sophisticated state management solution
@@ -26,6 +27,7 @@ export const setGlobalRecordingModalHandler = (handler: (show: boolean) => void)
  */
 const CustomInputButtons: React.FC = () => {
   const { channel } = useChannelContext();
+  const { theme } = useTheme();
   
   // For now, we'll handle the recording modal differently
   // TODO: Consider using a global context for recording modal state
@@ -94,8 +96,6 @@ const CustomInputButtons: React.FC = () => {
               type: 'custom_photo',
               image_url: appwriteImageUrl,
               fallback: 'Photo',
-              caption: '',
-              uploading: false,
             }],
           });
           
@@ -112,8 +112,6 @@ const CustomInputButtons: React.FC = () => {
               type: 'custom_photo',
               image_url: asset.uri,
               fallback: 'Photo',
-              caption: '',
-              uploading: false,
             }],
           });
           
@@ -148,13 +146,13 @@ const CustomInputButtons: React.FC = () => {
           width: 32,
           height: 32,
           borderRadius: 16,
-          backgroundColor: '#FFFFFF',
+          backgroundColor: theme.cardBackground,
           justifyContent: 'center',
           alignItems: 'center',
           marginRight: 8,
         }}
       >
-        <Ionicons name="camera" size={28} color="black" />
+        <Ionicons name="camera" size={28} color={theme.text} />
       </TouchableOpacity>
       
       <TouchableOpacity
@@ -163,13 +161,13 @@ const CustomInputButtons: React.FC = () => {
           width: 32,
           height: 32,
           borderRadius: 16,
-          backgroundColor: '#FFFFFF',
+          backgroundColor: theme.cardBackground,
           justifyContent: 'center',
           alignItems: 'center',
           marginRight: 0,
         }}
       >
-        <Ionicons name="mic" size={28} color="black" />
+        <Ionicons name="mic" size={28} color={theme.text} />
       </TouchableOpacity>
     </View>
   );

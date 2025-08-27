@@ -1,3 +1,4 @@
+import { useTheme } from '@/lib/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import React, { useRef, useState } from 'react';
@@ -17,6 +18,7 @@ interface CustomAudioAttachmentProps {
 }
 
 const CustomAudioAttachment = ({ attachment }: CustomAudioAttachmentProps) => {
+  const { theme } = useTheme();
   const [isPlaying, setIsPlaying] = useState(false);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
@@ -364,18 +366,18 @@ const CustomAudioAttachment = ({ attachment }: CustomAudioAttachmentProps) => {
           
           if (!isPlaying) {
             // Not playing - all bars gray
-            barColor = '#666';
+            barColor = theme.textSecondary;
           } else {
             // During playback, use progress to determine colors
             if (index < activeBars) {
-              // Played section - bright pink
-              barColor = '#1A1A1A';
+              // Played section - use theme audio bar color for live
+              barColor = theme.audioBarColorLive;
             } else if (index === activeBars && activeBars < totalBars) {
-              // Currently playing bar - lighter pink
-              barColor = '#FF6B8A';
+              // Currently playing bar - use primary color
+              barColor = theme.primary;
             } else {
-              // Unplayed section - darker gray
-              barColor = '#444';
+              // Unplayed section - use theme audio bar color for not live
+              barColor = theme.audioBarColorNotLive;
             }
           }
           
@@ -413,7 +415,7 @@ const CustomAudioAttachment = ({ attachment }: CustomAudioAttachmentProps) => {
       }}
     >
       <View style={{
-        backgroundColor: '#FFFFFF',
+        backgroundColor: theme.cardBackground,
         borderRadius: 16,
         padding: 16,
         flexDirection: 'row',
@@ -431,18 +433,18 @@ const CustomAudioAttachment = ({ attachment }: CustomAudioAttachmentProps) => {
             width: 44,
             height: 44,
             borderRadius: 22,
-            backgroundColor: '#FFFFFF',
+            backgroundColor: theme.background,
             justifyContent: 'center',
             alignItems: 'center',
             marginRight: 16,
             borderWidth: 1.5,
-            borderColor: '#E5E5EA', // Apple-like thin border
+            borderColor: theme.border,
           }}
         >
           <Ionicons 
             name={isPlaying ? "pause" : "play"} 
             size={22} 
-            color="#000000"
+            color={theme.text}
             style={{ marginLeft: isPlaying ? 0 : 2 }} // Center play icon
           />
         </TouchableOpacity>
@@ -457,7 +459,7 @@ const CustomAudioAttachment = ({ attachment }: CustomAudioAttachmentProps) => {
             zIndex: 1,
           }}>
             <Text style={{
-              color: '#A1A1A1',
+              color: theme.textSecondary,
               fontSize: 11,
               fontFamily: 'questrial',
               fontWeight: '600',
@@ -475,13 +477,13 @@ const CustomAudioAttachment = ({ attachment }: CustomAudioAttachmentProps) => {
             bottom: -20,
             right: 0,
             zIndex: 1,
-            backgroundColor: 'rgba(255, 255, 255, 0.9)', // Add background for visibility
+            backgroundColor: `${theme.cardBackground}E6`, // Add background for visibility with transparency
             paddingHorizontal: 4,
             paddingVertical: 1,
             borderRadius: 4,
           }}>
             <Text style={{
-              color: '#000000',
+              color: theme.text,
               fontSize: 11,
               fontFamily: 'questrial',
               fontWeight: '600',
@@ -524,20 +526,20 @@ const CustomAudioAttachment = ({ attachment }: CustomAudioAttachmentProps) => {
               
               if (!isPlaying) {
                 // Not playing - all bars light gray with varied heights
-                barColor = '#E5E5EA';
+                barColor = theme.border;
                 barHeight = heights[index];
               } else {
                 if (index < activeBars) {
-                  // Played section - black
-                  barColor = '#000000';
+                  // Played section - use theme audio bar color for live
+                  barColor = theme.audioBarColorLive;
                   barHeight = heights[index];
                 } else if (index === activeBars && activeBars < totalBars) {
-                  // Currently playing bar - black and slightly taller
-                  barColor = '#000000';
+                  // Currently playing bar - use theme audio bar color for live and slightly taller
+                  barColor = theme.audioBarColorLive;
                   barHeight = heights[index] + 2;
                 } else {
-                  // Unplayed section - light gray
-                  barColor = '#F2F2F7';
+                  // Unplayed section - use theme audio bar color for not live
+                  barColor = theme.audioBarColorNotLive;
                   barHeight = heights[index];
                 }
               }
@@ -569,12 +571,12 @@ const CustomAudioAttachment = ({ attachment }: CustomAudioAttachmentProps) => {
               width: 28,
               height: 28,
               borderRadius: 14,
-              backgroundColor: '#F2F2F7',
+              backgroundColor: theme.backgroundSecondary,
               justifyContent: 'center',
               alignItems: 'center',
             }}
           >
-            <Ionicons name="stop" size={14} color="#000000" />
+            <Ionicons name="stop" size={14} color={theme.text} />
           </TouchableOpacity>
         )}
       </View>

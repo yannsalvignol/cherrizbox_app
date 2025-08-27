@@ -1,21 +1,22 @@
 import { useGlobalContext } from '@/lib/global-provider';
 import { client, connectUser } from '@/lib/stream-chat';
+import { useTheme } from '@/lib/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import { BlurView } from 'expo-blur';
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Keyboard, KeyboardAvoidingView, Platform, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { ActivityIndicator, Image, Keyboard, KeyboardAvoidingView, Platform, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-    Channel,
-    Chat,
-    MessageList,
-    OverlayProvider
+  Channel,
+  Chat,
+  MessageList,
+  OverlayProvider
 } from 'stream-chat-react-native';
 import {
-    getUserProfile
+  getUserProfile
 } from '../../lib/appwrite';
 import BlurryFileAttachment from '../components/chat/attachments/BlurryFileAttachment';
 import CustomAttachment from '../components/chat/attachments/CustomAttachment';
@@ -45,12 +46,12 @@ import VideoUploadModal from '../components/chat/modals/VideoUploadModal';
 
 // Enhanced profile image caching using our data cache system
 import {
-    handleCreatePoll,
-    handleLongPressMessage,
-    handleSendAudio,
-    handleThreadReply,
-    preloadAllThreadMessages,
-    preloadVisibleImages
+  handleCreatePoll,
+  handleLongPressMessage,
+  handleSendAudio,
+  handleThreadReply,
+  preloadAllThreadMessages,
+  preloadVisibleImages
 } from '../../lib/chat-functions';
 import { customReactions } from '../../lib/chat-reactions';
 import { getChatTheme } from '../../lib/chat-theme';
@@ -82,6 +83,7 @@ export default function ChatScreen() {
   const router = useRouter();
   const { id: channelId } = useLocalSearchParams<{ id: string }>();
   const { user, userCurrency, photoCollectionData } = useGlobalContext();
+  const { theme: appTheme } = useTheme();
   const [isLoading, setIsLoading] = useState(true);
   const [channel, setChannel] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -93,8 +95,7 @@ export default function ChatScreen() {
   const [messageToEdit, setMessageToEdit] = useState<any>(null);
   const [showImageViewer, setShowImageViewer] = useState(false);
   const [imageToView, setImageToView] = useState<string>('');
-  const colorScheme = useColorScheme();
-  const [theme, setTheme] = useState(getChatTheme());
+  const [chatTheme, setChatTheme] = useState(getChatTheme(appTheme));
   // Upload management using custom hooks
   const uploadManager = useUploadManager({
     channel,
@@ -113,8 +114,8 @@ export default function ChatScreen() {
 
 
   useEffect(() => {
-    setTheme(getChatTheme());
-  }, [colorScheme]);
+    setChatTheme(getChatTheme(appTheme));
+  }, [appTheme]);
 
   // Register global handlers for CustomInputButtons and message actions
   useEffect(() => {
@@ -230,21 +231,21 @@ export default function ChatScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#DCDEDF' }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: appTheme.chatBackground }} edges={['top']}>
         <View className="flex-1 items-center justify-center">
           <Image 
             source={require('../../assets/icon/loading-icon.png')} 
             style={{ width: 60, height: 60, marginBottom: 16 }} 
           />
           <Text style={{ 
-            color: 'black', 
+            color: appTheme.text, 
             fontSize: 18, 
             marginBottom: 12,
             fontFamily: 'questrial'
           }}>
             Loading chat...
           </Text>
-          <ActivityIndicator size="large" color="white" />
+          <ActivityIndicator size="large" color={appTheme.text} />
         </View>
       </SafeAreaView>
     );
@@ -252,14 +253,14 @@ export default function ChatScreen() {
 
   if (error) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#1A1A1A' }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: appTheme.background }} edges={['top']}>
         <View className="flex-1 items-center justify-center px-4">
           <Image 
             source={require('../../assets/icon/loading-icon.png')} 
             style={{ width: 80, height: 80, marginBottom: 16 }} 
           />
           <Text style={{ 
-            color: 'white', 
+            color: appTheme.text, 
             fontSize: 24, 
             fontFamily: 'Urbanist-Bold',
             marginBottom: 16,
@@ -268,7 +269,7 @@ export default function ChatScreen() {
             Error Loading Chat 😢
           </Text>
           <Text style={{ 
-            color: 'white', 
+            color: appTheme.text, 
             fontSize: 18, 
             textAlign: 'center',
             marginBottom: 24,
@@ -278,7 +279,7 @@ export default function ChatScreen() {
           </Text>
           <TouchableOpacity 
             style={{
-              backgroundColor: '#FFFFFF',
+              backgroundColor: appTheme.primary,
               paddingHorizontal: 24,
               paddingVertical: 12,
               borderRadius: 25,
@@ -286,7 +287,7 @@ export default function ChatScreen() {
             onPress={() => router.back()}
           >
             <Text style={{
-              color: 'white',
+              color: appTheme.textInverse,
               fontFamily: 'Urbanist-Bold',
               fontSize: 16,
             }}>
@@ -300,14 +301,14 @@ export default function ChatScreen() {
 
   if (!channel) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#1A1A1A' }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: appTheme.background }} edges={['top']}>
         <View className="flex-1 items-center justify-center px-4">
           <Image 
             source={require('../../assets/icon/loading-icon.png')} 
             style={{ width: 80, height: 80, marginBottom: 16 }} 
           />
           <Text style={{ 
-            color: 'white', 
+            color: appTheme.text, 
             fontSize: 24, 
             fontFamily: 'Urbanist-Bold',
             marginBottom: 16,
@@ -316,7 +317,7 @@ export default function ChatScreen() {
             Channel Not Found 😢
           </Text>
           <Text style={{ 
-            color: 'white', 
+            color: appTheme.text, 
             fontSize: 18, 
             textAlign: 'center',
             marginBottom: 24,
@@ -326,7 +327,7 @@ export default function ChatScreen() {
           </Text>
           <TouchableOpacity 
             style={{
-              backgroundColor: 'white',
+              backgroundColor: appTheme.primary,
               paddingHorizontal: 24,
               paddingVertical: 12,
               borderRadius: 25,
@@ -334,7 +335,7 @@ export default function ChatScreen() {
             onPress={() => router.back()}
           >
             <Text style={{
-              color: 'white',
+              color: appTheme.textInverse,
               fontFamily: 'Urbanist-Bold',
               fontSize: 16,
             }}>
@@ -353,9 +354,9 @@ export default function ChatScreen() {
 
 
     return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#DCDEDF' }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: appTheme.backgroundTertiary }} edges={['top']}>
       {/* Header */}
-      <View className="flex-row items-center justify-between px-5 py-3 bg-black" style={{ minHeight: 85 }}>
+      <View className="flex-row items-center justify-between px-5 py-3" style={{ minHeight: 85, backgroundColor: appTheme.backgroundTertiary }}>
         {/* Cherrizbox Logo */}
         <TouchableOpacity onPress={() => router.back()}>
           <Image 
@@ -371,7 +372,7 @@ export default function ChatScreen() {
             <Text style={{
               fontSize: 42,
               fontWeight: 'bold',
-              color: 'black',
+              color: appTheme.text,
               fontFamily: 'MuseoModerno-Regular',
               textAlign: 'center',
             }}>
@@ -383,7 +384,7 @@ export default function ChatScreen() {
         
         {/* Profile Picture */}
         <TouchableOpacity onPress={() => router.push('/edit-profile')}>
-          <View className="w-16 h-16 rounded-full bg-[#1A1A1A] items-center justify-center overflow-hidden">
+          <View className="w-16 h-16 rounded-full items-center justify-center overflow-hidden" style={{ backgroundColor: appTheme.primary }}>
             {profileImage ? (
               <Image
                 source={{ uri: profileImage }}
@@ -405,8 +406,8 @@ export default function ChatScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
-        <OverlayProvider value={{ style: theme }}>
-          <Chat client={client} style={theme}>
+        <OverlayProvider value={{ style: chatTheme }}>
+          <Chat client={client} style={chatTheme}>
             <Channel 
               channel={channel} 
               keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
@@ -495,16 +496,16 @@ export default function ChatScreen() {
                       top: 4,
                       left: '10%',
                       width: '80%',
-                      backgroundColor: 'white',
+                      backgroundColor: appTheme.creatorNameBanner,
                       paddingHorizontal: 16,
                       paddingVertical: 12,
                       borderRadius: 20,
-                      shadowColor: '#000',
+                      shadowColor: appTheme.creatorbannerShadow,
                       shadowOffset: {
                         width: 0,
                         height: 2,
                       },
-                      shadowOpacity: 0.25,
+                      shadowOpacity: 0.5,
                       shadowRadius: 8,
                       elevation: 6,
                       flexDirection: 'row',
@@ -517,7 +518,7 @@ export default function ChatScreen() {
                         width: 48,
                         height: 48,
                         borderRadius: 24,
-                        backgroundColor: '#1A1A1A',
+                        backgroundColor: appTheme.primary,
                         alignItems: 'center',
                         justifyContent: 'center',
                         overflow: 'hidden',
@@ -542,7 +543,7 @@ export default function ChatScreen() {
                       
                       {/* Creator Name */}
                       <Text style={{
-                        color: '#1A1A1A',
+                        color: appTheme.text,
                         fontSize: 32,
                         fontWeight: 'bold',
                         fontFamily: 'MuseoModerno-Regular',

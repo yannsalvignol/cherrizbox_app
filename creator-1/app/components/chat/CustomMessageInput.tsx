@@ -1,4 +1,5 @@
 //this is the file with the paid buttons
+import { useTheme } from '@/lib/useTheme';
 import React from 'react';
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { MessageInput } from 'stream-chat-react-native';
@@ -24,9 +25,10 @@ const CustomMessageInput = ({
   isVideoUploading,
   showPaidButtons
 }: CustomMessageInputProps) => {
+  const { theme } = useTheme();
 
   return (
-    <View style={{ backgroundColor: '#FFFFFF', paddingBottom: 20 }}>
+    <View style={{ backgroundColor: theme.background, paddingBottom: 20 }}>
       {/* Paid content buttons - only show when toggled */}
       {showPaidButtons && (
         <ScrollView 
@@ -53,7 +55,7 @@ const CustomMessageInput = ({
             onPress={() => setShowPollCreation(true)}
           >
             <Text style={{
-              color: 'white',
+              color: theme.textInverse,
               fontSize: 12,
               fontWeight: 'bold',
             }}>
@@ -72,7 +74,7 @@ const CustomMessageInput = ({
             onPress={handlePaidContentCreation}
           >
             <Text style={{
-              color: '#FFFFFF',
+              color: theme.textInverse,
               fontSize: 12,
               fontWeight: 'bold',
             }}>
@@ -82,7 +84,7 @@ const CustomMessageInput = ({
           
           <TouchableOpacity
             style={{
-              backgroundColor: isFileUploading ? '#2A2A2A' : '#1A1A1A',
+              backgroundColor: isFileUploading ? theme.backgroundSecondary : theme.primary,
               borderRadius: 20,
               paddingHorizontal: 12,
               paddingVertical: 6,
@@ -94,9 +96,9 @@ const CustomMessageInput = ({
           >
             {isFileUploading ? (
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <ActivityIndicator size="small" color="white" style={{ marginRight: 4 }} />
+                <ActivityIndicator size="small" color={theme.textInverse} style={{ marginRight: 4 }} />
                 <Text style={{
-                  color: 'white',
+                  color: theme.textInverse,
                   fontSize: 12,
                   fontWeight: 'bold',
                 }}>
@@ -105,7 +107,7 @@ const CustomMessageInput = ({
               </View>
             ) : (
               <Text style={{
-                color: 'white',
+                color: theme.textInverse,
                 fontSize: 12,
                 fontWeight: 'bold',
               }}>
@@ -116,7 +118,7 @@ const CustomMessageInput = ({
           
           <TouchableOpacity
             style={{
-              backgroundColor: isVideoUploading ? '#2A2A2A' : '#1A1A1A',
+              backgroundColor: isVideoUploading ? theme.backgroundSecondary : theme.primary,
               borderRadius: 20,
               paddingHorizontal: 12,
               paddingVertical: 6,
@@ -128,9 +130,9 @@ const CustomMessageInput = ({
           >
             {isVideoUploading ? (
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <ActivityIndicator size="small" color="white" style={{ marginRight: 4 }} />
+                <ActivityIndicator size="small" color={theme.textInverse} style={{ marginRight: 4 }} />
                 <Text style={{
-                  color: 'white',
+                  color: theme.textInverse,
                   fontSize: 12,
                   fontWeight: 'bold',
                 }}>
@@ -139,7 +141,7 @@ const CustomMessageInput = ({
               </View>
             ) : (
               <Text style={{
-                color: 'white',
+                color: theme.textInverse,
                 fontSize: 12,
                 fontWeight: 'bold',
               }}>
@@ -154,7 +156,7 @@ const CustomMessageInput = ({
       <MessageInput 
         additionalTextInputProps={{
           placeholder: "Send a message...",
-          placeholderTextColor: "#8E8E93",
+          placeholderTextColor: theme.inputPlaceholder,
           style: {
             flex: 1,
             minHeight: 32,
@@ -162,6 +164,7 @@ const CustomMessageInput = ({
             paddingTop: 6,
             paddingBottom: 6,
             fontSize: 16,
+            color: theme.inputText,
           }
         }}
       />

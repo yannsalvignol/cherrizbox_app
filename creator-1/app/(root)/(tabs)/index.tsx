@@ -1937,7 +1937,7 @@ export default function Index() {
             {/* Tabs */}
             <View style={{
               flexDirection: 'row',
-              backgroundColor: theme.backgroundSecondary,
+              backgroundColor: theme.background,
               borderRadius: 12,
               padding: 4,
               marginBottom: 16,
@@ -2828,7 +2828,7 @@ export default function Index() {
                       size={60}
                       strokeWidth={4}
                       backgroundColor="#F0F0F0"
-                      textColor="black"
+                      textColor={theme.text}
                       fontSize={12}
                       completedColor="#4CAF50"
                       incompleteColor="#FD6F3E"
