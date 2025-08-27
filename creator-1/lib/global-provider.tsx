@@ -89,8 +89,7 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
 
   const isLogged = !!user;
 
-  // Cache duration: 5 minutes
-  const CACHE_DURATION = 5 * 60 * 1000;
+  // No cache duration - cache persists until manually cleared
 
   const preloadProfileData = useCallback(async () => {
     if (!user?.$id) return;
@@ -128,16 +127,6 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
 
   const getCachedProfile = (): ProfileCache | null => {
     if (!profileCache) return null;
-    
-    // Check if cache is still valid
-    const now = Date.now();
-    const isExpired = now - profileCache.timestamp > CACHE_DURATION;
-    
-    if (isExpired) {
-      console.log('⏰ [Profile Cache] Cache expired, clearing');
-      setProfileCache(null);
-      return null;
-    }
     
     console.log('✅ [Profile Cache] Returning cached profile data');
     return profileCache;

@@ -584,30 +584,37 @@ export const uploadProfilePicture = async (file: FileData, previousImageUrl?: st
             await deleteFileFromBucket(previousImageUrl);
         }
 
-        // Create a file object from the URI (original)
-        const fileToUpload = {
-            uri: file.uri,
+        // --- Compress the "regular" image (lightly compressed) ---
+        const regularCompressed = await ImageManipulator.manipulateAsync(
+            file.uri,
+            [{ resize: { width: 800, height: 800 } }], // Larger size for regular version
+            { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG } // Light compression
+        );
+        
+        const regularFileToUpload = {
+            uri: regularCompressed.uri,
             name: file.name || 'profile.jpg',
-            type: file.type || 'image/jpeg',
+            type: 'image/jpeg',
             size: 0 // Appwrite will calculate the actual size
         };
 
-        // Upload original file to Appwrite Storage
+        // Upload regular compressed file to Appwrite Storage
         const response = await storage.createFile(
             config.storageId,
             ID.unique(),
-            fileToUpload
+            regularFileToUpload
         );
         const imageUrl = storage.getFileView(config.storageId, response.$id).href;
         
-        // --- Compress the image ---
-        const compressed = await ImageManipulator.manipulateAsync(
+        // --- Compress the image heavily for thumbnail ---
+        const heavyCompressed = await ImageManipulator.manipulateAsync(
             file.uri,
-            [{ resize: { width: 200, height: 200 } }],
-            { compress: 0.4, format: ImageManipulator.SaveFormat.JPEG }
+            [{ resize: { width: 200, height: 200 } }], // Small size for thumbnail
+            { compress: 0.4, format: ImageManipulator.SaveFormat.JPEG } // Heavy compression
         );
+        
         const compressedFileToUpload = {
-            uri: compressed.uri,
+            uri: heavyCompressed.uri,
             name: 'compressed_' + (file.name || 'profile.jpg'),
             type: 'image/jpeg',
             size: 0

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "81794157668",
+    "project_id": "cherrizbox-c9764",
+    "storage_bucket": "cherrizbox-c9764.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:81794157668:android:fa0966f270c003c9532371",
+        "android_client_info": {
+          "package_name": "com.yannsalvignol.cherripay"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC1KS_lsnkJAOLFbcLSHnPzEyF6QXcPbHo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

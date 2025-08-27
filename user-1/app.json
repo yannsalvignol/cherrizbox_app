@@ -20,6 +20,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.yannsalvignol.cherripay",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "requireFullScreen": true,
       "usesAppleSignIn": true,
       "associatedDomains": [
@@ -49,6 +50,7 @@
         "backgroundColor": "#FD6F3E"
       },
       "edgeToEdgeEnabled": true,
+      "googleServicesFile": "./google-services.json",
       "permissions": [
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE",
@@ -127,6 +129,7 @@
       [
         "expo-apple-authentication"
       ],
+      "@notifee/react-native",
       "expo-web-browser"
     ],
     "experiments": {
