@@ -1,3 +1,4 @@
+import { useTheme } from '@/lib/useTheme';
 import React from 'react';
 import {
   ActivityIndicator,
@@ -27,6 +28,8 @@ export const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
   onError,
   onHttpError
 }) => {
+  const { theme } = useTheme();
+
   return (
     <Modal
       visible={visible}
@@ -34,7 +37,7 @@ export const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View style={{ flex: 1, backgroundColor: 'black' }}>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
         <SafeAreaView style={{ flex: 1 }}>
           {/* Header */}
           <View style={{ 
@@ -43,9 +46,9 @@ export const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
             justifyContent: 'space-between',
             paddingHorizontal: 12,
             paddingVertical: 8,
-            backgroundColor: 'black',
+            backgroundColor: theme.background,
             borderBottomWidth: 1,
-            borderBottomColor: '#333333',
+            borderBottomColor: theme.border,
             minHeight: 44
           }}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -54,7 +57,7 @@ export const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
               style={{ width: 24, height: 24, marginRight: 6, resizeMode: 'contain' }}
             />
             <Text style={{ 
-              color: 'white', 
+              color: theme.text, 
               fontSize: 16,
               fontWeight: 'bold',
               fontFamily: 'Urbanist-Bold'
@@ -66,7 +69,7 @@ export const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
             onPress={onClose}
             style={{
               padding: 8,
-              backgroundColor: '#333333',
+              backgroundColor: theme.backgroundSecondary,
               borderRadius: 6,
               minWidth: 36,
               minHeight: 36,
@@ -75,7 +78,7 @@ export const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
             }}
           >
             <Text style={{ 
-              color: 'white',
+              color: theme.text,
               fontSize: 16, 
               fontWeight: 'bold',
               fontFamily: 'Urbanist-Bold'
@@ -89,18 +92,18 @@ export const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
           {stripeConnectUrl ? (
             <WebView
               source={{ uri: stripeConnectUrl }}
-              style={{ flex: 1, backgroundColor: 'white' }}
+              style={{ flex: 1, backgroundColor: theme.background }}
               startInLoadingState={true}
               renderLoading={() => (
                 <View style={{ 
                   flex: 1, 
                   justifyContent: 'center',
                   alignItems: 'center',
-                  backgroundColor: 'white'
+                  backgroundColor: theme.background
                 }}>
-                  <ActivityIndicator size="large" color="#FD6F3E" />
+                  <ActivityIndicator size="large" color={theme.primary} />
                   <Text style={{ 
-                    color: '#666666',
+                    color: theme.textSecondary,
                     fontSize: 16,
                     fontFamily: 'Urbanist-Regular',
                     marginTop: 16
@@ -127,11 +130,11 @@ export const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
               flex: 1,
               justifyContent: 'center',
               alignItems: 'center',
-              backgroundColor: 'white'
+              backgroundColor: theme.background
             }}>
-              <ActivityIndicator size="large" color="#FD6F3E" />
+              <ActivityIndicator size="large" color={theme.primary} />
               <Text style={{ 
-                color: '#666666',
+                color: theme.textSecondary,
                 fontSize: 16, 
                 fontFamily: 'Urbanist-Regular',
                 marginTop: 16

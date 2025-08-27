@@ -159,7 +159,7 @@ export const getChatTheme = (appTheme: AppTheme): DeepPartial<Theme> => ({
   reply: {
     // Reply container
     container: {
-      backgroundColor: appTheme.backgroundSecondary, // Theme secondary background
+      backgroundColor: 'transparent', // Theme secondary background
       borderWidth: 0,               // No border
       borderColor: 'transparent',
       paddingVertical: 4,

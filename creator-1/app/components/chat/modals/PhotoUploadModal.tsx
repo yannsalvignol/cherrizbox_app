@@ -1,3 +1,4 @@
+import { useTheme } from '@/lib/useTheme';
 import React, { useEffect, useRef } from 'react';
 import { Animated, Modal, Text, View } from 'react-native';
 
@@ -7,6 +8,7 @@ interface PhotoUploadModalProps {
 }
 
 const PhotoUploadModal = ({ visible, progress }: PhotoUploadModalProps) => {
+  const { theme } = useTheme();
   const spinValue = useRef(new Animated.Value(0)).current;
   const scaleValue = useRef(new Animated.Value(0)).current;
   const pulseValue = useRef(new Animated.Value(1)).current;
@@ -95,24 +97,24 @@ const PhotoUploadModal = ({ visible, progress }: PhotoUploadModalProps) => {
     >
       <View style={{
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.85)',
+        backgroundColor: theme.modalOverlay,
         justifyContent: 'center',
         alignItems: 'center',
       }}>
         <Animated.View style={{
-          backgroundColor: '#FFFFFF',
+          backgroundColor: theme.modalBackground,
           borderRadius: 24,
           padding: 36,
           alignItems: 'center',
           justifyContent: 'center',
           minWidth: 320,
-          shadowColor: '#FD6F3E',
+          shadowColor: theme.shadow,
           shadowOffset: { width: 0, height: 12 },
           shadowOpacity: 0.4,
           shadowRadius: 20,
           elevation: 20,
           borderWidth: 1,
-          borderColor: '#676767',
+          borderColor: theme.border,
           transform: [{ scale: scaleValue }],
         }}>
           {/* Photo Icon with Shimmer Effect */}
@@ -124,10 +126,10 @@ const PhotoUploadModal = ({ visible, progress }: PhotoUploadModalProps) => {
               width: 90,
               height: 90,
               borderRadius: 45,
-              backgroundColor: '#FD6F3E',
+              backgroundColor: theme.primary,
               justifyContent: 'center',
               alignItems: 'center',
-              shadowColor: '#FD6F3E',
+              shadowColor: theme.primary,
               shadowOffset: { width: 0, height: 6 },
               shadowOpacity: 0.5,
               shadowRadius: 15,
@@ -155,15 +157,15 @@ const PhotoUploadModal = ({ visible, progress }: PhotoUploadModalProps) => {
             height: 70,
             borderRadius: 35,
             borderWidth: 4,
-            borderColor: 'rgba(253, 111, 62, 0.2)',
-            borderTopColor: '#FD6F3E',
-            borderRightColor: '#FD6F3E',
+            borderColor: `${theme.primary}33`,
+            borderTopColor: theme.primary,
+            borderRightColor: theme.primary,
             marginBottom: 24,
             transform: [{ rotate: spinInterpolate }],
           }} />
           
           <Text style={{
-            color: 'black',
+            color: theme.text,
             fontSize: 22,
             fontFamily: 'Urbanist-Bold',
             marginBottom: 8,
@@ -173,7 +175,7 @@ const PhotoUploadModal = ({ visible, progress }: PhotoUploadModalProps) => {
           </Text>
           
           <Text style={{
-            color: '#FD6F3E',
+            color: theme.primary,
             fontSize: 16,
             fontFamily: 'Urbanist-SemiBold',
             textAlign: 'center',
@@ -186,20 +188,20 @@ const PhotoUploadModal = ({ visible, progress }: PhotoUploadModalProps) => {
           <View style={{
             width: '100%',
             height: 8,
-            backgroundColor: 'rgba(253, 111, 62, 0.2)',
+            backgroundColor: `${theme.primary}33`,
             borderRadius: 4,
             overflow: 'hidden',
             marginBottom: 4,
           }}>
             <Animated.View style={{
               height: '100%',
-              backgroundColor: '#FD6F3E',
+              backgroundColor: theme.primary,
               borderRadius: 4,
               width: progress.includes('Processing') ? '30%' : 
                     progress.includes('Uploading') ? '65%' : 
                     progress.includes('Finalizing') ? '90%' : 
                     progress.includes('success') ? '100%' : '15%',
-              shadowColor: '#FD6F3E',
+              shadowColor: theme.primary,
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.8,
               shadowRadius: 6,
@@ -209,7 +211,7 @@ const PhotoUploadModal = ({ visible, progress }: PhotoUploadModalProps) => {
 
           {/* Progress percentage */}
           <Text style={{
-            color: 'rgba(253, 111, 62, 0.8)',
+            color: `${theme.primary}CC`,
             fontSize: 12,
             fontFamily: 'Urbanist-Medium',
             marginBottom: 16,
@@ -222,7 +224,7 @@ const PhotoUploadModal = ({ visible, progress }: PhotoUploadModalProps) => {
 
           {/* Upload Tips */}
           <Text style={{
-            color: '#676767',
+            color: theme.textSecondary,
             fontSize: 12,
             fontFamily: 'Urbanist-Regular',
             textAlign: 'center',

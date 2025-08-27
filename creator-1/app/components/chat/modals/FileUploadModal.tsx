@@ -1,3 +1,4 @@
+import { useTheme } from '@/lib/useTheme';
 import React, { useEffect, useRef } from 'react';
 import { Animated, Modal, Text, View } from 'react-native';
 
@@ -7,6 +8,7 @@ interface FileUploadModalProps {
 }
 
 const FileUploadModal = ({ visible, progress }: FileUploadModalProps) => {
+  const { theme } = useTheme();
   const spinValue = useRef(new Animated.Value(0)).current;
   const scaleValue = useRef(new Animated.Value(0)).current;
   const pulseValue = useRef(new Animated.Value(1)).current;
@@ -95,24 +97,24 @@ const FileUploadModal = ({ visible, progress }: FileUploadModalProps) => {
     >
       <View style={{
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.85)',
+        backgroundColor: theme.modalOverlay,
         justifyContent: 'center',
         alignItems: 'center',
       }}>
         <Animated.View style={{
-          backgroundColor: '#FFFFFF',
+          backgroundColor: theme.modalBackground,
           borderRadius: 20,
           padding: 32,
           alignItems: 'center',
           justifyContent: 'center',
           minWidth: 300,
-          shadowColor: '#FD6F3E',
+          shadowColor: theme.shadow,
           shadowOffset: { width: 0, height: 10 },
           shadowOpacity: 0.3,
           shadowRadius: 18,
           elevation: 18,
           borderWidth: 1,
-          borderColor: '#676767',
+          borderColor: theme.border,
           transform: [{ scale: scaleValue }],
         }}>
           {/* File Icon with Floating Animation */}
@@ -127,10 +129,10 @@ const FileUploadModal = ({ visible, progress }: FileUploadModalProps) => {
               width: 85,
               height: 85,
               borderRadius: 42.5,
-              backgroundColor: '#FD6F3E',
+              backgroundColor: theme.primary,
               justifyContent: 'center',
               alignItems: 'center',
-              shadowColor: '#FD6F3E',
+              shadowColor: theme.primary,
               shadowOffset: { width: 0, height: 6 },
               shadowOpacity: 0.4,
               shadowRadius: 12,
@@ -152,7 +154,7 @@ const FileUploadModal = ({ visible, progress }: FileUploadModalProps) => {
                   position: index > 0 ? 'absolute' : 'relative',
                   width: 40,
                   height: 6,
-                  backgroundColor: `rgba(253, 111, 62, ${0.8 - index * 0.2})`,
+                  backgroundColor: `${theme.primary}${ (8 - index * 2) * 16 + (8 - index * 2)}`,
                   borderRadius: 3,
                   marginBottom: index === 0 ? 4 : 0,
                   transform: [
@@ -170,15 +172,15 @@ const FileUploadModal = ({ visible, progress }: FileUploadModalProps) => {
             height: 65,
             borderRadius: 32.5,
             borderWidth: 4,
-            borderColor: 'rgba(253, 111, 62, 0.2)',
-            borderTopColor: '#FD6F3E',
-            borderRightColor: '#FD6F3E',
+            borderColor: `${theme.primary}33`,
+            borderTopColor: theme.primary,
+            borderRightColor: theme.primary,
             marginBottom: 20,
             transform: [{ rotate: spinInterpolate }],
           }} />
           
           <Text style={{
-            color: 'black',
+            color: theme.text,
             fontSize: 20,
             fontFamily: 'Urbanist-Bold',
             marginBottom: 8,
@@ -188,7 +190,7 @@ const FileUploadModal = ({ visible, progress }: FileUploadModalProps) => {
           </Text>
           
           <Text style={{
-            color: '#FD6F3E',
+            color: theme.primary,
             fontSize: 16,
             fontFamily: 'Urbanist-SemiBold',
             textAlign: 'center',
@@ -201,19 +203,19 @@ const FileUploadModal = ({ visible, progress }: FileUploadModalProps) => {
           <View style={{
             width: '100%',
             height: 6,
-            backgroundColor: 'rgba(253, 111, 62, 0.2)',
+            backgroundColor: `${theme.primary}33`,
             borderRadius: 3,
             overflow: 'hidden',
           }}>
             <Animated.View style={{
               height: '100%',
-              backgroundColor: '#FD6F3E',
+              backgroundColor: theme.primary,
               borderRadius: 3,
               width: progress.includes('Processing') ? '25%' : 
                     progress.includes('Uploading') ? '60%' : 
                     progress.includes('Finalizing') ? '85%' : 
                     progress.includes('success') ? '100%' : '10%',
-              shadowColor: '#FD6F3E',
+              shadowColor: theme.primary,
               shadowOffset: { width: 0, height: 0 },
               shadowOpacity: 0.8,
               shadowRadius: 4,
@@ -223,7 +225,7 @@ const FileUploadModal = ({ visible, progress }: FileUploadModalProps) => {
 
           {/* File Upload Specific Tips */}
           <Text style={{
-            color: '#676767',
+            color: theme.textSecondary,
             fontSize: 12,
             fontFamily: 'Urbanist-Regular',
             textAlign: 'center',

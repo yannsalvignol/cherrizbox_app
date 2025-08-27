@@ -1,3 +1,4 @@
+import { useTheme } from '@/lib/useTheme';
 import React, { useState } from 'react';
 import { Image, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -18,6 +19,7 @@ const PaidPhotosPriceModal = ({
   userCurrency, 
   formatPrice 
 }: PaidPhotosPriceModalProps) => {
+  const { theme } = useTheme();
   const [price, setPrice] = useState('5.00');
   const [error, setError] = useState('');
 
@@ -50,59 +52,59 @@ const PaidPhotosPriceModal = ({
       transparent
       onRequestClose={handleClose}
     >
-      <View style={styles.overlay}>
-        <View style={styles.container}>
-          <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-            <Text style={styles.closeButtonText}>✕</Text>
+      <View style={[styles.overlay, { backgroundColor: theme.modalOverlay }]}>
+        <View style={[styles.container, { backgroundColor: theme.modalBackground, shadowColor: theme.shadow }]}>
+          <TouchableOpacity onPress={handleClose} style={[styles.closeButton, { backgroundColor: theme.backgroundSecondary }]}>
+            <Text style={[styles.closeButtonText, { color: theme.primary }]}>✕</Text>
           </TouchableOpacity>
           
-          <Text style={styles.title}>Set Content Price</Text>
+          <Text style={[styles.title, { color: theme.text }]}>Set Content Price</Text>
           
           {imageUri && (
-            <View style={styles.imagePreview}>
+            <View style={[styles.imagePreview, { borderColor: theme.border }]}>
               <Image source={{ uri: imageUri }} style={styles.previewImage} />
             </View>
           )}
           
-          <Text style={styles.subtitle}>
+          <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
             Set the price for your exclusive content
           </Text>
           
-          <View style={styles.inputContainer}>
-            <Text style={styles.currencySymbol}>
+          <View style={[styles.inputContainer, { backgroundColor: theme.inputBackground, borderColor: theme.inputBorder }]}>
+            <Text style={[styles.currencySymbol, { color: theme.inputText }]}>
               {userCurrency && formatPrice ? formatPrice(0, userCurrency).replace('0.00', '').replace('0,00', '') : '$'}
             </Text>
             <TextInput
-              style={styles.priceInput}
+              style={[styles.priceInput, { color: theme.inputText }]}
               value={price}
               onChangeText={setPrice}
               keyboardType="decimal-pad"
               placeholder="5.00"
-              placeholderTextColor="#666"
+              placeholderTextColor={theme.inputPlaceholder}
               autoFocus
               selectTextOnFocus
             />
           </View>
           
           {error ? (
-            <Text style={styles.errorText}>{error}</Text>
+            <Text style={[styles.errorText, { color: theme.error }]}>{error}</Text>
           ) : null}
           
           <View style={styles.buttonContainer}>
             <TouchableOpacity
-              style={styles.cancelButton}
+              style={[styles.cancelButton, { backgroundColor: theme.backgroundSecondary }]}
               onPress={handleClose}
               activeOpacity={0.8}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={[styles.cancelButtonText, { color: theme.textSecondary }]}>Cancel</Text>
             </TouchableOpacity>
             
             <TouchableOpacity
-              style={styles.submitButton}
+              style={[styles.submitButton, { backgroundColor: theme.primary }]}
               onPress={handleSubmit}
               activeOpacity={0.8}
             >
-              <Text style={styles.submitButtonText}>Set Price</Text>
+              <Text style={[styles.submitButtonText, { color: theme.textInverse }]}>Set Price</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -114,20 +116,17 @@ const PaidPhotosPriceModal = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     justifyContent: 'flex-start',
     alignItems: 'center',
     paddingTop: 120,
     padding: 20,
   },
   container: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 24,
     width: '100%',
     maxWidth: 340,
     alignItems: 'center',
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
@@ -141,18 +140,15 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#f5f5f5',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1,
   },
   closeButtonText: {
-    color: '#FD6F3E',
     fontSize: 16,
     fontWeight: 'bold',
   },
   title: {
-    color: '#000000',
     fontSize: 22,
     fontWeight: 'bold',
     fontFamily: 'Urbanist-Bold',
@@ -167,14 +163,12 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#676767',
   },
   previewImage: {
     width: '100%',
     height: '100%',
   },
   subtitle: {
-    color: '#676767',
     fontSize: 16,
     fontFamily: 'Urbanist-Medium',
     textAlign: 'center',
@@ -184,17 +178,14 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#676767',
     paddingHorizontal: 16,
     paddingVertical: 12,
     marginBottom: 8,
     width: '100%',
   },
   currencySymbol: {
-    color: '#000000',
     fontSize: 24,
     fontWeight: 'bold',
     fontFamily: 'Urbanist-Bold',
@@ -202,14 +193,12 @@ const styles = StyleSheet.create({
   },
   priceInput: {
     flex: 1,
-    color: '#000000',
     fontSize: 24,
     fontWeight: 'bold',
     fontFamily: 'Urbanist-Bold',
     textAlign: 'left',
   },
   errorText: {
-    color: '#FF6B6B',
     fontSize: 14,
     fontFamily: 'Urbanist-Medium',
     marginBottom: 16,
@@ -223,26 +212,22 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
   },
   cancelButtonText: {
-    color: '#666666',
     fontSize: 16,
     fontWeight: '600',
     fontFamily: 'Urbanist-SemiBold',
   },
   submitButton: {
     flex: 1,
-    backgroundColor: '#FD6F3E',
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
   },
   submitButtonText: {
-    color: '#000000',
     fontSize: 16,
     fontWeight: 'bold',
     fontFamily: 'Urbanist-Bold',

@@ -117,9 +117,16 @@ export default function Settings() {
             {renderSettingItem('Edit Profile', () => router.push('/edit-profile' as any))}
             {renderSettingItem('Change Password', handleChangePassword)}
             {renderSettingItem('Payment methods', () => router.push('/payment-methods'))}
-            {renderSettingItem('Dark Theme', null, true, false, false, isDark, handleThemeToggle)}
             {renderSettingItem('Push Notifications', null, true)}
             {renderSettingItem('Logout', handleLogout, false, true)}
+          </View>
+        </View>
+
+        {/* Appearance Section */}
+        <View className="mb-8">
+          <Text style={{ color: theme.primary, fontFamily: 'Nunito-Bold', fontSize: 18, marginBottom: 8 }}>Appearance</Text>
+          <View style={{ backgroundColor: theme.cardBackground, borderRadius: 8, paddingHorizontal: 16 }}>
+            {renderSettingItem('Dark Theme', null, true, false, true, isDark, handleThemeToggle)}
           </View>
         </View>
 

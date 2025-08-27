@@ -1,3 +1,4 @@
+import { useTheme } from '@/lib/useTheme';
 import React, { useEffect, useRef } from 'react';
 import { Animated, Modal, Text, View } from 'react-native';
 
@@ -7,6 +8,7 @@ interface VideoUploadModalProps {
 }
 
 const VideoUploadModal = ({ visible, progress }: VideoUploadModalProps) => {
+  const { theme } = useTheme();
   const spinValue = useRef(new Animated.Value(0)).current;
   const scaleValue = useRef(new Animated.Value(0)).current;
   const pulseValue = useRef(new Animated.Value(1)).current;
@@ -95,24 +97,24 @@ const VideoUploadModal = ({ visible, progress }: VideoUploadModalProps) => {
     >
       <View style={{
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.85)',
+        backgroundColor: theme.modalOverlay,
         justifyContent: 'center',
         alignItems: 'center',
       }}>
         <Animated.View style={{
-          backgroundColor: '#FFFFFF',
+          backgroundColor: theme.modalBackground,
           borderRadius: 24,
           padding: 36,
           alignItems: 'center',
           justifyContent: 'center',
           minWidth: 340,
-          shadowColor: '#FD6F3E',
+          shadowColor: theme.shadow,
           shadowOffset: { width: 0, height: 15 },
           shadowOpacity: 0.4,
           shadowRadius: 25,
           elevation: 25,
           borderWidth: 1,
-          borderColor: '#676767',
+          borderColor: theme.border,
           transform: [{ scale: scaleValue }],
         }}>
           {/* Video Icon with Dramatic Animation */}
@@ -124,10 +126,10 @@ const VideoUploadModal = ({ visible, progress }: VideoUploadModalProps) => {
               width: 95,
               height: 95,
               borderRadius: 47.5,
-              backgroundColor: '#FD6F3E',
+              backgroundColor: theme.primary,
               justifyContent: 'center',
               alignItems: 'center',
-              shadowColor: '#FD6F3E',
+              shadowColor: theme.primary,
               shadowOffset: { width: 0, height: 8 },
               shadowOpacity: 0.5,
               shadowRadius: 16,
@@ -150,7 +152,7 @@ const VideoUploadModal = ({ visible, progress }: VideoUploadModalProps) => {
                 style={{
                   width: 4,
                   height: 20,
-                  backgroundColor: '#FD6F3E',
+                  backgroundColor: theme.primary,
                   borderRadius: 2,
                   marginHorizontal: 2,
                   opacity: waveInterpolate,
@@ -171,16 +173,16 @@ const VideoUploadModal = ({ visible, progress }: VideoUploadModalProps) => {
             height: 75,
             borderRadius: 37.5,
             borderWidth: 5,
-            borderColor: 'rgba(253, 111, 62, 0.2)',
-            borderTopColor: '#FD6F3E',
-            borderRightColor: '#FD6F3E',
-            borderBottomColor: 'rgba(253, 111, 62, 0.6)',
+            borderColor: `${theme.primary}33`,
+            borderTopColor: theme.primary,
+            borderRightColor: theme.primary,
+            borderBottomColor: `${theme.primary}99`,
             marginBottom: 24,
             transform: [{ rotate: spinInterpolate }],
           }} />
           
           <Text style={{
-            color: 'black',
+            color: theme.text,
             fontSize: 24,
             fontFamily: 'Urbanist-Bold',
             marginBottom: 8,
@@ -190,7 +192,7 @@ const VideoUploadModal = ({ visible, progress }: VideoUploadModalProps) => {
           </Text>
           
           <Text style={{
-            color: '#FD6F3E',
+            color: theme.primary,
             fontSize: 16,
             fontFamily: 'Urbanist-SemiBold',
             textAlign: 'center',
@@ -203,7 +205,7 @@ const VideoUploadModal = ({ visible, progress }: VideoUploadModalProps) => {
           <View style={{
             width: '100%',
             height: 8,
-            backgroundColor: 'rgba(253, 111, 62, 0.2)',
+            backgroundColor: `${theme.primary}33`,
             borderRadius: 4,
             overflow: 'hidden',
             marginBottom: 6,
@@ -215,8 +217,8 @@ const VideoUploadModal = ({ visible, progress }: VideoUploadModalProps) => {
                     progress.includes('Uploading') ? '70%' : 
                     progress.includes('Finalizing') ? '95%' : 
                     progress.includes('success') ? '100%' : '10%',
-              backgroundColor: '#FD6F3E',
-              shadowColor: '#FD6F3E',
+              backgroundColor: theme.primary,
+              shadowColor: theme.primary,
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.8,
               shadowRadius: 6,
@@ -226,7 +228,7 @@ const VideoUploadModal = ({ visible, progress }: VideoUploadModalProps) => {
 
           {/* Progress indicator */}
           <Text style={{
-            color: 'rgba(253, 111, 62, 0.8)',
+            color: `${theme.primary}CC`,
             fontSize: 12,
             fontFamily: 'Urbanist-Medium',
             marginBottom: 18,
@@ -239,7 +241,7 @@ const VideoUploadModal = ({ visible, progress }: VideoUploadModalProps) => {
 
           {/* Video Upload Specific Tips */}
           <Text style={{
-            color: '#676767',
+            color: theme.textSecondary,
             fontSize: 12,
             fontFamily: 'Urbanist-Regular',
             textAlign: 'center',

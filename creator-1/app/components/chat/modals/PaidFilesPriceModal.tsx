@@ -1,3 +1,4 @@
+import { useTheme } from '@/lib/useTheme';
 import { BlurView } from 'expo-blur';
 import React, { useState } from 'react';
 import { Alert, Image, KeyboardAvoidingView, Modal, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -17,6 +18,7 @@ const PaidFilesPriceModal = ({
   fileUri, 
   userCurrency 
 }: PaidFilesPriceModalProps) => {
+  const { theme } = useTheme();
   const [price, setPrice] = useState('');
   const [title, setTitle] = useState('');
 
@@ -68,16 +70,16 @@ const PaidFilesPriceModal = ({
           }}
         >
           <View style={{
-            backgroundColor: '#FFFFFF',
+            backgroundColor: theme.modalBackground,
             borderRadius: 20,
             padding: 24,
-            shadowColor: '#000',
+            shadowColor: theme.shadow,
             shadowOffset: { width: 0, height: 10 },
             shadowOpacity: 0.25,
             shadowRadius: 10,
             elevation: 10,
             borderWidth: 1,
-            borderColor: '#676767',
+            borderColor: theme.border,
           }}>
             {/* Header */}
             <View style={{
@@ -89,13 +91,13 @@ const PaidFilesPriceModal = ({
               <Text style={{
                 fontSize: 20,
                 fontWeight: 'bold',
-                color: 'black',
+                color: theme.text,
                 fontFamily: 'Urbanist-Bold',
               }}>
                 Set File Price
               </Text>
               <TouchableOpacity onPress={handleClose}>
-                <Text style={{ color: '#FD6F3E', fontSize: 24 }}>✕</Text>
+                <Text style={{ color: theme.primary, fontSize: 24 }}>✕</Text>
               </TouchableOpacity>
             </View>
 
@@ -104,7 +106,7 @@ const PaidFilesPriceModal = ({
               <View style={{
                 width: '100%',
                 height: 200,
-                backgroundColor: '#FFFFFF',
+                backgroundColor: theme.background,
                 borderRadius: 12,
                 marginBottom: 20,
                 overflow: 'hidden',
@@ -112,7 +114,7 @@ const PaidFilesPriceModal = ({
                 justifyContent: 'center',
                 alignItems: 'center',
                 borderWidth: 1,
-                borderColor: '#676767',
+                borderColor: theme.border,
               }}>
                 {/* PDF icon preview */}
                 <Image
@@ -126,7 +128,7 @@ const PaidFilesPriceModal = ({
             {/* Title Input */}
             <View style={{ marginBottom: 16 }}>
               <Text style={{
-                color: '#676767',
+                color: theme.textSecondary,
                 fontSize: 14,
                 marginBottom: 8,
                 fontFamily: 'Urbanist-Regular',
@@ -135,17 +137,17 @@ const PaidFilesPriceModal = ({
               </Text>
               <TextInput
                 style={{
-                  backgroundColor: '#FFFFFF',
+                  backgroundColor: theme.inputBackground,
                   borderRadius: 12,
                   padding: 16,
-                  color: 'black',
+                  color: theme.inputText,
                   fontSize: 16,
                   fontFamily: 'Urbanist-Regular',
                   borderWidth: 1,
-                  borderColor: '#676767',
+                  borderColor: theme.inputBorder,
                 }}
                 placeholder="Enter file title (e.g., Premium Guide)"
-                placeholderTextColor="#666"
+                placeholderTextColor={theme.inputPlaceholder}
                 value={title}
                 onChangeText={setTitle}
                 autoFocus={true}
@@ -155,7 +157,7 @@ const PaidFilesPriceModal = ({
             {/* Price Input */}
             <View style={{ marginBottom: 24 }}>
               <Text style={{
-                color: '#676767',
+                color: theme.textSecondary,
                 fontSize: 14,
                 marginBottom: 8,
                 fontFamily: 'Urbanist-Regular',
@@ -164,17 +166,17 @@ const PaidFilesPriceModal = ({
               </Text>
               <TextInput
                 style={{
-                  backgroundColor: '#FFFFFF',
+                  backgroundColor: theme.inputBackground,
                   borderRadius: 12,
                   padding: 16,
-                  color: 'black',
+                  color: theme.inputText,
                   fontSize: 16,
                   fontFamily: 'Urbanist-Regular',
                   borderWidth: 1,
-                  borderColor: '#676767',
+                  borderColor: theme.inputBorder,
                 }}
                 placeholder="Enter price (e.g., 9.99)"
-                placeholderTextColor="#666"
+                placeholderTextColor={theme.inputPlaceholder}
                 value={price}
                 onChangeText={setPrice}
                 keyboardType="decimal-pad"
@@ -190,7 +192,7 @@ const PaidFilesPriceModal = ({
               <TouchableOpacity
                 style={{
                   flex: 1,
-                  backgroundColor: '#f5f5f5',
+                  backgroundColor: theme.backgroundSecondary,
                   paddingVertical: 16,
                   borderRadius: 12,
                   alignItems: 'center',
@@ -198,7 +200,7 @@ const PaidFilesPriceModal = ({
                 onPress={handleClose}
               >
                 <Text style={{
-                  color: '#666',
+                  color: theme.textSecondary,
                   fontSize: 16,
                   fontWeight: 'bold',
                   fontFamily: 'Urbanist-Bold',
@@ -210,11 +212,11 @@ const PaidFilesPriceModal = ({
               <TouchableOpacity
                 style={{
                   flex: 1,
-                  backgroundColor: '#FD6F3E',
+                  backgroundColor: theme.primary,
                   paddingVertical: 16,
                   borderRadius: 12,
                   alignItems: 'center',
-                  shadowColor: '#FD6F3E',
+                  shadowColor: theme.primary,
                   shadowOffset: { width: 0, height: 4 },
                   shadowOpacity: 0.3,
                   shadowRadius: 8,
@@ -223,7 +225,7 @@ const PaidFilesPriceModal = ({
                 onPress={handleSubmit}
               >
                 <Text style={{
-                  color: 'black',
+                  color: theme.textInverse,
                   fontSize: 16,
                   fontWeight: 'bold',
                   fontFamily: 'Urbanist-Bold',
