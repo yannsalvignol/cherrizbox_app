@@ -76,17 +76,18 @@ export default function Settings() {
         console.log('📱 [Settings] Step 1: Importing Firebase messaging...');
         
         // Import Firebase messaging
-        const messaging = (await import('@react-native-firebase/messaging')).default;
+        const { getMessaging, getToken, requestPermission, AuthorizationStatus } = await import('@react-native-firebase/messaging');
         console.log('📱 [Settings] Step 2: Firebase messaging imported successfully');
         
         // Request permission
         console.log('📱 [Settings] Step 3: Requesting push notification permission...');
-        const authStatus = await messaging().requestPermission();
+        const messaging = getMessaging();
+        const authStatus = await requestPermission(messaging);
         console.log('📱 [Settings] Step 4: Permission status received:', authStatus);
         
         const enabled =
-          authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-          authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+          authStatus === AuthorizationStatus.AUTHORIZED ||
+          authStatus === AuthorizationStatus.PROVISIONAL;
         console.log('📱 [Settings] Step 5: Permission enabled:', enabled);
 
         if (enabled) {
@@ -126,7 +127,7 @@ export default function Settings() {
           
           if (connectedUserId) {
             console.log('📱 [Settings] Step 9: Getting FCM token...');
-            const fcmToken = await messaging().getToken();
+            const fcmToken = await getToken(messaging);
             console.log('📱 [Settings] Step 10: FCM token obtained:', fcmToken ? fcmToken.substring(0, 20) + '...' : 'null');
             
             if (fcmToken) {
@@ -202,11 +203,12 @@ export default function Settings() {
         
         try {
           const { client } = await import('../../../lib/stream-chat');
-          const messaging = (await import('@react-native-firebase/messaging')).default;
+          const { getMessaging, getToken } = await import('@react-native-firebase/messaging');
           console.log('📱 [Settings] Disable Step 2: Modules imported successfully');
           
           console.log('📱 [Settings] Disable Step 3: Getting FCM token...');
-          const fcmToken = await messaging().getToken();
+          const messaging = getMessaging();
+          const fcmToken = await getToken(messaging);
           console.log('📱 [Settings] Disable Step 4: FCM token:', fcmToken ? fcmToken.substring(0, 20) + '...' : 'null');
           
           if (fcmToken) {

@@ -1,8 +1,9 @@
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Modal, Platform, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, Platform, Text, View } from 'react-native';
 import { initiatePaymentIntent } from '../../lib/subscription';
+import { CherryLoadingIndicator } from './CherryLoadingIndicator';
 let StripeProvider: any, useStripe: any;
 if (Platform.OS !== 'web') {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -127,8 +128,6 @@ const StripePaymentSheet: React.FC<StripePaymentSheetProps> = (props) => {
   const stripePlugin = plugins?.find(plugin => Array.isArray(plugin) && plugin[0] === '@stripe/stripe-react-native');
   const merchantId = stripePlugin?.[1]?.merchantIdentifier;
 
-  const bounceAnim = React.useRef(new Animated.Value(1)).current;
-
   useEffect(() => {
     if (!visible) return;
     setLoading(true);
@@ -143,29 +142,11 @@ const StripePaymentSheet: React.FC<StripePaymentSheetProps> = (props) => {
       .finally(() => setLoading(false));
   }, [visible]);
 
-  useEffect(() => {
-    if (loading) {
-      // Start bouncing animation
-      bounceAnim.setValue(1);
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(bounceAnim, { toValue: 1.15, duration: 450, useNativeDriver: true }),
-          Animated.timing(bounceAnim, { toValue: 1, duration: 450, useNativeDriver: true })
-        ])
-      ).start();
-    } else {
-      bounceAnim.stopAnimation();
-    }
-  }, [loading]);
-
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={{flex:1,backgroundColor:'rgba(0,0,0,0.6)',justifyContent:'center',alignItems:'center'}}>
         {loading && (
-          <Animated.Image
-            source={require('../../assets/icon/loading-icon.png')}
-            style={{ width: 80, height: 80, transform: [{ scale: bounceAnim }] }}
-          />
+          <CherryLoadingIndicator size={120} />
         )}
         {errorMsg && <Text style={{color:'white'}}>{errorMsg}</Text>}
         {paymentData && (

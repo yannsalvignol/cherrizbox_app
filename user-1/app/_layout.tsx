@@ -12,8 +12,9 @@ import "./global.css";
 
 // Set up background message handler for push notifications when app is closed
 if (Platform.OS !== 'web') {
-  import('@react-native-firebase/messaging').then(({ default: messaging }) => {
-    messaging().setBackgroundMessageHandler(async remoteMessage => {
+  import('@react-native-firebase/messaging').then(({ getMessaging, setBackgroundMessageHandler }) => {
+    const messaging = getMessaging();
+    setBackgroundMessageHandler(messaging, async remoteMessage => {
       console.log('📱 [Push] Message handled in background:', remoteMessage);
       // The notification will be displayed automatically by the system
       // You can add custom logic here if needed

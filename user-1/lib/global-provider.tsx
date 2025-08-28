@@ -4,7 +4,7 @@ import Constants from 'expo-constants';
 import * as FileSystem from 'expo-file-system';
 import React, { createContext, ReactNode, useContext, useEffect, useRef, useState } from "react";
 
-import { clearStreamChatToken, deleteExpiredSubscriptions, getAllPosts, getCurrentUser, getSubscriptionStatus, getUserProfile, getUserSubscriptions } from "./appwrite";
+import { deleteExpiredSubscriptions, getAllPosts, getCurrentUser, getSubscriptionStatus, getUserProfile, getUserSubscriptions } from "./appwrite";
 import { connectUser, disconnectUser, preSetupChannels } from "./stream-chat";
 import { useAppwrite } from "./useAppwrite";
 
@@ -459,13 +459,8 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
           }
         }
       } else if (!user && !loading && previousUserId.current) {
-            // Clear cached token on logout
-            try {
-              await clearStreamChatToken(previousUserId.current);
-            } catch (error) {
-              console.error('Error clearing cached Stream Chat token:', error);
-            }
-            
+            // Stream Chat token is now cleared in the logout() function
+            // Just disconnect from Stream Chat
             await disconnectUser();
             setIsStreamConnected(false);
             previousUserId.current = null;

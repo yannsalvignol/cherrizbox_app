@@ -28,6 +28,18 @@ export default function PaymentSuccess() {
   const rotateAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const checkmarkScale = useRef(new Animated.Value(0)).current;
+  // Detail rows animations
+  const detailRow1Opacity = useRef(new Animated.Value(0)).current;
+  const detailRow1Slide = useRef(new Animated.Value(30)).current;
+  const detailRow2Opacity = useRef(new Animated.Value(0)).current;
+  const detailRow2Slide = useRef(new Animated.Value(30)).current;
+  const detailRow3Opacity = useRef(new Animated.Value(0)).current;
+  const detailRow3Slide = useRef(new Animated.Value(30)).current;
+  // Floating particles
+  const particle1 = useRef(new Animated.Value(0)).current;
+  const particle2 = useRef(new Animated.Value(0)).current;
+  const particle3 = useRef(new Animated.Value(0)).current;
+  const particle4 = useRef(new Animated.Value(0)).current;
   const [logoCentered, setLogoCentered] = useState(false);
 
   // Log the creator name when component mounts
@@ -110,76 +122,146 @@ export default function PaymentSuccess() {
         tension: 100,
         friction: 5,
         useNativeDriver: true,
-      }).start(async () => {
-        // Initialize Stream Chat and refresh data during animation completion
-        console.log('🔄 Initializing Stream Chat and refreshing data during animation...');
+      }).start(() => {
+        // Start staggered detail row animations
+        Animated.stagger(400, [
+          Animated.parallel([
+            Animated.timing(detailRow1Opacity, {
+              toValue: 1,
+              duration: 600,
+              useNativeDriver: true,
+            }),
+            Animated.spring(detailRow1Slide, {
+              toValue: 0,
+              tension: 50,
+              friction: 8,
+              useNativeDriver: true,
+            }),
+          ]),
+          Animated.parallel([
+            Animated.timing(detailRow2Opacity, {
+              toValue: 1,
+              duration: 600,
+              useNativeDriver: true,
+            }),
+            Animated.spring(detailRow2Slide, {
+              toValue: 0,
+              tension: 50,
+              friction: 8,
+              useNativeDriver: true,
+            }),
+          ]),
+          Animated.parallel([
+            Animated.timing(detailRow3Opacity, {
+              toValue: 1,
+              duration: 600,
+              useNativeDriver: true,
+            }),
+            Animated.spring(detailRow3Slide, {
+              toValue: 0,
+              tension: 50,
+              friction: 8,
+              useNativeDriver: true,
+            }),
+          ]),
+        ]).start();
         
-        try {
-          // Get current user for Stream Chat initialization
-          const user = await getCurrentUser();
-          if (user) {
-            console.log('🎉 Initializing Stream Chat after successful payment...');
-            await initializeStreamChatOnPaymentSuccess(user.$id);
-            
-            // Push notifications are now handled automatically in stream-chat.ts during connection
-            
-            // Set up channels for ALL active subscriptions (like the global provider does)
-            console.log('🚀 Setting up channels for all active subscriptions...');
-            try {
-              // Get fresh subscription data
-              const userSubscriptions = await getUserSubscriptions(user.$id);
-              const activeCreatorIds = userSubscriptions
-                .filter(sub => sub.status === 'active' && (!sub.endsAt || new Date(sub.endsAt) > new Date()))
-                .map(sub => sub.creatorAccountId)
-                .filter(id => id && id !== user.$id); // Filter out invalid IDs and self
-              
-              if (activeCreatorIds.length > 0) {
-                console.log('📋 Setting up channels for active creators:', activeCreatorIds);
-                
-                // Pre-setup channels for all active creators (like global provider does)
-                await preSetupChannels(user.$id, activeCreatorIds);
-                console.log('✅ All channels pre-setup completed');
-                
-                // Verify specific DM channel for the creator from this payment exists
-                const creatorNameStr = Array.isArray(creatorName) ? creatorName[0] : creatorName;
-                if (creatorNameStr) {
-                  try {
-                    const specificCreatorId = await getCreatorIdByName(creatorNameStr);
-                    if (specificCreatorId && specificCreatorId !== user.$id && activeCreatorIds.includes(specificCreatorId)) {
-                      console.log('✅ Payment creator channel already set up during pre-setup phase');
-                      // No need to create again - preSetupChannels already handled this
-                    } else if (specificCreatorId && specificCreatorId !== user.$id) {
-                      console.log('💬 Creating direct message channel for payment creator (not in active list)...');
-                      await createDirectMessageChannel(user.$id, specificCreatorId);
-                      console.log('✅ Direct message channel created for payment creator');
-                    }
-                  } catch (dmError) {
-                    console.error('❌ Error with specific DM channel:', dmError);
-                    // Don't throw - not critical
-                  }
-                }
-              } else {
-                console.log('⚠️ No active creators found for channel setup');
-              }
-            } catch (channelError) {
-              console.error('❌ Error setting up channels:', channelError);
-              // Don't throw - continue with data refresh
-            }
-          }
-
-          // Refresh posts and creators
-          await Promise.all([refreshPosts(), refreshCreators()]);
-          console.log('✅ Stream Chat initialization, channel setup, and data refresh completed');
-          
-          // Simple navigation
-          router.replace('/(root)/(tabs)');
-        } catch (error) {
-          console.error('❌ Error during Stream Chat initialization or data refresh:', error);
-          // Still navigate away even if initialization fails
-          router.replace('/(root)/(tabs)');
-        }
+        // Start floating particles animation
+        const startParticleAnimation = (particle: Animated.Value, delay: number) => {
+          Animated.loop(
+            Animated.sequence([
+              Animated.delay(delay),
+              Animated.timing(particle, {
+                toValue: 1,
+                duration: 3000,
+                useNativeDriver: true,
+              }),
+              Animated.timing(particle, {
+                toValue: 0,
+                duration: 0,
+                useNativeDriver: true,
+              }),
+            ])
+          ).start();
+        };
+        
+        startParticleAnimation(particle1, 0);
+        startParticleAnimation(particle2, 800);
+        startParticleAnimation(particle3, 1600);
+        startParticleAnimation(particle4, 2400);
       });
-    });
+      
+      // Background processing starts here
+      (async () => {
+          // Initialize Stream Chat and refresh data during animation completion
+          console.log('🔄 Initializing Stream Chat and refreshing data during animation...');
+          
+          try {
+            // Get current user for Stream Chat initialization
+            const user = await getCurrentUser();
+            if (user) {
+              console.log('🎉 Initializing Stream Chat after successful payment...');
+              await initializeStreamChatOnPaymentSuccess(user.$id);
+              
+              // Push notifications are now handled automatically in stream-chat.ts during connection
+              
+              // Set up channels for ALL active subscriptions (like the global provider does)
+              console.log('🚀 Setting up channels for all active subscriptions...');
+              try {
+                // Get fresh subscription data
+                const userSubscriptions = await getUserSubscriptions(user.$id);
+                const activeCreatorIds = userSubscriptions
+                  .filter(sub => sub.status === 'active' && (!sub.endsAt || new Date(sub.endsAt) > new Date()))
+                  .map(sub => sub.creatorAccountId)
+                  .filter(id => id && id !== user.$id); // Filter out invalid IDs and self
+                
+                if (activeCreatorIds.length > 0) {
+                  console.log('📋 Setting up channels for active creators:', activeCreatorIds);
+                  
+                  // Pre-setup channels for all active creators (like global provider does)
+                  await preSetupChannels(user.$id, activeCreatorIds);
+                  console.log('✅ All channels pre-setup completed');
+                  
+                  // Verify specific DM channel for the creator from this payment exists
+                  const creatorNameStr = Array.isArray(creatorName) ? creatorName[0] : creatorName;
+                  if (creatorNameStr) {
+                    try {
+                      const specificCreatorId = await getCreatorIdByName(creatorNameStr);
+                      if (specificCreatorId && specificCreatorId !== user.$id && activeCreatorIds.includes(specificCreatorId)) {
+                        console.log('✅ Payment creator channel already set up during pre-setup phase');
+                        // No need to create again - preSetupChannels already handled this
+                      } else if (specificCreatorId && specificCreatorId !== user.$id) {
+                        console.log('💬 Creating direct message channel for payment creator (not in active list)...');
+                        await createDirectMessageChannel(user.$id, specificCreatorId);
+                        console.log('✅ Direct message channel created for payment creator');
+                      }
+                    } catch (dmError) {
+                      console.error('❌ Error with specific DM channel:', dmError);
+                      // Don't throw - not critical
+                    }
+                  }
+                } else {
+                  console.log('⚠️ No active creators found for channel setup');
+                }
+              } catch (channelError) {
+                console.error('❌ Error setting up channels:', channelError);
+                // Don't throw - continue with data refresh
+              }
+            }
+
+            // Refresh posts and creators
+            await Promise.all([refreshPosts(), refreshCreators()]);
+            console.log('✅ Stream Chat initialization, channel setup, and data refresh completed');
+            
+            // Simple navigation
+            router.replace('/(root)/(tabs)');
+          } catch (error) {
+            console.error('❌ Error during Stream Chat initialization or data refresh:', error);
+            // Still navigate away even if initialization fails
+            router.replace('/(root)/(tabs)');
+          }
+        })();
+      });
     // Rotate background icons
     Animated.timing(rotateAnim, {
       toValue: 1,
@@ -191,6 +273,40 @@ export default function PaymentSuccess() {
   const rotateInterpolate = rotateAnim.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '360deg'],
+  });
+
+  // Particle animations
+  const particle1Y = particle1.interpolate({
+    inputRange: [0, 1],
+    outputRange: [height, -100],
+  });
+  const particle1Opacity = particle1.interpolate({
+    inputRange: [0, 0.1, 0.9, 1],
+    outputRange: [0, 1, 1, 0],
+  });
+  const particle2Y = particle2.interpolate({
+    inputRange: [0, 1],
+    outputRange: [height, -100],
+  });
+  const particle2Opacity = particle2.interpolate({
+    inputRange: [0, 0.1, 0.9, 1],
+    outputRange: [0, 1, 1, 0],
+  });
+  const particle3Y = particle3.interpolate({
+    inputRange: [0, 1],
+    outputRange: [height, -100],
+  });
+  const particle3Opacity = particle3.interpolate({
+    inputRange: [0, 0.1, 0.9, 1],
+    outputRange: [0, 1, 1, 0],
+  });
+  const particle4Y = particle4.interpolate({
+    inputRange: [0, 1],
+    outputRange: [height, -100],
+  });
+  const particle4Opacity = particle4.interpolate({
+    inputRange: [0, 0.1, 0.9, 1],
+    outputRange: [0, 1, 1, 0],
   });
 
 
@@ -232,6 +348,56 @@ export default function PaymentSuccess() {
         ]}
       >
         <Ionicons name="checkmark-circle" size={30} color="rgba(255, 215, 0, 0.06)" />
+      </Animated.View>
+
+      {/* Floating particles */}
+      <Animated.View
+        style={[
+          styles.particle,
+          {
+            left: width * 0.1,
+            opacity: particle1Opacity,
+            transform: [{ translateY: particle1Y }],
+          },
+        ]}
+      >
+        <Ionicons name="diamond" size={12} color="rgba(255, 215, 0, 0.8)" />
+      </Animated.View>
+      <Animated.View
+        style={[
+          styles.particle,
+          {
+            left: width * 0.8,
+            opacity: particle2Opacity,
+            transform: [{ translateY: particle2Y }],
+          },
+        ]}
+      >
+        <Ionicons name="star" size={10} color="rgba(253, 111, 62, 0.8)" />
+      </Animated.View>
+      <Animated.View
+        style={[
+          styles.particle,
+          {
+            left: width * 0.3,
+            opacity: particle3Opacity,
+            transform: [{ translateY: particle3Y }],
+          },
+        ]}
+      >
+        <Ionicons name="heart" size={8} color="rgba(255, 215, 0, 0.6)" />
+      </Animated.View>
+      <Animated.View
+        style={[
+          styles.particle,
+          {
+            left: width * 0.7,
+            opacity: particle4Opacity,
+            transform: [{ translateY: particle4Y }],
+          },
+        ]}
+      >
+        <Ionicons name="sparkles" size={14} color="rgba(253, 111, 62, 0.7)" />
       </Animated.View>
 
       {/* Animated cherrizbox logo (loading icon) moves to center */}
@@ -282,20 +448,44 @@ export default function PaymentSuccess() {
         {/* Success text */}
         <Text style={styles.title}>Payment Successful!</Text>
         <Text style={styles.subtitle}>Your subscription is now active</Text>
-        {/* Success details */}
+        {/* Success details with staggered animations */}
         <View style={styles.detailsContainer}>
-          <View style={styles.detailRow}>
+          <Animated.View 
+            style={[
+              styles.detailRow,
+              {
+                opacity: detailRow1Opacity,
+                transform: [{ translateY: detailRow1Slide }],
+              },
+            ]}
+          >
             <Ionicons name="shield-checkmark" size={20} color="#18C07A" />
             <Text style={styles.detailText}>Payment processed securely</Text>
-          </View>
-          <View style={styles.detailRow}>
+          </Animated.View>
+          <Animated.View 
+            style={[
+              styles.detailRow,
+              {
+                opacity: detailRow2Opacity,
+                transform: [{ translateY: detailRow2Slide }],
+              },
+            ]}
+          >
             <Ionicons name="time" size={20} color="#FAFAFA" />
             <Text style={styles.detailText}>Access granted immediately</Text>
-          </View>
-          <View style={styles.detailRow}>
+          </Animated.View>
+          <Animated.View 
+            style={[
+              styles.detailRow,
+              {
+                opacity: detailRow3Opacity,
+                transform: [{ translateY: detailRow3Slide }],
+              },
+            ]}
+          >
             <Ionicons name="notifications" size={20} color="#FFFF00" />
             <Text style={styles.detailText}>Confirmation sent to your email</Text>
-          </View>
+          </Animated.View>
         </View>
         {/* Continue button removed */}
       </Animated.View>
@@ -339,6 +529,10 @@ const styles = StyleSheet.create({
   floatingIcon3: {
     bottom: height * 0.2,
     right: width * 0.15,
+  },
+  particle: {
+    position: 'absolute',
+    zIndex: 1,
   },
   content: {
     alignItems: 'center',
