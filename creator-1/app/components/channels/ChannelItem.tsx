@@ -106,7 +106,23 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
     });
   };
 
+  const clearAppBadge = () => {
+    // Clear badge count when opening a chat
+    import('@notifee/react-native').then(({ default: notifee }) => {
+      notifee.setBadgeCount(0).then(() => {
+        console.log('📱 [Badge] Badge count cleared on chat open');
+      }).catch(error => {
+        console.log('📱 [Badge] Failed to clear badge:', error);
+      });
+    }).catch(error => {
+      console.log('📱 [Badge] Notifee not available:', error);
+    });
+  };
+
   const handlePress = async () => {
+    // Clear app badge when opening any chat
+    clearAppBadge();
+    
     // Play tip collection animation if this channel has tips
     if (hasTip) {
       playTipCollectionAnimation();

@@ -12,10 +12,13 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
+    "@notifee/react-native": "^9.1.8",
     "@react-native-async-storage/async-storage": "2.1.2",
     "@react-native-camera-roll/camera-roll": "^7.10.0",
     "@react-native-clipboard/clipboard": "^1.16.2",
     "@react-native-community/netinfo": "11.4.1",
+    "@react-native-firebase/app": "^23.1.2",
+    "@react-native-firebase/messaging": "^23.1.2",
     "@react-native-picker/picker": "2.11.1",
     "@react-navigation/bottom-tabs": "^7.3.10",
     "@react-navigation/elements": "^2.3.8",
@@ -23,10 +26,12 @@
     "@stripe/stripe-react-native": "0.45.0",
     "appwrite": "^17.0.2",
     "expo": "53.0.22",
+    "expo-apple-authentication": "~7.2.4",
     "expo-av": "~15.1.6",
     "expo-blur": "~14.1.5",
     "expo-clipboard": "~7.1.4",
     "expo-constants": "~17.1.7",
+    "expo-dev-client": "~5.2.4",
     "expo-device": "~7.1.4",
     "expo-document-picker": "~13.1.6",
     "expo-file-system": "~18.1.11",
@@ -70,8 +75,7 @@
     "stream-chat-expo": "^7.1.1",
     "stream-chat-react-native": "^7.1.1",
     "tailwindcss": "^3.4.17",
-    "expo-apple-authentication": "~7.2.4",
-    "expo-dev-client": "~5.2.4"
+    "expo-build-properties": "~0.14.8"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

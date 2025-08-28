@@ -57,6 +57,7 @@ const App = () => {
     const [verificationError, setVerificationError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [isAppleLoading, setIsAppleLoading] = useState(false);
 
     useEffect(() => {
         let interval: ReturnType<typeof setInterval>;
@@ -165,6 +166,8 @@ const App = () => {
 
     const handleAppleLogin = async () => {
         try {
+            setIsAppleLoading(true);
+            
             // Check if social media information is present
             if (!socialMedia || !socialMediaUsername || !socialMediaNumber) {
                 Alert.alert('Error', 'Social media information is required. Please start from the beginning.');
@@ -219,6 +222,8 @@ const App = () => {
             
             console.log('Apple Login Failed:', error);
             Alert.alert('Error', 'Apple Sign In failed. Please try again.');
+        } finally {
+            setIsAppleLoading(false);
         }
     };
 
@@ -388,12 +393,21 @@ const App = () => {
                                 <TouchableOpacity 
                                     onPress={handleAppleLogin}
                                     activeOpacity={0.8}
-                                    className="flex-row items-center justify-center py-4 rounded-3xl w-full px-6 border border-black"
+                                    className={`flex-row items-center justify-center py-4 rounded-3xl w-full px-6 border border-black ${isAppleLoading ? 'opacity-50' : ''}`}
                                     style={{ backgroundColor: '#000' }}
+                                    disabled={isAppleLoading}
                                 >
-                                    <Ionicons name="logo-apple" size={24} color="#FFF" style={{ marginRight: 12 }} />
+                                    {isAppleLoading ? (
+                                        <Image
+                                            source={require('../assets/icon/loading-icon.png')}
+                                            className="w-6 h-6 mr-3"
+                                            resizeMode="contain"
+                                        />
+                                    ) : (
+                                        <Ionicons name="logo-apple" size={24} color="#FFF" style={{ marginRight: 12 }} />
+                                    )}
                                     <Text style={{ color: '#FFF', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>
-                                        Continue with Apple
+                                        {isAppleLoading ? 'Signing in...' : 'Continue with Apple'}
                                     </Text>
                                 </TouchableOpacity>
                             </View>

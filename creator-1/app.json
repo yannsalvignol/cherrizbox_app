@@ -16,11 +16,20 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.yannsalvignol.cherrizboxcreator",
-      "buildNumber": "7",
+      "buildNumber": "9",
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "requireFullScreen": true,
+      "usesAppleSignIn": true,
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      },
-      "usesAppleSignIn": true
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Cherrizbox needs camera access to let you take photos and videos to share with creators.",
+        "NSPhotoLibraryUsageDescription": "Cherrizbox needs photo library access to let you select photos and videos to share with creators.",
+        "NSMicrophoneUsageDescription": "Cherrizbox needs microphone access to record videos with sound.",
+        "NSUserNotificationsUsageDescription": "Cherrizbox sends notifications to keep you updated on new content from creators you follow.",
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
+      }
     },
     "notification": {
       "icon": "./assets/images/icon.png",
@@ -32,15 +41,19 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#000000"
+        "backgroundColor": "#FD6F3E"
       },
       "edgeToEdgeEnabled": true,
       "versionCode": 1,
+      "googleServicesFile": "./google-services.json",
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE"
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "com.google.android.c2dm.permission.RECEIVE"
       ]
     },
     "web": {
@@ -50,6 +63,14 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ],
       [
         "expo-notifications",
         {
@@ -114,6 +135,8 @@
       [
         "expo-apple-authentication"
       ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging",
       "expo-web-browser"
     ],
     "experiments": {

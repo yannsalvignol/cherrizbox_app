@@ -18,6 +18,7 @@ const LoginScreen = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const [isAppleLoading, setIsAppleLoading] = useState(false);
 
     const handleLogin = async () => {
         try {
@@ -44,6 +45,8 @@ const LoginScreen = () => {
 
     const handleAppleLogin = async () => {
         try {
+            setIsAppleLoading(true);
+            
             // Check if Apple Authentication is available
             const isAvailable = await AppleAuthentication.isAvailableAsync();
             if (!isAvailable) {
@@ -98,6 +101,8 @@ const LoginScreen = () => {
                 console.log('Apple Login Failed:', error);
                 Alert.alert('Error', 'Apple Sign In failed. Please try again.');
             }
+        } finally {
+            setIsAppleLoading(false);
         }
     };
 
@@ -213,12 +218,21 @@ const LoginScreen = () => {
                         <TouchableOpacity 
                             onPress={handleAppleLogin}
                             activeOpacity={0.8}
-                            className="flex-row items-center justify-center py-4 rounded-3xl w-full px-6 border border-black"
+                            className={`flex-row items-center justify-center py-4 rounded-3xl w-full px-6 border border-black ${isAppleLoading ? 'opacity-50' : ''}`}
                             style={{ backgroundColor: '#000' }}
+                            disabled={isAppleLoading}
                         >
-                            <Ionicons name="logo-apple" size={24} color="#FFF" style={{ marginRight: 12 }} />
+                            {isAppleLoading ? (
+                                <Image
+                                    source={require('../assets/icon/loading-icon.png')}
+                                    className="w-6 h-6 mr-3"
+                                    resizeMode="contain"
+                                />
+                            ) : (
+                                <Ionicons name="logo-apple" size={24} color="#FFF" style={{ marginRight: 12 }} />
+                            )}
                             <Text style={{ color: '#FFF', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>
-                                Continue with Apple
+                                {isAppleLoading ? 'Signing in...' : 'Continue with Apple'}
                             </Text>
                         </TouchableOpacity>
                     </View>

@@ -4,12 +4,12 @@ import { useTheme } from '@/lib/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  RefreshControl,
-  Text,
-  View
+    ActivityIndicator,
+    FlatList,
+    Image,
+    RefreshControl,
+    Text,
+    View
 } from 'react-native';
 import { ChannelItem } from './ChannelItem';
 
@@ -64,6 +64,19 @@ export const ChannelList: React.FC<ChannelListProps> = ({
   const { theme } = useTheme();
   // Local state for real-time unread counts
   const [liveUnreadCounts, setLiveUnreadCounts] = useState<Map<string, number>>(new Map());
+
+  // Clear app badge when channel list is viewed
+  const clearAppBadgeOnView = () => {
+    import('@notifee/react-native').then(({ default: notifee }) => {
+      notifee.setBadgeCount(0).then(() => {
+        console.log('📱 [Badge] Badge count cleared on channel list view');
+      }).catch(error => {
+        console.log('📱 [Badge] Failed to clear badge:', error);
+      });
+    }).catch(error => {
+      console.log('📱 [Badge] Notifee not available:', error);
+    });
+  };
 
   // Create stable reference to channel IDs to prevent unnecessary re-renders
   const channelIds = useMemo(() => channels.map(c => c.id).sort().join(','), [channels]);
@@ -235,6 +248,11 @@ export const ChannelList: React.FC<ChannelListProps> = ({
     });
     setLiveUnreadCounts(initialCounts);
   }, [channels]);
+
+  // Clear app badge when component mounts (user opens channel list)
+  useEffect(() => {
+    clearAppBadgeOnView();
+  }, []); // Only run once when component mounts
   if (isLoading) {
     return (
       <View style={{ 
@@ -396,6 +414,9 @@ export const ChannelList: React.FC<ChannelListProps> = ({
               uncollectedTips={uncollectedTips}
               onTipCollected={onTipCollected}
               onChannelPress={(channelId) => {
+                // Clear app badge when opening any chat
+                clearAppBadgeOnView();
+                
                 // Optimistically update unread count immediately for better UX
                 setLiveUnreadCounts(prev => {
                   const newMap = new Map(prev);

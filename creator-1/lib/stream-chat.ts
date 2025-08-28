@@ -1,10 +1,18 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import messaging from '@react-native-firebase/messaging';
 import { StreamChat } from "stream-chat";
 import { getCurrentUser } from './appwrite';
 import { testStreamTokenGeneration } from './test-stream-token';
 
 // Initialize Stream Chat client
 export const client = StreamChat.getInstance("xzrue5uj6btx");
+
+// Helper function to create consistent DM channel IDs
+const createDMChannelId = (userId1: string, userId2: string): string => {
+    // Always sort IDs alphabetically to ensure consistent channel IDs
+    const sortedIds = [userId1, userId2].sort();
+    return `dm-${sortedIds[0]}-${sortedIds[1]}`;
+};
 
 // AsyncStorage keys
 const STORAGE_KEYS = {
@@ -21,6 +29,8 @@ let connectionPromise: Promise<boolean> | null = null; // Track ongoing connecti
 let userDocCache: any = null; // Cache user document
 let userDocCacheTime: number = 0;
 const USER_DOC_CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
+let pushRegistered = false;
+let pushRegistrationInProgress = false;
 
 // Token cache interface
 interface TokenCache {
@@ -288,10 +298,37 @@ export const connectUser = async (userId: string) => {
                     name: currentUser.name || userId,
                     image: currentUser.avatar || undefined,
                 };
+
+                // IMPORTANT: Set up push notification device BEFORE connecting
+                // This is required by Stream SDK - setLocalDevice must be called before connectUser
+                try {
+                    const fcmToken = await messaging().getToken();
+                    if (fcmToken) {
+                        console.log('[Push] Setting local device BEFORE connection...');
+                        client.setLocalDevice({
+                            id: fcmToken,
+                            push_provider: 'firebase',
+                            push_provider_name: 'default'
+                        });
+                        console.log('[Push] Local device set successfully');
+                    }
+                } catch (pushSetupError) {
+                    console.log('[Push] Could not set device before connection:', pushSetupError);
+                    // Continue anyway - push is optional
+                }
+
                 await client.connectUser(userObject, token);
-                // Optionally, setUser is not needed if connectUser is used
+                
+                // Enable file uploads - setUser requires both user object and token
+                client.setUser(userObject, token);
+                
                 isConnected = true;
                 console.log('✅ User connected successfully');
+
+                // Register device for push notifications with Stream (FCM via Firebase)
+                // This will now call addDevice to complete the registration
+                await registerForPushWithStream();
+
                 return true;
             } catch (error) {
                 // Reset on failure
@@ -332,6 +369,106 @@ export const isUserConnected = () => {
 // Function to get connected user ID
 export const getConnectedUserId = () => {
     return connectedUserId;
+};
+
+// Register device token with Stream using Firebase (works for iOS/Android under FCM)
+const registerForPushWithStream = async (): Promise<void> => {
+    if (!isConnected || !connectedUserId) return;
+    if (pushRegistrationInProgress) return;
+    
+    // Check if user has disabled push notifications in settings
+    try {
+        const pushEnabled = await AsyncStorage.getItem('@push_notifications_enabled');
+        if (pushEnabled !== null && !JSON.parse(pushEnabled)) {
+            console.log('[Push] Push notifications disabled by user in settings');
+            return;
+        }
+    } catch (error) {
+        console.log('[Push] Could not check push preference, proceeding with registration');
+    }
+    
+    try {
+        pushRegistrationInProgress = true;
+
+        await messaging().registerDeviceForRemoteMessages();
+        const authStatus = await messaging().requestPermission();
+        const enabled =
+            authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+            authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+        if (!enabled) {
+            console.log('[Push] Notification permission not granted');
+            return;
+        }
+
+        const fcmToken = await messaging().getToken();
+        if (fcmToken) {
+            console.log('[Push] About to register device with FCM token:', fcmToken.substring(0, 20) + '...');
+            
+            console.log('[Push] Registering device with default Firebase provider...');
+            
+            try {
+                // setLocalDevice was already called before connectUser
+                // Now just call addDevice with 4 parameters including userId
+                console.log('[Push] Registering device with Stream (including userId)...');
+                await client.addDevice(
+                    fcmToken,           // token
+                    'firebase',         // push_provider  
+                    connectedUserId!,   // userId (this was missing!)
+                    'default'           // push_provider_name
+                );
+                
+                pushRegistered = true;
+                console.log('[Push] ✅ Device successfully registered with Stream Chat!');
+            } catch (error: any) {
+                console.log('[Push] Registration with provider name failed:', error?.message || error);
+                
+                // Try without provider name as fallback
+                try {
+                    console.log('[Push] Trying without provider name...');
+                    await client.addDevice(
+                        fcmToken,
+                        'firebase',
+                        connectedUserId!  // Still include userId
+                    );
+                    
+                    pushRegistered = true;
+                    console.log('[Push] ✅ Device registered without provider name!');
+                } catch (error2: any) {
+                    console.log('[Push] Fallback also failed:', error2?.message || error2);
+                    console.log('[Push] ⚠️ Check Stream Dashboard push provider configuration');
+                    
+                    // Log debug info
+                    console.log('[Push] Debug info:', {
+                        tokenLength: fcmToken.length,
+                        tokenPrefix: fcmToken.substring(0, 20),
+                        userId: connectedUserId,
+                        isConnected: isConnected
+                    });
+                    
+                    throw error2;
+                }
+            }
+        } else {
+            console.log('[Push] No FCM token available');
+        }
+
+        // Handle token refresh
+        messaging().onTokenRefresh(async (newToken) => {
+            try {
+                console.log('[Push] Token refresh - re-registering device...');
+                // Note: setLocalDevice can't be called after connection is established
+                // Just update with addDevice
+                await client.addDevice(newToken, 'firebase', connectedUserId!, 'default');
+                console.log('[Push] ✅ Device token refreshed and re-registered');
+            } catch (e) {
+                console.log('[Push] ❌ Error re-registering refreshed token', e);
+            }
+        });
+    } catch (e) {
+        console.log('[Push] Registration error', e);
+    } finally {
+        pushRegistrationInProgress = false;
+    }
 };
 
 // Function to clear token cache (useful for testing or manual refresh)
@@ -461,6 +598,70 @@ export async function createCreatorChannel(creatorId: string, creatorName: strin
     return channel;
   } catch (error) {
     console.error('❌ [createCreatorChannel] Error creating creator channel:', error);
+    throw error;
+  }
+}
+
+// Create a direct message channel between two users
+export async function createDirectMessageChannel(user1Id: string, user2Id: string) {
+  try {
+    console.log('🔄 Creating direct message channel...');
+    console.log('📋 Channel creation details:', {
+      user1Id,
+      user2Id,
+      isConnected,
+      connectedUserId
+    });
+
+    // Check if we're connected to Stream Chat
+    if (!isConnected) {
+      console.log('⚠️ Not connected to Stream Chat, attempting to connect...');
+      const connected = await connectUser(user1Id);
+      if (!connected) {
+        throw new Error('Failed to connect to Stream Chat');
+      }
+    }
+
+    console.log('✅ Stream Chat connection verified');
+    
+    // Create a custom channel ID for direct messages with consistent format
+    const channelId = createDMChannelId(user1Id, user2Id);
+    console.log('🏗️ Creating channel with custom ID:', channelId);
+    console.log('👥 Channel members:', [user1Id, user2Id]);
+
+    const channel = client.channel('messaging', channelId, {
+      members: [user1Id, user2Id],
+    });
+
+    console.log('📡 Calling channel.create()...');
+    try {
+      await channel.create();
+    } catch (error: any) {
+      // If channel already exists, just watch it instead
+      if (error?.message?.includes('already exists') || error?.code === 4) {
+        console.log('📺 Channel already exists, watching instead...');
+        await channel.watch();
+      } else {
+        throw error;
+      }
+    }
+    
+    console.log('✅ Direct message channel created successfully!');
+    console.log('📊 Channel info:', {
+      channelId: channel.id,
+      channelType: channel.type,
+      memberCount: Object.keys(channel.state.members).length,
+      members: Object.keys(channel.state.members)
+    });
+
+    return channel;
+  } catch (error) {
+    console.error('❌ Error creating direct message channel:', error);
+    console.error('🔍 Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
     throw error;
   }
 }
