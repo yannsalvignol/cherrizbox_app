@@ -1,6 +1,7 @@
 import { createUser, login, loginWithApple, sendVerificationEmail, SignIn } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
 import { Ionicons } from '@expo/vector-icons';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -163,21 +164,61 @@ const App = () => {
     };
 
     const handleAppleLogin = async () => {
-        // Check if social media information is present
-        if (!socialMedia || !socialMediaUsername || !socialMediaNumber) {
-            Alert.alert('Error', 'Social media information is required. Please start from the beginning.');
-            router.replace('/landing');
-            return;
-        }
+        try {
+            // Check if social media information is present
+            if (!socialMedia || !socialMediaUsername || !socialMediaNumber) {
+                Alert.alert('Error', 'Social media information is required. Please start from the beginning.');
+                router.replace('/landing');
+                return;
+            }
 
-        const result = await loginWithApple(socialMedia as string, socialMediaUsername as string, socialMediaNumber as string);
-        if(result){
-            refetch();
-            // Reset navigation stack completely to prevent going back
-            router.dismissAll();
-            router.replace('/welcome');
-        } else {
-            console.log('Apple Login Failed');
+            // Check if Apple Authentication is available
+            const isAvailable = await AppleAuthentication.isAvailableAsync();
+            if (!isAvailable) {
+                Alert.alert('Error', 'Apple Sign In is not available on this device');
+                return;
+            }
+
+            // Perform Apple Sign In
+            const credential = await AppleAuthentication.signInAsync({
+                requestedScopes: [
+                    AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+                    AppleAuthentication.AppleAuthenticationScope.EMAIL,
+                ],
+            });
+
+            console.log('Apple credential:', credential);
+
+            // Extract the authorization code
+            if (!credential.authorizationCode) {
+                Alert.alert('Error', 'No authorization code received from Apple');
+                return;
+            }
+
+            // Call your backend function with the authorization code
+            const result = await loginWithApple(
+                credential.authorizationCode,
+                credential.fullName?.givenName || undefined,
+                credential.fullName?.familyName || undefined
+            );
+
+            if (result === true) {
+                refetch();
+                // Reset navigation stack completely to prevent going back
+                router.dismissAll();
+                router.replace('/welcome');
+            } else {
+                console.log('Apple Login Failed');
+            }
+        } catch (error: any) {
+            if (error.code === 'ERR_CANCELED') {
+                // User canceled the sign-in flow
+                console.log('Apple Sign In was canceled');
+                return;
+            }
+            
+            console.log('Apple Login Failed:', error);
+            Alert.alert('Error', 'Apple Sign In failed. Please try again.');
         }
     };
 

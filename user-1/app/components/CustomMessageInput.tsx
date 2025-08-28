@@ -409,7 +409,6 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
               width: 40,
               height: 40,
               borderRadius: 20,
-              backgroundColor: '',
               justifyContent: 'center',
               alignItems: 'center',
               marginRight: 8,

@@ -41,7 +41,10 @@
         "NSMicrophoneUsageDescription": "Cherrizbox needs microphone access to record videos with sound.",
         "NSApplePayUsageDescription": "Cherrizbox uses Apple Pay to process secure payments for subscriptions and content purchases.",
         "UIContentSizeCategory": "UICTContentSizeCategoryM",
-        "NSUserNotificationsUsageDescription": "Cherrizbox sends notifications to keep you updated on new content from creators you follow."
+        "NSUserNotificationsUsageDescription": "Cherrizbox sends notifications to keep you updated on new content from creators you follow.",
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       }
     },
     "android": {

@@ -1,8 +1,9 @@
 import { useGlobalContext } from '@/lib/global-provider';
 import { Ionicons } from '@expo/vector-icons';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SignIn, login, loginWithApple } from '../lib/appwrite';
 import FormField from './components/FormField';
@@ -43,7 +44,36 @@ const LoginScreen = () => {
 
     const handleAppleLogin = async () => {
         try {
-            const result = await loginWithApple();
+            // Check if Apple Authentication is available
+            const isAvailable = await AppleAuthentication.isAvailableAsync();
+            if (!isAvailable) {
+                Alert.alert('Error', 'Apple Sign In is not available on this device');
+                return;
+            }
+
+            // Perform Apple Sign In
+            const credential = await AppleAuthentication.signInAsync({
+                requestedScopes: [
+                    AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+                    AppleAuthentication.AppleAuthenticationScope.EMAIL,
+                ],
+            });
+
+            console.log('Apple credential:', credential);
+
+            // Extract the authorization code
+            if (!credential.authorizationCode) {
+                Alert.alert('Error', 'No authorization code received from Apple');
+                return;
+            }
+
+            // Call your backend function with the authorization code
+            const result = await loginWithApple(
+                credential.authorizationCode,
+                credential.fullName?.givenName || undefined,
+                credential.fullName?.familyName || undefined
+            );
+
             if (result === true) {
                 await refetch();
                 router.dismissAll();
@@ -55,11 +85,18 @@ const LoginScreen = () => {
                 console.log('Apple Login Failed');
             }
         } catch (error: any) {
+            if (error.code === 'ERR_CANCELED') {
+                // User canceled the sign-in flow
+                console.log('Apple Sign In was canceled');
+                return;
+            }
+            
             if (error.message === 'EMAIL_EXISTS_IN_USER_COLLECTION') {
                 router.dismissAll();
                 router.replace('/email-exists-error');
             } else {
                 console.log('Apple Login Failed:', error);
+                Alert.alert('Error', 'Apple Sign In failed. Please try again.');
             }
         }
     };

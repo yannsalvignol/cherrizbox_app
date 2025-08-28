@@ -54,6 +54,24 @@ export const connectUser = async (userId: string) => {
                 image: currentUser.avatar || undefined,
         };
 
+        // IMPORTANT: Set up push notification device BEFORE connecting
+        // This is required by Stream SDK - setLocalDevice must be called before connectUser
+        try {
+            const fcmToken = await messaging().getToken();
+            if (fcmToken) {
+                console.log('[Push] Setting local device BEFORE connection...');
+                client.setLocalDevice({
+                    id: fcmToken,
+                    push_provider: 'firebase',
+                    push_provider_name: 'default'
+                });
+                console.log('[Push] Local device set successfully');
+            }
+        } catch (pushSetupError) {
+            console.log('[Push] Could not set device before connection:', pushSetupError);
+            // Continue anyway - push is optional
+        }
+
         // Connect user to Stream Chat (this will create the user if it doesn't exist)
         await client.connectUser(userObject, token);
 
@@ -66,6 +84,7 @@ export const connectUser = async (userId: string) => {
         console.log('User connected successfully');
 
         // Register device for push notifications with Stream (FCM via Firebase)
+        // This will now call addDevice to complete the registration
         await registerForPushWithStream();
 
         return true;
@@ -104,6 +123,19 @@ export const getConnectedUserId = () => {
 const registerForPushWithStream = async (): Promise<void> => {
     if (!isConnected || !connectedUserId) return;
     if (pushRegistrationInProgress) return;
+    
+    // Check if user has disabled push notifications in settings
+    try {
+        const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+        const pushEnabled = await AsyncStorage.getItem('@push_notifications_enabled');
+        if (pushEnabled !== null && !JSON.parse(pushEnabled)) {
+            console.log('[Push] Push notifications disabled by user in settings');
+            return;
+        }
+    } catch (error) {
+        console.log('[Push] Could not check push preference, proceeding with registration');
+    }
+    
     try {
         pushRegistrationInProgress = true;
 
@@ -126,59 +158,46 @@ const registerForPushWithStream = async (): Promise<void> => {
             console.log('[Push] Registering device with default Firebase provider...');
             
             try {
-                // Try different approaches to work around the provider name issue
-                console.log('[Push] Attempting device registration with push_provider_name...');
+                // setLocalDevice was already called before connectUser
+                // Now just call addDevice with 4 parameters including userId
+                console.log('[Push] Registering device with Stream (including userId)...');
+                await client.addDevice(
+                    fcmToken,           // token
+                    'firebase',         // push_provider  
+                    connectedUserId!,   // userId (this was missing!)
+                    'default'           // push_provider_name
+                );
                 
-                // The SDK v7 might need a different approach
-                // Try passing undefined or null as the provider name
+                pushRegistered = true;
+                console.log('[Push] ✅ Device successfully registered with Stream Chat!');
+            } catch (error: any) {
+                console.log('[Push] Registration with provider name failed:', error?.message || error);
+                
+                // Try without provider name as fallback
                 try {
-                    console.log('[Push] Trying with undefined provider name...');
-                    await client.addDevice(fcmToken, 'firebase', undefined);
-                    pushRegistered = true;
-                    console.log('[Push] ✅ Device registered with undefined provider!');
-                } catch (e1: any) {
-                    console.log('[Push] Undefined provider failed:', e1?.message || e1);
+                    console.log('[Push] Trying without provider name...');
+                    await client.addDevice(
+                        fcmToken,
+                        'firebase',
+                        connectedUserId!  // Still include userId
+                    );
                     
-                    try {
-                        console.log('[Push] Trying with null provider name...');
-                        await client.addDevice(fcmToken, 'firebase', null as any);
-                        pushRegistered = true;
-                        console.log('[Push] ✅ Device registered with null provider!');
-                    } catch (e2: any) {
-                        console.log('[Push] Null provider failed:', e2?.message || e2);
-                        
-                        // Try the two-parameter version
-                        try {
-                            console.log('[Push] Trying with just token and type...');
-                            await client.addDevice(fcmToken, 'firebase');
-                            pushRegistered = true;
-                            console.log('[Push] ✅ Device registered with two parameters!');
-                        } catch (e3: any) {
-                            console.log('[Push] Two-parameter registration failed:', e3?.message || e3);
-                            
-                            // Log the issue for debugging
-                            console.log('[Push] ⚠️ IMPORTANT: The SDK is sending an empty provider name.');
-                            console.log('[Push] ⚠️ Stream Dashboard has provider named "default".');
-                            console.log('[Push] ⚠️ You need to either:');
-                            console.log('[Push] ⚠️ 1. Check if there\'s a "Set as default" option in Stream Dashboard');
-                            console.log('[Push] ⚠️ 2. Contact Stream support about this SDK issue');
-                            throw e3;
-                        }
-                    }
+                    pushRegistered = true;
+                    console.log('[Push] ✅ Device registered without provider name!');
+                } catch (error2: any) {
+                    console.log('[Push] Fallback also failed:', error2?.message || error2);
+                    console.log('[Push] ⚠️ Check Stream Dashboard push provider configuration');
+                    
+                    // Log debug info
+                    console.log('[Push] Debug info:', {
+                        tokenLength: fcmToken.length,
+                        tokenPrefix: fcmToken.substring(0, 20),
+                        userId: connectedUserId,
+                        isConnected: isConnected
+                    });
+                    
+                    throw error2;
                 }
-            } catch (error) {
-                console.log('[Push] ❌ Registration failed:', error.message);
-                console.log('[Push] Full error:', error);
-                
-                // Log debug info
-                console.log('[Push] Debug info:', {
-                    tokenLength: fcmToken.length,
-                    tokenPrefix: fcmToken.substring(0, 20),
-                    userId: connectedUserId,
-                    clientState: client.state.active
-                });
-                
-                throw error;
             }
         } else {
             console.log('[Push] No FCM token available');
@@ -188,7 +207,9 @@ const registerForPushWithStream = async (): Promise<void> => {
         messaging().onTokenRefresh(async (newToken) => {
             try {
                 console.log('[Push] Token refresh - re-registering device...');
-                await client.addDevice(newToken, 'firebase');
+                // Note: setLocalDevice can't be called after connection is established
+                // Just update with addDevice
+                await client.addDevice(newToken, 'firebase', connectedUserId!, 'default');
                 console.log('[Push] ✅ Device token refreshed and re-registered');
             } catch (e) {
                 console.log('[Push] ❌ Error re-registering refreshed token', e);
@@ -365,35 +386,16 @@ export async function createDirectMessageChannel(user1Id: string, user2Id: strin
 export const initializeStreamChatOnPaymentSuccess = async (userId: string) => {
     try {
         console.log('🎉 Initializing Stream Chat after successful payment for user:', userId);
-
-        // Get current user
-        const currentUser = await getCurrentUser();
-        if (!currentUser) {
-            throw new Error('No current user found');
+        
+        // Use the main connectUser function which handles everything properly
+        // including push notifications, proper connection state, etc.
+        const connected = await connectUser(userId);
+        
+        if (!connected) {
+            throw new Error('Failed to connect to Stream Chat after payment');
         }
 
-        // Get or generate cached token (this will generate and cache if not exists)
-        const token = await getOrGenerateStreamChatToken(userId);
-        console.log('✅ Stream Chat token obtained');
-
-        // Create user object for Stream Chat
-        const userObject = {
-            id: userId,
-            name: currentUser.name || userId,
-            image: currentUser.avatar || undefined,
-        };
-
-        console.log('🔌 Connecting user to Stream Chat...');
-        
-        // Connect user to Stream Chat
-        await client.connectUser(userObject, token);
-        client.setUser(userObject, token);
-
-        // Update connection state
-        isConnected = true;
-        connectedUserId = userId;
-
-        console.log('✅ Stream Chat initialized successfully after payment!');
+        console.log('✅ Stream Chat initialized successfully after payment (including push notifications)!');
         return true;
     } catch (error) {
         console.error('❌ Error initializing Stream Chat on payment success:', error);

@@ -6,16 +6,29 @@
     "production": {
       "ios": {
         "autoIncrement": "buildNumber"
+      },
+      "android": {
+        "autoIncrement": "versionCode"
       }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "ios": {
+        "autoIncrement": "buildNumber"
+      },
+      "android": {
+        "autoIncrement": "versionCode"
+      }
     },
     "development": {
       "developmentClient": true,
       "distribution": "internal",
       "ios": {
-        "simulator": false
+        "simulator": false,
+        "autoIncrement": "buildNumber"
+      },
+      "android": {
+        "autoIncrement": "versionCode"
       }
     }
   },

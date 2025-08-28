@@ -211,45 +211,71 @@ export async function login(socialMedia?: string, socialMediaUsername?: string, 
     }
 }
 
-export async function loginWithApple(socialMedia?: string, socialMediaUsername?: string, socialMediaNumber?: string) {
+export async function loginWithApple(authorizationCode: string, firstName?: string, lastName?: string) {
     try {
-        const redirectUri = getAppwriteRedirectUri();
-        const scheme = `appwrite-callback-${config.projectId}://`;
-        console.log("[Apple OAuth] redirectUri:", redirectUri);
-
-        const loginUrl = await account.createOAuth2Session(
-            OAuthProvider.Apple,
-            redirectUri,
-            redirectUri,
-            ["name", "email"]
-        );
-        const loginUrlObjApple = loginUrl as URL;
-        console.log("[Apple OAuth] loginUrl:", loginUrlObjApple.toString());
-        if (!loginUrl) throw new Error("Failed to create Apple OAuth2 token");
-
-        const browserResult = await openAuthSessionAsync(loginUrlObjApple.toString(), scheme);
-        console.log("[Apple OAuth] browserResult:", browserResult);
-        if (browserResult.type !== "success") throw new Error("Apple OAuth flow was cancelled or failed");
-
-        const url = new URL(browserResult.url);
-        const secret = url.searchParams.get("secret")?.toString();
-        const userId = url.searchParams.get("userId")?.toString();
-        console.log("[Apple OAuth] Parsed secret present:", !!secret, "userId present:", !!userId);
-        if (!secret || !userId) throw new Error("Missing Apple OAuth credentials in redirect URL");
-
-        await account.createSession(userId, secret);
-        console.log("[Apple OAuth] Session created successfully for user", userId);
-
-        // Check if user email exists in user collection before proceeding
-        const user = await account.get();
-        const emailExistsInUserCollection = await checkEmailExistsInUserCollection(user.email);
-        if (emailExistsInUserCollection) {
-            // Delete the session we just created
-            await account.deleteSession("current");
-            console.log("[Apple OAuth] Email exists in user collection, blocking login");
-            return { success: false, error: 'EMAIL_EXISTS_IN_USER_COLLECTION' };
+        console.log("[Apple OAuth] Starting Dart function authentication...");
+        console.log("[Apple OAuth] Authorization code present:", !!authorizationCode);
+        console.log("[Apple OAuth] Authorization code length:", authorizationCode?.length);
+        
+        if (!authorizationCode) {
+            throw new Error("Authorization code is required for Apple Sign In");
+        }
+        
+        const APPLE_FUNCTION_ID = process.env.EXPO_PUBLIC_APPLE_SIGNIN_FUNCTION_ID;
+        if (!APPLE_FUNCTION_ID) {
+            throw new Error('Apple Sign-In function ID not configured. Please set EXPO_PUBLIC_APPLE_SIGNIN_FUNCTION_ID in your environment variables.');
         }
 
+        console.log("[Apple OAuth] Calling Dart function with authorization code");
+        
+        // Call the Dart function with the authorization code
+        const execution = await functions.createExecution(
+            APPLE_FUNCTION_ID,
+            JSON.stringify({
+                code: authorizationCode,
+                firstName: firstName || '',
+                lastName: lastName || ''
+            }),
+            false,
+            '/',
+            ExecutionMethod.POST,
+            { 'Content-Type': 'application/json' }
+        );
+
+        console.log("[Apple OAuth] Function execution status:", execution.status);
+        console.log("[Apple OAuth] Function response:", execution.responseBody);
+
+        if (execution.status === 'failed') {
+            const errorResponse = JSON.parse(execution.responseBody);
+            throw new Error(errorResponse.message || 'Apple Sign-In function failed');
+        }
+
+        const response = JSON.parse(execution.responseBody);
+        const { secret, userId, expire } = response;
+
+        if (!secret || !userId) {
+            throw new Error('Invalid response from Apple Sign-In function');
+        }
+
+        console.log("[Apple OAuth] Creating session with userId:", userId);
+        
+        // Create session using the token from Dart function
+        await account.createSession(userId, secret);
+        console.log("[Apple OAuth] Session created successfully");
+        
+        // Get user info to check email
+        const user = await account.get();
+        if (user.email) {
+            console.log("[Apple OAuth] Checking if email exists in user collection:", user.email);
+            const emailExistsInUserCollection = await checkEmailExistsInUserCollection(user.email);
+            if (emailExistsInUserCollection) {
+                console.log("[Apple OAuth] Email exists in user collection - blocking login");
+                // Delete the session we just created
+                await account.deleteSession('current');
+                return { success: false, error: 'EMAIL_EXISTS_IN_USER_COLLECTION' };
+            }
+        }
+        
         // Ensure a corresponding user document exists in Appwrite collection
         try {
             const existingUser = await databases.listDocuments(
@@ -269,10 +295,9 @@ export async function loginWithApple(socialMedia?: string, socialMediaUsername?:
                         creatoremail: user.email,
                         creatorusername: user.name,
                         creatoravatar: avatarUrl,
-                        // Use social media info passed from landing page, or fallback to Apple
-                        social_media: socialMedia || 'Apple',
-                        social_media_username: socialMediaUsername || user.email,
-                        social_media_number: socialMediaNumber || Math.floor(100000 + Math.random() * 900000).toString(),
+                        social_media: 'Apple',
+                        social_media_username: user.email,
+                        social_media_number: Math.floor(100000 + Math.random() * 900000).toString(),
                         $permissions: [
                             `read(\"user:${user.$id}\")`,
                             `write(\"user:${user.$id}\")`
@@ -284,9 +309,13 @@ export async function loginWithApple(socialMedia?: string, socialMediaUsername?:
         } catch (userDocErr) {
             console.error('[Apple OAuth] Error ensuring user doc exists:', userDocErr);
         }
+        
         return true;
     } catch (error) {
         console.error("Apple OAuth error:", error);
+        if (error instanceof Error && error.message === "EMAIL_EXISTS_IN_USER_COLLECTION") {
+            throw error; // Re-throw this specific error to be handled by the UI
+        }
         return false;
     }
 }

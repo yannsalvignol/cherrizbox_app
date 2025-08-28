@@ -9,6 +9,30 @@ import { Platform, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useDeepLinking } from './deep-linking';
 import "./global.css";
+
+// Set up background message handler for push notifications when app is closed
+if (Platform.OS !== 'web') {
+  import('@react-native-firebase/messaging').then(({ default: messaging }) => {
+    messaging().setBackgroundMessageHandler(async remoteMessage => {
+      console.log('📱 [Push] Message handled in background:', remoteMessage);
+      // The notification will be displayed automatically by the system
+      // You can add custom logic here if needed
+    });
+  }).catch(error => {
+    console.log('📱 [Push] Background handler setup failed:', error);
+  });
+
+  // Clear badge count when app opens
+  import('@notifee/react-native').then(({ default: notifee }) => {
+    notifee.setBadgeCount(0).then(() => {
+      console.log('📱 [Push] Badge count cleared on app open');
+    }).catch(error => {
+      console.log('📱 [Push] Failed to clear badge:', error);
+    });
+  }).catch(error => {
+    console.log('📱 [Push] Notifee not available:', error);
+  });
+}
 let StripeProvider: any;
 if (Platform.OS !== 'web') {
   // eslint-disable-next-line @typescript-eslint/no-var-requires

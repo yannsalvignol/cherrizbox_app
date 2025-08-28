@@ -25,10 +25,10 @@ export const getTheme = (appTheme: AppTheme): DeepPartial<Theme> => ({
       backgroundColor: appTheme.background, // Background of the entire input area
     },
     inputBoxContainer: {
-      backgroundColor: appTheme.cardBackground, // Background of the text input box
+      backgroundColor: appTheme.inputBackground, // Background of the text input box
     },
     inputBox: {
-      color: appTheme.text, // Text color in the input box
+      color: 'black', // Text color in the input box
     },
   },
   

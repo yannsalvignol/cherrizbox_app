@@ -124,6 +124,15 @@ const PhotoCard = ({ photo, index = 0, scrollY, isSubscribed = false, isCancelle
 
     const handlePress = async () => {
         if (isSubscribed || isCancelled) {
+            // Clear badge count when entering chat
+            try {
+                const notifee = (await import('@notifee/react-native')).default;
+                await notifee.setBadgeCount(0);
+                console.log('📱 [Push] Badge cleared when entering chat');
+            } catch (error) {
+                console.log('📱 [Push] Failed to clear badge:', error);
+            }
+
             // Get creator ID from name
             const creatorId = await getCreatorIdByName(photo.title || '');
             if (creatorId) {
