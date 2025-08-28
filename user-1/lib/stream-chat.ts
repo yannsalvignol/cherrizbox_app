@@ -1,3 +1,4 @@
+import messaging from '@react-native-firebase/messaging';
 import { StreamChat } from 'stream-chat';
 import { getCurrentUser, getOrGenerateStreamChatToken } from './appwrite';
 
@@ -7,6 +8,8 @@ export const client = StreamChat.getInstance("xzrue5uj6btx");
 // Global connection state
 let isConnected = false;
 let connectedUserId: string | null = null;
+let pushRegistered = false;
+let pushRegistrationInProgress = false;
 
 // Helper function to create consistent DM channel IDs
 const createDMChannelId = (userId1: string, userId2: string): string => {
@@ -62,6 +65,9 @@ export const connectUser = async (userId: string) => {
         connectedUserId = userId;
         console.log('User connected successfully');
 
+        // Register device for push notifications with Stream (FCM via Firebase)
+        await registerForPushWithStream();
+
         return true;
     } catch (error) {
         console.error('Error connecting user to Stream Chat:', error);
@@ -93,6 +99,107 @@ export const isUserConnected = () => {
 export const getConnectedUserId = () => {
     return connectedUserId;
 }; 
+
+// Register device token with Stream using Firebase (works for iOS/Android under FCM)
+const registerForPushWithStream = async (): Promise<void> => {
+    if (!isConnected || !connectedUserId) return;
+    if (pushRegistrationInProgress) return;
+    try {
+        pushRegistrationInProgress = true;
+
+        await messaging().registerDeviceForRemoteMessages();
+        const authStatus = await messaging().requestPermission();
+        const enabled =
+            authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+            authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+        if (!enabled) {
+            console.log('[Push] Notification permission not granted');
+            return;
+        }
+
+        const fcmToken = await messaging().getToken();
+        if (fcmToken) {
+            console.log('[Push] About to register device with FCM token:', fcmToken.substring(0, 20) + '...');
+            
+            // The error says there's a provider named "cherrrizbox_user" available
+            // But it seems the SDK can't properly pass the name, so let's try without any provider specification
+            console.log('[Push] Registering device with default Firebase provider...');
+            
+            try {
+                // Try different approaches to work around the provider name issue
+                console.log('[Push] Attempting device registration with push_provider_name...');
+                
+                // The SDK v7 might need a different approach
+                // Try passing undefined or null as the provider name
+                try {
+                    console.log('[Push] Trying with undefined provider name...');
+                    await client.addDevice(fcmToken, 'firebase', undefined);
+                    pushRegistered = true;
+                    console.log('[Push] ✅ Device registered with undefined provider!');
+                } catch (e1: any) {
+                    console.log('[Push] Undefined provider failed:', e1?.message || e1);
+                    
+                    try {
+                        console.log('[Push] Trying with null provider name...');
+                        await client.addDevice(fcmToken, 'firebase', null as any);
+                        pushRegistered = true;
+                        console.log('[Push] ✅ Device registered with null provider!');
+                    } catch (e2: any) {
+                        console.log('[Push] Null provider failed:', e2?.message || e2);
+                        
+                        // Try the two-parameter version
+                        try {
+                            console.log('[Push] Trying with just token and type...');
+                            await client.addDevice(fcmToken, 'firebase');
+                            pushRegistered = true;
+                            console.log('[Push] ✅ Device registered with two parameters!');
+                        } catch (e3: any) {
+                            console.log('[Push] Two-parameter registration failed:', e3?.message || e3);
+                            
+                            // Log the issue for debugging
+                            console.log('[Push] ⚠️ IMPORTANT: The SDK is sending an empty provider name.');
+                            console.log('[Push] ⚠️ Stream Dashboard has provider named "default".');
+                            console.log('[Push] ⚠️ You need to either:');
+                            console.log('[Push] ⚠️ 1. Check if there\'s a "Set as default" option in Stream Dashboard');
+                            console.log('[Push] ⚠️ 2. Contact Stream support about this SDK issue');
+                            throw e3;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.log('[Push] ❌ Registration failed:', error.message);
+                console.log('[Push] Full error:', error);
+                
+                // Log debug info
+                console.log('[Push] Debug info:', {
+                    tokenLength: fcmToken.length,
+                    tokenPrefix: fcmToken.substring(0, 20),
+                    userId: connectedUserId,
+                    clientState: client.state.active
+                });
+                
+                throw error;
+            }
+        } else {
+            console.log('[Push] No FCM token available');
+        }
+
+        // Handle token refresh
+        messaging().onTokenRefresh(async (newToken) => {
+            try {
+                console.log('[Push] Token refresh - re-registering device...');
+                await client.addDevice(newToken, 'firebase');
+                console.log('[Push] ✅ Device token refreshed and re-registered');
+            } catch (e) {
+                console.log('[Push] ❌ Error re-registering refreshed token', e);
+            }
+        });
+    } catch (e) {
+        console.log('[Push] Registration error', e);
+    } finally {
+        pushRegistrationInProgress = false;
+    }
+};
 
 // Pre-setup channels for all subscribed creators
 export const preSetupChannels = async (userId: string, creatorIds: string[]) => {

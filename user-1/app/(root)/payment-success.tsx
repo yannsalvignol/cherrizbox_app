@@ -121,6 +121,64 @@ export default function PaymentSuccess() {
             console.log('🎉 Initializing Stream Chat after successful payment...');
             await initializeStreamChatOnPaymentSuccess(user.$id);
             
+            // Register for push notifications after Stream Chat is connected
+            console.log('📱 Registering device for push notifications...');
+            try {
+              const messaging = (await import('@react-native-firebase/messaging')).default;
+              
+              // Request permission first
+              const authStatus = await messaging().requestPermission();
+              console.log('📱 [Push] Permission status:', authStatus);
+              
+              // Check if permission is granted (using numeric values)
+              const enabled = authStatus === 1 || authStatus === 2; // 1 = AUTHORIZED, 2 = PROVISIONAL
+              
+              if (enabled) {
+                console.log('✅ [Push] Permission granted, getting FCM token...');
+                const fcmToken = await messaging().getToken();
+                if (fcmToken) {
+                  console.log('✅ [Push] FCM Token obtained:', fcmToken.substring(0, 20) + '...');
+                  const { client } = await import('../../lib/stream-chat');
+                  
+                  // Register device with Stream Chat
+                  console.log('[Push] Registering device with Stream Chat...');
+                  try {
+                    // The SDK seems to look for empty provider name, not "default"
+                    await client.addDevice(fcmToken, 'firebase');
+                    console.log('✅ [Push] Device successfully registered for push notifications');
+                  } catch (error: any) {
+                    console.log('❌ [Push] Registration failed:', error?.message || error);
+                    
+                    // Try with just the token
+                    try {
+                      await client.addDevice(fcmToken);
+                      console.log('✅ [Push] Device registered with auto-detected type');
+                    } catch (error2: any) {
+                      console.log('❌ [Push] Auto-detect also failed:', error2?.message || error2);
+                      // Don't throw - push registration failure shouldn't break the payment flow
+                    }
+                  }
+                  
+                  // Listen for token refresh
+                  messaging().onTokenRefresh(async (newToken) => {
+                    console.log('🔄 [Push] Token refreshed, re-registering...');
+                    try {
+                      await client.addDevice(newToken, 'firebase');
+                      console.log('✅ [Push] Token refreshed and re-registered');
+                    } catch (error) {
+                      console.log('❌ [Push] Token refresh registration failed:', error);
+                    }
+                  });
+                } else {
+                  console.log('⚠️ [Push] No FCM token available');
+                }
+              } else {
+                console.log('⚠️ [Push] Notification permission not granted. Status:', authStatus);
+              }
+            } catch (pushError) {
+              console.error('❌ [Push] Registration error:', pushError);
+            }
+            
             // Set up channels for ALL active subscriptions (like the global provider does)
             console.log('🚀 Setting up channels for all active subscriptions...');
             try {
