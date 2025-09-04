@@ -1,19 +1,19 @@
 import {
-  type Channel,
-  formatLastMessageTime,
-  getChannelAvatar,
-  getChannelDisplayName
+    type Channel,
+    formatLastMessageTime,
+    getChannelAvatar,
+    getChannelDisplayName
 } from '@/lib/index-utils';
 import { useTheme } from '@/lib/useTheme';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
-  Animated,
-  Image,
-  Text,
-  TouchableOpacity,
-  View
+    Animated,
+    Image,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 
@@ -250,7 +250,13 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
               marginLeft: isDM ? 0 : 8,
               fontWeight: isGroupChat ? 'bold' : 'normal',
             }}>
-              {formatLastMessageTime(channel.lastMessageAt)}
+              {(() => {
+                const formattedTime = formatLastMessageTime(channel.lastMessageAt);
+                if (isDM) {
+                  console.log(`🕐 [ChannelItem] ${channel.id} timestamp: ${channel.lastMessageAt} -> formatted: ${formattedTime}`);
+                }
+                return formattedTime;
+              })()}
             </Text>
           )}
           

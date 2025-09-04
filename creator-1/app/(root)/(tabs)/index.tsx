@@ -1,24 +1,24 @@
 import {
-  ChannelList,
-  SearchBar
+    ChannelList,
+    SearchBar
 } from '@/app/components/channels';
 
 import EarningsChart from '@/app/components/charts/EarningsChart';
 import SubscriberChart from '@/app/components/charts/SubscriberChart';
 import CircularProgress from '@/app/components/CircularProgress';
 import {
-  CustomNotificationModal,
-  NetworkErrorModal,
-  SocialMediaVerificationModal,
-  StripeConnectModal,
-  SubscriberInfoModal
+    CustomNotificationModal,
+    NetworkErrorModal,
+    SocialMediaVerificationModal,
+    StripeConnectModal,
+    SubscriberInfoModal
 } from '@/app/components/modals';
 import { getUserProfile } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
 import {
-  filterChannels,
-  formatPrice,
-  type Channel
+    filterChannels,
+    formatPrice,
+    type Channel
 } from '@/lib/index-utils';
 import { client, connectUser } from '@/lib/stream-chat';
 import { useTheme } from '@/lib/useTheme';

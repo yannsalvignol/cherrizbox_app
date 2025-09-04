@@ -171,11 +171,30 @@ export const formatLastMessageTime = (timestamp?: string) => {
   
   const date = new Date(timestamp);
   const now = new Date();
-  const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+  const diffInMs = now.getTime() - date.getTime();
+  const diffInMinutes = diffInMs / (1000 * 60);
+  const diffInHours = diffInMs / (1000 * 60 * 60);
+  const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
   
-  if (diffInHours < 1) return 'Just now';
+  // Handle invalid dates or future dates
+  if (isNaN(date.getTime()) || diffInMs < 0) return '';
+  
+  // Less than 1 minute
+  if (diffInMinutes < 1) return 'Just now';
+  
+  // Less than 1 hour (show minutes)
+  if (diffInMinutes < 60) return `${Math.floor(diffInMinutes)}m ago`;
+  
+  // Less than 24 hours (show hours)
   if (diffInHours < 24) return `${Math.floor(diffInHours)}h ago`;
-  if (diffInHours < 48) return 'Yesterday';
+  
+  // Less than 48 hours
+  if (diffInDays < 2) return 'Yesterday';
+  
+  // Less than 7 days (show days)
+  if (diffInDays < 7) return `${Math.floor(diffInDays)} days ago`;
+  
+  // Older than 7 days (show date)
   return date.toLocaleDateString();
 };
 
