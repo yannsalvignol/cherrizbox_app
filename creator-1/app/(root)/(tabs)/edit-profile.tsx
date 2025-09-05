@@ -914,8 +914,8 @@ export default function EditProfile() {
       }
 
       // Enforce maximum price of 200 for both monthly and yearly
-      const cappedMonthly = Math.min(monthly, 200);
-      const cappedYearly = Math.min(yearly, 200);
+      const cappedMonthly = Math.min(monthly, 9999);
+      const cappedYearly = Math.min(yearly, 9999);
       if (cappedMonthly !== monthly) setMonthlyPrice(cappedMonthly.toString());
       if (cappedYearly !== yearly) setYearlyPrice(cappedYearly.toString());
 

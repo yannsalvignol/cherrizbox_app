@@ -50,11 +50,11 @@ export const SubscriptionsModal: React.FC<SubscriptionsModalProps> = ({
   calculatePriceBreakdown
 }) => {
   const { theme } = useTheme();
-  const clampTo200 = (text: string) => {
+  const clampTo9999 = (text: string) => {
     const normalized = (text || '').replace(',', '.');
     const num = parseFloat(normalized);
     if (isNaN(num)) return '';
-    const clamped = Math.min(Math.max(num, 0), 200);
+    const clamped = Math.min(Math.max(num, 1), 9999);
     return clamped.toString();
   };
 
@@ -197,7 +197,7 @@ export const SubscriptionsModal: React.FC<SubscriptionsModalProps> = ({
                 keyboardType="decimal-pad"
                 placeholder="Enter monthly price"
                 placeholderTextColor={theme.inputPlaceholder}
-                onEndEditing={({ nativeEvent }) => setMonthlyPrice(clampTo200(nativeEvent.text))}
+                onEndEditing={({ nativeEvent }) => setMonthlyPrice(clampTo9999(nativeEvent.text))}
                 style={{ 
                   backgroundColor: theme.inputBackground,
                   borderRadius: 8,
@@ -234,7 +234,7 @@ export const SubscriptionsModal: React.FC<SubscriptionsModalProps> = ({
                 keyboardType="decimal-pad"
                 placeholder="Enter yearly price"
                 placeholderTextColor={theme.inputPlaceholder}
-                onEndEditing={({ nativeEvent }) => setYearlyPrice(clampTo200(nativeEvent.text))}
+                onEndEditing={({ nativeEvent }) => setYearlyPrice(clampTo9999(nativeEvent.text))}
                 style={{ 
                   backgroundColor: theme.inputBackground,
                   borderRadius: 8,
