@@ -428,6 +428,7 @@ export const CustomAudioAttachment: React.FC<CustomAudioAttachmentProps> = ({ at
         width: 320,
         minHeight: 72,
         marginLeft: 11,  // Move the entire audio attachment to the right
+        marginBottom: 10, // Add padding under the attachment
         // Remove border and shadow for a more minimal look
       }}>
         {/* Play/Pause Button */}

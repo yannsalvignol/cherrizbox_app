@@ -333,28 +333,7 @@ export async function loginWithApple(authorizationCode: string, firstName?: stri
 
 export async function logout() {
     try {
-        // Get current user ID before deleting session
-        let userId: string | null = null;
-        try {
-            const currentUser = await getCurrentUser();
-            userId = currentUser?.$id || null;
-        } catch (error) {
-            console.log('Could not get current user for token cleanup:', error);
-        }
-
-        // Clear Stream Chat token BEFORE deleting session
-        if (userId) {
-            try {
-                console.log('🗑️ Clearing Stream Chat token before logout...');
-                await clearStreamChatToken(userId);
-                console.log('✅ Stream Chat token cleared successfully');
-            } catch (error) {
-                console.error('❌ Error clearing Stream Chat token during logout:', error);
-                // Continue with logout even if token clearing fails
-            }
-        }
-
-        // Now delete the session
+        // Delete the session
         const result = await account.deleteSession("current");
         return result;
     } catch (error) {

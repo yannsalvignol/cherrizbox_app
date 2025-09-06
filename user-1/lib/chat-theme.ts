@@ -10,7 +10,7 @@ export const getTheme = (appTheme: AppTheme): DeepPartial<Theme> => ({
     primary: appTheme.primary,            // Primary accent color (cherry red)
     grey: appTheme.text,   // time stamp color 
     grey_whisper: appTheme.cardBackground, // Card/bubble background color
-    grey_gainsboro: appTheme.border,      // Borders/separators
+    grey_gainsboro: appTheme.border,      // Borders/separators (thread line)
     grey_light: appTheme.textSecondary,   // Secondary text
     grey_medium: appTheme.textTertiary,   // Tertiary/disabled text
     grey_dark: appTheme.text,             // Dark text

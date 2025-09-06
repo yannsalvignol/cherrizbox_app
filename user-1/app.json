@@ -1,21 +1,19 @@
 {
   "expo": {
     "name": "Cherrizbox",
-    "slug": "cherrizboxtest",
+    "slug": "cherrizboxUser",
     "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "cherripay",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "extra": {
-      "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_test_51RQyjPBMxMFyUXHbGzFEIYSTdMdY8rajTo0CRJ32cv0SfdnLmvu0ViWjUqC4WGakM35JvcucUHwyS6TImjSrBYDF00a6PPIT7B",
-      "router": {
-        "origin": "https://cherrizbox.expo.app"
-      },
-      "eas": {
-        "projectId": "22f3ac93-c920-4bf6-a379-50a109207177"
-      }
+    "notification": {
+      "icon": "./assets/images/icon.png",
+      "color": "#FD6F3E",
+      "iosDisplayInForeground": true,
+      "androidMode": "default",
+      "androidCollapsedTitle": "New message from %(sender_name)s"
     },
     "ios": {
       "supportsTablet": false,
@@ -26,6 +24,11 @@
       "associatedDomains": [
         "applinks:cherrybox.app"
       ],
+      "capabilities": {
+        "apple-pay": {
+          "merchantIds": ["merchant.com.yannsalvignol.cherripay"]
+        }
+      },
       "infoPlist": {
         "CFBundleURLTypes": [
           {
@@ -55,6 +58,10 @@
       "edgeToEdgeEnabled": true,
       "googleServicesFile": "./google-services.json",
       "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE",
         "com.google.android.c2dm.permission.RECEIVE"
@@ -74,7 +81,14 @@
           ]
         }
       ],
-      "package": "com.yannsalvignol.cherripay"
+      "package": "com.yannsalvignol.cherripay",
+      "config": {
+        "firebase": {
+          "messaging": {
+            "default_notification_channel_id": "default"
+          }
+        }
+      }
     },
     "web": {
       "bundler": "metro",
@@ -82,23 +96,12 @@
       "favicon": "./assets/images/icon.png"
     },
     "plugins": [
-      [
-        "expo-router",
-        {
-          "origin": "https://cherrizbox.expo.app"
-        }
-      ],
+      "expo-router",
       [
         "expo-build-properties",
         {
           "ios": {
-            "useFrameworks": "static",
-            "deploymentTarget": "15.1"
-          },
-          "android": {
-            "compileSdkVersion": 34,
-            "targetSdkVersion": 34,
-            "buildToolsVersion": "34.0.0"
+            "useFrameworks": "static"
           }
         }
       ],
@@ -107,6 +110,13 @@
         {
           "merchantIdentifier": "merchant.com.yannsalvignol.cherripay",
           "publishableKey": "pk_test_51RQyjPBMxMFyUXHbGzFEIYSTdMdY8rajTo0CRJ32cv0SfdnLmvu0ViWjUqC4WGakM35JvcucUHwyS6TImjSrBYDF00a6PPIT7B"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#FD6F3E"
         }
       ],
       [
@@ -137,10 +147,30 @@
         }
       ],
       [
-        "expo-notifications",
+        "expo-av",
         {
-          "icon": "./assets/images/icon.png",
-          "color": "#FD6F3E"
+          "microphonePermission": "$(PRODUCT_NAME) would like to use your microphone for voice recording."
+        }
+      ],
+      [
+        "expo-video",
+        {
+          "supportsBackgroundPlayback": true,
+          "supportsPictureInPicture": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "$(PRODUCT_NAME) would like to use your camera to share image in a message.",
+          "photosPermission": "$(PRODUCT_NAME) would like to use your device gallery to attach image in a message."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "$(PRODUCT_NAME) would like access to your photo gallery to share image in a message.",
+          "savePhotosPermission": "$(PRODUCT_NAME) would like to save photos to your photo gallery after downloading from a message."
         }
       ],
       [
@@ -152,6 +182,15 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_test_51RQyjPBMxMFyUXHbGzFEIYSTdMdY8rajTo0CRJ32cv0SfdnLmvu0ViWjUqC4WGakM35JvcucUHwyS6TImjSrBYDF00a6PPIT7B",
+      "router": {
+        "origin": "https://cherrizbox.expo.app"
+      },
+      "eas": {
+        "projectId": "22f3ac93-c920-4bf6-a379-50a109207177"
+      }
     }
   }
 }

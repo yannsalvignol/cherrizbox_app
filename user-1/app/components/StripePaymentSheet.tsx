@@ -1,7 +1,7 @@
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Platform, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, Platform, Text, TouchableOpacity, View } from 'react-native';
 import { initiatePaymentIntent } from '../../lib/subscription';
 import { CherryLoadingIndicator } from './CherryLoadingIndicator';
 let StripeProvider: any, useStripe: any;
@@ -121,25 +121,37 @@ const StripePaymentSheet: React.FC<StripePaymentSheetProps> = (props) => {
   const { visible, onClose, interval, amount, creatorName, currency } = props;
   const [paymentData, setPaymentData] = useState<{clientSecret:string; stripeAccountId:string}|null>(null);
   const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string|null>(null);
+  const [showErrorModal, setShowErrorModal] = useState(false);
 
   // Get merchant ID from config
   const plugins = Constants.expoConfig?.plugins as any[];
   const stripePlugin = plugins?.find(plugin => Array.isArray(plugin) && plugin[0] === '@stripe/stripe-react-native');
   const merchantId = stripePlugin?.[1]?.merchantIdentifier;
 
-  useEffect(() => {
-    if (!visible) return;
+  const retryPayment = () => {
+    setShowErrorModal(false);
     setLoading(true);
+    setPaymentData(null);
+    
     const func = props.createIntentFunc ?? initiatePaymentIntent;
     func(amount, interval, creatorName, currency)
       .then(data => {
         setPaymentData(data);
       })
       .catch(err => {
-        setErrorMsg(err.message || 'Failed to start payment');
+        console.log('Payment intent creation failed:', err);
+        setShowErrorModal(true);
       })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    if (!visible) {
+      setPaymentData(null);
+      setShowErrorModal(false);
+      return;
+    }
+    retryPayment();
   }, [visible]);
 
   return (
@@ -148,7 +160,95 @@ const StripePaymentSheet: React.FC<StripePaymentSheetProps> = (props) => {
         {loading && (
           <CherryLoadingIndicator size={120} />
         )}
-        {errorMsg && <Text style={{color:'white'}}>{errorMsg}</Text>}
+        
+        {/* Custom Error Modal */}
+        {showErrorModal && (
+          <View style={{
+            width: '85%',
+            maxWidth: 350,
+            backgroundColor: '#1A1A1A',
+            borderRadius: 20,
+            padding: 24,
+            alignItems: 'center',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 10 },
+            shadowOpacity: 0.3,
+            shadowRadius: 20,
+            elevation: 10
+          }}>
+            {/* Error Icon */}
+            <View style={{
+              width: 60,
+              height: 60,
+              borderRadius: 30,
+              backgroundColor: '#FD6F3E',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginBottom: 16
+            }}>
+              <Text style={{ fontSize: 28, color: 'white' }}>⚠️</Text>
+            </View>
+            
+            {/* Title */}
+            <Text style={{
+              color: 'white',
+              fontSize: 20,
+              fontWeight: 'bold',
+              textAlign: 'center',
+              marginBottom: 8
+            }}>
+              Connection Issue
+            </Text>
+            
+            {/* Message */}
+            <Text style={{
+              color: '#B0B0B0',
+              fontSize: 16,
+              textAlign: 'center',
+              lineHeight: 22,
+              marginBottom: 24
+            }}>
+              Unable to process payment due to poor network connection. Please check your internet and try again.
+            </Text>
+            
+            {/* Buttons */}
+            <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  backgroundColor: '#333',
+                  borderRadius: 12,
+                  paddingVertical: 12,
+                  alignItems: 'center'
+                }}
+                onPress={() => {
+                  setShowErrorModal(false);
+                  onClose();
+                }}
+              >
+                <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  backgroundColor: '#FD6F3E',
+                  borderRadius: 12,
+                  paddingVertical: 12,
+                  alignItems: 'center'
+                }}
+                onPress={retryPayment}
+              >
+                <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
+                  Try Again
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+        
         {paymentData && (
           <StripeProvider
             publishableKey={PUBLISHABLE_KEY}

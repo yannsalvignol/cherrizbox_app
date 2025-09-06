@@ -40,6 +40,10 @@ const SearchInput = ({ onSearch, onFocus }: SearchInputProps) => {
         onSearch(text);
     };
 
+    const handleSubmitEditing = () => {
+        Keyboard.dismiss();
+    };
+
     return (
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             {isFocused && (
@@ -88,7 +92,8 @@ const SearchInput = ({ onSearch, onFocus }: SearchInputProps) => {
                     onChangeText={handleSearch}
                     onFocus={handleFocus}
                     onBlur={handleBlur}
-                    blurOnSubmit={false}
+                    onSubmitEditing={handleSubmitEditing}
+                    blurOnSubmit={true}
                     returnKeyType="search"
                 />
                 <TouchableOpacity onPress={handleFocus} style={{ marginLeft: 8 }}>

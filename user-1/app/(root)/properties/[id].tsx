@@ -175,9 +175,13 @@ const Property = () => {
       setShowPaymentModal(true);
     } catch (error) {
       console.error('Subscription error:', error);
+      // Show a user-friendly error message
       Alert.alert(
-        'Subscription Error',
-        error instanceof Error ? error.message : 'Failed to initiate subscription'
+        'Connection Issue',
+        'Unable to start payment process. Please check your internet connection and try again.',
+        [
+          { text: 'OK', style: 'default' }
+        ]
       );
     } finally {
       setIsProcessingPayment(false);

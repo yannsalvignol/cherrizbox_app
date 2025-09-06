@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { Redirect, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FormField from './components/FormField';
 import OtpInput from './components/OtpInput';
@@ -54,6 +54,8 @@ const App = () => {
     const [resendButtonDisabled, setResendButtonDisabled] = useState(false);
     const [isPasswordFocused, setIsPasswordFocused] = useState(false);
     const [verificationError, setVerificationError] = useState('');
+    const [showErrorModal, setShowErrorModal] = useState(false);
+    const [errorRetryAction, setErrorRetryAction] = useState<(() => void) | null>(null);
 
     useEffect(() => {
         let interval: ReturnType<typeof setInterval>;
@@ -116,6 +118,7 @@ const App = () => {
                     'You already have an account on Cherrizbox app. You need to use a different address to use Cherrizbox Pro.',
                     [{ text: 'OK' }]
                 );
+                setIsSubmitting(false);
                 return;
             }
 
@@ -136,31 +139,44 @@ const App = () => {
                         { text: 'OK', style: 'cancel' }
                     ]
                 );
+                setIsSubmitting(false);
                 return;
             }
 
-            console.log(`✅ [handleSendVerification] User checks passed, generating verification code`);
+            console.log(`✅ [handleSendVerification] User checks passed, moving to verification screen`);
+            
+            // Generate verification code
             const code = Math.floor(100000 + Math.random() * 900000).toString();
             setGeneratedCode(code);
             console.log(`🔢 [handleSendVerification] Generated verification code: ${code}`);
             
-            console.log(`📧 [handleSendVerification] Calling email verification function`);
-            await sendVerificationEmailViaFunction(form.email, code);
-            console.log(`✅ [handleSendVerification] Email verification successful`);
+            // Immediately show verification screen
             setVerificationSent(true);
             setTimer(600); // Reset timer
             setResendButtonDisabled(true);
-            console.log(`⏰ [handleSendVerification] Timer reset to 600 seconds`);
+            setIsSubmitting(false);
+            
+            // Send email in the background
+            console.log(`📧 [handleSendVerification] Sending email in background...`);
+            sendVerificationEmailViaFunction(form.email, code)
+                .then(() => {
+                    console.log(`✅ [handleSendVerification] Email sent successfully in background`);
+                })
+                .catch((error) => {
+                    console.log(`❌ [handleSendVerification] Background email failed:`, error);
+                    // Show a subtle notification that email failed, but don't block the user
+                    Alert.alert(
+                        'Email Issue', 
+                        'There was an issue sending the verification email. You can try resending it.',
+                        [{ text: 'OK' }]
+                    );
+                });
+            
         } catch (error) {
             console.log(`❌ [handleSendVerification] Process failed:`, error);
-            if (error instanceof Error) {
-                Alert.alert('Error', error.message);
-            } else {
-                Alert.alert('Error', 'Could not send verification email. Please try again.');
-            }
-        } finally {
             setIsSubmitting(false);
-            console.log(`🏁 [handleSendVerification] Process completed`);
+            setErrorRetryAction(() => handleSendVerification);
+            setShowErrorModal(true);
         }
     };
 
@@ -189,22 +205,20 @@ const App = () => {
         } catch (error) {
             console.log('❌ [handleVerifyAndCreateAccount] Account creation failed:', error);
             
-            if (error instanceof Error) {
-                // Check for specific Appwrite duplicate user error
-                if (error.message.includes('A user with the same id, email, or phone already exists')) {
-                    Alert.alert(
-                        'Account Already Exists',
-                        'An account with this email address already exists. Please try logging in instead.',
-                        [
-                            { text: 'Try Login', onPress: () => router.push('/log-in') },
-                            { text: 'OK', style: 'cancel' }
-                        ]
-                    );
-                } else {
-                    Alert.alert('Error', error.message);
-                }
+            if (error instanceof Error && error.message.includes('A user with the same id, email, or phone already exists')) {
+                // Show specific alert for duplicate user
+                Alert.alert(
+                    'Account Already Exists',
+                    'An account with this email address already exists. Please try logging in instead.',
+                    [
+                        { text: 'Try Login', onPress: () => router.push('/log-in') },
+                        { text: 'OK', style: 'cancel' }
+                    ]
+                );
             } else {
-                Alert.alert('Error', 'Failed to create account. Please try again.');
+                // Show custom error modal for other errors
+                setErrorRetryAction(() => handleVerifyAndCreateAccount);
+                setShowErrorModal(true);
             }
         } finally {
             setIsSubmitting(false);
@@ -296,6 +310,18 @@ const App = () => {
         }
     };
 
+    const handleRetry = () => {
+        setShowErrorModal(false);
+        if (errorRetryAction) {
+            errorRetryAction();
+        }
+    };
+
+    const handleCloseErrorModal = () => {
+        setShowErrorModal(false);
+        setErrorRetryAction(null);
+    };
+
     if (loading) {
         return (
             <View className="flex-1 justify-center items-center">
@@ -308,6 +334,98 @@ const App = () => {
 
     return (
         <SafeAreaView className="flex-1 bg-white">
+            {/* Custom Error Modal */}
+            <Modal visible={showErrorModal} transparent animationType="fade">
+                <View style={{
+                    flex: 1,
+                    backgroundColor: 'rgba(0,0,0,0.6)',
+                    justifyContent: 'center',
+                    alignItems: 'center'
+                }}>
+                    <View style={{
+                        width: '85%',
+                        maxWidth: 350,
+                        backgroundColor: '#1A1A1A',
+                        borderRadius: 20,
+                        padding: 24,
+                        alignItems: 'center',
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 10 },
+                        shadowOpacity: 0.3,
+                        shadowRadius: 20,
+                        elevation: 10
+                    }}>
+                        {/* Error Icon */}
+                        <View style={{
+                            width: 60,
+                            height: 60,
+                            borderRadius: 30,
+                            backgroundColor: '#FD6F3E',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            marginBottom: 16
+                        }}>
+                            <Text style={{ fontSize: 28, color: 'white' }}>⚠️</Text>
+                        </View>
+                        
+                        {/* Title */}
+                        <Text style={{
+                            color: 'white',
+                            fontSize: 20,
+                            fontWeight: 'bold',
+                            textAlign: 'center',
+                            marginBottom: 8
+                        }}>
+                            Connection Issue
+                        </Text>
+                        
+                        {/* Message */}
+                        <Text style={{
+                            color: '#B0B0B0',
+                            fontSize: 16,
+                            textAlign: 'center',
+                            lineHeight: 22,
+                            marginBottom: 24
+                        }}>
+                            Unable to complete registration due to poor network connection. Please check your internet and try again.
+                        </Text>
+                        
+                        {/* Buttons */}
+                        <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+                            <TouchableOpacity
+                                style={{
+                                    flex: 1,
+                                    backgroundColor: '#333',
+                                    borderRadius: 12,
+                                    paddingVertical: 12,
+                                    alignItems: 'center'
+                                }}
+                                onPress={handleCloseErrorModal}
+                            >
+                                <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
+                                    Cancel
+                                </Text>
+                            </TouchableOpacity>
+                            
+                            <TouchableOpacity
+                                style={{
+                                    flex: 1,
+                                    backgroundColor: '#FD6F3E',
+                                    borderRadius: 12,
+                                    paddingVertical: 12,
+                                    alignItems: 'center'
+                                }}
+                                onPress={handleRetry}
+                            >
+                                <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
+                                    Try Again
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
             <ScrollView contentContainerStyle={{ paddingTop: 12, paddingBottom: 24 }}>
                 <View className="px-2 pt-4 pb-8">
                     <TouchableOpacity onPress={() => verificationSent && setVerificationSent(false)} className="absolute top-4 left-4 z-10">
@@ -319,6 +437,9 @@ const App = () => {
                             <Text className="text-black font-['Urbanist-Bold'] text-3xl mt-12 text-center">Verify Your Email</Text>
                             <Text className="text-gray-500 font-['Urbanist-Regular'] text-base mt-4 text-center">
                                 We've sent a 6-digit code to {form.email}. Please enter it below.
+                            </Text>
+                            <Text className="text-gray-400 font-['Urbanist-Regular'] text-sm mt-2 text-center">
+                                Don't see it? Check your spam or junk folder.
                             </Text>
 
                             <View className="w-full mt-12">

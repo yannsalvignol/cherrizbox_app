@@ -68,6 +68,7 @@ const OtpInput: React.FC<OtpInputProps> = ({
             style={[
               styles.inputContainer,
               isFocused && styles.inputFocused,
+              char && styles.inputFilled, // Green border when digit is entered
             ]}
           >
             <TextInput
@@ -110,6 +111,10 @@ const styles = StyleSheet.create({
   },
   inputFocused: {
     borderColor: '#FD6F3E',
+  },
+  inputFilled: {
+    borderColor: '#22c55e', // Green border when digit is filled
+    backgroundColor: '#f0fdf4', // Light green background
   },
   inputText: {
     fontSize: 24,
