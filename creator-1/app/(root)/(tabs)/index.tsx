@@ -1,24 +1,17 @@
 import {
-    ChannelList,
-    SearchBar
+  ChannelList,
+  SearchBar
 } from '@/app/components/channels';
 
-import EarningsChart from '@/app/components/charts/EarningsChart';
-import SubscriberChart from '@/app/components/charts/SubscriberChart';
-import CircularProgress from '@/app/components/CircularProgress';
 import {
-    CustomNotificationModal,
-    NetworkErrorModal,
-    SocialMediaVerificationModal,
-    StripeConnectModal,
-    SubscriberInfoModal
+  CustomNotificationModal,
+  SocialMediaVerificationModal
 } from '@/app/components/modals';
 import { getUserProfile } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
 import {
-    filterChannels,
-    formatPrice,
-    type Channel
+  filterChannels,
+  type Channel
 } from '@/lib/index-utils';
 import { client, connectUser } from '@/lib/stream-chat';
 import { useTheme } from '@/lib/useTheme';
@@ -26,46 +19,11 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, FlatList, Image, KeyboardAvoidingView, Modal, Platform, RefreshControl, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-
-
-interface StripeConnectProfile {
-  stripeConnectAccountId?: string;
-  stripeConnectEnabled?: boolean;
-  stripeConnectPayoutsEnabled?: boolean;
-  stripeConnectVerified?: boolean;
-  stripeConnectSetupComplete?: boolean;
-  stripeConnectSetupDate?: string;
-  // Financial data from the creator collection
-  lifetimeVolume?: number;
-  stripeBalanceAvailable?: number;
-  stripeBalancePending?: number;
-  payoutsInTransitAmount?: number;
-  payoutsPendingAmount?: number;
-  stripeLastBalanceUpdate?: string;
-  // New KPI fields
-  currentPeriodGross?: number;
-  previousPeriodGross?: number;
-  lifetimeGross?: number;
-  currentPeriodStart?: string;
-  number_of_photos?: number;
-  number_of_videos?: number;
-  number_of_files?: number;
-  number_of_monthly_subscribers?: number;
-  number_of_yearly_subscriptions?: number;
-  number_of_cancelled_monthly_sub?: number;
-  number_of_cancelled_yearly_sub?: number;
-  // Daily earnings tracking
-  dailyEarnings?: string; // JSON string of date -> amount
-  todayEarnings?: number;
-  weekEarnings?: number;
-  monthEarnings?: number;
-  yearEarnings?: number;
-  // Daily subscriber stats tracking
-  dailySubscribersStats?: string; // JSON string of date -> {monthly, yearly, cancelledMonthly, cancelledYearly}
-}
+import AudienceTab from './AudienceTab';
+import EarningsTab from './EarningsTab';
+import InsightsTab from './InsightsTab';
 
 export default function Index() {
     const router = useRouter();
@@ -82,41 +40,15 @@ export default function Index() {
       socialMediaUsername,
       setSocialMediaUsername
     } = useGlobalContext();
+
       const [channels, setChannels] = useState<Channel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [profileImage, setProfileImage] = useState<string | null>(null);
-
-  // Handle tip collection (when user opens a channel with tips)
-  const handleTipCollected = (channelId: string) => {
-    setUncollectedTips(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(channelId);
-      console.log(`✅ [Index] Removed ${channelId} from uncollected tips`);
-      return newSet;
-    });
-  };
     const [selectedTab, setSelectedTab] = useState('chats');
     const [refreshing, setRefreshing] = useState(false);
-    const [isLoadingStripeConnect, setIsLoadingStripeConnect] = useState(false);
-    const [showStripeConnect, setShowStripeConnect] = useState(false);
-    const [stripeConnectUrl, setStripeConnectUrl] = useState<string>('');
-    const [creatorFinancials, setCreatorFinancials] = useState<StripeConnectProfile | null>(null);
-    const [isLoadingFinancials, setIsLoadingFinancials] = useState(false);
-    const [payoutTab, setPayoutTab] = useState('history');
-    const [isLoadingInsights, setIsLoadingInsights] = useState(false);
-    const [openInfoBubble, setOpenInfoBubble] = useState<null | 'lifetime' | 'available' | 'pending' | 'current' | 'total' | 'transit' | 'earnings'>(null);
-    const [audience, setAudience] = useState<any[]>([]);
-    const [isLoadingAudience, setIsLoadingAudience] = useState(false);
-    const [audienceSearch, setAudienceSearch] = useState('');
-    const [audienceFilter, setAudienceFilter] = useState<'recent' | 'income_high' | 'income_low'>('recent');
-    const [filteredAudience, setFilteredAudience] = useState<any[]>([]);
-    const [selectedSubscriber, setSelectedSubscriber] = useState<any | null>(null);
-    const [showSubscriberModal, setShowSubscriberModal] = useState(false);
     const [channelsLoaded, setChannelsLoaded] = useState(false);
   const [isCheckingConditions, setIsCheckingConditions] = useState(false);
   const [shouldHighlightSetup, setShouldHighlightSetup] = useState(false);
-  const setupButtonAnimation = useRef(new Animated.Value(1)).current;
-  const earningsScrollRef = useRef<ScrollView>(null);
   const [socialMediaCode, setSocialMediaCode] = useState('');
   const [isVerifyingCode, setIsVerifyingCode] = useState(false);
   const [verificationError, setVerificationError] = useState('');
@@ -124,18 +56,30 @@ export default function Index() {
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationType, setNotificationType] = useState<'success' | 'error'>('success');
-  const [showNetworkErrorModal, setShowNetworkErrorModal] = useState(false);
-  const [userCurrency, setUserCurrency] = useState('USD');
-  const [showPaymentStatusInfo, setShowPaymentStatusInfo] = useState(false);
   const [uncollectedTips, setUncollectedTips] = useState<Set<string>>(new Set());
-  const [earningsTimeframe, setEarningsTimeframe] = useState<'weekly' | 'monthly' | 'yearly'>('weekly');
-  const [dailyGoal, setDailyGoal] = useState(0);
-  const [weeklyGoal, setWeeklyGoal] = useState(0);
-  const [subscriberTimeframe, setSubscriberTimeframe] = useState<'weekly' | 'monthly' | 'yearly'>('weekly');
+    const [userCurrency, setUserCurrency] = useState('USD');
 
+    // Pagination and performance states
+    const [channelOffset, setChannelOffset] = useState(0);
+    const [hasMoreChannels, setHasMoreChannels] = useState(true);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [showSearch, setShowSearch] = useState(false);
+    const [filteredChannels, setFilteredChannels] = useState<Channel[]>([]);
 
+    // Cache for user profiles to avoid redundant API calls
+    const userProfileCache = useRef<Map<string, { name: string; avatar: string; documentId: string; timestamp: number }>>(new Map());
+    const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+    const CHANNELS_PER_PAGE = 30; // Load 30 channels at a time
 
-  // Social media platform icons mapping (same as landing.tsx)
+    const tabs = [
+      { id: 'chats', label: 'Chats', icon: 'chatbubbles-outline' },
+      { id: 'other', label: 'Earnings', icon: 'cash-outline' },
+      { id: 'insights', label: 'Insights', icon: 'analytics-outline' },
+      { id: 'audience', label: 'Audience', icon: 'people-outline' }
+    ];
+
+    // Social media platform icons mapping
   const networks = [
     { name: 'LinkedIn', icon: 'logo-linkedin', color: '#0077B5', type: 'ionicon' },
     { name: 'TikTok', icon: 'musical-notes', color: '#000000', type: 'ionicon' },
@@ -145,13 +89,15 @@ export default function Index() {
     { name: 'X', icon: require('../../../assets/images/X.png'), color: '#000000', type: 'image' },
   ];
     
-    // Pagination and performance states
-    const [channelOffset, setChannelOffset] = useState(0);
-    const [hasMoreChannels, setHasMoreChannels] = useState(true);
-    const [isLoadingMore, setIsLoadingMore] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [showSearch, setShowSearch] = useState(false);
-    const [filteredChannels, setFilteredChannels] = useState<Channel[]>([]);
+    // Handle tip collection (when user opens a channel with tips)
+    const handleTipCollected = (channelId: string) => {
+      setUncollectedTips(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(channelId);
+        console.log(`✅ [Index] Removed ${channelId} from uncollected tips`);
+        return newSet;
+      });
+    };
 
     // Handle live channel updates from Stream Chat
     const handleChannelUpdate = useCallback((channelId: string, updates: Partial<Channel & { hasTip?: boolean }>) => {
@@ -187,31 +133,6 @@ export default function Index() {
         )
       );
     }, [searchQuery]);
-    
-    // Cache for user profiles to avoid redundant API calls
-    const userProfileCache = useRef<Map<string, { name: string; avatar: string; documentId: string; timestamp: number }>>(new Map());
-    const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
-    const CHANNELS_PER_PAGE = 30; // Load 30 channels at a time
-
-    const tabs = [
-      { id: 'chats', label: 'Chats', icon: 'chatbubbles-outline' },
-      { id: 'other', label: 'Earnings', icon: 'cash-outline' },
-      { id: 'insights', label: 'Insights', icon: 'analytics-outline' },
-      { id: 'audience', label: 'Audience', icon: 'people-outline' }
-    ];
-
-  const checkChannelConditions = async () => {
-    if (!user?.$id) return;
-    
-    setIsCheckingConditions(true);
-    try {
-      await refreshChannelConditions(true); // Force refresh to ensure latest data
-    } catch (error) {
-      console.error('❌ [Conditions] Error checking channel conditions:', error);
-    } finally {
-      setIsCheckingConditions(false);
-    }
-  };
 
   const loadChannels = async (loadMore = false) => {
     if (!user?.$id) {
@@ -258,8 +179,6 @@ export default function Index() {
       } else {
         // Only do detailed condition checks if account_state is not 'ok'
         console.log('🔍 [Channels] Account state not ok, checking conditions...');
-        
-        // Check if all profile fields are filled (same as handleGoLive validation)
         
         if (!profile) {
           console.log('⏳ [Channels] No profile found, skipping channel load');
@@ -358,105 +277,6 @@ export default function Index() {
         }
       }
       
-      // Check if channel has already been created by checking account_state
-      const channelAlreadyCreated = userDoc.account_state === 'required' || userDoc.account_state === 'ok';
-      
-      if (channelAlreadyCreated) {
-        console.log('✅ [Channels] Channel already created (account_state: ' + userDoc.account_state + '), proceeding with normal load');
-        setChannelCreated(true);
-      } else {
-        // First time all conditions are met, create channel and upload photo document
-        console.log('✅ [Channels] First time all conditions met, creating channel and uploading photo document');
-        
-        // Upload photo document (same as rLive functionality)
-        try {
-          const { getUserProfile, getUserPhoto } = await import('@/lib/appwrite');
-          const { ID } = await import('react-native-appwrite');
-          
-          const profile = await getUserProfile(user.$id);
-          const userPhoto = await getUserPhoto(user.$id);
-          
-          if (userPhoto) {
-            // Photo document already exists, no update needed
-            console.log('✅ [Channels] Photo document already exists');
-          } else {
-            // Create new photo document
-            await databases.createDocument(
-              config.databaseId,
-              config.photoCollectionId,
-              ID.unique(),
-              {
-                thumbnail: profile?.profileImageUri || '',
-                compressed_thumbnail: profile?.compressed_thumbnail || '',
-                title: profile?.creatorsname || user.name || '',
-                prompte: profile?.creatorsname || user.name || '',
-                IdCreator: user.$id,
-                PhotosLocation: profile?.Location || '',
-                payment: JSON.stringify({
-                  monthlyPrice: userPhoto && (userPhoto as any).payment ? JSON.parse((userPhoto as any).payment).monthlyPrice : '0',
-                  yearlyPrice: userPhoto && (userPhoto as any).payment ? JSON.parse((userPhoto as any).payment).yearlyPrice : '0'
-                }),
-                PhotoTopics: profile?.topics || '',
-                Bio: profile?.ProfilesBio || ''
-              }
-            );
-            console.log('✅ [Channels] Created new photo document');
-          }
-          
-          // Send verification notification email
-          try {
-            const { sendCreatorVerificationNotification } = await import('@/lib/appwrite');
-            await sendCreatorVerificationNotification({
-              userId: user.$id,
-              creatorName: profile?.creatorsname || user.name,
-              location: profile?.Location,
-              topics: profile?.topics,
-              bio: profile?.ProfilesBio,
-              phoneNumber: profile?.phoneNumber,
-              gender: profile?.gender,
-              dateOfBirth: profile?.dateOfBirth,
-              monthlyPrice: userPhoto && (userPhoto as any).payment ? JSON.parse((userPhoto as any).payment).monthlyPrice : '0',
-              yearlyPrice: userPhoto && (userPhoto as any).payment ? JSON.parse((userPhoto as any).payment).yearlyPrice : '0',
-              profileImageUri: profile?.profileImageUri || '',
-              compressedThumbnail: profile?.compressed_thumbnail || ''
-            });
-            console.log('✅ [Channels] Creator verification notification sent successfully');
-          } catch (error) {
-            console.error('❌ [Channels] Error sending creator verification notification:', error);
-            // Don't fail the entire process if email fails
-          }
-          
-        } catch (error) {
-          console.error('❌ [Channels] Error uploading photo document:', error);
-          // Continue with channel creation even if photo upload fails
-        }
-        
-        // Create the creator's group chat
-        try {
-          const { createCreatorChannel } = await import('@/lib/stream-chat');
-          const creatorDisplayName = profile?.creatorsname || user.name || 'Creator';
-          console.log('🚀 [Channels] Creating creator channel for:', creatorDisplayName);
-          const channel = await createCreatorChannel(user.$id, creatorDisplayName);
-          console.log('✅ [Channels] Creator group chat created successfully:', channel.id);
-          
-          // Add a small delay to ensure channel is fully created
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          // Show success notification
-          Alert.alert(
-            'Channel Created! 🎉',
-            'Your creator channel has been successfully created and is now under review. You\'ll be notified once it\'s approved!',
-            [{ text: 'OK', style: 'default' }]
-          );
-          
-          // Mark channel as created
-          setChannelCreated(true);
-        } catch (error) {
-          console.error('❌ [Channels] Error creating creator group chat:', error);
-          // Don't throw error here - group chat creation failure shouldn't prevent going live
-        }
-      }
-      
       // Connect user to Stream Chat if not already connected
       if (!client.user) {
         console.log('🔗 [Channels] Connecting user to Stream Chat...');
@@ -478,30 +298,6 @@ export default function Index() {
       });
       
       console.log(`📋 [Channels] Received ${response.length} channels from Stream Chat`);
-      
-      // Debug: Check if creator channel exists specifically
-      try {
-        const creatorChannelId = `creator-${user.$id}`;
-        console.log(`🔍 [Channels] Checking for creator channel: ${creatorChannelId}`);
-        const creatorChannel = client.channel('messaging', creatorChannelId);
-        const channelState = await creatorChannel.watch();
-        console.log(`✅ [Channels] Creator channel found:`, channelState);
-        
-        // If channel exists but user is not a member, add them
-        if (channelState.members && channelState.members.length === 0) {
-          console.log(`🔧 [Channels] Channel exists but no members, adding user as member`);
-          try {
-            await creatorChannel.addMembers([user.$id]);
-            console.log(`✅ [Channels] Successfully added user as member to existing channel`);
-          } catch (addMemberError) {
-            console.log(`❌ [Channels] Error adding user as member:`, addMemberError);
-          }
-        } else {
-          console.log(`✅ [Channels] Channel has ${channelState.members?.length || 0} members`);
-        }
-      } catch (error) {
-        console.log(`❌ [Channels] Creator channel not found or error:`, error);
-      }
       
       // Check if we have more channels to load
       if (response.length < CHANNELS_PER_PAGE) {
@@ -611,12 +407,6 @@ export default function Index() {
         return !hasDuplicate;
       });
 
-      // Separate group chats and DMs
-      const groupChats = uniqueChannels.filter(channel => channel.id.startsWith('creator-'));
-      const dmChannels = uniqueChannels.filter(channel => channel.id.startsWith('dm-'));
-
-      console.log(`📊 [Channels] Final breakdown: ${groupChats.length} group chats, ${dmChannels.length} DM channels`);
-
       let finalChannels: Channel[];
 
       if (loadMore) {
@@ -648,14 +438,152 @@ export default function Index() {
         setFilteredChannels(finalChannels);
       }
       
-      console.log(`✅ [Channels] Load complete: ${uniqueChannels.length} channels (Total: ${finalChannels.length})`);
-        } catch (error) {
-      console.error('❌ [Channels] Error loading channels:', error);
-        } finally {
-            setIsLoading(false);
-            setIsLoadingMore(false);
+        console.log(`✅ [Channels] Load complete: ${uniqueChannels.length} channels (Total: ${finalChannels.length})`);
+        
+        // If account state is 'ok' but no channels exist, trigger channel creation
+        if (userDoc.account_state === 'ok' && finalChannels.length === 0 && !loadMore) {
+          console.log('🚀 [Channels] Account verified but no channels found, triggering channel creation...');
+          await handleMissingChannelCreation(userDoc, profile);
         }
+        
+      } catch (error) {
+        console.error('❌ [Channels] Error loading channels:', error);
+      } finally {
+        setIsLoading(false);
+        setIsLoadingMore(false);
+      }
     };
+  
+  // Handle missing channel creation for verified accounts
+  const handleMissingChannelCreation = async (userDoc: any, profile: any) => {
+    if (!user?.$id || !profile) return;
+    
+    try {
+      console.log('🚀 [MissingChannels] Starting channel creation for verified account...');
+      
+      const { databases, config } = await import('@/lib/appwrite');
+      const { ID, Query } = await import('react-native-appwrite');
+      
+      // 1. Create/update photo document if missing
+      console.log('📸 [MissingChannels] Checking photo document...');
+      const { getUserPhoto } = await import('@/lib/appwrite');
+      const userPhoto = await getUserPhoto(user.$id);
+      
+      if (!userPhoto) {
+        console.log('📸 [MissingChannels] Creating missing photo document...');
+        
+        // Get payment data from profile
+        let paymentData = { monthlyPrice: '10', yearlyPrice: '21' };
+        if (profile.creatorpayment) {
+          try {
+            const parsedPayment = JSON.parse(profile.creatorpayment);
+            paymentData = {
+              monthlyPrice: parsedPayment.monthlyPrice?.toString() || '10',
+              yearlyPrice: parsedPayment.yearlyPrice?.toString() || '21'
+            };
+          } catch (e) {
+            console.log('⚠️ [MissingChannels] Error parsing payment data, using defaults');
+          }
+        }
+        
+        await databases.createDocument(
+          config.databaseId,
+          config.photoCollectionId,
+          ID.unique(),
+          {
+            thumbnail: profile.profileImageUri || '',
+            compressed_thumbnail: profile.compressed_thumbnail || '',
+            title: profile.creatorsname || user.name || 'Creator',
+            prompte: profile.creatorsname || user.name || 'Creator',
+            IdCreator: user.$id,
+            PhotosLocation: profile.Location || '',
+            payment: JSON.stringify(paymentData),
+            PhotoTopics: profile.topics || '',
+            Bio: profile.ProfilesBio || ''
+          }
+        );
+        console.log('✅ [MissingChannels] Photo document created');
+      } else {
+        console.log('✅ [MissingChannels] Photo document already exists');
+      }
+
+      // 2. Copy to available collection if configured
+      try {
+        if (config.photosAvailableToUsersCollectionId) {
+          console.log('🔄 [MissingChannels] Copying to available collection...');
+          
+          const photoDocs = await databases.listDocuments(
+            config.databaseId,
+            config.photoCollectionId,
+            [Query.equal('IdCreator', user.$id)]
+          );
+          
+          if (photoDocs.documents.length > 0) {
+            const photoDoc = photoDocs.documents[0];
+            
+            // Check if already exists in available collection
+            const existingAvailable = await databases.listDocuments(
+              config.databaseId,
+              config.photosAvailableToUsersCollectionId,
+              [Query.equal('IdCreator', user.$id)]
+            );
+            
+            if (existingAvailable.documents.length === 0) {
+              await databases.createDocument(
+                config.databaseId,
+                config.photosAvailableToUsersCollectionId,
+                ID.unique(),
+                {
+                  thumbnail: photoDoc.thumbnail,
+                  title: photoDoc.title,
+                  prompte: photoDoc.prompte,
+                  IdCreator: photoDoc.IdCreator,
+                  payment: photoDoc.payment,
+                  PhotosLocation: photoDoc.PhotosLocation,
+                  PhotoTopics: photoDoc.PhotoTopics,
+                  Bio: photoDoc.Bio,
+                  compressed_thumbnail: photoDoc.compressed_thumbnail,
+                  ...(photoDoc.currency && { currency: photoDoc.currency })
+                }
+              );
+              console.log('✅ [MissingChannels] Photo copied to available collection');
+            }
+          }
+        }
+      } catch (error) {
+        console.error('❌ [MissingChannels] Error with available collection:', error);
+      }
+
+      // 3. Create creator channel
+      try {
+        console.log('🚀 [MissingChannels] Creating creator channel...');
+        const { createCreatorChannel } = await import('@/lib/stream-chat');
+        const creatorDisplayName = profile.creatorsname || user.name || 'Creator';
+        
+        const channel = await createCreatorChannel(user.$id, creatorDisplayName);
+        console.log('✅ [MissingChannels] Creator channel created successfully:', channel.id);
+        
+        // Wait a moment for channel to be fully created
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Reload channels to show the new channel
+        console.log('🔄 [MissingChannels] Reloading channels to show new channel...');
+        await loadChannels(false);
+        
+        // Show success notification
+        showCustomNotification('Your creator channel has been created successfully! 🎉', 'success');
+        
+        return true;
+      } catch (error) {
+        console.error('❌ [MissingChannels] Error creating creator channel:', error);
+        return false;
+      }
+      
+    } catch (error) {
+      console.error('❌ [MissingChannels] Channel creation process failed:', error);
+      return false;
+    }
+  };
   
   // Batch fetch user profiles for better performance
   const batchFetchUserProfiles = async (dmChannels: Channel[]) => {
@@ -733,26 +661,6 @@ export default function Index() {
       console.error('❌ [Profiles] Error batch fetching user profiles:', error);
     }
   };
-  
-
-  
-  // Handle search input changes
-  const handleSearchChange = (text: string) => {
-    console.log(`🔍 [Search] Search query changed: "${text}"`);
-    setSearchQuery(text);
-    const filtered = filterChannels(channels, text, user?.$id);
-    setFilteredChannels(filtered);
-  };
-  
-  // Load more channels when reaching the end of the list
-  const handleLoadMore = () => {
-    if (!isLoadingMore && hasMoreChannels && !searchQuery) {
-      console.log('📈 [LoadMore] Triggering load more...');
-      loadChannels(true);
-    } else {
-      console.log(`📈 [LoadMore] Load more blocked - isLoadingMore: ${isLoadingMore}, hasMoreChannels: ${hasMoreChannels}, searchQuery: "${searchQuery}"`);
-    }
-  };
 
   const handleVerifySocialMediaCode = async () => {
     if (!user?.$id || !socialMediaCode.trim()) return;
@@ -788,66 +696,6 @@ export default function Index() {
             );
             
             console.log('✅ [SocialMedia] Code verified successfully, account_state set to ok');
-            
-            // Copy the user's photo document to the available collection
-            try {
-              console.log('🔄 [PhotoCollection] Copying photo document to available collection for user:', user.$id);
-              console.log('🔍 [PhotoCollection] Available collection ID:', config.photosAvailableToUsersCollectionId);
-              
-              // Check if the new collection ID is configured
-              if (!config.photosAvailableToUsersCollectionId) {
-                console.error('❌ [PhotoCollection] EXPO_PUBLIC_APPWRITE_PHOTOS_AVAILABLE_TO_USERS environment variable not set');
-                console.log('⚠️ [PhotoCollection] Skipping photo document processing - new collection not configured');
-                return; // Exit early if new collection is not configured
-              }
-              
-              // Get the single photo document for this user
-              const photoDocs = await databases.listDocuments(
-                config.databaseId,
-                config.photoCollectionId,
-                [Query.equal('IdCreator', user.$id)]
-              );
-              
-              if (photoDocs.documents.length === 0) {
-                console.log('📸 [PhotoCollection] No photo document found for user');
-                return;
-              }
-              
-              if (photoDocs.documents.length > 1) {
-                console.warn(`⚠️ [PhotoCollection] Expected 1 photo document, found ${photoDocs.documents.length}. Using the first one.`);
-              }
-              
-              const photoDoc = photoDocs.documents[0];
-              console.log(`📸 [PhotoCollection] Found photo document to copy: ${photoDoc.$id}`);
-              
-              // Create document in the available collection
-              const { ID } = await import('react-native-appwrite');
-              await databases.createDocument(
-                config.databaseId,
-                config.photosAvailableToUsersCollectionId,
-                ID.unique(),
-                {
-                  // Only include allowed attributes based on the error message
-                  thumbnail: photoDoc.thumbnail,
-                  title: photoDoc.title,
-                  prompte: photoDoc.prompte,
-                  IdCreator: photoDoc.IdCreator,
-                  payment: photoDoc.payment,
-                  PhotosLocation: photoDoc.PhotosLocation,
-                  PhotoTopics: photoDoc.PhotoTopics,
-                  Bio: photoDoc.Bio,
-                  compressed_thumbnail: photoDoc.compressed_thumbnail,
-                  // Add currency if it exists in the original document
-                  ...(photoDoc.currency && { currency: photoDoc.currency })
-                }
-              );
-              
-              console.log(`✅ [PhotoCollection] Successfully copied photo document ${photoDoc.$id} to available collection`);
-              
-            } catch (error) {
-              console.error('❌ [PhotoCollection] Error copying photo documents:', error);
-              // Don't throw here - we don't want to break the main verification flow
-            }
             
             setShowInlineVerification(false);
             setSocialMediaCode('');
@@ -885,14 +733,8 @@ export default function Index() {
     if (!user?.$id) return;
     
     try {
-      console.log('🚀 Starting resend code process...');
-      console.log('🔧 Environment variables:');
-      console.log('  - EXPO_PUBLIC_APPWRITE_ENDPOINT:', process.env.EXPO_PUBLIC_APPWRITE_ENDPOINT);
-      console.log('  - EXPO_PUBLIC_APPWRITE_PROJECT_ID:', process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID);
-      console.log('  - EXPO_PUBLIC_SEND_SOCIAL_MEDIA_CODE_ID:', process.env.EXPO_PUBLIC_SEND_SOCIAL_MEDIA_CODE_ID);
-      
       const { databases, config } = await import('@/lib/appwrite');
-      const { Query, Functions } = await import('react-native-appwrite');
+        const { Query, Functions, Client } = await import('react-native-appwrite');
       
       // Get user document to get social media info
       const userDocs = await databases.listDocuments(
@@ -903,20 +745,15 @@ export default function Index() {
       
       if (userDocs.documents.length > 0) {
         const userDoc = userDocs.documents[0];
-        console.log('✅ User document found:', userDoc);
         
         // Setup Appwrite client for functions
-        const { Client } = await import('react-native-appwrite');
         const client = new Client()
           .setEndpoint(process.env.EXPO_PUBLIC_APPWRITE_ENDPOINT!)
           .setProject(process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID!);
         
         const functions = new Functions(client);
         
-        // Call the SEND_SOCIAL_MEDIA_CODE_ID function using Appwrite SDK
         const functionId = process.env.EXPO_PUBLIC_SEND_SOCIAL_MEDIA_CODE_ID;
-        console.log('🔧 Function ID:', functionId);
-        
         if (!functionId) {
           throw new Error('SEND_SOCIAL_MEDIA_CODE_ID environment variable is not defined');
         }
@@ -928,20 +765,13 @@ export default function Index() {
           userEmail: user.email
         };
         
-        console.log('📤 Sending request data:', requestData);
-        
         // Show success message immediately
         showCustomNotification('A new verification code has been sent to your social media account.', 'success');
         
-        // Call the function in the background (fire and forget)
-        functions.createExecution(
-          functionId,
-          JSON.stringify(requestData)
-        ).then(response => {
-          console.log('✅ Function execution response:', response);
-        }).catch(error => {
-          console.error('❌ Function execution error:', error);
-        });
+          // Call the function in the background
+          functions.createExecution(functionId, JSON.stringify(requestData))
+            .then(response => console.log('✅ Function execution response:', response))
+            .catch(error => console.error('❌ Function execution error:', error));
       } else {
         showCustomNotification('User information not found.', 'error');
       }
@@ -991,303 +821,21 @@ export default function Index() {
     }
   };
 
-  // Helper function to calculate earnings for different timeframes
-  const calculateTimeframeEarnings = (dailyEarnings: any, timeframe: 'weekly' | 'monthly' | 'yearly') => {
-    if (!dailyEarnings || typeof dailyEarnings !== 'object') return 0;
+    // Handle search input changes
+    const handleSearchChange = (text: string) => {
+      console.log(`🔍 [Search] Search query changed: "${text}"`);
+      setSearchQuery(text);
+      const filtered = filterChannels(channels, text, user?.$id);
+      setFilteredChannels(filtered);
+    };
     
-    const today = new Date();
-    let total = 0;
-    
-    if (timeframe === 'weekly') {
-      // Last 7 days
-      for (let i = 0; i < 7; i++) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
-        const dateStr = date.toISOString().split('T')[0];
-        if (dailyEarnings[dateStr]) {
-          total += dailyEarnings[dateStr];
-        }
-      }
-    } else if (timeframe === 'monthly') {
-      // Last 30 days
-      for (let i = 0; i < 30; i++) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
-        const dateStr = date.toISOString().split('T')[0];
-        if (dailyEarnings[dateStr]) {
-          total += dailyEarnings[dateStr];
-        }
-      }
-    } else if (timeframe === 'yearly') {
-      // Last 365 days
-      for (let i = 0; i < 365; i++) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
-        const dateStr = date.toISOString().split('T')[0];
-        if (dailyEarnings[dateStr]) {
-          total += dailyEarnings[dateStr];
-        }
-      }
-    }
-    
-    return total;
-  };
-
-  // Helper function to calculate subscriber stats for different timeframes
-  const calculateSubscriberStats = (dailySubscribersStats: any, timeframe: 'weekly' | 'monthly' | 'yearly') => {
-    if (!dailySubscribersStats || typeof dailySubscribersStats !== 'object') {
-      return { gained: 0, lost: 0, net: 0 };
-    }
-    
-    const today = new Date();
-    let gained = 0;
-    let lost = 0;
-    let days = 7;
-    
-    if (timeframe === 'monthly') days = 30;
-    else if (timeframe === 'yearly') days = 365;
-    
-    for (let i = 0; i < days; i++) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
-      
-      if (dailySubscribersStats[dateStr]) {
-        const dayStats = dailySubscribersStats[dateStr];
-        gained += (dayStats.monthly || 0) + (dayStats.yearly || 0);
-        lost += (dayStats.cancelledMonthly || 0) + (dayStats.cancelledYearly || 0);
-      }
-    }
-    
-    return { gained, lost, net: gained - lost };
-  };
-
-  const loadCreatorFinancials = async () => {
-    if (!user?.$id) return;
-
-    setIsLoadingFinancials(true);
-    try {
-      const { databases, config } = await import('@/lib/appwrite');
-      const { Query } = await import('react-native-appwrite');
-      
-      const creatorResponse = await databases.listDocuments(
-        config.databaseId,
-        process.env.EXPO_PUBLIC_APPWRITE_CREATOR_COLLECTION_ID!,
-        [Query.equal('creatoraccountid', user.$id)]
-      );
-
-      if (creatorResponse.documents.length > 0) {
-        const creatorData = creatorResponse.documents[0];
-        console.log('📊 [KPI DEBUG] Creator financial data loaded:', {
-          currentPeriodGross: creatorData.currentPeriodGross,
-          previousPeriodGross: creatorData.previousPeriodGross,
-          lifetimeGross: creatorData.lifetimeGross,
-          currentPeriodStart: creatorData.currentPeriodStart,
-          lifetimeVolume: creatorData.lifetimeVolume,
-          stripeConnectAccountId: creatorData.stripeConnectAccountId
-        });
-        setCreatorFinancials(creatorData as StripeConnectProfile);
-        console.log('✅ Loaded creator financial data.');
-        return creatorData;
+    // Load more channels when reaching the end of the list
+    const handleLoadMore = () => {
+      if (!isLoadingMore && hasMoreChannels && !searchQuery) {
+        console.log('📈 [LoadMore] Triggering load more...');
+        loadChannels(true);
       } else {
-        console.log('❌ No creator document found for this user.');
-        setCreatorFinancials(null);
-        return null;
-      }
-        } catch (error) {  
-      console.error('Error loading creator financials:', error);
-      setCreatorFinancials(null);
-      return null;
-        } finally {
-      setIsLoadingFinancials(false);
-    }
-  };
-
-  const handleUpdateStripeData = async () => {
-    if (!creatorFinancials?.stripeConnectAccountId) {
-        Alert.alert("Error", "Stripe account not connected.");
-        return;
-    }
-    
-    setIsLoadingFinancials(true);
-    try {
-        const { functions } = await import('@/lib/appwrite');
-        const { ExecutionMethod } = await import('react-native-appwrite');
-
-        // Trigger the backend to update the DB
-        console.log('🔄 [KPI DEBUG] Calling Stripe balance API for account:', creatorFinancials.stripeConnectAccountId);
-        const execution = await functions.createExecution(
-            process.env.EXPO_PUBLIC_STRIPE_BALANCE_FUNCTION_ID!,
-            JSON.stringify({ stripeConnectAccountId: creatorFinancials.stripeConnectAccountId }),
-            false, '/get-balance', ExecutionMethod.POST,
-            { 'Content-Type': 'application/json' }
-        );
-        console.log('📡 [KPI DEBUG] Stripe API execution result:', execution);
-
-        // Parse the response to get goals
-        try {
-          const response = JSON.parse(execution.responseBody);
-          if (response.goals) {
-            setDailyGoal(response.goals.dailyGoal || 0);
-            setWeeklyGoal(response.goals.weeklyGoal || 0);
-          }
-          if (response.kpis) {
-            // Update creator financials with the latest data
-            setCreatorFinancials(prev => ({
-              ...prev,
-              todayEarnings: response.kpis.todayEarnings || 0,
-              weekEarnings: response.kpis.weekEarnings || 0,
-              dailyEarnings: JSON.stringify(response.kpis.dailyEarnings || {})
-            }));
-          }
-        } catch (e) {
-          console.log('Error parsing response:', e);
-        }
-
-        // Refetch the data from our DB
-        console.log('🔄 [KPI DEBUG] Refetching creator financial data...');
-        await loadCreatorFinancials();
-
-    } catch (error) {
-        console.error('Error updating Stripe data:', error);
-        Alert.alert("Error", "Could not update your financial data. Please try again.");
-    } finally {
-        setIsLoadingFinancials(false);
-    }
-  };
-
-  const handleOnboarding = async () => {
-    if (isLoadingStripeConnect || creatorFinancials?.stripeConnectSetupComplete) return;
-
-    setIsLoadingStripeConnect(true);
-    console.log('🚀 Starting Stripe Onboarding...');
-    
-    try {
-      const { functions, databases, config } = await import('@/lib/appwrite');
-      const { ExecutionMethod, Query } = await import('react-native-appwrite');
-      
-      // Fetch user's profile data (currency, date of birth, phone number, etc.)
-      let userCurrency = 'USD'; // Default currency
-      let dateOfBirth = null;
-      let phoneNumber = null;
-      try {
-        const userProfiles = await databases.listDocuments(
-          config.databaseId,
-          process.env.EXPO_PUBLIC_APPWRITE_PROFILE_COLLECTION_ID!,
-          [Query.equal('userId', user?.$id || '')]
-        );
-        
-        if (userProfiles.documents.length > 0) {
-          const profile = userProfiles.documents[0];
-          userCurrency = profile.currency || 'USD';
-          dateOfBirth = profile.dateOfBirth || null;
-          phoneNumber = profile.phoneNumber || null;
-          console.log('💰 User currency:', userCurrency);
-          console.log('🎂 User date of birth:', dateOfBirth);
-          console.log('📱 User phone number:', phoneNumber);
-        }
-      } catch (profileError) {
-        console.log('⚠️ Could not fetch user profile data, using defaults:', profileError);
-      }
-      
-      const result = await functions.createExecution(
-        process.env.EXPO_PUBLIC_STRIPE_CONNECT_FUNCTION_ID!,
-        JSON.stringify({
-          userEmail: user?.email,
-          userName: user?.name,
-          returnUrl: 'https://cherrybox.app/connect-return',
-          currency: userCurrency,
-          ...(dateOfBirth && { dateOfBirth: dateOfBirth }),
-          ...(phoneNumber && { phoneNumber: phoneNumber })
-        }),
-        false,
-        '/create-connect-account',
-        ExecutionMethod.POST,
-        { 'Content-Type': 'application/json' }
-      );
-
-      const response = JSON.parse(result.responseBody);
-      if (response.success && response.accountLinkUrl) {
-        console.log('✅ Got account link URL:', response.accountLinkUrl);
-        setStripeConnectUrl(response.accountLinkUrl);
-        setShowStripeConnect(true);
-        // Refresh data after onboarding attempt
-        await loadCreatorFinancials();
-        // Update channel conditions to reflect the new Stripe setup status
-        await refreshChannelConditions(true); // Force refresh after Stripe setup
-      } else {
-        throw new Error(response.error || 'Failed to create Stripe Connect account.');
-      }
-    } catch (error) {
-      console.error('❌ Error during Stripe onboarding:', error);
-      setShowNetworkErrorModal(true);
-    } finally {
-      setIsLoadingStripeConnect(false);
-    }
-  };
-
-  const handleOpenDashboard = async () => {
-    if (isLoadingStripeConnect || !creatorFinancials?.stripeConnectAccountId) return;
-    
-    setIsLoadingStripeConnect(true);
-    console.log('🚀 Opening Stripe Dashboard...');
-
-    try {
-      const { functions } = await import('@/lib/appwrite');
-      const { ExecutionMethod } = await import('react-native-appwrite');
-
-      const result = await functions.createExecution(
-        process.env.EXPO_PUBLIC_STRIPE_CONNECT_FUNCTION_ID!,
-        JSON.stringify({ accountId: creatorFinancials.stripeConnectAccountId }),
-        false,
-        '/create-dashboard-link',
-        ExecutionMethod.POST,
-        { 'Content-Type': 'application/json' }
-      );
-
-      const response = JSON.parse(result.responseBody);
-      if (response.success && response.url) {
-        console.log('✅ Got dashboard link URL:', response.url);
-        setStripeConnectUrl(response.url);
-        setShowStripeConnect(true);
-      } else {
-        throw new Error(response.error || 'Failed to create dashboard link.');
-      }
-        } catch (error) {  
-      console.error('❌ Error opening Stripe dashboard:', error);
-      setShowNetworkErrorModal(true);
-        } finally {
-      setIsLoadingStripeConnect(false);
-    }
-  };
-
-
-
-
-
-  const loadAudience = async () => {
-    if (!user?.$id) return;
-    console.log('👥 [Audience] Starting audience load...');
-    setIsLoadingAudience(true);
-    try {
-      const { databases, config } = await import('@/lib/appwrite');
-      const { Query } = await import('react-native-appwrite');
-      // Use the index on creatorAccountId to fetch all active subscriptions for this creator
-      const response = await databases.listDocuments(
-        config.databaseId,
-        config.activeSubscriptionsCollectionId,
-        [
-          Query.equal('creatorAccountId', user.$id),
-          Query.equal('status', 'active')
-        ]
-      );
-      console.log(`✅ [Audience] Loaded ${response.documents.length} subscribers`);
-      setAudience(response.documents);
-    } catch (error) {
-      console.error('❌ [Audience] Error loading audience:', error);
-      setAudience([]);
-    } finally {
-      setIsLoadingAudience(false);
+        console.log(`📈 [LoadMore] Load more blocked - isLoadingMore: ${isLoadingMore}, hasMoreChannels: ${hasMoreChannels}, searchQuery: "${searchQuery}"`);
     }
   };
 
@@ -1304,12 +852,6 @@ export default function Index() {
         setShowSearch(false);
         await loadChannels(false);
         await loadProfileImage();
-      } else if (selectedTab === 'other') {
-        console.log('🔄 [Refresh] Refreshing other tab...');
-        await loadCreatorFinancials();
-      } else if (selectedTab === 'audience') {
-        console.log('🔄 [Refresh] Refreshing audience tab...');
-        await loadAudience();
       }
     } catch (error) {
       console.error('❌ [Refresh] Error refreshing data:', error);
@@ -1331,91 +873,13 @@ export default function Index() {
       console.log('🚀 [Init] Initial load triggered');
       loadChannels(false).then(() => {
         setChannelsLoaded(true);
-        // Initialize filtered channels after loading
         setFilteredChannels(channels);
         console.log('✅ [Init] Initial load complete');
       });
     }
     loadProfileImage();
     loadUserCurrency();
-    if (user?.$id) {
-        loadCreatorFinancials();
-    }
   }, [user, channelsLoaded]);
-
-  useEffect(() => {
-    if (selectedTab === 'audience') {
-      console.log('👥 [Audience] Tab selected, loading audience...');
-      loadAudience();
-    }
-  }, [selectedTab, user]);
-
-  // Update filteredAudience when audience, search, or filter changes
-  useEffect(() => {
-    console.log(`🔍 [Audience] Filtering ${audience.length} subscribers with search: "${audienceSearch}", filter: ${audienceFilter}`);
-    let filtered = audience;
-    // Search filter
-    if (audienceSearch.trim()) {
-      const search = audienceSearch.trim().toLowerCase();
-      filtered = filtered.filter(sub =>
-        (sub.customerEmail && sub.customerEmail.toLowerCase().includes(search)) ||
-        (sub.userName && sub.userName.toLowerCase().includes(search))
-      );
-    }
-    // Sorting
-    if (audienceFilter === 'recent') {
-      filtered = filtered.slice().sort((a, b) => new Date(b.createdAt || b.$createdAt).getTime() - new Date(a.createdAt || a.$createdAt).getTime());
-    } else if (audienceFilter === 'income_high') {
-      filtered = filtered.slice().sort((a, b) => (b.planAmount || 0) - (a.planAmount || 0));
-    } else if (audienceFilter === 'income_low') {
-      filtered = filtered.slice().sort((a, b) => (a.planAmount || 0) - (b.planAmount || 0));
-    }
-    console.log(`✅ [Audience] Filtered to ${filtered.length} subscribers`);
-    setFilteredAudience(filtered);
-  }, [audience, audienceSearch, audienceFilter]);
-
-
-
-  // Handle highlighting setup button when navigating from payment setup incomplete
-  useEffect(() => {
-    // Check if we should highlight the setup button when other tab is selected
-    if (selectedTab === 'other' && shouldHighlightSetup) {
-      // Start the animation after a short delay to ensure the tab content is rendered
-      setTimeout(() => {
-        startSetupButtonAnimation();
-      }, 500);
-    }
-  }, [selectedTab, shouldHighlightSetup]);
-
-  // Animation function for the setup button
-  const startSetupButtonAnimation = () => {
-    // Scroll to the bottom to show the setup button
-    if (earningsScrollRef.current) {
-      earningsScrollRef.current.scrollToEnd({ animated: true });
-    }
-    
-    // Start the pulsing animation
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(setupButtonAnimation, {
-          toValue: 1.1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-        Animated.timing(setupButtonAnimation, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-      ]),
-      { iterations: 10 } // Animate 10 times then stop
-    ).start(() => {
-      // Reset highlight after animation completes
-      setTimeout(() => {
-        setShouldHighlightSetup(false);
-      }, 1000);
-    });
-  };
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: theme.backgroundTertiary }} edges={['top']}>
@@ -1448,7 +912,6 @@ export default function Index() {
                         }}>
                             cherrizbox
                         </Text>
-
                     </View>
                 </View>
                 
@@ -1605,26 +1068,30 @@ export default function Index() {
                   <ActivityIndicator size="large" color={theme.text} />
                 </>
               ) : showInlineVerification ? (
-                <SocialMediaVerificationModal
-                  visible={showInlineVerification}
-                  socialMediaPlatform={socialMediaPlatform}
-                  socialMediaUsername={socialMediaUsername}
-                  socialMediaCode={socialMediaCode}
-                  verificationError={verificationError}
-                  isVerifyingCode={isVerifyingCode}
-                  networks={networks}
-                  onCodeChange={(code) => {
-                    setSocialMediaCode(code);
-                    setVerificationError('');
-                  }}
-                  onVerifyCode={handleVerifySocialMediaCode}
-                  onResendCode={handleResendCode}
-                  onClose={() => setShowInlineVerification(false)}
-                  onChangeUsername={() => {
-                    setShowInlineVerification(false);
-                    router.push('/change-username');
-                  }}
-                />
+                      <SocialMediaVerificationModal
+                        visible={showInlineVerification}
+                        socialMediaPlatform={socialMediaPlatform}
+                        socialMediaUsername={socialMediaUsername}
+                        socialMediaCode={socialMediaCode}
+                        verificationError={verificationError}
+                        isVerifyingCode={isVerifyingCode}
+                        networks={networks}
+                        onCodeChange={(code) => {
+                          setSocialMediaCode(code);
+                          setVerificationError('');
+                        }}
+                        onVerifyCode={handleVerifySocialMediaCode}
+                        onResendCode={handleResendCode}
+                        onClose={() => setShowInlineVerification(false)}
+                        onChangeUsername={() => {
+                          setShowInlineVerification(false);
+                          router.push('/change-username');
+                        }}
+                        onVerificationSuccess={() => {
+                          // Reload channels after successful verification and channel creation
+                          loadChannels(false);
+                        }}
+                      />
               ) : missingChannelConditions.length > 0 ? (
                 <>
                   <View style={{
@@ -1755,7 +1222,7 @@ export default function Index() {
                           fontSize: 17, 
                           fontFamily: 'Urbanist-Bold'
                         }}>
-                          Complete Setup {missingChannelConditions.length === 1 && missingChannelConditions[0] === 'Payment setup incomplete' ? '' : ''}
+                                Complete Setup
                         </Text>
                       </View>
                     </TouchableOpacity>
@@ -1802,1660 +1269,28 @@ export default function Index() {
       )}
 
       {selectedTab === 'insights' && (
-        <ScrollView 
-          style={{ 
-              flex: 1, 
-            backgroundColor: theme.backgroundTertiary
-          }}
-          contentContainerStyle={{
-            paddingHorizontal: 20,
-            paddingVertical: 20,
-          }}
-          refreshControl={
-            <RefreshControl
-              refreshing={isLoadingInsights}
-              onRefresh={async () => {
-                setIsLoadingInsights(true);
-                await loadCreatorFinancials();
-                setIsLoadingInsights(false);
-              }}
-              tintColor={theme.textTertiary}
-              colors={[theme.textTertiary]}
-              progressBackgroundColor={theme.backgroundTertiary}
-            />
-          }
-        >
-          {/* Big Total Subscribers Card with Weekly Stats */}
-            <View style={{
-              backgroundColor: theme.cardBackground,
-            borderRadius: 16,
-            padding: 24,
-            marginBottom: 20,
-          }}>
-              <Text style={{ 
-                color: theme.text, 
-              fontFamily: 'MuseoModerno-Regular', 
-              fontSize: 18,
-              marginBottom: 16,
-              textAlign: 'center'
-              }}>
-                Total Current Subscribers
-              </Text>
-            
-            {/* Total Number */}
-            <Text style={{ 
-              color: theme.text, 
-              fontFamily: 'MuseoModerno-Regular', 
-              fontSize: 48, 
-              textAlign: 'center',
-              marginBottom: 20
-            }}>
-                {(typeof creatorFinancials?.number_of_monthly_subscribers === 'number' || typeof creatorFinancials?.number_of_yearly_subscriptions === 'number')
-                  ? ((creatorFinancials?.number_of_monthly_subscribers || 0) + (creatorFinancials?.number_of_yearly_subscriptions || 0))
-                  : '—'}
-              </Text>
-
-            {/* Weekly Stats */}
-            {(() => {
-              let weeklyStats = { gained: 0, lost: 0, net: 0 };
-              try {
-                const dailyStats = creatorFinancials?.dailySubscribersStats ? JSON.parse(creatorFinancials.dailySubscribersStats) : {};
-                weeklyStats = calculateSubscriberStats(dailyStats, 'weekly');
-              } catch (e) {
-                weeklyStats = { gained: 0, lost: 0, net: 0 };
-              }
-              
-              return (
-                <View style={{ flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center' }}>
-                  {/* Gained this week */}
-                  <View style={{ alignItems: 'center', flex: 1 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                      <Ionicons name="arrow-up-circle" size={20} color="#4CAF50" style={{ marginRight: 6 }} />
-                      <Text style={{ 
-                        color: '#4CAF50', 
-                        fontFamily: 'MuseoModerno-Regular', 
-                        fontSize: 24 
-                      }}>
-                        +{weeklyStats.gained}
-                      </Text>
-              </View>
-                    <Text style={{ 
-                      color: theme.textTertiary, 
-                      fontFamily: 'MuseoModerno-Regular', 
-                      fontSize: 12,
-                      textAlign: 'center'
-                    }}>
-                      Gained this week
-              </Text>
-            </View>
-
-                  {/* Divider */}
-                  <View style={{ width: 1, height: 40, backgroundColor: '#E0E0E0', marginHorizontal: 16 }} />
-
-                  {/* Lost this week */}
-                  <View style={{ alignItems: 'center', flex: 1 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                      <Ionicons name="arrow-down-circle" size={20} color="#F44336" style={{ marginRight: 6 }} />
-                      <Text style={{ 
-                        color: '#F44336', 
-                        fontFamily: 'MuseoModerno-Regular', 
-                        fontSize: 24 
-                      }}>
-                        -{weeklyStats.lost}
-                      </Text>
-              </View>
-                    <Text style={{ 
-                      color: theme.textTertiary, 
-                      fontFamily: 'MuseoModerno-Regular', 
-                      fontSize: 12,
-                      textAlign: 'center'
-                    }}>
-                      Lost this week
-              </Text>
-            </View>
-          </View>
-              );
-            })()}
-          </View>
-
-          {/* Subscriber Growth Chart with Tabs */}
-            <View style={{
-              backgroundColor: theme.cardBackground,
-              borderRadius: 16,
-            padding: 20,
-            marginBottom: 20,
-          }}>
-            <Text style={{
-              color: theme.text,
-              fontSize: 18,
-              fontFamily: 'MuseoModerno-Regular',
-              marginBottom: 16,
-            }}>
-              Subscriber Growth
-              </Text>
-            
-            {/* Tabs */}
-            <View style={{
-              flexDirection: 'row',
-              backgroundColor: theme.background,
-              borderRadius: 12,
-              padding: 4,
-              marginBottom: 16,
-            }}>
-              {(['weekly', 'monthly', 'yearly'] as const).map((timeframe) => (
-                <TouchableOpacity
-                  key={timeframe}
-                  onPress={() => setSubscriberTimeframe(timeframe)}
-                  style={{
-                    flex: 1,
-                    paddingVertical: 10,
-                    borderRadius: 10,
-                    backgroundColor: subscriberTimeframe === timeframe ? theme.cardBackground : 'transparent',
-                  }}
-                >
-                  <Text style={{
-                    color: subscriberTimeframe === timeframe ? theme.text : theme.textTertiary,
-                    fontFamily: 'MuseoModerno-Regular',
-                    fontSize: 14,
-                    textAlign: 'center',
-                    textTransform: 'capitalize',
-                  }}>
-                    {timeframe}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-              </View>
-            
-            {/* Stats Display */}
-            <View style={{ alignItems: 'center', marginBottom: 16 }}>
-              {(() => {
-                let stats = { gained: 0, lost: 0, net: 0 };
-                try {
-                  const dailyStats = creatorFinancials?.dailySubscribersStats ? JSON.parse(creatorFinancials.dailySubscribersStats) : {};
-                  stats = calculateSubscriberStats(dailyStats, subscriberTimeframe);
-                } catch (e) {
-                  stats = { gained: 0, lost: 0, net: 0 };
-                }
-                
-                return (
-                  <>
-                    <Text style={{
-                      color: stats.net >= 0 ? '#4CAF50' : '#F44336',
-                      fontSize: 36,
-                      fontFamily: 'MuseoModerno-Regular',
-                      marginBottom: 8,
-                    }}>
-                      {stats.net >= 0 ? '+' : ''}{stats.net}
-                    </Text>
-                    <Text style={{
-                      color: theme.textTertiary,
-                      fontSize: 14,
-                      fontFamily: 'MuseoModerno-Regular',
-                      marginBottom: 8,
-                    }}>
-                      Net change (
-                      {subscriberTimeframe === 'weekly' && 'last 7 days'}
-                      {subscriberTimeframe === 'monthly' && 'last 30 days'}
-                      {subscriberTimeframe === 'yearly' && 'last 365 days'})
-                    </Text>
-                    <View style={{ flexDirection: 'row', gap: 20 }}>
-                      <Text style={{
-                        color: '#4CAF50',
-                        fontSize: 14,
-                        fontFamily: 'MuseoModerno-Regular',
-                      }}>
-                        +{stats.gained} gained
-                      </Text>
-                      <Text style={{
-                        color: '#F44336',
-                        fontSize: 14,
-                        fontFamily: 'MuseoModerno-Regular',
-                      }}>
-                        -{stats.lost} lost
-                      </Text>
-              </View>
-                  </>
-                );
-              })()}
-            </View>
-            
-            {/* Subscriber Chart */}
-            <View style={{ alignItems: 'center', marginHorizontal: -20 }}>
-              {(() => {
-                let dailyStats = {};
-                try {
-                  dailyStats = creatorFinancials?.dailySubscribersStats ? JSON.parse(creatorFinancials.dailySubscribersStats) : {};
-                } catch (e) {
-                  dailyStats = {};
-                }
-                
-                // Only show chart if we have data
-                const hasData = Object.keys(dailyStats).length > 0;
-                
-                return hasData ? (
-                  <SubscriberChart
-                    dailySubscribersStats={dailyStats}
-                    timeframe={subscriberTimeframe}
-                  />
-                ) : (
-                                    <View style={{
-                      height: 200,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: theme.background,
-                      borderRadius: 12,
-                      marginVertical: 8,
-                    }}>
-                      <Text style={{
-                        color: theme.textTertiary,
-                        fontSize: 14,
-                        fontFamily: 'MuseoModerno-Regular',
-                        textAlign: 'center',
-                      }}>
-                        No subscriber data available yet.{'\n'}Chart will appear once you have subscriber activity.
-                </Text>
-              </View>
-                );
-              })()}
-            </View>
-          </View>
-
-
-
-          {/* Content Purchases Section */}
-          <View style={{ marginBottom: 16 }}>
-            <Text style={{ 
-              color: theme.text, 
-              fontFamily: 'MuseoModerno-Regular', 
-              fontSize: 20, 
-              marginBottom: 16,
-              textAlign: 'left'
-            }}>
-              Content Purchases
-            </Text>
-          </View>
-          
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 32 }}>
-            {/* Photos */}
-              <View style={{
-              backgroundColor: theme.cardBackground,
-                borderRadius: 16,
-              width: '32%',
-              padding: 12,
-            }}>
-              <View style={{ alignItems: 'center', marginBottom: 8 }}>
-                <View style={{ backgroundColor: theme.textTertiary, borderRadius: 8, padding: 6, marginBottom: 6 }}>
-                  <Ionicons name="image" size={16} color={theme.textInverse} />
-                </View>
-                <Text style={{ color: theme.text, fontFamily: 'MuseoModerno-Regular', fontSize: 12, textAlign: 'center' }}>Photos</Text>
-              </View>
-              <Text style={{ color: theme.textSecondary, fontFamily: 'MuseoModerno-Regular', fontSize: 20, textAlign: 'center' }}>
-                {creatorFinancials?.number_of_photos ?? '—'}
-              </Text>
-              </View>
-              {/* Videos */}
-              <View style={{
-                backgroundColor: theme.cardBackground,
-                borderRadius: 16,
-                width: '32%',
-              padding: 12,
-            }}>
-              <View style={{ alignItems: 'center', marginBottom: 8 }}>
-                <View style={{ backgroundColor: theme.textTertiary, borderRadius: 8, padding: 6, marginBottom: 6 }}>
-                  <Ionicons name="videocam" size={16} color={theme.textInverse} />
-                </View>
-                <Text style={{ color: theme.text, fontFamily: 'MuseoModerno-Regular', fontSize: 12, textAlign: 'center' }}>Videos</Text>
-              </View>
-              <Text style={{ color: theme.textSecondary, fontFamily: 'MuseoModerno-Regular', fontSize: 20, textAlign: 'center' }}>
-                {creatorFinancials?.number_of_videos ?? '—'}
-              </Text>
-              </View>
-              {/* Files */}
-              <View style={{
-                backgroundColor: theme.cardBackground,
-                borderRadius: 16,
-                width: '32%',
-              padding: 12,
-            }}>
-              <View style={{ alignItems: 'center', marginBottom: 8 }}>
-                <View style={{ backgroundColor: theme.textTertiary, borderRadius: 8, padding: 6, marginBottom: 6 }}>
-                  <Ionicons name="document" size={16} color={theme.textInverse} />
-                </View>
-                <Text style={{ color: theme.text, fontFamily: 'MuseoModerno-Regular', fontSize: 12, textAlign: 'center' }}>Files</Text>
-              </View>
-              <Text style={{ color: theme.textSecondary, fontFamily: 'MuseoModerno-Regular', fontSize: 20, textAlign: 'center' }}>
-                {creatorFinancials?.number_of_files ?? '—'}
-              </Text>
-              </View>
-          </View>
-
-
-        </ScrollView>
+              <InsightsTab
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+              />
       )}
 
       {selectedTab === 'audience' && (
-        <View style={{ flex: 1, backgroundColor: theme.backgroundTertiary }}>
-          {/* Fixed Header with Search and Filters */}
-          <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 16 }}>
-            {/* Search Bar */}
-            <View style={{ width: '100%', marginBottom: 12 }}>
-                <View style={{
-                backgroundColor: theme.cardBackground,
-                borderRadius: 12,
-                flexDirection: 'row',
-                alignItems: 'center',
-                paddingHorizontal: 12,
-                paddingVertical: 8,
-              }}>
-                <Ionicons name="search" size={20} color={theme.text} style={{ marginRight: 4 }} />
-                <TextInput
-                  style={{
-                    flex: 1,
-                    color: theme.text,
-                    fontFamily: 'Urbanist-Regular',
-                    fontSize: 16,
-                    backgroundColor: 'transparent',
-                    padding: 0,
-                    letterSpacing: 0.2,
-                  }}
-                  placeholder="Search by username..."
-                  placeholderTextColor={theme.textTertiary}
-                  value={audienceSearch}
-                  onChangeText={setAudienceSearch}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                {audienceSearch.length > 0 && (
-                  <TouchableOpacity onPress={() => setAudienceSearch('')}>
-                    <Ionicons name="close-circle" size={18} color={theme.textTertiary} />
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-            {/* Filter Tags */}
-            <View style={{ flexDirection: 'row', marginBottom: 16, width: '100%', justifyContent: 'center', gap: 8 }}>
-              {[
-                { key: 'recent', label: 'Most Recent' },
-                { key: 'income_high', label: 'Highest Income' },
-                { key: 'income_low', label: 'Lowest Income' },
-              ].map(tag => (
-                <TouchableOpacity
-                  key={tag.key}
-                  onPress={() => setAudienceFilter(tag.key as 'recent' | 'income_high' | 'income_low')}
-                  style={{
-                    backgroundColor: audienceFilter === tag.key ? theme.cardBackground : theme.backgroundTertiary,
-                    borderRadius: 20,
-                    paddingVertical: 7,
-                    paddingHorizontal: 16,
-                    marginHorizontal: 2,
-                    borderWidth: audienceFilter === tag.key ? 1.5 : 1,
-                    borderColor: audienceFilter === tag.key ? theme.cardBackground : theme.borderDark,
-                  }}
-                >
-                  <Text style={{
-                    color: theme.text,
-                    fontFamily: audienceFilter === tag.key ? 'Urbanist-Bold' : 'Urbanist-Regular',
-                    fontSize: 14,
-                  }}>{tag.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Scrollable Content */}
-          <ScrollView 
-            style={{ 
-              flex: 1, 
-              backgroundColor: theme.backgroundTertiary,
-              paddingHorizontal: 0
-            }}
-            contentContainerStyle={{
-              flexGrow: 1,
-              alignItems: 'stretch',
-              justifyContent: filteredAudience.length === 0 && !isLoadingAudience ? 'center' : 'flex-start',
-              paddingHorizontal: 16
-            }}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing || isLoadingAudience}
+              <AudienceTab
+                refreshing={refreshing}
                 onRefresh={onRefresh}
-                tintColor={theme.text}
-                colors={[theme.text]}
-                progressBackgroundColor={theme.backgroundTertiary}
               />
-            }
-          >
-            {/* Loading indicator moved below search and filters */}
-            {isLoadingAudience ? (
-              <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 32 }}>
-                <Image 
-                  source={require('../../../assets/icon/loading-icon.png')} 
-                  style={{ width: 48, height: 48, marginBottom: 12 }}
-                  resizeMode="contain"
-                />
-                <Text style={{ color: theme.text, fontFamily: 'Urbanist-Bold', fontSize: 16 }}>Loading subscribers...</Text>
-              </View>
-            ) : filteredAudience.length === 0 ? (
-              <Text style={{ 
-                color: theme.textTertiary, 
-                fontSize: 16, 
-                textAlign: 'center',
-                    fontFamily: 'Urbanist-Regular',
-                marginTop: 24
-                  }}>
-                No subscribers yet.
-                  </Text>
-            ) : (
-            <View style={{ width: '100%', marginTop: 8 }}>
-              {filteredAudience.map((sub, idx) => (
-                <TouchableOpacity
-                  key={sub.$id || idx}
-                  onPress={() => {
-                    setSelectedSubscriber(sub);
-                    setShowSubscriberModal(true);
-                  }}
-                  activeOpacity={0.8}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    backgroundColor: theme.cardBackground,
-                    borderRadius: 14,
-                    padding: 14,
-                    marginBottom: 12,
-                    borderWidth: 1,
-                    borderColor: theme.borderDark,
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.10,
-                    shadowRadius: 4,
-                    elevation: 2,
-                    marginLeft: 8,
-                    marginRight: 8,
-                    width: 'auto',
-                  }}
-                >
-                  {/* Icon or Initial */}
-                  <View style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 24,
-                    backgroundColor: theme.backgroundSecondary,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginRight: 16,
-                    overflow: 'hidden',
-                  }}>
-                    <Text style={{ color: theme.text, fontSize: 22, fontWeight: 'bold', fontFamily: 'Urbanist-Bold' }}>
-                      {sub.userName ? sub.userName[0]?.toUpperCase() : (sub.customerEmail ? sub.customerEmail[0]?.toUpperCase() : 'U')}
-                </Text>
-              </View>
-                  {/* Info */}
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: theme.text, fontFamily: 'Urbanist-Bold', fontSize: 17 }}>
-                      {sub.userName || sub.customerEmail || 'No name'}
-                    </Text>
-                    <Text style={{ color: theme.textSecondary, fontFamily: 'Urbanist-Regular', fontSize: 14 }}>
-                      {sub.customerEmail && sub.userName ? sub.customerEmail : ''}
-                    </Text>
-                  </View>
-                  {/* Plan info */}
-                  <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={{ color: theme.text, fontFamily: 'Urbanist-Bold', fontSize: 14 }}>
-                      {sub.planInterval ? sub.planInterval.charAt(0).toUpperCase() + sub.planInterval.slice(1) : ''}
-                    </Text>
-                    <Text style={{ color: theme.warning, fontFamily: 'Urbanist-Bold', fontSize: 14 }}>
-                      {sub.planAmount ? `$${(sub.planAmount / 100).toFixed(2)}` : ''}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </ScrollView>
-        </View>
       )}
 
       {selectedTab === 'other' && (
-        <ScrollView 
-          ref={earningsScrollRef}
-          style={{ 
-            flex: 1, 
-            backgroundColor: theme.backgroundTertiary,
-          }}
-          contentContainerStyle={{
-            flexGrow: 1,
-            paddingHorizontal: 16,
-            paddingVertical: 16,
-          }}
-          refreshControl={
-            <RefreshControl
-              refreshing={isLoadingFinancials}
-              onRefresh={handleUpdateStripeData}
-              tintColor={theme.textTertiary}
-              colors={[theme.textTertiary]}
-              progressBackgroundColor={theme.backgroundTertiary}
-            />
-          }
-        >
-          <View>
-            {/* Auto-initialize KPI data if missing and Stripe is connected */}
-            {(() => {
-              if (creatorFinancials?.stripeConnectSetupComplete && 
-                  creatorFinancials?.currentPeriodGross === undefined && 
-                  !isLoadingFinancials) {
-                console.log('🔄 [AUTO-INIT] Auto-initializing KPI data...');
-                handleUpdateStripeData();
-              }
-              return null;
-            })()}
-
-            {/* First Row: Available & Pending */}
-            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
-              {/* Available Card */}
-              <View style={{
-                flex: 1,
-                backgroundColor: theme.cardBackground,
-                borderRadius: 16,
-                padding: 16,
-
-                position: 'relative',
-              }}>
-                {/* Info button positioned absolutely in top-right */}
-                <TouchableOpacity 
-                  onPress={() => setOpenInfoBubble(openInfoBubble === 'available' ? null : 'available')}
-                  style={{
-                    position: 'absolute',
-                    top: 16,
-                    right: 16,
-                    zIndex: 1,
-                  }}
-                >
-                  <View style={{
-                    width: 18,
-                    height: 18,
-                    borderRadius: 9,
-                    borderWidth: 1,
-                    borderColor: theme.text,
-                    backgroundColor: 'transparent',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <Text style={{
-                      color: theme.text,
-                      fontSize: 12,
-                      fontFamily: 'Urbanist-Bold',
-                    }}>
-                      i
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-                
-                {/* Centered content */}
-                <View style={{ alignItems: 'center', paddingTop: 8 }}>
-                  <Text style={{
-                    color: theme.text,
-                    fontSize: 20,
-                    fontFamily: 'MuseoModerno-Regular',
-                    marginBottom: 8,
-                  }}>
-                    Available
-                  </Text>
-                  <Text style={{
-                    color: theme.text,
-                    fontSize: 28,
-                    fontFamily: 'MuseoModerno-Regular',
-                  }}>
-                    {formatPrice(creatorFinancials?.stripeBalanceAvailable || 0, userCurrency)}
-                  </Text>
-                </View>
-                {openInfoBubble === 'available' && (
-                  <View style={{
-                    position: 'absolute',
-                    top: 45,
-                    right: 0,
-                    backgroundColor: theme.text,
-                    borderRadius: 8,
-                    padding: 10,
-                    minWidth: 180,
-                    zIndex: 10,
-                  }}>
-                    <Text style={{ color: theme.textInverse, fontSize: 12, fontFamily: 'Urbanist-Regular' }}>
-                      Funds that are available for payout to your bank account.
-                    </Text>
-                  </View>
-                )}
-              </View>
-
-              {/* Pending Card */}
-              <View style={{
-                flex: 1,
-                backgroundColor: theme.cardBackground,
-                borderRadius: 16,
-                padding: 16,
-
-                position: 'relative',
-              }}>
-                {/* Info button positioned absolutely in top-right */}
-                <TouchableOpacity 
-                  onPress={() => setOpenInfoBubble(openInfoBubble === 'pending' ? null : 'pending')}
-                  style={{
-                    position: 'absolute',
-                    top: 16,
-                    right: 16,
-                    zIndex: 1,
-                  }}
-                >
-                  <View style={{
-                    width: 18,
-                    height: 18,
-                    borderRadius: 9,
-                    borderWidth: 1,
-                    borderColor: theme.text,
-                    backgroundColor: 'transparent',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <Text style={{
-                      color: theme.text,
-                      fontSize: 12,
-                      fontFamily: 'Urbanist-Bold',
-                    }}>
-                      i
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-                
-                {/* Centered content */}
-                <View style={{ alignItems: 'center', paddingTop: 8 }}>
-                  <Text style={{
-                    color: theme.text,
-                    fontSize: 20,
-                    fontFamily: 'MuseoModerno-Regular',
-                    marginBottom: 8,
-                  }}>
-                    Pending
-                  </Text>
-                  <Text style={{
-                    color: theme.text,
-                    fontSize: 28,
-                    fontFamily: 'MuseoModerno-Regular',
-                  }}>
-                    {formatPrice(creatorFinancials?.stripeBalancePending || 0, userCurrency)}
-                  </Text>
-                </View>
-                {openInfoBubble === 'pending' && (
-                  <View style={{
-                    position: 'absolute',
-                    top: 45,
-                    right: 0,
-                    backgroundColor: theme.text,
-                    borderRadius: 8,
-                    padding: 10,
-                    minWidth: 180,
-                    zIndex: 10,
-                  }}>
-                    <Text style={{ color: 'white', fontSize: 12, fontFamily: 'Urbanist-Regular' }}>
-                      Funds that are still being processed and will become available soon.
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </View>
-
-            {/* Second Row: Total & In Transit */}
-            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
-              {/* Total Card */}
-              <View style={{
-                flex: 1,
-                backgroundColor: theme.cardBackground,
-                borderRadius: 16,
-                padding: 16,
-
-                position: 'relative',
-              }}>
-                {/* Info button positioned absolutely in top-right */}
-                <TouchableOpacity 
-                  onPress={() => setOpenInfoBubble(openInfoBubble === 'total' ? null : 'total')}
-                  style={{
-                    position: 'absolute',
-                    top: 16,
-                    right: 16,
-                    zIndex: 1,
-                  }}
-                >
-                  <View style={{
-                    width: 18,
-                    height: 18,
-                    borderRadius: 9,
-                    borderWidth: 1,
-                    borderColor: theme.text,
-                    backgroundColor: 'transparent',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <Text style={{
-                      color: theme.text,
-                      fontSize: 12,
-                      fontFamily: 'Urbanist-Bold',
-                    }}>
-                      i
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-                
-                {/* Centered content */}
-                <View style={{ alignItems: 'center', paddingTop: 8 }}>
-                  <Text style={{
-                    color: theme.text,
-                    fontSize: 20,
-                    fontFamily: 'MuseoModerno-Regular',
-                    marginBottom: 8,
-                  }}>
-                    Total
-                  </Text>
-                  <Text style={{
-                    color: theme.text,
-                    fontSize: 28,
-                    fontFamily: 'MuseoModerno-Regular',
-                  }}>
-                    {formatPrice(
-                      (creatorFinancials?.stripeBalanceAvailable || 0) + 
-                      (creatorFinancials?.stripeBalancePending || 0),
-                      userCurrency
-                    )}
-                  </Text>
-                </View>
-                {openInfoBubble === 'total' && (
-                  <View style={{
-                    position: 'absolute',
-                    top: 45,
-                    right: 0,
-                    backgroundColor: theme.text,
-                    borderRadius: 8,
-                    padding: 10,
-                    minWidth: 180,
-                    zIndex: 10,
-                  }}>
-                    <Text style={{ color: 'white', fontSize: 12, fontFamily: 'Urbanist-Regular' }}>
-                      Combined total of available and pending funds in your account.
-                    </Text>
-                  </View>
-                )}
-              </View>
-
-              {/* In Transit Card */}
-              <View style={{
-                flex: 1,
-                backgroundColor: theme.cardBackground,
-                borderRadius: 16,
-                padding: 16,
-
-                position: 'relative',
-              }}>
-                {/* Info button positioned absolutely in top-right */}
-                <TouchableOpacity 
-                  onPress={() => setOpenInfoBubble(openInfoBubble === 'transit' ? null : 'transit')}
-                  style={{
-                    position: 'absolute',
-                    top: 16,
-                    right: 16,
-                    zIndex: 1,
-                  }}
-                >
-                  <View style={{
-                    width: 18,
-                    height: 18,
-                    borderRadius: 9,
-                    borderWidth: 1,
-                    borderColor: theme.text,
-                    backgroundColor: 'transparent',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <Text style={{
-                      color: theme.text,
-                      fontSize: 12,
-                      fontFamily: 'Urbanist-Bold',
-                    }}>
-                      i
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-                
-                {/* Centered content */}
-                <View style={{ alignItems: 'center', paddingTop: 8 }}>
-                  <Text style={{
-                    color: theme.text,
-                    fontSize: 20,
-                    fontFamily: 'MuseoModerno-Regular',
-                    marginBottom: 8,
-                  }}>
-                    In Transit
-                  </Text>
-                  <Text style={{
-                    color: theme.text,
-                    fontSize: 28,
-                    fontFamily: 'MuseoModerno-Regular',
-                  }}>
-                    {formatPrice(creatorFinancials?.payoutsInTransitAmount || 0, userCurrency)}
-                  </Text>
-                </View>
-                {openInfoBubble === 'transit' && (
-                  <View style={{
-                    position: 'absolute',
-                    top: 45,
-                    right: 0,
-                    backgroundColor: theme.text,
-                    borderRadius: 8,
-                    padding: 10,
-                    minWidth: 180,
-                    zIndex: 10,
-                  }}>
-                    <Text style={{ color: 'white', fontSize: 12, fontFamily: 'Urbanist-Regular' }}>
-                      Funds that are currently being transferred to your bank account.
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </View>
-
-            {/* Third Row: Today's Goal & Weekly Goal */}
-            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
-              {/* Today's Goal Card */}
-              <View style={{
-                flex: 1,
-                backgroundColor: theme.cardBackground,
-                borderRadius: 16,
-                padding: 16,
-              }}>
-                {/* Centered content */}
-                <View style={{ alignItems: 'center' }}>
-                  <Text style={{
-                    color: theme.text,
-                    fontSize: 16,
-                    fontFamily: 'MuseoModerno-Regular',
-                    marginBottom: 4,
-                  }}>
-                    Today's Goal
-                  </Text>
-                  <Text style={{
-                    color: theme.textTertiary,
-                    fontSize: 12,
-                    fontFamily: 'MuseoModerno-Regular',
-                    marginBottom: 12,
-                  }}>
-                    {formatPrice(dailyGoal, userCurrency)}
-                  </Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    {(() => {
-                      let todayEarnings = 0;
-                      try {
-                        const dailyEarnings = creatorFinancials?.dailyEarnings ? JSON.parse(creatorFinancials.dailyEarnings) : {};
-                        const today = new Date().toISOString().split('T')[0];
-                        todayEarnings = dailyEarnings[today] || 0;
-                      } catch (e) {
-                        todayEarnings = 0;
-                      }
-                      
-                      const goalReached = todayEarnings >= dailyGoal && dailyGoal > 0;
-                      
-                      return (
-                        <Ionicons 
-                          name={goalReached ? "caret-up-outline" : "caret-down-outline"} 
-                          size={20} 
-                          color={goalReached ? "#4CAF50" : "#FD6F3E"} 
-                        />
-                      );
-                    })()}
-                    <Text style={{
-                      color: theme.text,
-                      fontSize: 24,
-                      fontFamily: 'MuseoModerno-Regular',
-                    }}>
-                      {(() => {
-                        let todayEarnings = 0;
-                        try {
-                          const dailyEarnings = creatorFinancials?.dailyEarnings ? JSON.parse(creatorFinancials.dailyEarnings) : {};
-                          const today = new Date().toISOString().split('T')[0];
-                          todayEarnings = dailyEarnings[today] || 0;
-                        } catch (e) {
-                          todayEarnings = 0;
-                        }
-                        return formatPrice(todayEarnings, userCurrency);
-                      })()}
-                    </Text>
-                  </View>
-                  <View style={{ marginTop: 12 }}>
-                    <CircularProgress
-                      percentage={(() => {
-                        let todayEarnings = 0;
-                        try {
-                          const dailyEarnings = creatorFinancials?.dailyEarnings ? JSON.parse(creatorFinancials.dailyEarnings) : {};
-                          const today = new Date().toISOString().split('T')[0];
-                          todayEarnings = dailyEarnings[today] || 0;
-                        } catch (e) {
-                          todayEarnings = 0;
-                        }
-                        return dailyGoal > 0 ? Math.round((todayEarnings / dailyGoal) * 100) : 0;
-                      })()}
-                      size={60}
-                      strokeWidth={4}
-                      backgroundColor="#F0F0F0"
-                      textColor={theme.text}
-                      fontSize={12}
-                      completedColor="#4CAF50"
-                      incompleteColor="#FD6F3E"
-                    />
-                  </View>
-                </View>
-
-              </View>
-
-              {/* Weekly Goal Card */}
-              <View style={{
-                flex: 1,
-                backgroundColor: theme.cardBackground,
-                borderRadius: 16,
-                padding: 16,
-              }}>
-                {/* Centered content */}
-                <View style={{ alignItems: 'center' }}>
-                  <Text style={{
-                    color: theme.text,
-                    fontSize: 16,
-                    fontFamily: 'MuseoModerno-Regular',
-                    marginBottom: 4,
-                  }}>
-                    Weekly Goal
-                  </Text>
-                  <Text style={{
-                    color: theme.textTertiary,
-                    fontSize: 12,
-                    fontFamily: 'MuseoModerno-Regular',
-                    marginBottom: 12,
-                  }}>
-                  {formatPrice(weeklyGoal, userCurrency)}
-                  </Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    {(() => {
-                      let weekEarnings = 0;
-                      try {
-                        const dailyEarnings = creatorFinancials?.dailyEarnings ? JSON.parse(creatorFinancials.dailyEarnings) : {};
-                        weekEarnings = calculateTimeframeEarnings(dailyEarnings, 'weekly');
-                      } catch (e) {
-                        weekEarnings = 0;
-                      }
-                      
-                      const goalReached = weekEarnings >= weeklyGoal && weeklyGoal > 0;
-                      
-                      return (
-                        <Ionicons 
-                          name={goalReached ? "caret-up-outline" : "caret-down-outline"} 
-                          size={20} 
-                          color={goalReached ? "#4CAF50" : "#FD6F3E"} 
-                        />
-                      );
-                    })()}
-                    <Text style={{
-                      color: theme.text,
-                      fontSize: 24,
-                      fontFamily: 'MuseoModerno-Regular',
-                    }}>
-                      {(() => {
-                        let weekEarnings = 0;
-                        try {
-                          const dailyEarnings = creatorFinancials?.dailyEarnings ? JSON.parse(creatorFinancials.dailyEarnings) : {};
-                          weekEarnings = calculateTimeframeEarnings(dailyEarnings, 'weekly');
-                        } catch (e) {
-                          weekEarnings = 0;
-                        }
-                        return formatPrice(weekEarnings, userCurrency);
-                      })()}
-                    </Text>
-                  </View>
-                  <View style={{ marginTop: 12 }}>
-                    <CircularProgress
-                      percentage={(() => {
-                        let weekEarnings = 0;
-                        try {
-                          const dailyEarnings = creatorFinancials?.dailyEarnings ? JSON.parse(creatorFinancials.dailyEarnings) : {};
-                          weekEarnings = calculateTimeframeEarnings(dailyEarnings, 'weekly');
-                        } catch (e) {
-                          weekEarnings = 0;
-                        }
-                        return weeklyGoal > 0 ? Math.round((weekEarnings / weeklyGoal) * 100) : 0;
-                      })()}
-                      size={60}
-                      strokeWidth={4}
-                      backgroundColor="#F0F0F0"
-                      textColor={theme.text}
-                      fontSize={12}
-                      completedColor="#4CAF50"
-                      incompleteColor="#FD6F3E"
-                    />
-                  </View>
-                </View>
-
-              </View>
-            </View>
-
-            {/* Total Earnings Card with Tabs */}
-            <View style={{
-              backgroundColor: theme.backgroundSecondary,
-              borderRadius: 16,
-              padding: 20,
-              marginBottom: 16,
-              position: 'relative',
-            }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <Text style={{
-                  color: theme.text,
-                  fontSize: 24,
-                  fontFamily: 'MuseoModerno-Regular',
-                }}>
-                  Total Earnings (Gross)
-                </Text>
-                <TouchableOpacity onPress={() => setOpenInfoBubble(openInfoBubble === 'earnings' ? null : 'earnings')}>
-                  <View style={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: 10,
-                    borderWidth: 1,
-                    borderColor: theme.text,
-                    backgroundColor: 'transparent',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <Text style={{
-                      color: theme.text,
-                      fontSize: 14,
-                      fontFamily: 'Urbanist-Bold',
-                    }}>
-                      i
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-              
-
-              {/* Earnings Display */}
-              <View style={{ alignItems: 'center', marginBottom: 16 }}>
-                <Text style={{
-                  color: theme.text,
-                  fontSize: 40,
-                  fontFamily: 'MuseoModerno-Regular',
-                  marginBottom: 8,
-                }}>
-                  {(() => {
-                    let dailyEarnings = {};
-                    try {
-                      dailyEarnings = creatorFinancials?.dailyEarnings ? JSON.parse(creatorFinancials.dailyEarnings) : {};
-                    } catch (e) {
-                      dailyEarnings = {};
-                    }
-                    const earnings = calculateTimeframeEarnings(dailyEarnings, earningsTimeframe);
-                    return formatPrice(earnings, userCurrency);
-                  })()}
-                </Text>
-                <Text style={{
-                  color: theme.textTertiary,
-                  fontSize: 14,
-                  fontFamily: 'Urbanist-Regular',
-                }}>
-                  {earningsTimeframe === 'weekly' && 'Last 7 days'}
-                  {earningsTimeframe === 'monthly' && 'Last 30 days'}
-                  {earningsTimeframe === 'yearly' && 'Last 365 days'}
-                </Text>
-              </View>
-              
-              {/* Tabs */}
-              <View style={{
-                flexDirection: 'row',
-                backgroundColor: theme.background,
-                borderRadius: 12,
-                padding: 4,
-                marginBottom: 8,
-              }}>
-                {(['weekly', 'monthly', 'yearly'] as const).map((timeframe) => (
-                  <TouchableOpacity
-                    key={timeframe}
-                    onPress={() => setEarningsTimeframe(timeframe)}
-                    style={{
-                      flex: 1,
-                      paddingVertical: 10,
-                      borderRadius: 10,
-                      backgroundColor: earningsTimeframe === timeframe ? theme.primary : theme.background,
-                    }}
-                  >
-                    <Text style={{
-                      color: earningsTimeframe === timeframe ? 'white' : theme.textTertiary,
-                      fontFamily: earningsTimeframe === timeframe ? 'Urbanist-Bold' : 'Urbanist-Regular',
-                      fontSize: 14,
-                      textAlign: 'center',
-                      textTransform: 'capitalize',
-                    }}>
-                      {timeframe}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              
-              {/* Net Average Display */}
-                <Text style={{
-                color: theme.textSecondary,
-                fontSize: 12,
-                  fontFamily: 'MuseoModerno-Regular',
-                textAlign: 'center',
-                marginBottom: 16,
-                }}>
-                  {(() => {
-                    let dailyEarnings = {};
-                    try {
-                      dailyEarnings = creatorFinancials?.dailyEarnings ? JSON.parse(creatorFinancials.dailyEarnings) : {};
-                    } catch (e) {
-                      dailyEarnings = {};
-                    }
-                  
-                  const grossEarnings = calculateTimeframeEarnings(dailyEarnings, earningsTimeframe);
-                  const netEarnings = Math.round(grossEarnings * 0.8); // 20% platform fee
-                  
-                  let divisor = 1;
-                  let period = '';
-                  
-                  if (earningsTimeframe === 'weekly') {
-                    divisor = 7;
-                    period = 'Weekly';
-                  } else if (earningsTimeframe === 'monthly') {
-                    divisor = 30;
-                    period = 'Monthly';
-                  } else if (earningsTimeframe === 'yearly') {
-                    divisor = 365;
-                    period = 'Yearly';
-                  }
-                  
-                  const average = divisor > 1 ? Math.round(netEarnings / divisor) : netEarnings;
-                  return `${period} Net Average: ${formatPrice(average, userCurrency)}`;
-                  })()}
-                </Text>
-              
-              {/* Earnings Chart */}
-              <View style={{ alignItems: 'center', marginHorizontal: -20 }}>
-                {(() => {
-                  let dailyEarnings = {};
-                  try {
-                    dailyEarnings = creatorFinancials?.dailyEarnings ? JSON.parse(creatorFinancials.dailyEarnings) : {};
-                  } catch (e) {
-                    dailyEarnings = {};
-                  }
-                  
-                  // Only show chart if we have data
-                  const hasData = Object.keys(dailyEarnings).length > 0;
-                  
-                  return hasData ? (
-                    <EarningsChart
-                      dailyEarnings={dailyEarnings}
-                      timeframe={earningsTimeframe}
-                      currency={userCurrency}
-                    />
-                  ) : (
-                    <View style={{
-                      height: 200,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: theme.backgroundSecondary,
-                      borderRadius: 12,
-                      marginVertical: 8,
-                    }}>
-                      <Text style={{
-                        color: theme.textTertiary,
-                        fontSize: 14,
-                        fontFamily: 'Urbanist-Regular',
-                        textAlign: 'center',
-                      }}>
-                        No earnings data available yet.{'\n'}Chart will appear once you start earning.
-                      </Text>
-                    </View>
-                  );
-                })()}
-              </View>
-              
-              {openInfoBubble === 'earnings' && (
-                <View style={{
-                  position: 'absolute',
-                  top: 55,
-                  right: 0,
-                  backgroundColor: 'black',
-                  borderRadius: 8,
-                  padding: 10,
-                  minWidth: 200,
-                  zIndex: 10,
-                }}>
-                  <Text style={{ color: 'white', fontSize: 12, fontFamily: 'Urbanist-Regular' }}>
-                    Your gross earnings before fees and taxes for the selected time period.
-                  </Text>
-                </View>
-              )}
-            </View>
-            
-
-            
-                        {/* Stripe Status Display - Only show if there are issues */}
-            {creatorFinancials?.stripeConnectSetupComplete && 
-             (!creatorFinancials.stripeConnectEnabled || 
-              !creatorFinancials.stripeConnectPayoutsEnabled || 
-              !creatorFinancials.stripeConnectVerified) && (
-                <View style={{
-                  backgroundColor: theme.cardBackground,
-                  borderRadius: 16,
-                  padding: 20,
-                width: '100%',
-                  borderWidth: 1,
-                borderColor: '#333333',
-                marginTop: 20
-                }}>
-                  <View style={{ 
-                    flexDirection: 'row', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center',
-                    marginBottom: 16 
-                }}>
-                  <Text style={{
-                    color: theme.text,
-                    fontSize: 18,
-                    fontWeight: 'bold',
-                      fontFamily: 'Urbanist-Bold'
-                  }}>
-                  Payment Status
-                  </Text>
-                    <TouchableOpacity
-                      onPress={() => setShowPaymentStatusInfo(true)}
-                      style={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: 12,
-                        backgroundColor: '#E0E0E0',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                    >
-                      <Text style={{
-                        color: theme.text,
-                        fontSize: 14,
-                        fontWeight: 'bold',
-                        fontFamily: 'Urbanist-Bold'
-                      }}>
-                        i
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                {/* Status Items */}
-                <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Ionicons name="shield-checkmark-outline" size={20} color="#4CAF50" style={{ marginRight: 10 }} />
-                    <Text style={{ color: theme.text, fontFamily: 'Urbanist-Regular' }}>Setup Complete</Text>
-                  </View>
-                  <Text style={{ color: '#4CAF50', fontFamily: 'Urbanist-Bold' }}>Yes</Text>
-                </View>
-                <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Ionicons name={creatorFinancials.stripeConnectEnabled ? "card-outline" : "alert-circle-outline"} size={20} color={creatorFinancials.stripeConnectEnabled ? '#4CAF50' : '#F44336'} style={{ marginRight: 10 }} />
-                    <Text style={{ color: theme.text, fontFamily: 'Urbanist-Regular' }}>Payments Active</Text>
-                  </View>
-                  <Text style={{ color: creatorFinancials.stripeConnectEnabled ? '#4CAF50' : '#F44336', fontFamily: 'Urbanist-Bold' }}>
-                    {creatorFinancials.stripeConnectEnabled ? 'Yes' : 'No'}
-                  </Text>
-                </View>
-                <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Ionicons name={creatorFinancials.stripeConnectPayoutsEnabled ? "cash-outline" : "alert-circle-outline"} size={20} color={creatorFinancials.stripeConnectPayoutsEnabled ? '#4CAF50' : '#F44336'} style={{ marginRight: 10 }} />
-                    <Text style={{ color: theme.text, fontFamily: 'Urbanist-Regular' }}>Payouts Active</Text>
-                  </View>
-                  <Text style={{ color: creatorFinancials.stripeConnectPayoutsEnabled ? '#4CAF50' : '#F44336', fontFamily: 'Urbanist-Bold' }}>
-                    {creatorFinancials.stripeConnectPayoutsEnabled ? 'Yes' : 'No'}
-                  </Text>
-                </View>
-                <View style={{ marginBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Ionicons name={creatorFinancials.stripeConnectVerified ? "person-circle-outline" : "alert-circle-outline"} size={20} color={creatorFinancials.stripeConnectVerified ? '#4CAF50' : '#FF9800'} style={{ marginRight: 10 }} />
-                    <Text style={{ color: theme.text, fontFamily: 'Urbanist-Regular' }}>Account Verified</Text>
-                  </View>
-                  <Text style={{ color: creatorFinancials.stripeConnectVerified ? '#4CAF50' : '#FF9800', fontFamily: 'Urbanist-Bold' }}>
-                    {creatorFinancials.stripeConnectVerified ? 'Yes' : 'Pending'}
-                  </Text>
-                </View>
-                
-                {creatorFinancials.stripeConnectSetupDate && (
-                  <View style={{ marginTop: 12, borderTopColor: '#333', borderTopWidth: 1, paddingTop: 12 }}>
-                    <Text style={{ color: '#888', fontFamily: 'Urbanist-Regular', fontSize: 12, textAlign: 'center' }}>
-                      Setup completed on: {new Date(creatorFinancials.stripeConnectSetupDate).toLocaleDateString()}
-                    </Text>
-                </View>
-              )}
-              </View>
+              <EarningsTab
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                shouldHighlightSetup={shouldHighlightSetup}
+                setShouldHighlightSetup={setShouldHighlightSetup}
+                missingChannelConditions={missingChannelConditions}
+              />
             )}
-            
-            {/* Get Paid message - Only show if Stripe is not connected */}
-            {!creatorFinancials?.stripeConnectSetupComplete && (
-                <View style={{
-                backgroundColor: 'rgba(251, 35, 85, 0.1)',
-                  borderRadius: 16,
-                padding: 20,
-                width: '100%',
-                flexDirection: 'row',
-                  alignItems: 'center',
-                  borderWidth: 1,
-                borderColor: 'rgba(251, 35, 85, 0.3)',
-                marginTop: 20
-                }}>
-                <Ionicons name="information-circle-outline" size={32} color="#676767" style={{ marginRight: 16 }} />
-                <View style={{ flex: 1 }}>
-                  <Text style={{
-                    color: theme.text,
-                    fontSize: 16,
-                    fontFamily: 'Urbanist-Bold',
-                    marginBottom: 4
-                  }}>
-                    Get Paid
-                  </Text>
-                  <Text style={{
-                    color: theme.text,
-                    fontSize: 14,
-                    fontFamily: 'Urbanist-Regular',
-                    lineHeight: 20
-                  }}>
-                    Connect a Stripe account to start accepting payments and earning from your content.
-                  </Text>
-                </View>
-            </View>
-          )}
-          
-          {/* View Dashboard Button - Always visible when Stripe is connected */}
-          {creatorFinancials?.stripeConnectSetupComplete && (
-            <TouchableOpacity
-              onPress={handleOpenDashboard}
-              style={{
-                backgroundColor: theme.textSecondary,
-                borderRadius: 12,
-                paddingVertical: 14,
-                marginTop: 16,
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexDirection: 'row'
-              }}
-            >
-              <Ionicons name="open-outline" size={20} color={theme.textInverse} style={{ marginRight: 8 }} />
-              <Text style={{ color: theme.textInverse, fontFamily: 'Urbanist-Bold', fontSize: 16 }}>
-                View Dashboard
-              </Text>
-            </TouchableOpacity>
-          )}
-          </View>
-          
-          {/* Stripe Connect Express Button - Only show if setup is not complete */}
-          {!creatorFinancials?.stripeConnectSetupComplete && (
-            <View style={{ alignItems: 'center', width: '100%', paddingBottom: 10, marginTop: 20 }}>
-              <Animated.View
-                style={{
-                  transform: [{ scale: setupButtonAnimation }],
-                  width: '100%',
-                }}
-              >
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: shouldHighlightSetup ? '#FD6F3E' : '#676767',
-                    paddingVertical: 16,
-                    borderRadius: 16,
-                    flexDirection: 'row',
-              alignItems: 'center', 
-              justifyContent: 'center',
-                    width: '100%',
-                    shadowColor: shouldHighlightSetup ? '#FD6F3E' : '#676767',
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: shouldHighlightSetup ? 0.6 : 0.4,
-                    shadowRadius: shouldHighlightSetup ? 15 : 10,
-                    elevation: shouldHighlightSetup ? 12 : 8,
-                    opacity: (isLoadingStripeConnect || (missingChannelConditions.length > 1 || (missingChannelConditions.length === 1 && missingChannelConditions[0] !== 'Payment setup incomplete'))) ? 0.5 : 1,
-                    borderWidth: shouldHighlightSetup ? 2 : 0,
-                    borderColor: shouldHighlightSetup ? '#FFB74D' : 'transparent',
-                  }}
-                  disabled={isLoadingStripeConnect}
-                  onPress={() => {
-                    // If profile is incomplete, navigate to edit-profile
-                    if (missingChannelConditions.length > 1 || (missingChannelConditions.length === 1 && missingChannelConditions[0] !== 'Payment setup incomplete')) {
-                      router.push('/edit-profile');
-                    } else {
-                      // If profile is complete, proceed with payment setup
-                      handleOnboarding();
-                    }
-                  }}
-                >
-                <Ionicons name="card-outline" size={22} color={theme.textInverse} style={{ marginRight: 12 }} />
-                <View>
-            <Text style={{ 
-              color: theme.textInverse, 
-                    fontSize: 18, 
-                    fontWeight: 'bold',
-              fontFamily: 'Urbanist-Bold',
-                    textAlign: 'left'
-            }}>
-                    {isLoadingStripeConnect 
-                      ? 'Connecting...' 
-                      : ((missingChannelConditions.length > 1 || (missingChannelConditions.length === 1 && missingChannelConditions[0] !== 'Payment setup incomplete'))
-                          ? 'Complete Profile First' 
-                          : 'Set Up Payments')}
-            </Text>
-            <Text style={{ 
-                    color: 'rgba(255, 255, 255, 0.8)',
-                    fontSize: 13,
-                    fontFamily: 'Urbanist-Regular',
-                    textAlign: 'left',
-                    marginTop: 2
-                  }}>
-                    {(missingChannelConditions.length > 1 || (missingChannelConditions.length === 1 && missingChannelConditions[0] !== 'Payment setup incomplete'))
-                        ? 'Finish your profile setup to enable payments' 
-                        : 'Connect with Stripe to get paid'}
-            </Text>
-          </View>
-              </TouchableOpacity>
-              </Animated.View>
-            </View>
-          )}
-        </ScrollView>
-      )}
-
-      {/* Stripe Connect WebView Modal */}
-      <StripeConnectModal
-        visible={showStripeConnect}
-        stripeConnectUrl={stripeConnectUrl}
-        onClose={() => setShowStripeConnect(false)}
-        onNavigationStateChange={(navState) => {
-          // Handle navigation state changes
-          console.log('🌐 Navigation state changed:', navState.url);
-          
-          // Close modal when user completes onboarding or goes to return URL
-          if (navState.url.includes('cherrybox.app/connect-return') || 
-              navState.url.includes('success') ||
-              navState.url.includes('complete') ||
-              navState.url.includes('dashboard.stripe.com/connect/accounts') ||
-              navState.url.includes('account_updated=true')) {
-            setShowStripeConnect(false);
-            loadCreatorFinancials(); // Refresh data after completion
-            
-            // Refresh channel conditions to update missing requirements
-            setTimeout(async () => {
-              await refreshChannelConditions(true); // Force refresh after Stripe completion
-              
-              // Switch to chat tab and show 6-digit code modal
-              setSelectedTab('chats');
-              setShowInlineVerification(true);
-            }, 1000); // Small delay to ensure financial data is loaded
-            
-            Alert.alert(
-              "Setup Complete",
-              "Your Stripe Connect account has been set up successfully! Please verify your social media to complete channel setup.",
-              [{ 
-                text: "OK", 
-                style: "default",
-                onPress: () => {
-                  // Ensure we're on the chat tab after alert dismissal
-                  setSelectedTab('chats');
-                }
-              }]
-            );
-          }
-          
-          // Handle errors or cancellations
-          if (navState.url.includes('error') || 
-              navState.url.includes('cancel') ||
-              navState.url.includes('failure')) {
-            setShowStripeConnect(false);
-            loadCreatorFinancials(); // Refresh data even on cancellation
-            setShowNetworkErrorModal(true);
-          }
-        }}
-        onError={(syntheticEvent) => {
-          const { nativeEvent } = syntheticEvent;
-          console.error('WebView error:', nativeEvent);
-          setShowNetworkErrorModal(true);
-        }}
-        onHttpError={(syntheticEvent) => {
-          const { nativeEvent } = syntheticEvent;
-          console.error('WebView HTTP error:', nativeEvent);
-        }}
-      />
-        {/* Overlay to close info bubble when open */}
-      {openInfoBubble && (
-        <TouchableOpacity
-          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 5 }}
-          activeOpacity={1}
-          onPress={() => setOpenInfoBubble(null)}
-        />
-      )}
-        {/* Subscriber Info Modal */}
-        <SubscriberInfoModal
-          visible={showSubscriberModal}
-          subscriber={selectedSubscriber}
-          onClose={() => setShowSubscriberModal(false)}
-        />
-
-        {/* Network Error Modal */}
-        <NetworkErrorModal
-          visible={showNetworkErrorModal}
-          onClose={() => setShowNetworkErrorModal(false)}
-        />
-
-        {/* Payment Status Info Modal */}
-        <Modal
-          visible={showPaymentStatusInfo}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setShowPaymentStatusInfo(false)}
-        >
-          <View style={{
-            flex: 1,
-            backgroundColor: 'rgba(0,0,0,0.75)',
-            justifyContent: 'center',
-            alignItems: 'center',
-            paddingHorizontal: 20
-          }}>
-            <View style={{
-              backgroundColor: theme.modalBackground,
-              borderRadius: 20,
-              padding: 24,
-              width: '100%',
-              maxWidth: 400,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 10 },
-              shadowOpacity: 0.3,
-              shadowRadius: 20,
-              elevation: 10
-            }}>
-              {/* Header */}
-              <View style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 20
-              }}>
-                <Text style={{
-                  color: theme.text,
-                  fontSize: 20,
-                  fontWeight: 'bold',
-                  fontFamily: 'Urbanist-Bold'
-                }}>
-                  Payment Status Help
-                </Text>
-                <TouchableOpacity
-                  onPress={() => setShowPaymentStatusInfo(false)}
-                  style={{
-                    width: 30,
-                    height: 30,
-                    borderRadius: 15,
-                    backgroundColor: theme.backgroundSecondary,
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  <Ionicons name="close" size={18} color={theme.text} />
-                </TouchableOpacity>
-              </View>
-
-              {/* Content */}
-              <View style={{ marginBottom: 20 }}>
-                <Text style={{
-                  color: theme.text,
-                  fontSize: 16,
-                  fontFamily: 'Urbanist-Regular',
-                  lineHeight: 24,
-                  marginBottom: 16
-                }}>
-                  If any of your payment statuses show as inactive or pending, you can resolve the issues by accessing your Stripe dashboard.
-                </Text>
-                
-                <Text style={{
-                  color: theme.text,
-                  fontSize: 16,
-                  fontFamily: 'Urbanist-Bold',
-                  marginBottom: 8
-                }}>
-                  What to do:
-                </Text>
-                
-                <Text style={{
-                  color: theme.text,
-                  fontSize: 15,
-                  fontFamily: 'Urbanist-Regular',
-                  lineHeight: 22
-                }}>
-                  1. Press the "View Dashboard" button below{'\n'}
-                  2. Complete any required verification steps{'\n'}
-                  3. Provide any missing information{'\n'}
-                  4. Return to the app and refresh your earnings data
-                </Text>
-              </View>
-
-              {/* Close Button */}
-              <TouchableOpacity
-                onPress={() => setShowPaymentStatusInfo(false)}
-                style={{
-                  backgroundColor: theme.primary,
-                  borderRadius: 12,
-                  paddingVertical: 14,
-                  alignItems: 'center'
-                }}
-              >
-                <Text style={{
-                  color: theme.textInverse,
-                  fontSize: 16,
-                  fontWeight: 'bold',
-                  fontFamily: 'Urbanist-Bold'
-                }}>
-                  Got it!
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
 
         </SafeAreaView>
     );

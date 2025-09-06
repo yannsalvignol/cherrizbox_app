@@ -1,7 +1,10 @@
+import { useGlobalContext } from '@/lib/global-provider';
+import { useTheme } from '@/lib/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 import {
+  Alert,
   Image,
   Keyboard,
   Text,
@@ -30,6 +33,7 @@ interface SocialMediaVerificationModalProps {
   onResendCode: () => void;
   onClose: () => void;
   onChangeUsername: () => void;
+  onVerificationSuccess?: () => void; // Add callback for successful verification
 }
 
 export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModalProps> = ({
@@ -44,11 +48,232 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
   onVerifyCode,
   onResendCode,
   onClose,
-  onChangeUsername
+  onChangeUsername,
+  onVerificationSuccess
 }) => {
   const router = useRouter();
+  const { theme } = useTheme();
+  const { user } = useGlobalContext();
+  const [isCreatingChannel, setIsCreatingChannel] = useState(false);
+  const [localError, setLocalError] = useState('');
 
   if (!visible) return null;
+
+  // Handle post-verification setup (channel creation, photo upload, etc.)
+  const handlePostVerificationSetup = async (userId: string) => {
+    try {
+      console.log('🚀 [Verification] Starting post-verification setup...');
+      
+      const { databases, config } = await import('@/lib/appwrite');
+      const { ID, Query } = await import('react-native-appwrite');
+      
+      // Get user profile data
+      const { getUserProfile, getUserPhoto } = await import('@/lib/appwrite');
+      const profile = await getUserProfile(userId);
+      
+      if (!profile) {
+        console.error('❌ [Verification] No profile found for user');
+        return;
+      }
+
+      // 1. Create/update photo document
+      console.log('📸 [Verification] Checking photo document...');
+      const userPhoto = await getUserPhoto(userId);
+      
+      if (!userPhoto) {
+        // Create new photo document
+        console.log('📸 [Verification] Creating new photo document...');
+        await databases.createDocument(
+          config.databaseId,
+          config.photoCollectionId,
+          ID.unique(),
+          {
+            thumbnail: profile.profileImageUri || '',
+            compressed_thumbnail: profile.compressed_thumbnail || '',
+            title: profile.creatorsname || 'Creator',
+            prompte: profile.creatorsname || 'Creator',
+            IdCreator: userId,
+            PhotosLocation: profile.Location || '',
+            payment: JSON.stringify({
+              monthlyPrice: '10', // Default or from profile
+              yearlyPrice: '21'   // Default or from profile
+            }),
+            PhotoTopics: profile.topics || '',
+            Bio: profile.ProfilesBio || ''
+          }
+        );
+        console.log('✅ [Verification] Created new photo document');
+      } else {
+        console.log('✅ [Verification] Photo document already exists');
+      }
+
+      // 2. Copy photo document to available collection
+      try {
+        console.log('🔄 [Verification] Copying photo document to available collection...');
+        
+        if (!config.photosAvailableToUsersCollectionId) {
+          console.log('⚠️ [Verification] Available collection not configured, skipping copy');
+        } else {
+          const photoDocs = await databases.listDocuments(
+            config.databaseId,
+            config.photoCollectionId,
+            [Query.equal('IdCreator', userId)]
+          );
+          
+          if (photoDocs.documents.length > 0) {
+            const photoDoc = photoDocs.documents[0];
+            
+            await databases.createDocument(
+              config.databaseId,
+              config.photosAvailableToUsersCollectionId,
+              ID.unique(),
+              {
+                thumbnail: photoDoc.thumbnail,
+                title: photoDoc.title,
+                prompte: photoDoc.prompte,
+                IdCreator: photoDoc.IdCreator,
+                payment: photoDoc.payment,
+                PhotosLocation: photoDoc.PhotosLocation,
+                PhotoTopics: photoDoc.PhotoTopics,
+                Bio: photoDoc.Bio,
+                compressed_thumbnail: photoDoc.compressed_thumbnail,
+                ...(photoDoc.currency && { currency: photoDoc.currency })
+              }
+            );
+            console.log('✅ [Verification] Photo document copied to available collection');
+          }
+        }
+      } catch (error) {
+        console.error('❌ [Verification] Error copying photo document:', error);
+        // Don't fail the entire process
+      }
+
+      // 3. Send verification notification email
+      try {
+        console.log('📧 [Verification] Sending verification notification...');
+        const { sendCreatorVerificationNotification } = await import('@/lib/appwrite');
+        await sendCreatorVerificationNotification({
+          userId: userId,
+          creatorName: profile.creatorsname || 'Creator',
+          location: profile.Location,
+          topics: profile.topics,
+          bio: profile.ProfilesBio,
+          phoneNumber: profile.phoneNumber,
+          gender: profile.gender,
+          dateOfBirth: profile.dateOfBirth,
+          monthlyPrice: '10', // From payment data
+          yearlyPrice: '21',  // From payment data
+          profileImageUri: profile.profileImageUri || '',
+          compressedThumbnail: profile.compressed_thumbnail || ''
+        });
+        console.log('✅ [Verification] Verification notification sent');
+      } catch (error) {
+        console.error('❌ [Verification] Error sending notification:', error);
+        // Don't fail the entire process
+      }
+
+      // 4. Create the creator's group chat
+      try {
+        console.log('🚀 [Verification] Creating creator channel...');
+        const { createCreatorChannel } = await import('@/lib/stream-chat');
+        const creatorDisplayName = profile.creatorsname || 'Creator';
+        
+        const channel = await createCreatorChannel(userId, creatorDisplayName);
+        console.log('✅ [Verification] Creator channel created successfully:', channel.id);
+        
+        // Add a small delay to ensure channel is fully created
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        return true;
+      } catch (error) {
+        console.error('❌ [Verification] Error creating creator channel:', error);
+        return false;
+      }
+      
+    } catch (error) {
+      console.error('❌ [Verification] Post-verification setup failed:', error);
+      return false;
+    }
+  };
+
+  // Enhanced verification that includes channel creation
+  const handleVerificationWithSetup = async () => {
+    if (!user?.$id || !socialMediaCode.trim()) return;
+    
+    setIsCreatingChannel(true);
+    
+    try {
+      console.log('🚀 [Verification] Starting enhanced verification process...');
+      
+      const { databases, config } = await import('@/lib/appwrite');
+      const { Query } = await import('react-native-appwrite');
+      
+      // Get user document to check the social_media_number
+      const userDocs = await databases.listDocuments(
+        config.databaseId,
+        config.creatorCollectionId,
+        [Query.equal('creatoraccountid', user.$id)]
+      );
+      
+      if (userDocs.documents.length === 0) {
+        throw new Error('User document not found');
+      }
+      
+      const userDoc = userDocs.documents[0];
+      const storedCode = userDoc.social_media_number;
+      
+      if (storedCode !== socialMediaCode.trim()) {
+        throw new Error('Invalid code. Please try again.');
+      }
+      
+      console.log('✅ [Verification] Code verified, updating account state...');
+      
+      // Code matches, update both social_media_number_correct and account_state
+      await databases.updateDocument(
+        config.databaseId,
+        config.creatorCollectionId,
+        userDoc.$id,
+        {
+          social_media_number_correct: true,
+          account_state: 'ok'
+        }
+      );
+      
+      console.log('✅ [Verification] Account state updated to ok');
+      
+      // Now handle post-verification setup (channel creation, etc.)
+      const setupSuccess = await handlePostVerificationSetup(user.$id);
+      
+      if (setupSuccess) {
+        Alert.alert(
+          'Channel Created! 🎉',
+          'Your creator channel has been successfully created and is now under review. You\'ll be notified once it\'s approved!',
+          [{ 
+            text: 'OK', 
+            style: 'default',
+            onPress: () => {
+              if (onVerificationSuccess) {
+                onVerificationSuccess();
+              }
+              onClose();
+            }
+          }]
+        );
+      } else {
+        console.log('⚠️ [Verification] Channel creation failed, but verification succeeded');
+        if (onVerificationSuccess) {
+          onVerificationSuccess();
+        }
+        onClose();
+      }
+      
+    } catch (error) {
+      console.error('❌ [Verification] Enhanced verification failed:', error);
+      setLocalError(error instanceof Error ? error.message : 'Verification failed. Please try again.');
+    } finally {
+      setIsCreatingChannel(false);
+    }
+  };
 
   // Check if the platform is Google or Apple
   const isGoogleOrApple = socialMediaPlatform === 'Google' || socialMediaPlatform === 'Apple';
@@ -56,12 +281,12 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
   if (isGoogleOrApple) {
     return (
       <View style={{
-        backgroundColor: '#FFFFFF',
+        backgroundColor: theme.modalBackground,
         borderRadius: 20,
         padding: 28,
         marginBottom: 24,
         borderWidth: 2,
-        borderColor: '#FD6F3E',
+        borderColor: theme.primary,
         width: '100%',
         alignItems: 'center'
       }}>
@@ -73,15 +298,15 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
           width: '100%'
         }}>
           <View style={{
-            backgroundColor: '#FD6F3E',
+            backgroundColor: theme.primary,
             borderRadius: 8,
             padding: 6,
             marginRight: 10
           }}>
-            <Ionicons name="star" size={16} color="white" />
+            <Ionicons name="star" size={16} color={theme.textInverse} />
           </View>
           <Text style={{ 
-            color: 'black', 
+            color: theme.text, 
             fontSize: 16, 
             fontFamily: 'Urbanist-Bold',
             flex: 1
@@ -92,17 +317,17 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
 
         {/* Message */}
         <View style={{
-          backgroundColor: 'rgba(253, 111, 62, 0.1)',
+          backgroundColor: theme.backgroundSecondary,
           borderRadius: 12,
           padding: 16,
           marginBottom: 24,
           borderWidth: 1,
-          borderColor: '#FD6F3E',
+          borderColor: theme.primary,
           alignItems: 'center',
           width: '100%'
         }}>
           <Text style={{
-            color: 'black',
+            color: theme.text,
             fontSize: 16,
             fontFamily: 'Urbanist-Bold',
             textAlign: 'center',
@@ -111,7 +336,7 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
             We need a social media platform to verify you
           </Text>
           <Text style={{
-            color: 'rgba(0,0,0,0.7)',
+            color: theme.textSecondary,
             fontSize: 14,
             fontFamily: 'Urbanist-Regular',
             textAlign: 'center'
@@ -123,13 +348,13 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
         {/* Pick Social Media Button */}
         <TouchableOpacity 
           style={{ 
-            backgroundColor: '#FD6F3E', 
+            backgroundColor: theme.primary, 
             borderRadius: 12, 
             paddingVertical: 16, 
             paddingHorizontal: 32,
             width: '100%',
             alignItems: 'center',
-            shadowColor: '#FD6F3E',
+            shadowColor: theme.primary,
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.3,
             shadowRadius: 8,
@@ -142,7 +367,7 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
           }}
         >
           <Text style={{ 
-            color: 'white', 
+            color: theme.textInverse, 
             fontSize: 16, 
             fontFamily: 'Urbanist-Bold'
           }}>
@@ -155,12 +380,12 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
 
   return (
     <View style={{
-      backgroundColor: '#FFFFFF',
+      backgroundColor: theme.modalBackground,
       borderRadius: 20,
       padding: 28,
       marginBottom: 24,
       borderWidth: 2,
-      borderColor: '#FD6F3E',
+      borderColor: theme.primary,
       width: '100%',
       alignItems: 'center'
     }}>
@@ -172,15 +397,15 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
         width: '100%'
       }}>
         <View style={{
-          backgroundColor: '#FD6F3E',
+          backgroundColor: theme.primary,
           borderRadius: 8,
           padding: 6,
           marginRight: 10
         }}>
-          <Ionicons name="shield-checkmark" size={16} color="white" />
+          <Ionicons name="shield-checkmark" size={16} color={theme.textInverse} />
         </View>
         <Text style={{ 
-          color: 'black', 
+          color: theme.text, 
           fontSize: 16, 
           fontFamily: 'Urbanist-Bold',
           flex: 1
@@ -191,12 +416,12 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
 
       {/* Social Media Info */}
       <View style={{
-        backgroundColor: 'rgba(253, 111, 62, 0.1)',
+        backgroundColor: theme.backgroundSecondary,
         borderRadius: 12,
         padding: 12,
         marginBottom: 16,
         borderWidth: 1,
-        borderColor: '#FD6F3E',
+        borderColor: theme.primary,
         alignItems: 'center',
         width: '100%'
       }}>
@@ -210,12 +435,12 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
                 <Ionicons 
                   name={network?.icon as any} 
                   size={20} 
-                  color={network?.color || '#FD6F3E'} 
+                  color={network?.color || theme.primary} 
                   style={{ marginRight: 8 }}
                 />
               )}
               <Text style={{
-                color: '#FD6F3E',
+                color: theme.primary,
                 fontSize: 16,
                 fontFamily: 'Urbanist-Bold'
               }}>
@@ -225,7 +450,7 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
           );
         })()}
         <Text style={{
-          color: 'rgba(0,0,0,0.7)',
+          color: theme.textSecondary,
           fontSize: 12,
           fontFamily: 'Urbanist-Regular'
         }}>
@@ -240,25 +465,27 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
       }}>
         <TextInput
           style={{
-            backgroundColor: '#F8F8F8',
+            backgroundColor: theme.backgroundSecondary,
             borderRadius: 12,
             padding: 16,
-            color: 'black',
+            color: theme.text,
             fontSize: 20,
             fontFamily: 'Urbanist-Bold',
             textAlign: 'center',
             letterSpacing: 4,
             borderWidth: 2,
-            borderColor: verificationError ? '#FD6F3E' : '#FD6F3E',
+            borderColor: verificationError ? theme.error : theme.primary,
             width: '100%'
           }}
           placeholder="000000"
-          placeholderTextColor="rgba(0,0,0,0.4)"
+          placeholderTextColor={theme.textTertiary}
           value={socialMediaCode}
           onChangeText={(text) => {
             // Only allow numbers and limit to 6 digits
             const numericText = text.replace(/[^0-9]/g, '');
             onCodeChange(numericText.slice(0, 6));
+            // Clear local error when user types
+            if (localError) setLocalError('');
           }}
           keyboardType="numeric"
           maxLength={6}
@@ -272,15 +499,15 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
             }
           }}
         />
-        {verificationError ? (
+        {(verificationError || localError) ? (
           <Text style={{ 
-            color: '#FD6F3E', 
+            color: theme.error, 
             fontSize: 12, 
             marginTop: 4,
             fontFamily: 'Urbanist-Regular',
             textAlign: 'center'
           }}>
-            {verificationError}
+            {localError || verificationError}
           </Text>
         ) : null}
       </View>
@@ -288,31 +515,32 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
       {/* Single Action Button */}
       <TouchableOpacity 
         style={{ 
-          backgroundColor: socialMediaCode.length === 6 ? '#FD6F3E' : 'rgba(253, 111, 62, 0.4)', 
+          backgroundColor: socialMediaCode.length === 6 ? theme.primary : theme.backgroundTertiary, 
           borderRadius: 12, 
           paddingVertical: 14, 
           paddingHorizontal: 32,
           width: '100%',
           alignItems: 'center',
-          shadowColor: socialMediaCode.length === 6 ? '#FD6F3E' : 'transparent',
+          shadowColor: socialMediaCode.length === 6 ? theme.primary : 'transparent',
           shadowOffset: { width: 0, height: 4 },
           shadowOpacity: socialMediaCode.length === 6 ? 0.3 : 0,
           shadowRadius: 8,
           elevation: socialMediaCode.length === 6 ? 8 : 0,
-          marginBottom: 16
+          marginBottom: 16,
+          opacity: socialMediaCode.length === 6 ? 1 : 0.6
         }}
         onPress={() => {
           Keyboard.dismiss();
-          onVerifyCode();
+          handleVerificationWithSetup();
         }}
-        disabled={socialMediaCode.length !== 6 || isVerifyingCode}
+        disabled={socialMediaCode.length !== 6 || isVerifyingCode || isCreatingChannel}
       >
         <Text style={{ 
-          color: 'white', 
+          color: socialMediaCode.length === 6 ? theme.textInverse : theme.textTertiary, 
           fontSize: 16, 
           fontFamily: 'Urbanist-Bold'
         }}>
-          {isVerifyingCode ? 'Verifying...' : 'Verify Code'}
+          {isCreatingChannel ? 'Creating Channel...' : isVerifyingCode ? 'Verifying...' : 'Verify Code'}
         </Text>
       </TouchableOpacity>
 
@@ -326,14 +554,14 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
           paddingVertical: 8,
           paddingHorizontal: 12,
           borderRadius: 8,
-          backgroundColor: 'rgba(253, 111, 62, 0.1)',
+          backgroundColor: theme.backgroundSecondary,
           borderWidth: 1,
-          borderColor: '#FD6F3E',
+          borderColor: theme.primary,
           alignItems: 'center'
         }}
       >
         <Text style={{
-          color: '#FD6F3E',
+          color: theme.primary,
           fontSize: 12,
           fontFamily: 'Urbanist-Medium',
           textDecorationLine: 'underline'
@@ -344,7 +572,7 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
 
       {/* Code Delivery Time Info */}
       <Text style={{
-        color: 'rgba(0, 0, 0, 0.6)',
+        color: theme.textSecondary,
         fontSize: 15,
         fontFamily: 'Urbanist-Regular',
         textAlign: 'center',
@@ -362,14 +590,14 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
           paddingVertical: 8,
           paddingHorizontal: 16,
           borderRadius: 20,
-          backgroundColor: 'rgba(253, 111, 62, 0.1)',
+          backgroundColor: theme.backgroundSecondary,
           borderWidth: 1,
-          borderColor: '#FD6F3E',
+          borderColor: theme.primary,
           alignSelf: 'center'
         }}
       >
         <Text style={{
-          color: '#FD6F3E',
+          color: theme.primary,
           fontSize: 12,
           fontFamily: 'Urbanist-Regular',
           textAlign: 'center'

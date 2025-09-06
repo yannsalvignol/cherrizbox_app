@@ -44,7 +44,7 @@ export const DatePickerModal: React.FC<DatePickerModalProps> = ({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={{ flex: 1, backgroundColor: theme.modalOverlay, justifyContent: 'flex-end' }}>
+      <View style={{ flex: 1, backgroundColor: 'transparent', justifyContent: 'flex-end' }}>
         <View className="rounded-t-3xl p-4" style={{ backgroundColor: theme.modalBackground }}>
           <View className="flex-row justify-between items-center mb-4">
             <Text style={{ color: theme.text, fontSize: 20, fontWeight: 'bold' }}>Select Birth Date</Text>
