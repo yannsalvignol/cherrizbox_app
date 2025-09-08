@@ -8,6 +8,7 @@ import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-
 interface InsightsTabProps {
   refreshing: boolean;
   onRefresh: () => Promise<void>;
+  preloadedFinancials?: any;
 }
 
 interface StripeConnectProfile {
@@ -42,11 +43,11 @@ interface StripeConnectProfile {
   dailySubscribersStats?: string;
 }
 
-export default function InsightsTab({ refreshing, onRefresh }: InsightsTabProps) {
+export default function InsightsTab({ refreshing, onRefresh, preloadedFinancials }: InsightsTabProps) {
   const { theme } = useTheme();
   const { user } = useGlobalContext();
   
-  const [creatorFinancials, setCreatorFinancials] = useState<StripeConnectProfile | null>(null);
+  const [creatorFinancials, setCreatorFinancials] = useState<StripeConnectProfile | null>(preloadedFinancials || null);
   const [isLoadingInsights, setIsLoadingInsights] = useState(false);
   const [subscriberTimeframe, setSubscriberTimeframe] = useState<'weekly' | 'monthly' | 'yearly'>('weekly');
 
@@ -117,20 +118,27 @@ export default function InsightsTab({ refreshing, onRefresh }: InsightsTabProps)
     }
   };
 
-  // Load financial data when component mounts or user changes
+  // Update state when preloaded data changes
   useEffect(() => {
-    if (user?.$id) {
+    if (preloadedFinancials) {
+      console.log('📊 [Insights] Using preloaded financial data');
+      setCreatorFinancials(preloadedFinancials);
+    }
+  }, [preloadedFinancials]);
+
+  // Load financial data when component mounts or user changes (fallback if no preloaded data)
+  useEffect(() => {
+    if (user?.$id && !preloadedFinancials) {
+      console.log('📊 [Insights] No preloaded data, loading financial data...');
       loadCreatorFinancials();
     }
-  }, [user?.$id]);
+  }, [user?.$id, preloadedFinancials]);
 
   const handleRefresh = async () => {
-    setIsLoadingInsights(true);
     await loadCreatorFinancials();
     if (onRefresh) {
       await onRefresh();
     }
-    setIsLoadingInsights(false);
   };
 
   return (
@@ -145,7 +153,7 @@ export default function InsightsTab({ refreshing, onRefresh }: InsightsTabProps)
       }}
       refreshControl={
         <RefreshControl
-          refreshing={refreshing || isLoadingInsights}
+          refreshing={refreshing}
           onRefresh={handleRefresh}
           tintColor={theme.textTertiary}
           colors={[theme.textTertiary]}

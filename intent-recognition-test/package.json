@@ -1,0 +1,16 @@
+{
+  "name": "intent-recognition-test",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Local test for Intent Recognition system",
+  "main": "intent-test.js",
+  "scripts": {
+    "test": "node intent-test.js",
+    "start": "node intent-test.js"
+  },
+  "dependencies": {
+    "langchain": "^0.1.0",
+    "@langchain/openai": "^0.0.14",
+    "dotenv": "^16.3.1"
+  }
+}

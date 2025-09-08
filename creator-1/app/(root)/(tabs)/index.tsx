@@ -19,7 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Animated, FlatList, Image, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AudienceTab from './AudienceTab';
 import EarningsTab from './EarningsTab';
@@ -58,6 +58,16 @@ export default function Index() {
   const [notificationType, setNotificationType] = useState<'success' | 'error'>('success');
   const [uncollectedTips, setUncollectedTips] = useState<Set<string>>(new Set());
     const [userCurrency, setUserCurrency] = useState('USD');
+    
+    // Preload financial data for EarningsTab
+    const [creatorFinancials, setCreatorFinancials] = useState<any>(null);
+    const [isLoadingFinancials, setIsLoadingFinancials] = useState(false);
+    const [stripeBalanceData, setStripeBalanceData] = useState<any>(null);
+  const [dailyGoal, setDailyGoal] = useState(0);
+  const [weeklyGoal, setWeeklyGoal] = useState(0);
+    
+    // Preload insights data for InsightsTab
+    const [insightsFinancials, setInsightsFinancials] = useState<any>(null);
 
     // Pagination and performance states
     const [channelOffset, setChannelOffset] = useState(0);
@@ -71,6 +81,27 @@ export default function Index() {
     const userProfileCache = useRef<Map<string, { name: string; avatar: string; documentId: string; timestamp: number }>>(new Map());
     const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
     const CHANNELS_PER_PAGE = 30; // Load 30 channels at a time
+
+    // Animation for cherry icon
+    const cherryIconScale = useRef(new Animated.Value(1)).current;
+
+    // Function to animate cherry icon zoom with natural spring effect
+    const animateCherryIcon = () => {
+        Animated.sequence([
+            Animated.spring(cherryIconScale, {
+                toValue: 1.15,
+                tension: 300,
+                friction: 8,
+                useNativeDriver: true,
+            }),
+            Animated.spring(cherryIconScale, {
+                toValue: 1,
+                tension: 200,
+                friction: 10,
+                useNativeDriver: true,
+            }),
+        ]).start();
+    };
 
     const tabs = [
       { id: 'chats', label: 'Chats', icon: 'chatbubbles-outline' },
@@ -438,7 +469,7 @@ export default function Index() {
         setFilteredChannels(finalChannels);
       }
       
-        console.log(`✅ [Channels] Load complete: ${uniqueChannels.length} channels (Total: ${finalChannels.length})`);
+      console.log(`✅ [Channels] Load complete: ${uniqueChannels.length} channels (Total: ${finalChannels.length})`);
         
         // If account state is 'ok' but no channels exist, trigger channel creation
         if (userDoc.account_state === 'ok' && finalChannels.length === 0 && !loadMore) {
@@ -446,11 +477,11 @@ export default function Index() {
           await handleMissingChannelCreation(userDoc, profile);
         }
         
-      } catch (error) {
-        console.error('❌ [Channels] Error loading channels:', error);
-      } finally {
-        setIsLoading(false);
-        setIsLoadingMore(false);
+        } catch (error) {
+      console.error('❌ [Channels] Error loading channels:', error);
+        } finally {
+            setIsLoading(false);
+            setIsLoadingMore(false);
       }
     };
   
@@ -582,8 +613,8 @@ export default function Index() {
     } catch (error) {
       console.error('❌ [MissingChannels] Channel creation process failed:', error);
       return false;
-    }
-  };
+        }
+    };
   
   // Batch fetch user profiles for better performance
   const batchFetchUserProfiles = async (dmChannels: Channel[]) => {
@@ -821,6 +852,100 @@ export default function Index() {
     }
   };
 
+  // Preload creator financials for smooth EarningsTab experience
+  const loadCreatorFinancials = async () => {
+    if (!user?.$id) return;
+
+    setIsLoadingFinancials(true);
+    try {
+      const { databases, config } = await import('@/lib/appwrite');
+      const { Query } = await import('react-native-appwrite');
+      
+      const creatorResponse = await databases.listDocuments(
+        config.databaseId,
+        process.env.EXPO_PUBLIC_APPWRITE_CREATOR_COLLECTION_ID!,
+        [Query.equal('creatoraccountid', user.$id)]
+      );
+
+      if (creatorResponse.documents.length > 0) {
+        const creatorData = creatorResponse.documents[0];
+        console.log('📊 [Preload] Creator financial data loaded:', {
+          currentPeriodGross: creatorData.currentPeriodGross,
+          previousPeriodGross: creatorData.previousPeriodGross,
+          lifetimeGross: creatorData.lifetimeGross,
+          stripeConnectAccountId: creatorData.stripeConnectAccountId
+        });
+        setCreatorFinancials(creatorData);
+        setInsightsFinancials(creatorData); // Also cache for InsightsTab
+        console.log('✅ [Preload] Financial data cached for EarningsTab and InsightsTab');
+        
+        // If Stripe is connected, also preload balance data
+        if (creatorData.stripeConnectAccountId && creatorData.stripeConnectSetupComplete) {
+          console.log('💳 [Preload] Triggering Stripe balance preload...');
+          setTimeout(() => {
+            loadStripeBalanceData(creatorData.stripeConnectAccountId);
+          }, 500); // Small delay to avoid blocking main load
+        }
+        
+        return creatorData;
+      } else {
+        console.log('❌ [Preload] No creator document found for this user.');
+        setCreatorFinancials(null);
+        return null;
+      }
+        } catch (error) {  
+      console.error('❌ [Preload] Error loading creator financials:', error);
+      setCreatorFinancials(null);
+      return null;
+        } finally {
+      setIsLoadingFinancials(false);
+    }
+  };
+
+  // Preload Stripe balance data for instant EarningsTab display
+  const loadStripeBalanceData = async (stripeAccountId: string) => {
+    try {
+      console.log('🔄 [Preload] Loading Stripe balance data for:', stripeAccountId);
+        const { functions } = await import('@/lib/appwrite');
+        const { ExecutionMethod } = await import('react-native-appwrite');
+
+        const execution = await functions.createExecution(
+            process.env.EXPO_PUBLIC_STRIPE_BALANCE_FUNCTION_ID!,
+        JSON.stringify({ stripeConnectAccountId: stripeAccountId }),
+            false, '/get-balance', ExecutionMethod.POST,
+            { 'Content-Type': 'application/json' }
+        );
+
+          const response = JSON.parse(execution.responseBody);
+      console.log('📡 [Preload] Stripe balance response received');
+
+          if (response.goals) {
+            setDailyGoal(response.goals.dailyGoal || 0);
+            setWeeklyGoal(response.goals.weeklyGoal || 0);
+        console.log('🎯 [Preload] Goals preloaded - Daily:', response.goals.dailyGoal, 'Weekly:', response.goals.weeklyGoal);
+          }
+      
+          if (response.kpis) {
+        setStripeBalanceData(response.kpis);
+        console.log('📈 [Preload] KPIs preloaded for instant EarningsTab display');
+        
+            // Update creator financials with the latest data
+            setCreatorFinancials((prev: any) => ({
+              ...prev,
+              todayEarnings: response.kpis.todayEarnings || 0,
+              weekEarnings: response.kpis.weekEarnings || 0,
+              dailyEarnings: JSON.stringify(response.kpis.dailyEarnings || {})
+            }));
+        }
+
+      console.log('✅ [Preload] Stripe balance data loaded successfully');
+
+    } catch (error) {
+      console.error('❌ [Preload] Error loading Stripe balance data:', error);
+      // Don't show error to user since this is background preloading
+    }
+  };
+
     // Handle search input changes
     const handleSearchChange = (text: string) => {
       console.log(`🔍 [Search] Search query changed: "${text}"`);
@@ -879,6 +1004,11 @@ export default function Index() {
     }
     loadProfileImage();
     loadUserCurrency();
+    
+    // Preload financial data for smooth EarningsTab experience
+    if (user?.$id) {
+        loadCreatorFinancials();
+    }
   }, [user, channelsLoaded]);
 
     return (
@@ -893,11 +1023,20 @@ export default function Index() {
             
             {/* Header */}
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 8, backgroundColor: theme.backgroundTertiary }}>
-                <TouchableOpacity onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)} activeOpacity={0.8}>
-                  <Image 
+                <TouchableOpacity 
+                onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                    animateCherryIcon();
+                }} 
+                activeOpacity={0.8}
+            >
+                  <Animated.Image 
                       source={require('../../../assets/images/cherry-icon.png')}
                       className="w-16 h-16 rounded-lg"
                       resizeMode="contain"
+                      style={{
+                          transform: [{ scale: cherryIconScale }]
+                      }}
                   />
                 </TouchableOpacity>
                 
@@ -1068,30 +1207,30 @@ export default function Index() {
                   <ActivityIndicator size="large" color={theme.text} />
                 </>
               ) : showInlineVerification ? (
-                      <SocialMediaVerificationModal
-                        visible={showInlineVerification}
-                        socialMediaPlatform={socialMediaPlatform}
-                        socialMediaUsername={socialMediaUsername}
-                        socialMediaCode={socialMediaCode}
-                        verificationError={verificationError}
-                        isVerifyingCode={isVerifyingCode}
-                        networks={networks}
-                        onCodeChange={(code) => {
-                          setSocialMediaCode(code);
-                          setVerificationError('');
-                        }}
-                        onVerifyCode={handleVerifySocialMediaCode}
-                        onResendCode={handleResendCode}
-                        onClose={() => setShowInlineVerification(false)}
-                        onChangeUsername={() => {
-                          setShowInlineVerification(false);
-                          router.push('/change-username');
-                        }}
+                <SocialMediaVerificationModal
+                  visible={showInlineVerification}
+                  socialMediaPlatform={socialMediaPlatform}
+                  socialMediaUsername={socialMediaUsername}
+                  socialMediaCode={socialMediaCode}
+                  verificationError={verificationError}
+                  isVerifyingCode={isVerifyingCode}
+                  networks={networks}
+                  onCodeChange={(code) => {
+                    setSocialMediaCode(code);
+                    setVerificationError('');
+                  }}
+                  onVerifyCode={handleVerifySocialMediaCode}
+                  onResendCode={handleResendCode}
+                  onClose={() => setShowInlineVerification(false)}
+                  onChangeUsername={() => {
+                    setShowInlineVerification(false);
+                    router.push('/change-username');
+                  }}
                         onVerificationSuccess={() => {
                           // Reload channels after successful verification and channel creation
                           loadChannels(false);
-                        }}
-                      />
+                  }}
+                />
               ) : missingChannelConditions.length > 0 ? (
                 <>
                   <View style={{
@@ -1272,6 +1411,7 @@ export default function Index() {
               <InsightsTab
                 refreshing={refreshing}
                 onRefresh={onRefresh}
+                preloadedFinancials={insightsFinancials}
               />
       )}
 
@@ -1289,6 +1429,11 @@ export default function Index() {
                 shouldHighlightSetup={shouldHighlightSetup}
                 setShouldHighlightSetup={setShouldHighlightSetup}
                 missingChannelConditions={missingChannelConditions}
+                preloadedFinancials={creatorFinancials}
+                preloadedCurrency={userCurrency}
+                preloadedStripeData={stripeBalanceData}
+                preloadedDailyGoal={dailyGoal}
+                preloadedWeeklyGoal={weeklyGoal}
               />
             )}
 

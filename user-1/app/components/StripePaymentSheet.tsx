@@ -1,4 +1,3 @@
-import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, Platform, Text, TouchableOpacity, View } from 'react-native';
@@ -51,10 +50,8 @@ const InnerSheet: React.FC<StripePaymentSheetProps & {clientSecret: string; stri
   const router = useRouter();
   const [initializing, setInitializing] = useState(true);
   
-  // Get merchant ID from config
-  const plugins = Constants.expoConfig?.plugins as any[];
-  const stripePlugin = plugins?.find(plugin => Array.isArray(plugin) && plugin[0] === '@stripe/stripe-react-native');
-  const merchantId = stripePlugin?.[1]?.merchantIdentifier;
+  // Get merchant ID from config - use the merchant ID directly from app.json
+  const merchantId = 'merchant.com.yannsalvignol.cherripay';
 
   useEffect(() => {
     (async () => {
@@ -63,7 +60,6 @@ const InnerSheet: React.FC<StripePaymentSheetProps & {clientSecret: string; stri
       console.log('🍎 Apple Pay Support Check:');
       console.log('  - Is Apple Pay Supported:', isApplePaySupported);
       console.log('  - Merchant ID from config:', merchantId);
-      console.log('  - Full plugins config:', JSON.stringify(Constants.expoConfig?.plugins, null, 2));
       console.log('  - Stripe Account ID:', stripeAccountId);
       console.log('  - Apple Pay enabled in config:', !!merchantId);
       
@@ -123,10 +119,8 @@ const StripePaymentSheet: React.FC<StripePaymentSheetProps> = (props) => {
   const [loading, setLoading] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
 
-  // Get merchant ID from config
-  const plugins = Constants.expoConfig?.plugins as any[];
-  const stripePlugin = plugins?.find(plugin => Array.isArray(plugin) && plugin[0] === '@stripe/stripe-react-native');
-  const merchantId = stripePlugin?.[1]?.merchantIdentifier;
+  // Get merchant ID from config - use the merchant ID directly from app.json
+  const merchantId = 'merchant.com.yannsalvignol.cherripay';
 
   const retryPayment = () => {
     setShowErrorModal(false);

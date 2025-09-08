@@ -14,6 +14,7 @@ export default function Settings() {
   const { refetch } = useGlobalContext();
   const { theme, isDark, setThemeMode } = useTheme();
   const [pushNotifications, setPushNotifications] = useState(true);
+  const [isTogglingPushNotifications, setIsTogglingPushNotifications] = useState(false);
 
   // Load push notification preference on component mount
   useEffect(() => {
@@ -62,7 +63,14 @@ export default function Settings() {
   };
 
   const handlePushNotificationToggle = async (value: boolean) => {
+    // Prevent multiple simultaneous toggles
+    if (isTogglingPushNotifications) return;
+    
+    setIsTogglingPushNotifications(true);
+    
     try {
+      console.log(`📱 [Settings] Starting push notification toggle to: ${value}`);
+      
       // Save preference to AsyncStorage
       await AsyncStorage.setItem('@push_notifications_enabled', JSON.stringify(value));
       setPushNotifications(value);
@@ -236,9 +244,20 @@ export default function Settings() {
         }
       }
     } catch (error) {
-      console.error('Error toggling push notifications:', error);
+      console.error('❌ [Settings] Error toggling push notifications:', error);
       // Revert the toggle on error
       setPushNotifications(!value);
+      await AsyncStorage.setItem('@push_notifications_enabled', JSON.stringify(!value));
+      
+      Alert.alert(
+        'Error',
+        'Failed to update push notification settings. Please try again.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      // Always reset loading state
+      setIsTogglingPushNotifications(false);
+      console.log('📱 [Settings] Push notification toggle process completed');
     }
   };
 
@@ -249,7 +268,8 @@ export default function Settings() {
     isLogout = false,
     isLast = false,
     switchValue?: boolean,
-    onSwitchChange?: (value: boolean) => void
+    onSwitchChange?: (value: boolean) => void,
+    isPushNotificationSwitch = false
   ) => (
     <TouchableOpacity 
       className={`flex-row items-center justify-between py-5`}
@@ -267,12 +287,28 @@ export default function Settings() {
         {title}
       </Text>
       {hasSwitch ? (
-        <Switch
-          value={switchValue !== undefined ? switchValue : pushNotifications}
-          onValueChange={onSwitchChange || handlePushNotificationToggle}
-          trackColor={{ false: theme.border, true: theme.primary }}
-          thumbColor={theme.background}
-        />
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {isPushNotificationSwitch && isTogglingPushNotifications && (
+            <Text style={{ 
+              color: theme.textTertiary, 
+              fontSize: 12, 
+              marginRight: 8,
+              fontFamily: 'Urbanist-Regular'
+            }}>
+              {pushNotifications ? 'Disabling...' : 'Enabling...'}
+            </Text>
+          )}
+          <Switch
+            value={switchValue !== undefined ? switchValue : pushNotifications}
+            onValueChange={onSwitchChange || handlePushNotificationToggle}
+            trackColor={{ 
+              false: theme.border, 
+              true: (isPushNotificationSwitch && isTogglingPushNotifications) ? theme.backgroundTertiary : theme.primary 
+            }}
+            thumbColor={(isPushNotificationSwitch && isTogglingPushNotifications) ? theme.textTertiary : theme.background}
+            disabled={isPushNotificationSwitch && isTogglingPushNotifications}
+          />
+        </View>
       ) : isLogout ? (
         <Ionicons 
           name="log-out-outline" 
@@ -314,7 +350,7 @@ export default function Settings() {
             {renderSettingItem('Edit Profile', () => router.push('/edit-profile' as any))}
             {renderSettingItem('Change Password', handleChangePassword)}
             {renderSettingItem('Payment methods', () => router.push('/payment-methods'))}
-            {renderSettingItem('Push Notifications', null, true, false, false, pushNotifications, handlePushNotificationToggle)}
+            {renderSettingItem('Push Notifications', null, true, false, false, pushNotifications, handlePushNotificationToggle, true)}
             {renderSettingItem('Logout', handleLogout, false, true)}
           </View>
         </View>
@@ -323,7 +359,7 @@ export default function Settings() {
         <View className="mb-8">
           <Text style={{ color: theme.primary, fontFamily: 'Nunito-Bold', fontSize: 18, marginBottom: 8 }}>Appearance</Text>
           <View style={{ backgroundColor: theme.cardBackground, borderRadius: 8, paddingHorizontal: 16 }}>
-            {renderSettingItem('Dark Theme', null, true, false, true, isDark, handleThemeToggle)}
+            {renderSettingItem('Dark Theme', null, true, false, true, isDark, handleThemeToggle, false)}
           </View>
         </View>
 

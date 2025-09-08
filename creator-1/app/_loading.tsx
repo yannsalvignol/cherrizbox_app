@@ -103,6 +103,81 @@ const LoadingScreen = () => {
           }
         })());
         
+        // Task 4: Preload financial data and Stripe balance for EarningsTab
+        initTasks.push((async () => {
+          try {
+            if (!user?.$id) return;
+            
+            console.log('📊 [Loading] Preloading financial data...');
+            const { databases, config } = await import('@/lib/appwrite');
+            const { Query } = await import('react-native-appwrite');
+            
+            // Load creator financial data
+            const creatorResponse = await databases.listDocuments(
+              config.databaseId,
+              process.env.EXPO_PUBLIC_APPWRITE_CREATOR_COLLECTION_ID!,
+              [Query.equal('creatoraccountid', user.$id)]
+            );
+
+            if (creatorResponse.documents.length > 0) {
+              const creatorData = creatorResponse.documents[0];
+              console.log('📊 [Loading] Creator financial data preloaded');
+              
+              // If Stripe is connected, also preload balance data
+              if (creatorData.stripeConnectAccountId && creatorData.stripeConnectSetupComplete) {
+                try {
+                  console.log('💳 [Loading] Preloading Stripe balance data...');
+                  const { functions } = await import('@/lib/appwrite');
+                  const { ExecutionMethod } = await import('react-native-appwrite');
+
+                  const execution = await functions.createExecution(
+                    process.env.EXPO_PUBLIC_STRIPE_BALANCE_FUNCTION_ID!,
+                    JSON.stringify({ stripeConnectAccountId: creatorData.stripeConnectAccountId }),
+                    false, '/get-balance', ExecutionMethod.POST,
+                    { 'Content-Type': 'application/json' }
+                  );
+
+                  const response = JSON.parse(execution.responseBody);
+                  if (response.success) {
+                    console.log('✅ [Loading] Stripe balance data preloaded successfully');
+                    
+                    // Update the creator data with fresh Stripe info
+                    if (response.goals || response.kpis) {
+                      // Store the enhanced data in global context for EarningsTab
+                      const enhancedData = {
+                        ...creatorData,
+                        ...(response.kpis && {
+                          todayEarnings: response.kpis.todayEarnings || 0,
+                          weekEarnings: response.kpis.weekEarnings || 0,
+                          dailyEarnings: JSON.stringify(response.kpis.dailyEarnings || {})
+                        }),
+                        ...(response.goals && {
+                          dailyGoal: response.goals.dailyGoal || 0,
+                          weeklyGoal: response.goals.weeklyGoal || 0
+                        })
+                      };
+                      
+                      // Store in global context for EarningsTab access
+                      const globalContext = await import('@/lib/global-provider');
+                      if (globalContext.setPreloadedFinancials) {
+                        globalContext.setPreloadedFinancials(enhancedData);
+                      }
+                    }
+                  }
+                } catch (stripeError) {
+                  console.log('⚠️ [Loading] Stripe balance preload failed, will load later:', stripeError);
+                  // Don't fail the entire loading process
+                }
+              }
+            }
+            
+            console.log('✅ [Loading] Financial data preloading complete');
+          } catch (error) {
+            console.log('❌ [Loading] Financial data preload error:', error);
+            // Don't fail if financial preload fails
+          }
+        })());
+        
         // Wait for all tasks to complete
         await Promise.allSettled(initTasks);
         setAssetsLoaded(true);

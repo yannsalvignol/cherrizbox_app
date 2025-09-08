@@ -16,6 +16,7 @@ export default function Settings() {
   const [pushNotifications, setPushNotifications] = useState(true);
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [isProcessingPushNotifications, setIsProcessingPushNotifications] = useState(false);
 
   // Load push notification preference on component mount
   useEffect(() => {
@@ -65,6 +66,13 @@ export default function Settings() {
   };
 
   const handlePushNotificationToggle = async (value: boolean) => {
+    // Prevent multiple simultaneous operations
+    if (isProcessingPushNotifications) {
+      return;
+    }
+    
+    setIsProcessingPushNotifications(true);
+    
     try {
       // Save preference to AsyncStorage
       await AsyncStorage.setItem('@push_notifications_enabled', JSON.stringify(value));
@@ -252,6 +260,8 @@ export default function Settings() {
       console.error('Error toggling push notifications:', error);
       // Revert the toggle on error
       setPushNotifications(!value);
+    } finally {
+      setIsProcessingPushNotifications(false);
     }
   };
 
@@ -346,6 +356,7 @@ export default function Settings() {
           onValueChange={handlePushNotificationToggle}
           trackColor={{ false: theme.border, true: theme.primary }}
           thumbColor={'white'}
+          disabled={isProcessingPushNotifications}
         />
       ) : isThemeSwitch ? (
         <Switch
@@ -411,7 +422,7 @@ export default function Settings() {
             {renderSettingItem('Edit Profile', () => router.push('/edit-profile' as any))}
             {renderSettingItem('Change Password', handleChangePassword)}
             {renderSettingItem('Payment methods', () => router.push('/payment-methods'))}
-            {renderSettingItem('Push Notifications', null, true)}
+            {renderSettingItem(isProcessingPushNotifications ? 'Push Notifications (Processing...)' : 'Push Notifications', null, true)}
             {renderSettingItem('Advanced Account Settings', () => setShowAdvancedSettings(!showAdvancedSettings), false, false, false, false, true)}
             
             {/* Expandable Advanced Settings */}

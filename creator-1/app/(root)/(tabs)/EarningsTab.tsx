@@ -15,6 +15,11 @@ interface EarningsTabProps {
   shouldHighlightSetup: boolean;
   setShouldHighlightSetup: (value: boolean) => void;
   missingChannelConditions: string[];
+  preloadedFinancials?: any;
+  preloadedCurrency?: string;
+  preloadedStripeData?: any;
+  preloadedDailyGoal?: number;
+  preloadedWeeklyGoal?: number;
 }
 
 interface StripeConnectProfile {
@@ -54,18 +59,23 @@ export default function EarningsTab({
   onRefresh, 
   shouldHighlightSetup, 
   setShouldHighlightSetup,
-  missingChannelConditions 
+  missingChannelConditions,
+  preloadedFinancials,
+  preloadedCurrency,
+  preloadedStripeData,
+  preloadedDailyGoal,
+  preloadedWeeklyGoal 
 }: EarningsTabProps) {
   const { theme } = useTheme();
   const { user, refreshChannelConditions } = useGlobalContext();
   const router = useRouter();
   
-  const [creatorFinancials, setCreatorFinancials] = useState<StripeConnectProfile | null>(null);
+  const [creatorFinancials, setCreatorFinancials] = useState<StripeConnectProfile | null>(preloadedFinancials || null);
   const [isLoadingFinancials, setIsLoadingFinancials] = useState(false);
   const [earningsTimeframe, setEarningsTimeframe] = useState<'weekly' | 'monthly' | 'yearly'>('weekly');
-  const [dailyGoal, setDailyGoal] = useState(0);
-  const [weeklyGoal, setWeeklyGoal] = useState(0);
-  const [userCurrency, setUserCurrency] = useState('USD');
+  const [dailyGoal, setDailyGoal] = useState(preloadedDailyGoal || 0);
+  const [weeklyGoal, setWeeklyGoal] = useState(preloadedWeeklyGoal || 0);
+  const [userCurrency, setUserCurrency] = useState(preloadedCurrency || 'USD');
   const [openInfoBubble, setOpenInfoBubble] = useState<null | 'available' | 'pending' | 'total' | 'transit' | 'earnings'>(null);
   const [showPaymentStatusInfo, setShowPaymentStatusInfo] = useState(false);
   const [isLoadingStripeConnect, setIsLoadingStripeConnect] = useState(false);
@@ -341,13 +351,60 @@ export default function EarningsTab({
     }
   };
 
-  // Load financial data when component mounts or user changes
+  // Update state when preloaded data changes
+  useEffect(() => {
+    if (preloadedFinancials) {
+      console.log('📊 [Earnings] Using preloaded financial data');
+      setCreatorFinancials(preloadedFinancials);
+    }
+  }, [preloadedFinancials]);
+
+  useEffect(() => {
+    if (preloadedCurrency) {
+      console.log('💰 [Earnings] Using preloaded currency:', preloadedCurrency);
+      setUserCurrency(preloadedCurrency);
+    }
+  }, [preloadedCurrency]);
+
+  useEffect(() => {
+    if (preloadedDailyGoal !== undefined) {
+      console.log('🎯 [Earnings] Using preloaded daily goal:', preloadedDailyGoal);
+      setDailyGoal(preloadedDailyGoal);
+    }
+  }, [preloadedDailyGoal]);
+
+  useEffect(() => {
+    if (preloadedWeeklyGoal !== undefined) {
+      console.log('🎯 [Earnings] Using preloaded weekly goal:', preloadedWeeklyGoal);
+      setWeeklyGoal(preloadedWeeklyGoal);
+    }
+  }, [preloadedWeeklyGoal]);
+
+  useEffect(() => {
+    if (preloadedStripeData) {
+      console.log('📈 [Earnings] Using preloaded Stripe KPI data');
+      // Update creator financials with the preloaded Stripe data
+      setCreatorFinancials(prev => ({
+        ...prev,
+        todayEarnings: preloadedStripeData.todayEarnings || 0,
+        weekEarnings: preloadedStripeData.weekEarnings || 0,
+        dailyEarnings: JSON.stringify(preloadedStripeData.dailyEarnings || {})
+      }));
+    }
+  }, [preloadedStripeData]);
+
+  // Load financial data when component mounts or user changes (fallback if no preloaded data)
   useEffect(() => {
     if (user?.$id) {
-      loadCreatorFinancials();
-      loadUserCurrency();
+      // Only load if we don't have preloaded data
+      if (!preloadedFinancials) {
+        loadCreatorFinancials();
+      }
+      if (!preloadedCurrency) {
+        loadUserCurrency();
+      }
     }
-  }, [user?.$id]);
+  }, [user?.$id, preloadedFinancials, preloadedCurrency]);
 
   // Handle highlighting setup button when navigating from payment setup incomplete
   useEffect(() => {
@@ -409,15 +466,15 @@ export default function EarningsTab({
           paddingHorizontal: 16,
           paddingVertical: 16,
         }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing || isLoadingFinancials}
-            onRefresh={handleRefresh}
-            tintColor={theme.textTertiary}
-            colors={[theme.textTertiary]}
-            progressBackgroundColor={theme.backgroundTertiary}
-          />
-        }
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={theme.textTertiary}
+              colors={[theme.textTertiary]}
+              progressBackgroundColor={theme.backgroundTertiary}
+            />
+          }
       >
         <View>
           {/* Auto-initialize KPI data if missing and Stripe is connected */}
