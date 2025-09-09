@@ -125,8 +125,8 @@ async function createCluster(questions, creatorId, topic, originalMetadata = nul
     for (const question of questions) {
         let metadataToUpdate;
         
-        if (question.metadata) {
-            // Use metadata from the question object (from similarity search)
+        if (question.metadata && question.metadata.question) {
+            // Use metadata from the question object (from similarity search) - has complete metadata
             metadataToUpdate = {
                 ...question.metadata,
                 clusterId,
@@ -140,17 +140,21 @@ async function createCluster(questions, creatorId, topic, originalMetadata = nul
                 clusterTimestamp
             };
         } else {
-            // Fallback: try to fetch metadata
+            // Fallback: try to fetch metadata, but ensure we don't lose the question text
             const currentQuestion = await index.fetch([question.id]);
-            console.log(`     DEBUG - Fetched metadata for ${question.id}:`, currentQuestion[0]?.metadata);
+            const fetchedMetadata = currentQuestion[0]?.metadata || {};
+            
+            // If we don't have a question in the metadata, skip this question
+            if (!fetchedMetadata.question) {
+                continue;
+            }
             
             metadataToUpdate = {
-                ...(currentQuestion[0]?.metadata || {}),
+                ...fetchedMetadata,
                 clusterId,
                 clusterTimestamp
             };
         }
-        
         
         await index.update({
             id: question.id,
@@ -171,7 +175,7 @@ async function processQuestion(question, chatId, userId, creatorId, topic = 'gen
     const questionId = await storeQuestion(question, chatId, userId, creatorId, topic);
     
     // Step 2: Find similar questions
-    const similarQuestions = await findSimilarQuestions(question, 0.7, topic);
+    const similarQuestions = await findSimilarQuestions(question, 0.8, topic);
     
     console.log(`   Found ${similarQuestions.length} similar questions`);
     
@@ -300,7 +304,7 @@ async function processNewQuestion(question, chatId = 'interactive', userId = 'us
         await new Promise(resolve => setTimeout(resolve, 1000));
         
         // Step 2: Find similar questions in existing vectors (search all topics for better clustering)
-        const similarQuestions = await findSimilarQuestions(question, 0.7, null);
+        const similarQuestions = await findSimilarQuestions(question, 0.8, null);
         console.log(`   Found ${similarQuestions.length} similar questions`);
         
         if (similarQuestions.length > 0) {
@@ -319,10 +323,14 @@ async function processNewQuestion(question, chatId = 'interactive', userId = 'us
                 const clusterTimestamp = existingCluster.metadata.clusterTimestamp;
                 console.log(`   ✅ Adding to existing cluster: ${clusterId}`);
                 
-                // Get current metadata and preserve it
-                const currentQuestion = await index.fetch([questionId]);
+                // Use original metadata instead of fetching (fetch has timing issues)
                 const updatedMetadata = {
-                    ...currentQuestion[0].metadata,
+                    question,
+                    chatId,
+                    userId,
+                    creatorId,
+                    topic,
+                    timestamp: Date.now(),
                     clusterId,
                     clusterTimestamp
                 };
@@ -336,7 +344,10 @@ async function processNewQuestion(question, chatId = 'interactive', userId = 'us
             } else {
                 // Create new cluster with all unclustered similar questions
                 const unclusteredSimilar = similarQuestions.filter(q => !q.metadata.clusterId);
-                const allQuestions = [{ id: questionId }, ...unclusteredSimilar];
+                const allQuestions = [
+                    { id: questionId }, 
+                    ...unclusteredSimilar.map(q => ({ id: q.id, metadata: q.metadata }))
+                ];
                 const originalMetadata = { questionId, question, chatId, userId, creatorId, topic, timestamp: Date.now() };
                 const clusterId = await createCluster(allQuestions, creatorId, topic, originalMetadata);
                 
@@ -356,7 +367,124 @@ async function processNewQuestion(question, chatId = 'interactive', userId = 'us
 }
 
 /**
- * Display all current clusters
+ * Display clusters as a network graph
+ */
+async function displayClusterGraph() {
+    try {
+        console.log('\n🕸️  Cluster Network Graph:');
+        console.log('='.repeat(80));
+        
+        // Get all vectors
+        const dummyEmbedding = await generateEmbedding("test");
+        const allVectors = await index.query({
+            vector: dummyEmbedding,
+            topK: 1000,
+            includeVectors: false,
+            includeMetadata: true
+        });
+        
+        if (allVectors.length === 0) {
+            console.log('No questions stored yet.');
+            return;
+        }
+        
+        // Group by clusters
+        const clusters = {};
+        allVectors.forEach(vector => {
+            const clusterId = vector.metadata.clusterId;
+            if (clusterId) {
+                if (!clusters[clusterId]) {
+                    clusters[clusterId] = [];
+                }
+                clusters[clusterId].push(vector);
+            }
+        });
+        
+        // Calculate inter-cluster similarities
+        const clusterSimilarities = [];
+        const clusterIds = Object.keys(clusters);
+        
+        for (let i = 0; i < clusterIds.length; i++) {
+            for (let j = i + 1; j < clusterIds.length; j++) {
+                const cluster1 = clusters[clusterIds[i]];
+                const cluster2 = clusters[clusterIds[j]];
+                
+                // Calculate average similarity between clusters
+                let totalSimilarity = 0;
+                let count = 0;
+                
+                for (const q1 of cluster1) {
+                    for (const q2 of cluster2) {
+                        const embedding1 = await generateEmbedding(q1.metadata.question);
+                        const embedding2 = await generateEmbedding(q2.metadata.question);
+                        const similarity = cosineSimilarity(embedding1, embedding2);
+                        totalSimilarity += similarity;
+                        count++;
+                    }
+                }
+                
+                const avgSimilarity = totalSimilarity / count;
+                if (avgSimilarity > 0.3) { // Only show meaningful connections
+                    clusterSimilarities.push({
+                        cluster1: clusterIds[i],
+                        cluster2: clusterIds[j],
+                        similarity: avgSimilarity
+                    });
+                }
+            }
+        }
+        
+        // Helper function for cosine similarity
+        function cosineSimilarity(a, b) {
+            const dotProduct = a.reduce((sum, ai, i) => sum + ai * b[i], 0);
+            const magnitudeA = Math.sqrt(a.reduce((sum, ai) => sum + ai * ai, 0));
+            const magnitudeB = Math.sqrt(b.reduce((sum, bi) => sum + bi * bi, 0));
+            return dotProduct / (magnitudeA * magnitudeB);
+        }
+        
+        // Display the network
+        console.log('\nCluster Network:');
+        console.log('================');
+        
+        Object.entries(clusters).forEach(([clusterId, questions], index) => {
+            const shortId = `C${index + 1}`;
+            const topic = questions[0].metadata.topic || 'general';
+            const questionCount = questions.length;
+            
+            console.log(`\n${shortId} [${topic.toUpperCase()}] (${questionCount} questions)`);
+            console.log('├─ ' + questions.map(q => `"${q.metadata.question}"`).join('\n├─ '));
+            
+            // Show connections to other clusters
+            const connections = clusterSimilarities.filter(
+                conn => conn.cluster1 === clusterId || conn.cluster2 === clusterId
+            );
+            
+            if (connections.length > 0) {
+                console.log('│');
+                connections.forEach((conn, connIndex) => {
+                    const otherCluster = conn.cluster1 === clusterId ? conn.cluster2 : conn.cluster1;
+                    const otherIndex = clusterIds.indexOf(otherCluster);
+                    const strength = conn.similarity > 0.6 ? '═══' : conn.similarity > 0.4 ? '───' : '···';
+                    const isLast = connIndex === connections.length - 1;
+                    
+                    console.log(`${isLast ? '└─' : '├─'} ${strength}> C${otherIndex + 1} (similarity: ${conn.similarity.toFixed(3)})`);
+                });
+            }
+        });
+        
+        // Legend
+        console.log('\n📊 Legend:');
+        console.log('═══ Strong connection (>0.6)');
+        console.log('─── Medium connection (0.4-0.6)');
+        console.log('··· Weak connection (0.3-0.4)');
+        
+    } catch (error) {
+        console.error('❌ Error displaying cluster graph:', error);
+    }
+}
+
+/**
+ * Display all current clusters (simple list view)
  */
 async function displayClusters() {
     try {
@@ -436,7 +564,8 @@ async function interactiveMode() {
     console.log('=========================================');
     console.log('Commands:');
     console.log('  ask <question>     - Process a new question');
-    console.log('  clusters           - Show all clusters');
+    console.log('  clusters           - Show all clusters (list view)');
+    console.log('  graph              - Show cluster network graph');
     console.log('  clear              - Clear all data');
     console.log('  exit               - Exit the system');
     console.log('');
@@ -472,6 +601,10 @@ async function interactiveMode() {
                     await displayClusters();
                     break;
                     
+                case 'graph':
+                    await displayClusterGraph();
+                    break;
+                    
                 case 'clear':
                     await clearTestData();
                     break;
@@ -482,7 +615,7 @@ async function interactiveMode() {
                     return;
                     
                 default:
-                    console.log('❌ Unknown command. Available: ask, clusters, clear, exit');
+                    console.log('❌ Unknown command. Available: ask, clusters, graph, clear, exit');
             }
         } catch (error) {
             console.error('❌ Error:', error.message);
