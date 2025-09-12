@@ -42,6 +42,115 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
   isThreadInput = false
 }) => {
   const { theme } = useTheme();
+  
+  // Component initialization logging
+  React.useEffect(() => {
+    console.log('🚀 [CustomMessageInput] Component initialized');
+    console.log('⚙️ [CustomMessageInput] Configuration:', {
+      currentChatType,
+      isThreadInput,
+      channelId: currentChannel?.id,
+      creatorName,
+      userId,
+      creatorId,
+      hasClusteringFunctionId: !!process.env.EXPO_PUBLIC_CLUSTERING_FUNCTION_ID
+    });
+    
+    // Log environment variables (without exposing sensitive data)
+    if (!process.env.EXPO_PUBLIC_CLUSTERING_FUNCTION_ID) {
+      console.log('⚠️ [CustomMessageInput] Missing EXPO_PUBLIC_CLUSTERING_FUNCTION_ID');
+    }
+    
+    // Log clustering eligibility
+    const isEligibleForClustering = currentChatType === 'direct' && !isThreadInput;
+    console.log(`🎯 [CustomMessageInput] Clustering eligible: ${isEligibleForClustering}`);
+    if (!isEligibleForClustering) {
+      if (currentChatType !== 'direct') {
+        console.log('   Reason: Not a direct message chat');
+      }
+      if (isThreadInput) {
+        console.log('   Reason: Thread input mode');
+      }
+    }
+  }, [currentChatType, isThreadInput, currentChannel?.id, userId, creatorId]);
+
+  // Set up message event listener for clustering
+  React.useEffect(() => {
+    if (!currentChannel || currentChatType !== 'direct' || isThreadInput) {
+      return;
+    }
+
+    console.log('🎧 [CustomMessageInput] Setting up message event listener...');
+
+    const handleNewMessage = (event: any) => {
+      console.log('📨 [CustomMessageInput] New message event received');
+      console.log('📋 [CustomMessageInput] Event details:', {
+        type: event.type,
+        messageId: event.message?.id,
+        userId: event.message?.user?.id,
+        currentUserId: userId,
+        isFromCurrentUser: event.message?.user?.id === userId,
+        hasText: !!event.message?.text,
+        textLength: event.message?.text?.length || 0
+      });
+
+      // Only process messages from the current user (fan)
+      if (event.message?.user?.id === userId && event.message?.text && event.message.text.trim()) {
+        // Derive proId from channel ID if not provided
+        const derivedProId = (creatorId && creatorId.trim().length > 0)
+          ? creatorId
+          : (currentChannel?.id?.startsWith('dm-') ? currentChannel.id.split('-')[1] : null);
+
+        console.log('🧩 [CustomMessageInput] proId resolution:', {
+          providedCreatorId: creatorId,
+          channelId: currentChannel?.id,
+          derivedProId
+        });
+
+        if (!derivedProId) {
+          console.log('⚠️ [CustomMessageInput] Missing proId (creatorId); skipping clustering call.');
+          return;
+        }
+        console.log('✅ [CustomMessageInput] Message from current user detected, sending to clustering...');
+        console.log('🏷️ [CustomMessageInput] Message context:', {
+          messageId: event.message.id,
+          content: event.message.text.substring(0, 100) + (event.message.text.length > 100 ? '...' : ''),
+          chatType: currentChatType,
+          channelId: currentChannel.id,
+          fanId: userId,
+          creatorId: derivedProId
+        });
+
+        sendToClusteringFunction({
+          messageId: event.message.id,
+          content: event.message.text,
+          chatId: currentChannel.id,
+          fanId: userId,
+          proId: derivedProId,
+          timestamp: Date.now(),
+          messageType: 'text'
+        });
+      } else {
+        console.log('⏭️ [CustomMessageInput] Skipping message');
+        if (event.message?.user?.id !== userId) {
+          console.log('   Reason: Message from other user');
+        }
+        if (!event.message?.text || !event.message.text.trim()) {
+          console.log('   Reason: No text content');
+        }
+      }
+    };
+
+    // Listen for new messages
+    currentChannel.on('message.new', handleNewMessage);
+    console.log('✅ [CustomMessageInput] Message event listener registered');
+
+    // Cleanup
+    return () => {
+      console.log('🧹 [CustomMessageInput] Removing message event listener');
+      currentChannel.off('message.new', handleNewMessage);
+    };
+  }, [currentChannel, currentChatType, isThreadInput, userId, creatorId]);
   const [showAttachmentModal, setShowAttachmentModal] = useState(false);
   const [showStripeSheet, setShowStripeSheet] = useState(false);
   const [pendingMessageData, setPendingMessageData] = useState<any>(null);
@@ -398,6 +507,93 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
     );
   }
   
+  // Clustering function integration
+  const sendToClusteringFunction = async (messageData: any) => {
+    const startTime = Date.now();
+    console.log('🔗 [Clustering] Starting message processing...');
+    console.log('📋 [Clustering] Message data:', {
+      messageId: messageData.messageId,
+      content: messageData.content.substring(0, 100) + (messageData.content.length > 100 ? '...' : ''),
+      chatId: messageData.chatId,
+      fanId: messageData.fanId,
+      proId: messageData.proId,
+      timestamp: messageData.timestamp,
+      messageType: messageData.messageType
+    });
+    
+    try {
+      // Get the clustering function ID from environment
+      const CLUSTERING_FUNCTION_ID = process.env.EXPO_PUBLIC_CLUSTERING_FUNCTION_ID;
+      
+      if (!CLUSTERING_FUNCTION_ID) {
+        console.log('❌ [Clustering] Missing EXPO_PUBLIC_CLUSTERING_FUNCTION_ID');
+        return;
+      }
+      
+      console.log('🚀 [Clustering] Calling Appwrite function...');
+      console.log('🆔 [Clustering] Function ID:', CLUSTERING_FUNCTION_ID);
+      
+      // Import functions from appwrite
+      const { functions } = await import('../../lib/appwrite');
+      const { ExecutionMethod } = await import('react-native-appwrite');
+      
+      // Use the same pattern as your other function calls
+      const execution = await functions.createExecution(
+        CLUSTERING_FUNCTION_ID,
+        JSON.stringify(messageData),
+        false,
+        '/',
+        ExecutionMethod.POST,
+        { 'Content-Type': 'application/json' }
+      );
+
+      const duration = Date.now() - startTime;
+      console.log(`⏱️ [Clustering] Function completed in ${duration}ms`);
+      console.log('📊 [Clustering] Execution status:', execution.status);
+      console.log('📄 [Clustering] Response body:', execution.responseBody);
+      
+      if (execution.status === 'completed') {
+        try {
+          const result = JSON.parse(execution.responseBody);
+          console.log('✅ [Clustering] Success response:', {
+            success: result.success,
+            messageId: result.messageId,
+            totalQuestionsProcessed: result.totalQuestionsProcessed,
+            topic: result.intentAnalysis?.topic,
+            tone: result.intentAnalysis?.tone,
+            questionsFound: result.intentAnalysis?.questions?.length || 0
+          });
+          
+          if (result.clusteringResults && result.clusteringResults.length > 0) {
+            console.log('🔗 [Clustering] Clustering results:');
+            result.clusteringResults.forEach((cluster: any, index: number) => {
+              console.log(`   ${index + 1}. "${cluster.question}" → ${cluster.action} (Cluster: ${cluster.clusterId})`);
+            });
+          }
+        } catch (parseError) {
+          console.log('⚠️ [Clustering] Could not parse success response:', parseError);
+        }
+      } else {
+        console.log('❌ [Clustering] Function execution failed:', execution.status);
+        try {
+          const errorData = JSON.parse(execution.responseBody);
+          console.log('📄 [Clustering] Error details:', errorData);
+        } catch (e) {
+          console.log('📄 [Clustering] Raw error response:', execution.responseBody);
+        }
+      }
+      
+    } catch (error: any) {
+      const duration = Date.now() - startTime;
+      console.log(`❌ [Clustering] Function call failed after ${duration}ms:`, error);
+      console.log('🔍 [Clustering] Error details:', {
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack?.split('\n')[0] // Just first line of stack
+      });
+    }
+  };
+
   // For direct messages, use custom message input with attachment button
   return (
     <View style={{ backgroundColor: theme.background, paddingBottom: 15 }}>
@@ -417,6 +613,17 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
             <Ionicons name="add-circle-outline" size={36} color={theme.text} />
           </TouchableOpacity>
         )}
+        additionalTextInputProps={{
+          placeholder: 'Type a message...',
+          placeholderTextColor: theme.textSecondary,
+          style: {
+            fontSize: 16,
+            fontFamily: 'questrial',
+            color: theme.text,
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+          }
+        }}
       />
       
       {/* Attachment Modal with Preview */}

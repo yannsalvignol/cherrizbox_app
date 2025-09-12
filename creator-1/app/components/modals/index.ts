@@ -6,6 +6,7 @@ export { DatePickerModal } from './DatePickerModal';
 export { GenderPickerModal } from './GenderPickerModal';
 export { LocationModal } from './LocationModal';
 export { NetworkErrorModal } from './NetworkErrorModal';
+export { OneByOneModal } from './OneByOneModal';
 export { PhoneNumberModal } from './PhoneNumberModal';
 export { ProfilePreviewModal } from './ProfilePreviewModal';
 export { SocialMediaVerificationModal } from './SocialMediaVerificationModal';

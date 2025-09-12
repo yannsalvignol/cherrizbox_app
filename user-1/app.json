@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Cherrizbox",
-    "slug": "cherrizboxUser",
+    "slug": "cherrizboxtest",
     "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -185,6 +185,9 @@
     },
     "extra": {
       "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_test_51RQyjPBMxMFyUXHbGzFEIYSTdMdY8rajTo0CRJ32cv0SfdnLmvu0ViWjUqC4WGakM35JvcucUHwyS6TImjSrBYDF00a6PPIT7B",
+      "EXPO_PUBLIC_CLUSTERING_ENDPOINT": "https://your-clustering-app-endpoint.com/functions/clustering-system/executions",
+      "EXPO_PUBLIC_CLUSTERING_API_KEY": "your-clustering-api-key",
+      "EXPO_PUBLIC_CLUSTERING_ENABLED": "false",
       "router": {
         "origin": "https://cherrizbox.expo.app"
       },

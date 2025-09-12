@@ -12,6 +12,8 @@ import {
     View
 } from 'react-native';
 import { ChannelItem } from './ChannelItem';
+import type { Cluster } from './ClusterCard';
+import { ClusterSection } from './ClusterSection';
 
 interface ChannelListProps {
   channels: Channel[];
@@ -40,6 +42,11 @@ interface ChannelListProps {
   onTipCollected?: (channelId: string) => void;
   onChannelReorder?: (channelId: string, newTimestamp: string) => void;
   onNewChannelAdded?: (channel: Channel) => void;
+  clusters?: Cluster[];
+  isLoadingClusters?: boolean;
+  onAnswerForAll?: (cluster: Cluster) => void;
+  onAnswerOneByOne?: (cluster: Cluster) => void;
+  onViewAllClusters?: () => void;
 }
 
 export const ChannelList: React.FC<ChannelListProps> = ({
@@ -63,7 +70,12 @@ export const ChannelList: React.FC<ChannelListProps> = ({
   onChannelUpdate,
   onTipCollected,
   onChannelReorder,
-  onNewChannelAdded
+  onNewChannelAdded,
+  clusters = [],
+  isLoadingClusters = false,
+  onAnswerForAll,
+  onAnswerOneByOne,
+  onViewAllClusters
 }) => {
   const { theme } = useTheme();
   // Local state for real-time unread counts
@@ -661,13 +673,25 @@ export const ChannelList: React.FC<ChannelListProps> = ({
         
         return (
           <View>
+            {/* Cluster Section - Display between My Box and One-on-One Chats */}
+            {isFirstDM && !searchQuery && clusters.length > 0 && onAnswerForAll && onAnswerOneByOne && (
+              <ClusterSection
+                clusters={clusters}
+                isLoading={isLoadingClusters}
+                onAnswerForAll={onAnswerForAll}
+                onAnswerOneByOne={onAnswerOneByOne}
+                onViewAll={onViewAllClusters}
+                maxDisplay={3}
+              />
+            )}
+            
             {/* Section header for first DM */}
             {isFirstDM && !searchQuery && (
               <View style={{
                 paddingHorizontal: 20,
                 paddingVertical: 20,
                 backgroundColor: theme.backgroundTertiary,
-                marginTop: 16,
+                marginTop: clusters.length > 0 ? 8 : 16,
               }}>
                 <Text style={{
                   color: theme.textTertiary,

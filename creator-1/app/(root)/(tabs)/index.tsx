@@ -1,10 +1,12 @@
 import {
   ChannelList,
-  SearchBar
+  SearchBar,
+  type Cluster
 } from '@/app/components/channels';
 
 import {
   CustomNotificationModal,
+  OneByOneModal,
   SocialMediaVerificationModal
 } from '@/app/components/modals';
 import { getUserProfile } from '@/lib/appwrite';
@@ -58,6 +60,12 @@ export default function Index() {
   const [notificationType, setNotificationType] = useState<'success' | 'error'>('success');
   const [uncollectedTips, setUncollectedTips] = useState<Set<string>>(new Set());
     const [userCurrency, setUserCurrency] = useState('USD');
+    
+    // Clustering states
+    const [clusters, setClusters] = useState<Cluster[]>([]);
+    const [isLoadingClusters, setIsLoadingClusters] = useState(false);
+    const [selectedCluster, setSelectedCluster] = useState<Cluster | null>(null);
+    const [showOneByOneModal, setShowOneByOneModal] = useState(false);
     
     // Preload financial data for EarningsTab
     const [creatorFinancials, setCreatorFinancials] = useState<any>(null);
@@ -852,6 +860,140 @@ export default function Index() {
     }
   };
 
+  // Load message clusters for the pro
+  const loadClusters = async () => {
+    if (!user?.$id) return;
+    
+    setIsLoadingClusters(true);
+    try {
+      console.log('🔄 [Clusters] Loading message clusters for pro:', user.$id);
+      const { databases, config } = await import('@/lib/appwrite');
+      const { Query } = await import('react-native-appwrite');
+      
+      // Fetch clusters where proId matches current user
+      const clustersResponse = await databases.listDocuments(
+        config.databaseId,
+        'clusters', // Clusters collection ID
+        [
+          Query.equal('proId', user.$id),
+          Query.orderDesc('$createdAt'),
+          Query.limit(100)
+        ]
+      );
+      
+      if (clustersResponse.documents.length > 0) {
+        // Group documents by clusterId
+        const groupedClusters = new Map<string, any[]>();
+        
+        clustersResponse.documents.forEach((doc: any) => {
+          const existing = groupedClusters.get(doc.clusterId) || [];
+          existing.push(doc);
+          groupedClusters.set(doc.clusterId, existing);
+        });
+        
+        console.log(`📊 [Clusters] Found ${groupedClusters.size} unique clusters from ${clustersResponse.documents.length} documents`);
+        
+        // Aggregate data for each unique clusterId
+        const aggregatedClusters: Cluster[] = [];
+        
+        groupedClusters.forEach((docs, clusterId) => {
+          // Use the first document as the base
+          const baseDoc = docs[0];
+          
+          // Aggregate affected chats from all documents with same clusterId
+          const allAffectedChats = new Set<string>();
+          const allFanIds = new Set<string>();
+          let allQuestions: string[] = [];
+          
+          docs.forEach(doc => {
+            // Parse and combine affected chats
+            try {
+              const chats = JSON.parse(doc.affectedChats);
+              if (Array.isArray(chats)) {
+                chats.forEach(chat => allAffectedChats.add(chat));
+              }
+            } catch (e) {
+              console.warn('Failed to parse affectedChats:', e);
+            }
+            
+            // Collect all unique fan IDs
+            allFanIds.add(doc.fanId);
+            
+            // Collect all representative questions
+            try {
+              const questions = JSON.parse(doc.representativeQuestions);
+              if (Array.isArray(questions)) {
+                allQuestions = [...allQuestions, ...questions];
+              }
+            } catch (e) {
+              console.warn('Failed to parse representativeQuestions:', e);
+            }
+          });
+          
+          // Remove duplicate questions
+          const uniqueQuestions = Array.from(new Set(allQuestions));
+          
+          // Create aggregated cluster object
+          const aggregatedCluster: Cluster = {
+            $id: baseDoc.$id, // Use the first document's ID
+            clusterId: clusterId,
+            proId: baseDoc.proId,
+            fanId: Array.from(allFanIds).join(','), // Store all fan IDs
+            title: baseDoc.title, // Use the title from the first document
+            topic: baseDoc.topic,
+            representativeQuestions: JSON.stringify(uniqueQuestions),
+            affectedChats: JSON.stringify(Array.from(allAffectedChats)),
+            status: baseDoc.status,
+            canonicalAnswer: baseDoc.canonicalAnswer || '',
+            fullMessage: baseDoc.fullMessage,
+            $createdAt: baseDoc.$createdAt,
+            $updatedAt: baseDoc.$updatedAt,
+            fanCount: allFanIds.size // Add a count of unique fans
+          } as Cluster & { fanCount: number };
+          
+          aggregatedClusters.push(aggregatedCluster);
+        });
+        
+        // Sort by creation date (newest first)
+        aggregatedClusters.sort((a, b) => 
+          new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime()
+        );
+        
+        setClusters(aggregatedClusters);
+        console.log(`✅ [Clusters] Loaded ${aggregatedClusters.length} unique clusters`);
+        console.log('📊 [Clusters] Pending clusters:', aggregatedClusters.filter(c => c.status === 'pending').length);
+      } else {
+        setClusters([]);
+        console.log('ℹ️ [Clusters] No clusters found for this pro');
+      }
+    } catch (error) {
+      console.error('❌ [Clusters] Error loading clusters:', error);
+      setClusters([]);
+    } finally {
+      setIsLoadingClusters(false);
+    }
+  };
+
+  // Handle cluster actions
+  const handleAnswerForAll = async (cluster: Cluster) => {
+    console.log('🚀 [Clusters] Answer for all:', cluster.clusterId);
+    // TODO: Navigate to answer for all screen where user can write one canonical answer
+    // This will be sent to all fans in the cluster with AI personalization
+    // router.push(`/clusters/answer-all/${cluster.$id}`);
+  };
+
+  const handleAnswerOneByOne = async (cluster: Cluster) => {
+    console.log('🚀 [Clusters] Answer one by one:', cluster.clusterId);
+    setSelectedCluster(cluster);
+    setShowOneByOneModal(true);
+  };
+
+  const handleViewAllClusters = () => {
+    console.log('🚀 [Clusters] View all clusters');
+    // TODO: Navigate to all clusters screen
+    // router.push('/clusters');
+  };
+
   // Preload creator financials for smooth EarningsTab experience
   const loadCreatorFinancials = async () => {
     if (!user?.$id) return;
@@ -975,8 +1117,12 @@ export default function Index() {
         setHasMoreChannels(true);
         setSearchQuery('');
         setShowSearch(false);
-        await loadChannels(false);
-        await loadProfileImage();
+        // Load channels and clusters in parallel
+        await Promise.all([
+          loadChannels(false),
+          loadProfileImage(),
+          loadClusters()
+        ]);
       }
     } catch (error) {
       console.error('❌ [Refresh] Error refreshing data:', error);
@@ -990,6 +1136,7 @@ export default function Index() {
       console.log('⚠️ [Init] No authenticated user, clearing channels and skipping load');
       setChannels([]);
       setFilteredChannels([]);
+      setClusters([]);
       setChannelsLoaded(false);
       return;
     }
@@ -1004,6 +1151,7 @@ export default function Index() {
     }
     loadProfileImage();
     loadUserCurrency();
+    loadClusters(); // Load clusters on init
     
     // Preload financial data for smooth EarningsTab experience
     if (user?.$id) {
@@ -1019,6 +1167,18 @@ export default function Index() {
               message={notificationMessage}
               type={notificationType}
               onClose={() => setShowNotification(false)}
+            />
+            
+            {/* One by One Modal */}
+            <OneByOneModal
+              visible={showOneByOneModal}
+              cluster={selectedCluster}
+              onClose={() => {
+                setShowOneByOneModal(false);
+                setSelectedCluster(null);
+              }}
+              currentUserId={user?.$id}
+              userProfileCache={userProfileCache}
             />
             
             {/* Header */}
@@ -1169,6 +1329,11 @@ export default function Index() {
               }}
               onChannelUpdate={handleChannelUpdate}
               onTipCollected={handleTipCollected}
+              clusters={clusters}
+              isLoadingClusters={isLoadingClusters}
+              onAnswerForAll={handleAnswerForAll}
+              onAnswerOneByOne={handleAnswerOneByOne}
+              onViewAllClusters={handleViewAllClusters}
             />
           ) : (
             <ScrollView
