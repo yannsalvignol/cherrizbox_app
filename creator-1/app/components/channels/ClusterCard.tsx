@@ -3,9 +3,9 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import React from 'react';
 import {
-    Text,
-    TouchableOpacity,
-    View
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 export interface Cluster {
@@ -80,13 +80,13 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
 
   return (
     <View style={{
-      backgroundColor: '#FFFFFF',
+      backgroundColor: theme.cardBackground,
       marginHorizontal: 16,
       marginVertical: 6,
       borderRadius: 16,
       padding: 20,
       borderWidth: 0,
-      shadowColor: '#000000',
+      shadowColor: theme.shadow,
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.1,
       shadowRadius: 12,
@@ -103,7 +103,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
           marginBottom: 12,
         }}>
           <Text style={{
-            color: '#000000',
+            color: theme.text,
             fontSize: 18,
             fontWeight: 'bold',
             fontFamily: 'MuseoModerno-Regular',
@@ -128,7 +128,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
         
         {/* Question Title */}
         <Text style={{
-          color: '#000000',
+          color: theme.text,
           fontSize: 17,
           fontWeight: 'bold',
           fontFamily: 'Urbanist-Bold',
@@ -141,14 +141,14 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
         {/* Fan Count */}
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <View style={{
-            backgroundColor: '#000000',
+            backgroundColor: theme.text,
             paddingHorizontal: 10,
             paddingVertical: 4,
             borderRadius: 12,
             marginRight: 8,
           }}>
             <Text style={{
-              color: '#FFFFFF',
+              color: theme.textInverse,
               fontSize: 12,
               fontWeight: 'bold',
               fontFamily: 'Urbanist-Bold',
@@ -157,7 +157,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
             </Text>
           </View>
           <Text style={{
-            color: '#666666',
+            color: theme.textSecondary,
             fontSize: 13,
             fontFamily: 'Urbanist-Regular',
           }}>
@@ -169,13 +169,13 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
       {/* Sample Questions */}
       {questions.length > 0 && (
         <View style={{
-          backgroundColor: '#F8F8F8',
+          backgroundColor: theme.backgroundSecondary,
           borderRadius: 12,
           padding: 14,
           marginBottom: 18,
         }}>
           <Text style={{
-            color: '#999999',
+            color: theme.textTertiary,
             fontSize: 11,
             fontFamily: 'Urbanist-Bold',
             marginBottom: 10,
@@ -187,7 +187,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
           {questions.slice(0, 2).map((question, index) => (
             <View key={index} style={{ flexDirection: 'row', marginBottom: 6 }}>
               <Text style={{
-                color: '#CCCCCC',
+                color: theme.textTertiary,
                 fontSize: 13,
                 fontFamily: 'Urbanist-Regular',
                 marginRight: 8,
@@ -195,7 +195,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
                 •
               </Text>
               <Text style={{
-                color: '#333333',
+                color: theme.text,
                 fontSize: 14,
                 fontFamily: 'Urbanist-Regular',
                 flex: 1,
@@ -207,7 +207,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
           ))}
           {questions.length > 2 && (
             <Text style={{
-              color: '#999999',
+              color: theme.textTertiary,
               fontSize: 12,
               fontFamily: 'Urbanist-Regular',
               fontStyle: 'italic',
@@ -228,23 +228,23 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
           onPress={handleAnswerForAll}
           style={{
             flex: 1,
-            backgroundColor: '#000000',
+            backgroundColor: theme.text,
             borderRadius: 14,
             paddingVertical: 15,
             alignItems: 'center',
             flexDirection: 'row',
             justifyContent: 'center',
             // Black aura effect
-            shadowColor: '#000000',
+            shadowColor: theme.text,
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.3,
             shadowRadius: 8,
             elevation: 8,
           }}
         >
-          <Ionicons name="flash-outline" size={20} color="white" style={{ marginRight: 8 }} />
+          <Ionicons name="flash-outline" size={20} color={theme.textInverse} style={{ marginRight: 8 }} />
           <Text style={{
-            color: '#FFFFFF',
+            color: theme.textInverse,
             fontSize: 15,
             fontWeight: 'bold',
             fontFamily: 'Urbanist-Bold',
@@ -257,7 +257,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
           onPress={handleAnswerOneByOne}
           style={{
             flex: 1,
-            backgroundColor: '#FFFFFF',
+            backgroundColor: theme.cardBackground,
             borderRadius: 14,
             paddingVertical: 15,
             alignItems: 'center',
@@ -265,16 +265,16 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
             justifyContent: 'center',
             borderWidth: 0,
             // Black aura effect
-            shadowColor: '#000000',
+            shadowColor: theme.text,
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.25,
             shadowRadius: 8,
             elevation: 6,
           }}
         >
-          <Ionicons name="chatbox-outline" size={20} color="#000000" style={{ marginRight: 8 }} />
+          <Ionicons name="chatbox-outline" size={20} color={theme.text} style={{ marginRight: 8 }} />
           <Text style={{
-            color: '#000000',
+            color: theme.text,
             fontSize: 15,
             fontWeight: 'bold',
             fontFamily: 'Urbanist-Bold',
@@ -284,27 +284,6 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
         </TouchableOpacity>
       </View>
 
-      {/* Footer Info */}
-      {cluster.canonicalAnswer && (
-        <View style={{
-          marginTop: 14,
-          paddingTop: 14,
-          borderTopWidth: 1,
-          borderTopColor: '#F0F0F0',
-        }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
-            <Text style={{
-              color: '#999999',
-              fontSize: 12,
-              fontFamily: 'Urbanist-Regular',
-              marginLeft: 6,
-            }}>
-              Canonical answer provided
-            </Text>
-          </View>
-        </View>
-      )}
     </View>
   );
 };

@@ -2,10 +2,10 @@ import { useTheme } from '@/lib/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
-    ActivityIndicator,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { ClusterCard, type Cluster } from './ClusterCard';
 
@@ -28,8 +28,36 @@ export const ClusterSection: React.FC<ClusterSectionProps> = ({
 }) => {
   const { theme } = useTheme();
   
-  // Filter only pending clusters for display
-  const pendingClusters = clusters.filter(c => c.status === 'pending');
+  // Filter and sort pending clusters by fan count (highest first)
+  const pendingClusters = React.useMemo(() => {
+    return clusters
+      .filter(c => c.status === 'pending')
+      .sort((a, b) => {
+        // Get fan count for cluster a
+        const aCount = a.fanCount !== undefined ? a.fanCount : (() => {
+          try {
+            const chats = JSON.parse(a.affectedChats);
+            return Array.isArray(chats) ? chats.length : 0;
+          } catch {
+            return 0;
+          }
+        })();
+        
+        // Get fan count for cluster b
+        const bCount = b.fanCount !== undefined ? b.fanCount : (() => {
+          try {
+            const chats = JSON.parse(b.affectedChats);
+            return Array.isArray(chats) ? chats.length : 0;
+          } catch {
+            return 0;
+          }
+        })();
+        
+        // Sort in descending order (highest fan count first)
+        return bCount - aCount;
+      });
+  }, [clusters]);
+  
   const displayClusters = pendingClusters.slice(0, maxDisplay);
   const hasMore = pendingClusters.length > maxDisplay;
   
@@ -91,21 +119,21 @@ export const ClusterSection: React.FC<ClusterSectionProps> = ({
             width: 36,
             height: 36,
             borderRadius: 18,
-            backgroundColor: '#000000',
+            backgroundColor: theme.text,
             alignItems: 'center',
             justifyContent: 'center',
             marginRight: 12,
-            shadowColor: '#000000',
+            shadowColor: theme.text,
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.2,
             shadowRadius: 4,
             elevation: 4,
           }}>
-            <Ionicons name="layers-outline" size={20} color="#FFFFFF" />
+            <Ionicons name="layers-outline" size={20} color={theme.textInverse} />
           </View>
           <View>
             <Text style={{
-              color: '#000000',
+              color: theme.text,
               fontSize: 15,
               fontWeight: 'bold',
               fontFamily: 'MuseoModerno-Regular',
@@ -115,7 +143,7 @@ export const ClusterSection: React.FC<ClusterSectionProps> = ({
               AI GROUPED QUESTIONS
             </Text>
             <Text style={{
-              color: '#666666',
+              color: theme.textSecondary,
               fontSize: 13,
               fontFamily: 'Urbanist-Regular',
               marginTop: 2,
@@ -134,8 +162,8 @@ export const ClusterSection: React.FC<ClusterSectionProps> = ({
               paddingHorizontal: 12,
               paddingVertical: 6,
               borderRadius: 10,
-              backgroundColor: '#000000',
-              shadowColor: '#000000',
+              backgroundColor: theme.text,
+              shadowColor: theme.text,
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.15,
               shadowRadius: 4,
@@ -143,14 +171,14 @@ export const ClusterSection: React.FC<ClusterSectionProps> = ({
             }}
           >
             <Text style={{
-              color: '#FFFFFF',
+              color: theme.textInverse,
               fontSize: 12,
               fontFamily: 'Urbanist-Bold',
               marginRight: 4,
             }}>
               See All
             </Text>
-            <Ionicons name="arrow-forward" size={12} color="#FFFFFF" />
+            <Ionicons name="arrow-forward" size={12} color={theme.textInverse} />
           </TouchableOpacity>
         )}
       </View>
@@ -178,14 +206,14 @@ export const ClusterSection: React.FC<ClusterSectionProps> = ({
             marginTop: 8,
             marginBottom: 12,
             borderRadius: 14,
-            backgroundColor: '#F8F8F8',
+            backgroundColor: theme.backgroundSecondary,
             borderWidth: 2,
-            borderColor: '#000000',
+            borderColor: theme.text,
             borderStyle: 'dashed',
           }}
         >
           <Text style={{
-            color: '#000000',
+            color: theme.text,
             fontSize: 14,
             fontFamily: 'Urbanist-Bold',
           }}>

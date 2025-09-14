@@ -631,7 +631,7 @@ export default function EarningsTab({
                   minWidth: 180,
                   zIndex: 10,
                 }}>
-                  <Text style={{ color: 'white', fontSize: 12, fontFamily: 'Urbanist-Regular' }}>
+                  <Text style={{ color: 'black', fontSize: 12, fontFamily: 'Urbanist-Regular' }}>
                     Funds that are still being processed and will become available soon.
                   </Text>
                 </View>
@@ -712,7 +712,7 @@ export default function EarningsTab({
                   minWidth: 180,
                   zIndex: 10,
                 }}>
-                  <Text style={{ color: 'white', fontSize: 12, fontFamily: 'Urbanist-Regular' }}>
+                  <Text style={{ color: 'black', fontSize: 12, fontFamily: 'Urbanist-Regular' }}>
                     Combined total of available and pending funds in your account.
                   </Text>
                 </View>
@@ -786,7 +786,7 @@ export default function EarningsTab({
                   minWidth: 180,
                   zIndex: 10,
                 }}>
-                  <Text style={{ color: 'white', fontSize: 12, fontFamily: 'Urbanist-Regular' }}>
+                  <Text style={{ color: 'black', fontSize: 12, fontFamily: 'Urbanist-Regular' }}>
                     Funds that are currently being transferred to your bank account.
                   </Text>
                 </View>

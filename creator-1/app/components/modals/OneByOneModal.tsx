@@ -19,6 +19,7 @@ interface OneByOneModalProps {
   visible: boolean;
   cluster: Cluster | null;
   onClose: () => void;
+  onChatAnswered?: () => void; // Callback to refresh clusters after answering
   currentUserId?: string;
   userProfileCache?: React.MutableRefObject<Map<string, { 
     name: string; 
@@ -39,6 +40,7 @@ export const OneByOneModal: React.FC<OneByOneModalProps> = ({
   visible,
   cluster,
   onClose,
+  onChatAnswered,
   currentUserId,
   userProfileCache
 }) => {
@@ -152,11 +154,62 @@ export const OneByOneModal: React.FC<OneByOneModalProps> = ({
     }
   };
 
-  const handleChatPress = (chat: AffectedChat) => {
+  const handleChatPress = async (chat: AffectedChat) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
+    // Update cluster status to answered
+    await updateClusterStatus(chat.fanId);
+    
     onClose();
     // Navigate to the chat
     router.push(`/chat/${chat.chatId}` as any);
+  };
+
+  const updateClusterStatus = async (fanId: string) => {
+    if (!cluster) return;
+    
+    try {
+      console.log('🔄 [OneByOne] Updating cluster status for fan:', fanId);
+      
+      const { databases, config } = await import('@/lib/appwrite');
+      const { Query } = await import('react-native-appwrite');
+      
+      // Find the specific cluster document for this fan
+      const clusterDocs = await databases.listDocuments(
+        config.databaseId,
+        'clusters',
+        [
+          Query.equal('clusterId', cluster.clusterId),
+          Query.equal('fanId', fanId),
+          Query.limit(1)
+        ]
+      );
+      
+      if (clusterDocs.documents.length > 0) {
+        const clusterDoc = clusterDocs.documents[0];
+        
+        // Update the status to answered
+        await databases.updateDocument(
+          config.databaseId,
+          'clusters',
+          clusterDoc.$id,
+          {
+            status: 'answered',
+            answeredAt: new Date().toISOString()
+          }
+        );
+        
+        console.log('✅ [OneByOne] Cluster status updated to answered');
+        
+        // Call the callback to refresh clusters in the parent
+        onChatAnswered?.();
+      } else {
+        console.warn('⚠️ [OneByOne] No cluster document found for fan:', fanId);
+      }
+    } catch (error) {
+      console.error('❌ [OneByOne] Error updating cluster status:', error);
+      // Don't block navigation even if update fails
+    }
   };
 
   const renderChatItem = ({ item }: { item: AffectedChat }) => (
@@ -166,11 +219,11 @@ export const OneByOneModal: React.FC<OneByOneModalProps> = ({
         flexDirection: 'row',
         alignItems: 'center',
         padding: 16,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: theme.cardBackground,
         marginHorizontal: 16,
         marginVertical: 4,
         borderRadius: 12,
-        shadowColor: '#000000',
+        shadowColor: theme.shadow,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
         shadowRadius: 4,
@@ -182,7 +235,7 @@ export const OneByOneModal: React.FC<OneByOneModalProps> = ({
         width: 48,
         height: 48,
         borderRadius: 24,
-        backgroundColor: '#F0F0F0',
+        backgroundColor: theme.backgroundSecondary,
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 12,
@@ -195,7 +248,7 @@ export const OneByOneModal: React.FC<OneByOneModalProps> = ({
           />
         ) : (
           <Text style={{
-            color: '#666666',
+            color: theme.textSecondary,
             fontSize: 18,
             fontWeight: 'bold',
             fontFamily: 'Urbanist-Bold',
@@ -208,7 +261,7 @@ export const OneByOneModal: React.FC<OneByOneModalProps> = ({
       {/* Fan Info */}
       <View style={{ flex: 1 }}>
         <Text style={{
-          color: '#000000',
+          color: theme.text,
           fontSize: 16,
           fontWeight: 'bold',
           fontFamily: 'Urbanist-Bold',
@@ -217,7 +270,7 @@ export const OneByOneModal: React.FC<OneByOneModalProps> = ({
           {item.fanName}
         </Text>
         <Text style={{
-          color: '#666666',
+          color: theme.textSecondary,
           fontSize: 13,
           fontFamily: 'Urbanist-Regular',
         }}>
@@ -226,7 +279,7 @@ export const OneByOneModal: React.FC<OneByOneModalProps> = ({
       </View>
 
       {/* Arrow */}
-      <Ionicons name="chevron-forward" size={20} color="#CCCCCC" />
+      <Ionicons name="chevron-forward" size={20} color={theme.textTertiary} />
     </TouchableOpacity>
   );
 
@@ -239,7 +292,7 @@ export const OneByOneModal: React.FC<OneByOneModalProps> = ({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F8F8' }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.backgroundSecondary }}>
         {/* Header */}
         <View style={{
           flexDirection: 'row',
@@ -247,9 +300,9 @@ export const OneByOneModal: React.FC<OneByOneModalProps> = ({
           justifyContent: 'space-between',
           paddingHorizontal: 16,
           paddingVertical: 16,
-          backgroundColor: '#FFFFFF',
+          backgroundColor: theme.cardBackground,
           borderBottomWidth: 1,
-          borderBottomColor: '#F0F0F0',
+          borderBottomColor: theme.border,
         }}>
           <TouchableOpacity 
             onPress={onClose}
@@ -258,12 +311,12 @@ export const OneByOneModal: React.FC<OneByOneModalProps> = ({
               marginLeft: -8,
             }}
           >
-            <Ionicons name="close" size={24} color="#000000" />
+            <Ionicons name="close" size={24} color={theme.text} />
           </TouchableOpacity>
 
           <View style={{ flex: 1, marginHorizontal: 16 }}>
             <Text style={{
-              color: '#000000',
+              color: theme.text,
               fontSize: 18,
               fontWeight: 'bold',
               fontFamily: 'MuseoModerno-Regular',
@@ -272,7 +325,7 @@ export const OneByOneModal: React.FC<OneByOneModalProps> = ({
               ANSWER ONE BY ONE
             </Text>
             <Text style={{
-              color: '#666666',
+              color: theme.textSecondary,
               fontSize: 13,
               fontFamily: 'Urbanist-Regular',
               textAlign: 'center',
@@ -287,17 +340,17 @@ export const OneByOneModal: React.FC<OneByOneModalProps> = ({
 
         {/* Question Title */}
         <View style={{
-          backgroundColor: '#FFFFFF',
+          backgroundColor: theme.cardBackground,
           marginHorizontal: 16,
           marginTop: 16,
           marginBottom: 8,
           padding: 16,
           borderRadius: 12,
           borderWidth: 2,
-          borderColor: '#000000',
+          borderColor: theme.text,
         }}>
           <Text style={{
-            color: '#999999',
+            color: theme.textTertiary,
             fontSize: 11,
             fontFamily: 'Urbanist-Bold',
             textTransform: 'uppercase',
@@ -307,7 +360,7 @@ export const OneByOneModal: React.FC<OneByOneModalProps> = ({
             Question Being Asked
           </Text>
           <Text style={{
-            color: '#000000',
+            color: theme.text,
             fontSize: 16,
             fontFamily: 'Urbanist-Bold',
             lineHeight: 22,
@@ -323,9 +376,9 @@ export const OneByOneModal: React.FC<OneByOneModalProps> = ({
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-            <ActivityIndicator size="large" color="#000000" />
+            <ActivityIndicator size="large" color={theme.text} />
             <Text style={{
-              color: '#666666',
+              color: theme.textSecondary,
               fontSize: 14,
               fontFamily: 'Urbanist-Regular',
               marginTop: 12,
@@ -349,9 +402,9 @@ export const OneByOneModal: React.FC<OneByOneModalProps> = ({
                 justifyContent: 'center',
                 paddingTop: 100,
               }}>
-                <Ionicons name="people-outline" size={60} color="#CCCCCC" />
+                <Ionicons name="people-outline" size={60} color={theme.textTertiary} />
                 <Text style={{
-                  color: '#666666',
+                  color: theme.textSecondary,
                   fontSize: 16,
                   fontFamily: 'Urbanist-Regular',
                   marginTop: 16,

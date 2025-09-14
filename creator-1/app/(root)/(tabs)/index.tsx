@@ -1,19 +1,20 @@
 import {
-  ChannelList,
-  SearchBar,
-  type Cluster
+    ChannelList,
+    SearchBar,
+    type Cluster
 } from '@/app/components/channels';
 
 import {
-  CustomNotificationModal,
-  OneByOneModal,
-  SocialMediaVerificationModal
+    AnswerForAllModal,
+    CustomNotificationModal,
+    OneByOneModal,
+    SocialMediaVerificationModal
 } from '@/app/components/modals';
 import { getUserProfile } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
 import {
-  filterChannels,
-  type Channel
+    filterChannels,
+    type Channel
 } from '@/lib/index-utils';
 import { client, connectUser } from '@/lib/stream-chat';
 import { useTheme } from '@/lib/useTheme';
@@ -66,6 +67,7 @@ export default function Index() {
     const [isLoadingClusters, setIsLoadingClusters] = useState(false);
     const [selectedCluster, setSelectedCluster] = useState<Cluster | null>(null);
     const [showOneByOneModal, setShowOneByOneModal] = useState(false);
+    const [showAnswerForAllModal, setShowAnswerForAllModal] = useState(false);
     
     // Preload financial data for EarningsTab
     const [creatorFinancials, setCreatorFinancials] = useState<any>(null);
@@ -897,29 +899,39 @@ export default function Index() {
         const aggregatedClusters: Cluster[] = [];
         
         groupedClusters.forEach((docs, clusterId) => {
-          // Use the first document as the base
-          const baseDoc = docs[0];
+          // Separate pending and answered documents
+          const pendingDocs = docs.filter(doc => doc.status === 'pending');
+          const answeredDocs = docs.filter(doc => doc.status === 'answered');
           
-          // Aggregate affected chats from all documents with same clusterId
-          const allAffectedChats = new Set<string>();
-          const allFanIds = new Set<string>();
+          // If no pending documents, skip this cluster
+          if (pendingDocs.length === 0) {
+            console.log(`⏭️ [Clusters] Skipping cluster ${clusterId} - all fans answered`);
+            return;
+          }
+          
+          // Use the first pending document as the base
+          const baseDoc = pendingDocs[0];
+          
+          // Aggregate ONLY from pending documents
+          const pendingAffectedChats = new Set<string>();
+          const pendingFanIds = new Set<string>();
           let allQuestions: string[] = [];
           
-          docs.forEach(doc => {
-            // Parse and combine affected chats
+          pendingDocs.forEach(doc => {
+            // Parse and combine affected chats from pending docs only
             try {
               const chats = JSON.parse(doc.affectedChats);
               if (Array.isArray(chats)) {
-                chats.forEach(chat => allAffectedChats.add(chat));
+                chats.forEach(chat => pendingAffectedChats.add(chat));
               }
             } catch (e) {
               console.warn('Failed to parse affectedChats:', e);
             }
             
-            // Collect all unique fan IDs
-            allFanIds.add(doc.fanId);
+            // Collect only pending fan IDs
+            pendingFanIds.add(doc.fanId);
             
-            // Collect all representative questions
+            // Collect all representative questions from pending docs
             try {
               const questions = JSON.parse(doc.representativeQuestions);
               if (Array.isArray(questions)) {
@@ -933,23 +945,25 @@ export default function Index() {
           // Remove duplicate questions
           const uniqueQuestions = Array.from(new Set(allQuestions));
           
-          // Create aggregated cluster object
+          // Create aggregated cluster object with ONLY pending fans
           const aggregatedCluster: Cluster = {
-            $id: baseDoc.$id, // Use the first document's ID
+            $id: baseDoc.$id, // Use the first pending document's ID
             clusterId: clusterId,
             proId: baseDoc.proId,
-            fanId: Array.from(allFanIds).join(','), // Store all fan IDs
-            title: baseDoc.title, // Use the title from the first document
+            fanId: Array.from(pendingFanIds).join(','), // Store only pending fan IDs
+            title: baseDoc.title, // Use the title from the first pending document
             topic: baseDoc.topic,
             representativeQuestions: JSON.stringify(uniqueQuestions),
-            affectedChats: JSON.stringify(Array.from(allAffectedChats)),
-            status: baseDoc.status,
+            affectedChats: JSON.stringify(Array.from(pendingAffectedChats)), // Only pending chats
+            status: 'pending', // Always pending since we only include clusters with pending fans
             canonicalAnswer: baseDoc.canonicalAnswer || '',
             fullMessage: baseDoc.fullMessage,
             $createdAt: baseDoc.$createdAt,
             $updatedAt: baseDoc.$updatedAt,
-            fanCount: allFanIds.size // Add a count of unique fans
+            fanCount: pendingFanIds.size // Count of pending fans only
           } as Cluster & { fanCount: number };
+          
+          console.log(`📊 [Clusters] Cluster ${clusterId}: ${pendingFanIds.size} pending, ${answeredDocs.length} answered`);
           
           aggregatedClusters.push(aggregatedCluster);
         });
@@ -977,9 +991,8 @@ export default function Index() {
   // Handle cluster actions
   const handleAnswerForAll = async (cluster: Cluster) => {
     console.log('🚀 [Clusters] Answer for all:', cluster.clusterId);
-    // TODO: Navigate to answer for all screen where user can write one canonical answer
-    // This will be sent to all fans in the cluster with AI personalization
-    // router.push(`/clusters/answer-all/${cluster.$id}`);
+    setSelectedCluster(cluster);
+    setShowAnswerForAllModal(true);
   };
 
   const handleAnswerOneByOne = async (cluster: Cluster) => {
@@ -1177,8 +1190,29 @@ export default function Index() {
                 setShowOneByOneModal(false);
                 setSelectedCluster(null);
               }}
+              onChatAnswered={() => {
+                // Refresh clusters when a chat is answered
+                console.log('🔄 [Index] Refreshing clusters after one-by-one answer');
+                loadClusters();
+              }}
               currentUserId={user?.$id}
               userProfileCache={userProfileCache}
+            />
+            
+            {/* Answer for All Modal */}
+            <AnswerForAllModal
+              visible={showAnswerForAllModal}
+              cluster={selectedCluster}
+              onClose={() => {
+                setShowAnswerForAllModal(false);
+                setSelectedCluster(null);
+              }}
+              onAnswerSent={() => {
+                // Refresh clusters after answering
+                console.log('🔄 [Clusters] Refreshing after answer sent');
+                loadClusters();
+              }}
+              currentUserId={user?.$id}
             />
             
             {/* Header */}

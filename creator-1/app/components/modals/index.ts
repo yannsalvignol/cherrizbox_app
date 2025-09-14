@@ -1,3 +1,4 @@
+export { AnswerForAllModal } from './AnswerForAllModal';
 export { BioModal } from './BioModal';
 export { CountryPickerModal } from './CountryPickerModal';
 export { CreatorNameModal } from './CreatorNameModal';
