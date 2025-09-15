@@ -101,16 +101,23 @@ const App = () => {
         const code = Math.floor(100000 + Math.random() * 900000).toString();
         setGeneratedCode(code);
         
-        const { success } = await sendVerificationEmail(form.email, code);
-
-        if (success) {
-            setVerificationSent(true);
-            setTimer(600); // Reset timer
-            setResendDisabled(true);
-        } else {
-            Alert.alert('Error', 'Could not send verification email. Please try again.');
-        }
+        // Navigate to OTP screen immediately
+        setVerificationSent(true);
+        setTimer(600); // Reset timer
+        setResendDisabled(true);
         setIsSubmitting(false);
+        
+        // Send verification email in the background
+        try {
+            const { success } = await sendVerificationEmail(form.email, code);
+            if (!success) {
+                console.error('Failed to send verification email');
+                // Optionally show a subtle notification that email sending failed
+                // but don't interrupt the user flow
+            }
+        } catch (error) {
+            console.error('Error sending verification email:', error);
+        }
     };
 
     const handleVerifyAndCreateAccount = async () => {

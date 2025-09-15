@@ -209,29 +209,34 @@ export default function EarningsTab({
       const execution = await functions.createExecution(
         process.env.EXPO_PUBLIC_STRIPE_BALANCE_FUNCTION_ID!,
         JSON.stringify({ stripeConnectAccountId: creatorFinancials.stripeConnectAccountId }),
-        false, '/get-balance', ExecutionMethod.POST,
+        true, '/get-balance', ExecutionMethod.POST,  // Changed to async
         { 'Content-Type': 'application/json' }
       );
       console.log('📡 [Earnings] Stripe API execution result:', execution);
 
       // Parse the response to get goals
-      try {
-        const response = JSON.parse(execution.responseBody);
-        if (response.goals) {
-          setDailyGoal(response.goals.dailyGoal || 0);
-          setWeeklyGoal(response.goals.weeklyGoal || 0);
+      // With async execution, the response might not be immediately available
+      if (execution.responseBody && execution.responseBody !== '') {
+        try {
+          const response = JSON.parse(execution.responseBody);
+          if (response.goals) {
+            setDailyGoal(response.goals.dailyGoal || 0);
+            setWeeklyGoal(response.goals.weeklyGoal || 0);
+          }
+          if (response.kpis) {
+            // Update creator financials with the latest data
+            setCreatorFinancials(prev => ({
+              ...prev,
+              todayEarnings: response.kpis.todayEarnings || 0,
+              weekEarnings: response.kpis.weekEarnings || 0,
+              dailyEarnings: JSON.stringify(response.kpis.dailyEarnings || {})
+            }));
+          }
+        } catch (e) {
+          console.log('⏳ [Earnings] Async execution in progress, data will be updated on next refresh');
         }
-        if (response.kpis) {
-          // Update creator financials with the latest data
-          setCreatorFinancials(prev => ({
-            ...prev,
-            todayEarnings: response.kpis.todayEarnings || 0,
-            weekEarnings: response.kpis.weekEarnings || 0,
-            dailyEarnings: JSON.stringify(response.kpis.dailyEarnings || {})
-          }));
-        }
-      } catch (e) {
-        console.log('❌ [Earnings] Error parsing response:', e);
+      } else {
+        console.log('⏳ [Earnings] Async execution started, data will be updated in the background');
       }
 
       // Refetch the data from our DB

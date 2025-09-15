@@ -133,36 +133,45 @@ const LoadingScreen = () => {
                   const execution = await functions.createExecution(
                     process.env.EXPO_PUBLIC_STRIPE_BALANCE_FUNCTION_ID!,
                     JSON.stringify({ stripeConnectAccountId: creatorData.stripeConnectAccountId }),
-                    false, '/get-balance', ExecutionMethod.POST,
+                    true, '/get-balance', ExecutionMethod.POST,  // Changed to async
                     { 'Content-Type': 'application/json' }
                   );
 
-                  const response = JSON.parse(execution.responseBody);
-                  if (response.success) {
-                    console.log('✅ [Loading] Stripe balance data preloaded successfully');
-                    
-                    // Update the creator data with fresh Stripe info
-                    if (response.goals || response.kpis) {
-                      // Store the enhanced data in global context for EarningsTab
-                      const enhancedData = {
-                        ...creatorData,
-                        ...(response.kpis && {
-                          todayEarnings: response.kpis.todayEarnings || 0,
-                          weekEarnings: response.kpis.weekEarnings || 0,
-                          dailyEarnings: JSON.stringify(response.kpis.dailyEarnings || {})
-                        }),
-                        ...(response.goals && {
-                          dailyGoal: response.goals.dailyGoal || 0,
-                          weeklyGoal: response.goals.weeklyGoal || 0
-                        })
-                      };
-                      
-                      // Store in global context for EarningsTab access
-                      const globalContext = await import('@/lib/global-provider');
-                      if (globalContext.setPreloadedFinancials) {
-                        globalContext.setPreloadedFinancials(enhancedData);
+                  // With async execution, the response might not be immediately available
+                  if (execution.responseBody && execution.responseBody !== '') {
+                    try {
+                      const response = JSON.parse(execution.responseBody);
+                      if (response.success) {
+                        console.log('✅ [Loading] Stripe balance data preloaded successfully');
+                        
+                        // Update the creator data with fresh Stripe info
+                        if (response.goals || response.kpis) {
+                          // Store the enhanced data in global context for EarningsTab
+                          const enhancedData = {
+                            ...creatorData,
+                            ...(response.kpis && {
+                              todayEarnings: response.kpis.todayEarnings || 0,
+                              weekEarnings: response.kpis.weekEarnings || 0,
+                              dailyEarnings: JSON.stringify(response.kpis.dailyEarnings || {})
+                            }),
+                            ...(response.goals && {
+                              dailyGoal: response.goals.dailyGoal || 0,
+                              weeklyGoal: response.goals.weeklyGoal || 0
+                            })
+                          };
+                          
+                          // Store in global context for EarningsTab access
+                          const globalContext = await import('@/lib/global-provider');
+                          if (globalContext.setPreloadedFinancials) {
+                            globalContext.setPreloadedFinancials(enhancedData);
+                          }
+                        }
                       }
+                    } catch (e) {
+                      console.log('⏳ [Loading] Async execution in progress, Stripe data will be updated in the background');
                     }
+                  } else {
+                    console.log('⏳ [Loading] Async execution started, Stripe data will be updated in the background');
                   }
                 } catch (stripeError) {
                   console.log('⚠️ [Loading] Stripe balance preload failed, will load later:', stripeError);

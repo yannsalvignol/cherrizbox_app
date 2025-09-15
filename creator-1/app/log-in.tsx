@@ -2,8 +2,8 @@ import { useGlobalContext } from '@/lib/global-provider';
 import { Ionicons } from '@expo/vector-icons';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Alert, Animated, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SignIn, login, loginWithApple } from '../lib/appwrite';
 import FormField from './components/FormField';
@@ -19,6 +19,123 @@ const LoginScreen = () => {
     const [error, setError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [isAppleLoading, setIsAppleLoading] = useState(false);
+    
+    // Animation refs for double spinning wheels
+    const outerSpinValue = useRef(new Animated.Value(0)).current;
+    const innerSpinValue = useRef(new Animated.Value(0)).current;
+
+    // Start/stop spinning animations
+    useEffect(() => {
+        if (isAppleLoading) {
+            // Outer wheel - clockwise
+            const outerSpin = Animated.loop(
+                Animated.timing(outerSpinValue, {
+                    toValue: 1,
+                    duration: 2000,
+                    useNativeDriver: true,
+                }),
+                { iterations: -1 }
+            );
+
+            // Inner wheel - counterclockwise (faster)
+            const innerSpin = Animated.loop(
+                Animated.timing(innerSpinValue, {
+                    toValue: 1,
+                    duration: 1200,
+                    useNativeDriver: true,
+                }),
+                { iterations: -1 }
+            );
+
+            outerSpin.start();
+            innerSpin.start();
+
+            return () => {
+                outerSpin.stop();
+                innerSpin.stop();
+            };
+        } else {
+            // Reset animations when not loading
+            outerSpinValue.setValue(0);
+            innerSpinValue.setValue(0);
+        }
+    }, [isAppleLoading]);
+
+    // Create rotation interpolations
+    const outerRotation = outerSpinValue.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['0deg', '360deg'],
+    });
+
+    const innerRotation = innerSpinValue.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['360deg', '0deg'], // Counter-clockwise
+    });
+
+    // Double Spinning Wheels Component
+    const DoubleSpinningWheels = () => (
+        <View style={{ position: 'relative', width: 32, height: 32, marginRight: 12 }}>
+            {/* Loading icon in center */}
+            <View style={{
+                position: 'absolute',
+                top: 4,
+                left: 4,
+                width: 24,
+                height: 24,
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 3,
+            }}>
+                <Image
+                    source={require('../assets/icon/loading-icon.png')}
+                    style={{ width: 20, height: 20 }}
+                    resizeMode="contain"
+                />
+            </View>
+            
+            {/* Outer spinning wheel */}
+            <Animated.View style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: 32,
+                height: 32,
+                transform: [{ rotate: outerRotation }],
+                zIndex: 1,
+            }}>
+                <View style={{
+                    width: 32,
+                    height: 32,
+                    borderWidth: 1.5,
+                    borderColor: 'transparent',
+                    borderTopColor: '#FFF',
+                    borderRightColor: '#FFF',
+                    borderRadius: 16,
+                }} />
+            </Animated.View>
+            
+            {/* Inner spinning wheel */}
+            <Animated.View style={{
+                position: 'absolute',
+                top: 4,
+                left: 4,
+                width: 24,
+                height: 24,
+                transform: [{ rotate: innerRotation }],
+                zIndex: 2,
+            }}>
+                <View style={{
+                    width: 24,
+                    height: 24,
+                    borderWidth: 1.5,
+                    borderColor: 'transparent',
+                    borderBottomColor: '#FFF',
+                    borderLeftColor: '#FFF',
+                    borderRadius: 12,
+                }} />
+            </Animated.View>
+        </View>
+    );
 
     const handleLogin = async () => {
         try {
@@ -218,16 +335,12 @@ const LoginScreen = () => {
                         <TouchableOpacity 
                             onPress={handleAppleLogin}
                             activeOpacity={0.8}
-                            className={`flex-row items-center justify-center py-4 rounded-3xl w-full px-6 border border-black ${isAppleLoading ? 'opacity-50' : ''}`}
+                            className={`flex-row items-center justify-center py-4 rounded-3xl w-full px-6 border border-black ${isAppleLoading ? 'opacity-90' : ''}`}
                             style={{ backgroundColor: '#000' }}
                             disabled={isAppleLoading}
                         >
                             {isAppleLoading ? (
-                                <Image
-                                    source={require('../assets/icon/loading-icon.png')}
-                                    className="w-6 h-6 mr-3"
-                                    resizeMode="contain"
-                                />
+                                <DoubleSpinningWheels />
                             ) : (
                                 <Ionicons name="logo-apple" size={24} color="#FFF" style={{ marginRight: 12 }} />
                             )}

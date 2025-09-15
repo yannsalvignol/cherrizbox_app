@@ -1058,45 +1058,63 @@ export default function Index() {
   };
 
   // Preload Stripe balance data for instant EarningsTab display
-  const loadStripeBalanceData = async (stripeAccountId: string) => {
+  const loadStripeBalanceData = async (stripeAccountId: string, retryCount = 0) => {
     try {
-      console.log('🔄 [Preload] Loading Stripe balance data for:', stripeAccountId);
+      console.log(`🔄 [Preload] Loading Stripe balance data for: ${stripeAccountId}${retryCount > 0 ? ` (retry ${retryCount})` : ''}`);
         const { functions } = await import('@/lib/appwrite');
         const { ExecutionMethod } = await import('react-native-appwrite');
 
         const execution = await functions.createExecution(
             process.env.EXPO_PUBLIC_STRIPE_BALANCE_FUNCTION_ID!,
         JSON.stringify({ stripeConnectAccountId: stripeAccountId }),
-            false, '/get-balance', ExecutionMethod.POST,
+            true, '/get-balance', ExecutionMethod.POST,  // Changed to async
             { 'Content-Type': 'application/json' }
         );
 
-          const response = JSON.parse(execution.responseBody);
-      console.log('📡 [Preload] Stripe balance response received');
+        // With async execution, the response might not be immediately available
+        if (execution.responseBody && execution.responseBody !== '') {
+          try {
+            const response = JSON.parse(execution.responseBody);
+            console.log('📡 [Preload] Stripe balance response received');
 
-          if (response.goals) {
-            setDailyGoal(response.goals.dailyGoal || 0);
-            setWeeklyGoal(response.goals.weeklyGoal || 0);
-        console.log('🎯 [Preload] Goals preloaded - Daily:', response.goals.dailyGoal, 'Weekly:', response.goals.weeklyGoal);
-          }
-      
-          if (response.kpis) {
-        setStripeBalanceData(response.kpis);
-        console.log('📈 [Preload] KPIs preloaded for instant EarningsTab display');
+            if (response.goals) {
+              setDailyGoal(response.goals.dailyGoal || 0);
+              setWeeklyGoal(response.goals.weeklyGoal || 0);
+              console.log('🎯 [Preload] Goals preloaded - Daily:', response.goals.dailyGoal, 'Weekly:', response.goals.weeklyGoal);
+            }
         
-            // Update creator financials with the latest data
-            setCreatorFinancials((prev: any) => ({
-              ...prev,
-              todayEarnings: response.kpis.todayEarnings || 0,
-              weekEarnings: response.kpis.weekEarnings || 0,
-              dailyEarnings: JSON.stringify(response.kpis.dailyEarnings || {})
-            }));
+            if (response.kpis) {
+              setStripeBalanceData(response.kpis);
+              console.log('📈 [Preload] KPIs preloaded for instant EarningsTab display');
+          
+              // Update creator financials with the latest data
+              setCreatorFinancials((prev: any) => ({
+                ...prev,
+                todayEarnings: response.kpis.todayEarnings || 0,
+                weekEarnings: response.kpis.weekEarnings || 0,
+                dailyEarnings: JSON.stringify(response.kpis.dailyEarnings || {})
+              }));
+            }
+
+            console.log('✅ [Preload] Stripe balance data loaded successfully');
+          } catch (e) {
+            console.log('⏳ [Preload] Async execution in progress, data will be updated in the background');
+          }
+        } else {
+          console.log('⏳ [Preload] Async execution started, data will be updated in the background');
         }
 
-      console.log('✅ [Preload] Stripe balance data loaded successfully');
-
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ [Preload] Error loading Stripe balance data:', error);
+      
+      // Retry with exponential backoff if it's a timeout error
+      if (retryCount < 2 && (error?.code === 408 || error?.message?.includes('timeout'))) {
+        const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s
+        console.log(`🔄 [Preload] Retrying in ${delay}ms...`);
+        setTimeout(() => {
+          loadStripeBalanceData(stripeAccountId, retryCount + 1);
+        }, delay);
+      }
       // Don't show error to user since this is background preloading
     }
   };
