@@ -252,9 +252,6 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
             }}>
               {(() => {
                 const formattedTime = formatLastMessageTime(channel.lastMessageAt);
-                if (isDM) {
-                  console.log(`🕐 [ChannelItem] ${channel.id} timestamp: ${channel.lastMessageAt} -> formatted: ${formattedTime}`);
-                }
                 return formattedTime;
               })()}
             </Text>

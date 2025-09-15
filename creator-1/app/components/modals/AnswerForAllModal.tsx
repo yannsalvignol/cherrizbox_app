@@ -621,7 +621,7 @@ export const AnswerForAllModal: React.FC<AnswerForAllModalProps> = ({
                 marginBottom: 8,
               }}>
                 <Text style={{
-                  color: theme.textSecondary,
+                  color: 'black',
                   fontSize: 11,
                   fontFamily: 'Urbanist-Bold',
                   textTransform: 'uppercase',
@@ -630,7 +630,7 @@ export const AnswerForAllModal: React.FC<AnswerForAllModalProps> = ({
                   Fan's Context:
                 </Text>
                 <Text style={{
-                  color: theme.text,
+                  color: 'black',
                   fontSize: 13,
                   fontFamily: 'Urbanist-Regular',
                   fontStyle: 'italic',
@@ -646,7 +646,7 @@ export const AnswerForAllModal: React.FC<AnswerForAllModalProps> = ({
                 marginBottom: 8,
               }}>
                 <Text style={{
-                  color: theme.textSecondary,
+                  color: 'black',
                   fontSize: 11,
                   fontFamily: 'Urbanist-Bold',
                   textTransform: 'uppercase',
@@ -655,7 +655,7 @@ export const AnswerForAllModal: React.FC<AnswerForAllModalProps> = ({
                   Your Answer:
                 </Text>
                 <Text style={{
-                  color: theme.text,
+                  color: 'black',
                   fontSize: 13,
                   fontFamily: 'Urbanist-Regular',
                 }}>
@@ -670,7 +670,7 @@ export const AnswerForAllModal: React.FC<AnswerForAllModalProps> = ({
                 marginBottom: 16,
               }}>
                 <Text style={{
-                  color: theme.textSecondary,
+                  color: 'black',
                   fontSize: 11,
                   fontFamily: 'Urbanist-Bold',
                   textTransform: 'uppercase',
@@ -679,7 +679,7 @@ export const AnswerForAllModal: React.FC<AnswerForAllModalProps> = ({
                   AI Adapted:
                 </Text>
                 <Text style={{
-                  color: theme.text,
+                  color: 'black',
                   fontSize: 13,
                   fontFamily: 'Urbanist-Regular',
                 }}>

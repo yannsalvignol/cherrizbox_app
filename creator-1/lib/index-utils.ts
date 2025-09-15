@@ -73,7 +73,6 @@ export const getChannelDisplayName = (channel: Channel, currentUserId?: string) 
       const otherMemberId = otherMembers[0];
       const otherMemberName = channel.memberNames?.[otherMemberId];
       const displayName = otherMemberName ? `Chat with ${otherMemberName}` : `Chat with ${otherMemberId}`;
-      console.log(`📱 Channel ${channel.id}: ${displayName}`);
       return displayName;
     }
   }
