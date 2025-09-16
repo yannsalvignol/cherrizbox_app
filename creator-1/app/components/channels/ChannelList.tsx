@@ -301,7 +301,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
 
   // Track if listeners are already set up to prevent duplicates
   const listenersSetupRef = useRef(false);
-  
+
   // Set up Stream Chat listeners for real-time updates (hybrid approach)
   useEffect(() => {
     if (!currentUserId) return;

@@ -26,7 +26,6 @@ export const config = {
     databaseId: process.env.EXPO_PUBLIC_DATABASE_ID,
     userCollectionId: process.env.EXPO_PUBLIC_USER_COLLECTION_ID,
     profileCollectionId: process.env.EXPO_PUBLIC_PROFILE_COLLECTION_ID,
-    videoCollectionId: process.env.EXPO_PUBLIC_VIDEO_COLLECTION_ID,
     photoCollectionId: process.env.EXPO_PUBLIC_PHOTO_COLLECTION_ID,
     /**
      * Collection that stores aggregated statistics for each creator (e.g. subscriber counters).
@@ -43,7 +42,7 @@ export const config = {
 const validateConfig = () => {
     const requiredVars = [
         'platform', 'endpoint', 'projectId', 'databaseId', 
-        'userCollectionId', 'profileCollectionId', 'videoCollectionId',
+        'userCollectionId', 'profileCollectionId',
         'photoCollectionId', 'storageId', 'activeSubscriptionsCollectionId',
         'cancelledSubscriptionsCollectionId'
     ];
@@ -176,26 +175,14 @@ export const createUser = async (email: string, password: string, username: stri
 // Get all posts (combining videos and photos)
 export const getAllPosts = async () => {
     try {
-        // Fetch videos
-        const videosPromise = databases.listDocuments(
-            config.databaseId!,
-            config.videoCollectionId!
-        );
-        
-        // Fetch photos
-        const photosPromise = databases.listDocuments(
+        // Fetch photos only (videos removed)
+        const photos = await databases.listDocuments(
             config.databaseId!,
             config.photoCollectionId!
         );
         
-        // Wait for both requests to complete
-        const [videos, photos] = await Promise.all([videosPromise, photosPromise]);
-        
-        // Combine and process the results
-        const allPosts = [
-            ...videos.documents.map(video => ({...video, type: 'video'})),
-            ...photos.documents.map(photo => ({...photo, type: 'photo'}))
-        ];
+        // Process results
+        const allPosts = photos.documents.map(photo => ({ ...photo, type: 'photo' }));
         
         // Sort by creation date (newest first)
         allPosts.sort((a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime());
@@ -562,7 +549,7 @@ export async function requestPasswordRecovery(email: string) {
 }
 
 export const codeBasedPasswordReset = async (email: string) => {
-    const FUNCTION_ID = process.env.EXPO_PUBLIC_REQUEST_PASSWORD_RESET_FUNCTION_ID;
+    const FUNCTION_ID = process.env.EXPO_PUBLIC_USER_REQUEST_PASSWORD_RESET_FUNCTION_ID;
     if (!FUNCTION_ID) throw new Error('Request password reset function ID not set');
 
     const execution = await functions.createExecution(
@@ -582,7 +569,7 @@ export const codeBasedPasswordReset = async (email: string) => {
 };
 
 export const verifyCodeAndResetPassword = async (email: string, code: string, password?: string) => {
-    const FUNCTION_ID = process.env.EXPO_PUBLIC_VERIFY_PASSWORD_RESET_FUNCTION_ID;
+    const FUNCTION_ID = process.env.EXPO_PUBLIC_USER_VERIFY_PASSWORD_RESET_FUNCTION_ID;
     if (!FUNCTION_ID) throw new Error('Verify password reset function ID not set');
     
     const execution = await functions.createExecution(
@@ -997,7 +984,7 @@ export const createPaidContentPaymentIntent = async (
         console.log('🚀 Starting createPaidContentPaymentIntent...');
         
         // Use the same function endpoint logic as your existing setup
-        const FUNCTION_ID = process.env.EXPO_PUBLIC_FUNCTION_ID;
+        const FUNCTION_ID = process.env.EXPO_PUBLIC_STRIPE_FUNCTION_ID;
         const backendUrl = `${config.endpoint}/functions/${FUNCTION_ID}/executions`;
         
         console.log('📋 Environment check:', {
@@ -1010,8 +997,8 @@ export const createPaidContentPaymentIntent = async (
         });
 
         if (!FUNCTION_ID) {
-            console.error('❌ Missing EXPO_PUBLIC_FUNCTION_ID');
-            throw new Error('EXPO_PUBLIC_FUNCTION_ID is not configured. Please set your function ID in environment variables.');
+            console.error('❌ Missing EXPO_PUBLIC_STRIPE_FUNCTION_ID');
+            throw new Error('EXPO_PUBLIC_STRIPE_FUNCTION_ID is not configured. Please set your function ID in environment variables.');
         }
 
         if (!config.endpoint) {

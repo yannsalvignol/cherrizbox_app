@@ -1,7 +1,7 @@
 import { Client, Databases, Query } from 'appwrite';
 import { config, getCurrentUser } from './appwrite';
 
-const FUNCTION_ID = process.env.EXPO_PUBLIC_APPWRITE_FUNCTION_ID!;
+const FUNCTION_ID = process.env.EXPO_PUBLIC_STRIPE_FUNCTION_ID!;
 const FUNCTION_ENDPOINT = `${config.endpoint}/functions/${FUNCTION_ID}/executions`;
 const PROFILES_COLLECTION_ID = config.profileCollectionId;
 

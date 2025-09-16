@@ -39,7 +39,7 @@ export const createTipPaymentIntent = async (
     }
     
     // Use the same structure as the working paid content function
-    const functionId = process.env.EXPO_PUBLIC_FUNCTION_ID;
+    const functionId = process.env.EXPO_PUBLIC_STRIPE_FUNCTION_ID;
     const backendUrl = `${config.endpoint}/functions/${functionId}/executions`;
     
     const requestBody = {
