@@ -30,7 +30,7 @@ import InsightsTab from './InsightsTab';
 
 export default function Index() {
     const router = useRouter();
-    const { theme } = useTheme();
+    const { theme, isDark, setThemeMode } = useTheme();
     const { 
       user, 
       missingChannelConditions, 
@@ -95,8 +95,12 @@ export default function Index() {
     // Animation for cherry icon
     const cherryIconScale = useRef(new Animated.Value(1)).current;
 
-    // Function to animate cherry icon zoom with natural spring effect
+    // Function to animate cherry icon zoom with natural spring effect and toggle theme
     const animateCherryIcon = () => {
+        // Toggle theme
+        setThemeMode(isDark ? 'light' : 'dark');
+        
+        // Animate icon
         Animated.sequence([
             Animated.spring(cherryIconScale, {
                 toValue: 1.15,

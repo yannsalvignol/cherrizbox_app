@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import messaging from '@react-native-firebase/messaging';
+import { AuthorizationStatus, getMessaging, getToken, onTokenRefresh, requestPermission } from '@react-native-firebase/messaging';
 import { StreamChat } from "stream-chat";
 import { getCurrentUser } from './appwrite';
 import { testStreamTokenGeneration } from './test-stream-token';
@@ -302,7 +302,8 @@ export const connectUser = async (userId: string) => {
                 // IMPORTANT: Set up push notification device BEFORE connecting
                 // This is required by Stream SDK - setLocalDevice must be called before connectUser
                 try {
-                    const fcmToken = await messaging().getToken();
+                    const messaging = getMessaging();
+                    const fcmToken = await getToken(messaging);
                     if (fcmToken) {
                         console.log('[Push] Setting local device BEFORE connection...');
                         client.setLocalDevice({
@@ -389,18 +390,18 @@ const registerForPushWithStream = async (): Promise<void> => {
     
     try {
         pushRegistrationInProgress = true;
-
-        await messaging().registerDeviceForRemoteMessages();
-        const authStatus = await messaging().requestPermission();
+        
+        const messaging = getMessaging();
+        const authStatus = await requestPermission(messaging);
         const enabled =
-            authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-            authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+            authStatus === AuthorizationStatus.AUTHORIZED ||
+            authStatus === AuthorizationStatus.PROVISIONAL;
         if (!enabled) {
             console.log('[Push] Notification permission not granted');
             return;
         }
 
-        const fcmToken = await messaging().getToken();
+        const fcmToken = await getToken(messaging);
         if (fcmToken) {
             console.log('[Push] About to register device with FCM token:', fcmToken.substring(0, 20) + '...');
             
@@ -453,7 +454,7 @@ const registerForPushWithStream = async (): Promise<void> => {
         }
 
         // Handle token refresh
-        messaging().onTokenRefresh(async (newToken) => {
+        onTokenRefresh(messaging, async (newToken) => {
             try {
                 console.log('[Push] Token refresh - re-registering device...');
                 // Note: setLocalDevice can't be called after connection is established
