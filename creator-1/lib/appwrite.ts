@@ -55,10 +55,10 @@ export const createUser = async (email: string, password: string, username: stri
         await SignIn(email, password);
 
         const userData: any = {
-            creatoraccountid: newAccount.$id,
-            creatoremail: email,
-            creatorusername: username,
-            creatoravatar: avatarUrl
+            creatorId: newAccount.$id,
+            creatorEmail: email,
+            creatorUsername: username,
+            creatorAvatar: avatarUrl
         };
 
         // Add social media data if provided
@@ -141,7 +141,7 @@ export async function login(socialMedia?: string, socialMediaUsername?: string, 
             const existingUser = await databases.listDocuments(
                 config.databaseId,
                 config.creatorCollectionId,
-                [Query.equal('creatoraccountid', user.$id)]
+                [Query.equal('creatorId', user.$id)]
             );
 
             if (existingUser.documents.length === 0) {
@@ -151,10 +151,10 @@ export async function login(socialMedia?: string, socialMediaUsername?: string, 
                     config.creatorCollectionId,
                     ID.unique(),
                     {
-                        creatoraccountid: user.$id,
-                        creatoremail: user.email,
-                        creatorusername: user.name,
-                        creatoravatar: avatarUrl,
+                        creatorId: user.$id,
+                        creatorEmail: user.email,
+                        creatorUsername: user.name,
+                        creatorAvatar: avatarUrl,
                         // Use social media info passed from landing page, or fallback to Google
                         social_media: socialMedia || 'Google',
                         social_media_username: socialMediaUsername || user.email,
@@ -247,7 +247,7 @@ export async function loginWithApple(authorizationCode: string, firstName?: stri
             const existingUser = await databases.listDocuments(
                 config.databaseId,
                 config.creatorCollectionId,
-                [Query.equal('creatoraccountid', user.$id)]
+                [Query.equal('creatorId', user.$id)]
             );
 
             if (existingUser.documents.length === 0) {
@@ -257,10 +257,10 @@ export async function loginWithApple(authorizationCode: string, firstName?: stri
                     config.creatorCollectionId,
                     ID.unique(),
                     {
-                        creatoraccountid: user.$id,
-                        creatoremail: user.email,
-                        creatorusername: user.name,
-                        creatoravatar: avatarUrl,
+                        creatorId: user.$id,
+                        creatorEmail: user.email,
+                        creatorUsername: user.name,
+                        creatorAvatar: avatarUrl,
                         social_media: 'Apple',
                         social_media_username: user.email,
                         social_media_number: Math.floor(100000 + Math.random() * 900000).toString(),
@@ -488,7 +488,7 @@ export const updateUserProfile = async (userId: string, data: any): Promise<any>
                     const userDocs = await databases.listDocuments(
                         config.databaseId,
                         config.creatorCollectionId,
-                        [Query.equal('creatoraccountid', userId)]
+                        [Query.equal('creatorId', userId)]
                     );
                     if (userDocs.documents.length > 0) {
                         const userDocId = userDocs.documents[0].$id;
@@ -531,7 +531,7 @@ export const updateUserProfile = async (userId: string, data: any): Promise<any>
                     const userDocs = await databases.listDocuments(
                         config.databaseId,
                         config.creatorCollectionId,
-                        [Query.equal('creatoraccountid', userId)]
+                        [Query.equal('creatorId', userId)]
                     );
                     if (userDocs.documents.length > 0) {
                         const userDocId = userDocs.documents[0].$id;
@@ -845,14 +845,14 @@ export const getUserSubscriptions = async (userId: string) => {
     }
 };
 
-export const deleteExpiredSubscriptions = async (creatorAccountId: string) => {
+export const deleteExpiredSubscriptions = async (creatorId: string) => {
     try {
         // Get all active subscriptions for this creator
         const activeSubscriptions = await databases.listDocuments(
             config.databaseId,
             config.activeSubscriptionsCollectionId,
             [
-                Query.equal('creatorAccountId', creatorAccountId)
+                Query.equal('creatorId', creatorId)
             ]
         );
 
@@ -925,14 +925,14 @@ export const getSubscriptionStatus = async (userId: string, creatorName: string)
     }
 };
 
-export const getCreatorSubscriptions = async (creatorAccountId: string) => {
+export const getCreatorSubscriptions = async (creatorId: string) => {
   try {
     // Get active subscriptions with active status
     const activeSubscriptions = await databases.listDocuments(
       config.databaseId,
       config.activeSubscriptionsCollectionId,
       [
-        Query.equal('creatorAccountId', creatorAccountId),
+        Query.equal('creatorId', creatorId),
         Query.equal('status', 'active')
       ]
     );
@@ -942,7 +942,7 @@ export const getCreatorSubscriptions = async (creatorAccountId: string) => {
       config.databaseId,
       config.activeSubscriptionsCollectionId,
       [
-        Query.equal('creatorAccountId', creatorAccountId),
+        Query.equal('creatorId', creatorId),
         Query.equal('status', 'cancelled')
       ]
     );
@@ -952,7 +952,7 @@ export const getCreatorSubscriptions = async (creatorAccountId: string) => {
       config.databaseId,
       config.cancelledSubscriptionsCollectionId,
       [
-        Query.equal('creatorAccountId', creatorAccountId),
+        Query.equal('creatorId', creatorId),
         Query.equal('status', 'cancelled')
       ]
     );
@@ -974,14 +974,14 @@ export const getCreatorSubscriptions = async (creatorAccountId: string) => {
   }
 };
 
-export const getCreatorEarnings = async (creatorAccountId: string) => {
+export const getCreatorEarnings = async (creatorId: string) => {
   try {
     // Get active subscriptions
     const activeSubscriptions = await databases.listDocuments(
       config.databaseId,
       config.activeSubscriptionsCollectionId,
       [
-        Query.equal('creatorAccountId', creatorAccountId)
+        Query.equal('creatorId', creatorId)
       ]
     );
 
@@ -990,7 +990,7 @@ export const getCreatorEarnings = async (creatorAccountId: string) => {
       config.databaseId,
       config.cancelledSubscriptionsCollectionId,
       [
-        Query.equal('creatorAccountId', creatorAccountId)
+        Query.equal('creatorId', creatorId)
       ]
     );
 
@@ -1010,7 +1010,7 @@ export const getUserPhoto = async (creatorId: string) => {
         const response = await databases.listDocuments(
             config.databaseId,
             config.photoCollectionId,
-            [Query.equal('IdCreator', creatorId)]
+            [Query.equal('creatorId', creatorId)]
         );
         
         if (response.documents.length > 0) {
@@ -1029,7 +1029,7 @@ export const getUserByAccountId = async (accountId: string) => {
         const users = await databases.listDocuments(
             config.databaseId,
             config.creatorCollectionId,
-            [Query.equal('creatoraccountid', accountId)]
+            [Query.equal('creatorId', accountId)]
         );
         
         if (users.documents.length > 0) {

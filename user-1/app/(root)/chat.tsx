@@ -114,7 +114,7 @@ export default function ChatScreen() {
                         'usd';
         
         // Extract creator account ID from post data
-        const accountId = creatorPost.creatoraccountid || creatorPost.accountId || '';
+        const accountId = creatorPost.creatorId || creatorPost.accountId || '';
         
         console.log('💰 [ChatScreen] Creator currency:', currency);
         console.log('👤 [ChatScreen] Creator ID:', accountId);
@@ -301,7 +301,7 @@ export default function ChatScreen() {
         const photos = await databases.listDocuments(
           config.databaseId,
           config.photoCollectionId,
-          [Query.equal('IdCreator', creatorId)]
+          [Query.equal('creatorId', creatorId)]
         );
         
         if (photos.documents.length > 0) {

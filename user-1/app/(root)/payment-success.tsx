@@ -212,7 +212,7 @@ export default function PaymentSuccess() {
                 const userSubscriptions = await getUserSubscriptions(user.$id);
                 const activeCreatorIds = userSubscriptions
                   .filter(sub => sub.status === 'active' && (!sub.endsAt || new Date(sub.endsAt) > new Date()))
-                  .map(sub => sub.creatorAccountId)
+                  .map(sub => sub.creatorId)
                   .filter(id => id && id !== user.$id); // Filter out invalid IDs and self
                 
                 if (activeCreatorIds.length > 0) {

@@ -273,7 +273,7 @@ export default function EditProfile() {
                 const userDocs = await databases.listDocuments(
                   config.databaseId,
                   config.creatorCollectionId,
-                  [Query.equal('creatoraccountid', globalUser.$id)]
+                  [Query.equal('creatorId', globalUser.$id)]
                 );
                 
                 if (userDocs.documents.length > 0) {
@@ -390,7 +390,7 @@ export default function EditProfile() {
                     compressed_thumbnail: photoResult.compressedImageUrl,
                     title: creatorName || name || '',
                     prompte: creatorName || name || '',
-                    IdCreator: globalUser.$id,
+                    creatorId: globalUser.$id,
                     payment: JSON.stringify({
                       monthlyPrice: monthlyPrice || '0',
                       yearlyPrice: yearlyPrice || '0'
@@ -406,7 +406,7 @@ export default function EditProfile() {
                     const existingPublic = await databases.listDocuments(
                       config.databaseId,
                       config.photosAvailableToUsersCollectionId,
-                      [Query.equal('IdCreator', globalUser.$id)]
+                      [Query.equal('creatorId', globalUser.$id)]
                     );
                     if (existingPublic.documents.length > 0) {
                       await databases.updateDocument(
@@ -418,7 +418,7 @@ export default function EditProfile() {
                           compressed_thumbnail: photoResult.compressedImageUrl,
                           title: creatorName || name || '',
                           prompte: creatorName || name || '',
-                          IdCreator: globalUser.$id,
+                          creatorId: globalUser.$id,
                           payment: JSON.stringify({
                             monthlyPrice: monthlyPrice || '0',
                             yearlyPrice: yearlyPrice || '0'
@@ -444,7 +444,7 @@ export default function EditProfile() {
                     compressed_thumbnail: photoResult.compressedImageUrl,
                     title: creatorName || name || '',
                     prompte: creatorName || name || '',
-                    IdCreator: globalUser.$id,
+                    creatorId: globalUser.$id,
                     payment: JSON.stringify({
                       monthlyPrice: monthlyPrice || '0',
                       yearlyPrice: yearlyPrice || '0'
@@ -461,7 +461,7 @@ export default function EditProfile() {
                     const existingPublic = await databases.listDocuments(
                       config.databaseId,
                       config.photosAvailableToUsersCollectionId,
-                      [Query.equal('IdCreator', globalUser.$id)]
+                      [Query.equal('creatorId', globalUser.$id)]
                     );
                     if (existingPublic.documents.length > 0) {
                       await databases.updateDocument(
@@ -473,7 +473,7 @@ export default function EditProfile() {
                           compressed_thumbnail: photoResult.compressedImageUrl,
                           title: creatorName || name || '',
                           prompte: creatorName || name || '',
-                          IdCreator: globalUser.$id,
+                          creatorId: globalUser.$id,
                           payment: JSON.stringify({
                             monthlyPrice: monthlyPrice || '0',
                             yearlyPrice: yearlyPrice || '0'
@@ -531,7 +531,7 @@ export default function EditProfile() {
             compressed_thumbnail: newCompressedImageUrl || '',
             title: creatorName || name || '',
             prompte: creatorName || name || '',
-            IdCreator: globalUser.$id,
+            creatorId: globalUser.$id,
             payment: JSON.stringify({
               monthlyPrice: monthlyPrice || '0',
               yearlyPrice: yearlyPrice || '0'
@@ -548,7 +548,7 @@ export default function EditProfile() {
             const existingPublic = await databases.listDocuments(
               config.databaseId,
               config.photosAvailableToUsersCollectionId,
-              [Query.equal('IdCreator', globalUser.$id)]
+              [Query.equal('creatorId', globalUser.$id)]
             );
             if (existingPublic.documents.length > 0) {
               await databases.updateDocument(
@@ -560,7 +560,7 @@ export default function EditProfile() {
                   compressed_thumbnail: newCompressedImageUrl || '',
                   title: creatorName || name || '',
                   prompte: creatorName || name || '',
-                  IdCreator: globalUser.$id,
+                  creatorId: globalUser.$id,
                   payment: JSON.stringify({
                     monthlyPrice: monthlyPrice || '0',
                     yearlyPrice: yearlyPrice || '0'
@@ -589,7 +589,7 @@ export default function EditProfile() {
             compressed_thumbnail: newCompressedImageUrl || '',
             title: creatorName || name || '',
             prompte: creatorName || name || '',
-            IdCreator: globalUser.$id,
+            creatorId: globalUser.$id,
             payment: JSON.stringify({
               monthlyPrice: monthlyPrice || '0',
               yearlyPrice: yearlyPrice || '0'
@@ -606,7 +606,7 @@ export default function EditProfile() {
             const existingPublic = await databases.listDocuments(
               config.databaseId,
               config.photosAvailableToUsersCollectionId,
-              [Query.equal('IdCreator', globalUser.$id)]
+              [Query.equal('creatorId', globalUser.$id)]
             );
             if (existingPublic.documents.length > 0) {
               await databases.updateDocument(
@@ -618,7 +618,7 @@ export default function EditProfile() {
                   compressed_thumbnail: newCompressedImageUrl || '',
                   title: creatorName || name || '',
                   prompte: creatorName || name || '',
-                  IdCreator: globalUser.$id,
+                  creatorId: globalUser.$id,
                   payment: JSON.stringify({
                     monthlyPrice: monthlyPrice || '0',
                     yearlyPrice: yearlyPrice || '0'
@@ -704,7 +704,7 @@ export default function EditProfile() {
           compressed_thumbnail: compressedThumbnail || '',
           title: creatorName || name || '',
           prompte: creatorName || name || '',
-          IdCreator: globalUser.$id,
+          creatorId: globalUser.$id,
           PhotosLocation: location || '',
           payment: JSON.stringify(paymentData),
           PhotoTopics: topics.join(', '),
@@ -726,7 +726,7 @@ export default function EditProfile() {
               const existingPublic = await databases.listDocuments(
                 config.databaseId,
                 config.photosAvailableToUsersCollectionId,
-                [Query.equal('IdCreator', globalUser.$id)]
+                [Query.equal('creatorId', globalUser.$id)]
               );
               if (existingPublic.documents.length > 0) {
                 await databases.updateDocument(
@@ -754,7 +754,7 @@ export default function EditProfile() {
               const existingPublic = await databases.listDocuments(
                 config.databaseId,
                 config.photosAvailableToUsersCollectionId,
-                [Query.equal('IdCreator', globalUser.$id)]
+                [Query.equal('creatorId', globalUser.$id)]
               );
               if (existingPublic.documents.length > 0) {
                 await databases.updateDocument(

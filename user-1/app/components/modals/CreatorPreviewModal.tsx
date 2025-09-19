@@ -6,14 +6,14 @@ import * as MediaLibrary from 'expo-media-library';
 import * as Sharing from 'expo-sharing';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Modal,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    Modal,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 interface CreatorPreviewModalProps {
@@ -112,7 +112,7 @@ export const CreatorPreviewModal: React.FC<CreatorPreviewModalProps> = ({
           const photos = await databases.listDocuments(
             config.databaseId!,
             config.photoCollectionId!,
-            [Query.equal('IdCreator', creatorId)]
+            [Query.equal('creatorId', creatorId)]
           );
           
           if (photos.documents.length > 0) {

@@ -150,7 +150,7 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
       const photoDocs = await databases.listDocuments(
         config.databaseId,
         config.photoCollectionId,
-        [Query.equal('IdCreator', user.$id)]
+        [Query.equal('creatorId', user.$id)]
       );
       
       if (photoDocs.documents.length > 0) {
@@ -326,7 +326,7 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
       const userDocs = await databases.listDocuments(
         config.databaseId,
         config.creatorCollectionId,
-        [Query.equal('creatoraccountid', user.$id)]
+        [Query.equal('creatorId', user.$id)]
       );
       
       if (userDocs.documents.length > 0) {
@@ -482,7 +482,7 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
           const userDocs = await databases.listDocuments(
             config.databaseId,
             config.creatorCollectionId,
-            [Query.equal('creatoraccountid', user.$id)]
+            [Query.equal('creatorId', user.$id)]
           );
           
           if (userDocs.documents.length > 0) {

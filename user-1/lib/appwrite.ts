@@ -888,7 +888,7 @@ export const deleteExpiredSubscriptions = async (userId: string) => {
                 billingCycleAnchor: sub.billingCycleAnchor,
                 customerEmail: sub.customerEmail,
                 creatorName: sub.creatorName,
-                creatorAccountId: sub.creatorAccountId,
+                creatorId: sub.creatorId,
                 endsAt: sub.endsAt,
                 planCurrency: sub.planCurrency,
                 planInterval: sub.planInterval,
@@ -939,7 +939,7 @@ export const getCreatorIdByName = async (creatorName: string): Promise<string | 
     try {
         console.log('🔍 getCreatorIdByName called with:', creatorName);
         
-        // Query the photos collection to find the creator's IdCreator
+        // Query the photos collection to find the creator's creatorId
         const photos = await databases.listDocuments(
             config.databaseId!,
             config.photoCollectionId!,
@@ -948,14 +948,14 @@ export const getCreatorIdByName = async (creatorName: string): Promise<string | 
         
         console.log('📊 Found photos:', photos.documents.length);
         console.log('📋 Photo details:', photos.documents.map(p => ({
-            idCreator: p.IdCreator,
+            creatorId: p.creatorId,
             title: p.title,
             creatorsname: p.creatorsname
         })));
         
         if (photos.documents.length > 0) {
-            const creatorId = photos.documents[0].IdCreator;
-            console.log('✅ Returning creator ID from photos collection (IdCreator):', creatorId);
+            const creatorId = photos.documents[0].creatorId;
+            console.log('✅ Returning creator ID from photos collection (creatorId):', creatorId);
             return creatorId;
         }
         
@@ -1285,7 +1285,7 @@ export const checkIfEmailIsCreator = async (email: string): Promise<boolean> => 
             config.databaseId!,
             config.creatorCollectionId!,
             [
-                Query.equal('creatoremail', email),
+                Query.equal('creatorEmail', email),
                 Query.limit(1)
             ]
         );

@@ -116,7 +116,7 @@ const LoadingScreen = () => {
             const creatorResponse = await databases.listDocuments(
               config.databaseId,
               process.env.EXPO_PUBLIC_APPWRITE_CREATOR_COLLECTION_ID!,
-              [Query.equal('creatoraccountid', user.$id)]
+              [Query.equal('creatorId', user.$id)]
             );
 
             if (creatorResponse.documents.length > 0) {

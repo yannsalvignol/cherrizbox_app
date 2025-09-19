@@ -201,7 +201,7 @@ export default function Index() {
       const userDocs = await databases.listDocuments(
         config.databaseId,
         config.creatorCollectionId,
-        [Query.equal('creatoraccountid', user.$id)]
+        [Query.equal('creatorId', user.$id)]
       );
       
       if (userDocs.documents.length === 0) {
@@ -540,7 +540,7 @@ export default function Index() {
             compressed_thumbnail: profile.compressed_thumbnail || '',
             title: profile.creatorsname || user.name || 'Creator',
             prompte: profile.creatorsname || user.name || 'Creator',
-            IdCreator: user.$id,
+            creatorId: user.$id,
             PhotosLocation: profile.Location || '',
             payment: JSON.stringify(paymentData),
             PhotoTopics: profile.topics || '',
@@ -560,7 +560,7 @@ export default function Index() {
           const photoDocs = await databases.listDocuments(
             config.databaseId,
             config.photoCollectionId,
-            [Query.equal('IdCreator', user.$id)]
+            [Query.equal('creatorId', user.$id)]
           );
           
           if (photoDocs.documents.length > 0) {
@@ -570,7 +570,7 @@ export default function Index() {
             const existingAvailable = await databases.listDocuments(
               config.databaseId,
               config.photosAvailableToUsersCollectionId,
-              [Query.equal('IdCreator', user.$id)]
+              [Query.equal('creatorId', user.$id)]
             );
             
             if (existingAvailable.documents.length === 0) {
@@ -582,7 +582,7 @@ export default function Index() {
                   thumbnail: photoDoc.thumbnail,
                   title: photoDoc.title,
                   prompte: photoDoc.prompte,
-                  IdCreator: photoDoc.IdCreator,
+                  creatorId: photoDoc.creatorId,
                   payment: photoDoc.payment,
                   PhotosLocation: photoDoc.PhotosLocation,
                   PhotoTopics: photoDoc.PhotoTopics,
@@ -721,7 +721,7 @@ export default function Index() {
       const userDocs = await databases.listDocuments(
         config.databaseId,
         config.creatorCollectionId,
-        [Query.equal('creatoraccountid', user.$id)]
+        [Query.equal('creatorId', user.$id)]
       );
       
       if (userDocs.documents.length > 0) {
@@ -785,7 +785,7 @@ export default function Index() {
       const userDocs = await databases.listDocuments(
         config.databaseId,
         config.creatorCollectionId,
-        [Query.equal('creatoraccountid', user.$id)]
+        [Query.equal('creatorId', user.$id)]
       );
       
       if (userDocs.documents.length > 0) {
@@ -1023,7 +1023,7 @@ export default function Index() {
       const creatorResponse = await databases.listDocuments(
         config.databaseId,
         process.env.EXPO_PUBLIC_APPWRITE_CREATOR_COLLECTION_ID!,
-        [Query.equal('creatoraccountid', user.$id)]
+        [Query.equal('creatorId', user.$id)]
       );
 
       if (creatorResponse.documents.length > 0) {

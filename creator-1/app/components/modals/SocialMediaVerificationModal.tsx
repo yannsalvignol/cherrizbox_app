@@ -4,13 +4,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  Alert,
-  Image,
-  Keyboard,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    Alert,
+    Image,
+    Keyboard,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 interface NetworkType {
@@ -92,7 +92,7 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
             compressed_thumbnail: profile.compressed_thumbnail || '',
             title: profile.creatorsname || 'Creator',
             prompte: profile.creatorsname || 'Creator',
-            IdCreator: userId,
+            creatorId: userId,
             PhotosLocation: profile.Location || '',
             payment: JSON.stringify({
               monthlyPrice: '10', // Default or from profile
@@ -117,7 +117,7 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
           const photoDocs = await databases.listDocuments(
             config.databaseId,
             config.photoCollectionId,
-            [Query.equal('IdCreator', userId)]
+            [Query.equal('creatorId', userId)]
           );
           
           if (photoDocs.documents.length > 0) {
@@ -131,7 +131,7 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
                 thumbnail: photoDoc.thumbnail,
                 title: photoDoc.title,
                 prompte: photoDoc.prompte,
-                IdCreator: photoDoc.IdCreator,
+                creatorId: photoDoc.creatorId,
                 payment: photoDoc.payment,
                 PhotosLocation: photoDoc.PhotosLocation,
                 PhotoTopics: photoDoc.PhotoTopics,
@@ -212,7 +212,7 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
       const userDocs = await databases.listDocuments(
         config.databaseId,
         config.creatorCollectionId,
-        [Query.equal('creatoraccountid', user.$id)]
+        [Query.equal('creatorId', user.$id)]
       );
       
       if (userDocs.documents.length === 0) {

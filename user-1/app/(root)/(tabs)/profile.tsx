@@ -88,7 +88,7 @@ interface Subscription {
     planCurrency: string;
     planInterval: string;
     creatorName: string;
-    creatorAccountId: string;
+    creatorId: string;
     renewalDate: string;
     stripeSubscriptionId: string;
     endsAt?: string;
@@ -1013,22 +1013,22 @@ export default function Profile() {
                   .map((subscription) => (
                     <Pressable 
                       key={subscription.$id}
-                      onPress={() => setSelectedCreatorId(subscription.creatorAccountId)}
+                      onPress={() => setSelectedCreatorId(subscription.creatorId)}
                       style={{
-                        backgroundColor: selectedCreatorId === subscription.creatorAccountId ? theme.cardBackground : theme.backgroundTertiary,
+                        backgroundColor: selectedCreatorId === subscription.creatorId ? theme.cardBackground : theme.backgroundTertiary,
                         paddingHorizontal: 24,
                         paddingVertical: 12,
                         borderRadius: 25,
                         marginRight: 12,
-                        borderWidth: selectedCreatorId === subscription.creatorAccountId ? 1 : 1,
-                        borderColor: selectedCreatorId === subscription.creatorAccountId ? theme.cardBackground : theme.borderDark
+                        borderWidth: selectedCreatorId === subscription.creatorId ? 1 : 1,
+                        borderColor: selectedCreatorId === subscription.creatorId ? theme.cardBackground : theme.borderDark
                       }}
                     >
                       <Text style={{ 
-                        color: selectedCreatorId === subscription.creatorAccountId ? theme.text : theme.textSecondary, 
+                        color: selectedCreatorId === subscription.creatorId ? theme.text : theme.textSecondary, 
                         fontFamily: 'questrial', 
                         fontSize: 16,
-                        fontWeight: selectedCreatorId === subscription.creatorAccountId ? '600' : 'normal'
+                        fontWeight: selectedCreatorId === subscription.creatorId ? '600' : 'normal'
                       }}>
                         {subscription.creatorName}
                       </Text>
@@ -1054,7 +1054,7 @@ export default function Profile() {
             ) : purchasedContent.length > 0 ? (
               <View style={{ paddingHorizontal: 8 }}>
                 <Text style={{ color: theme.textSecondary, fontSize: 14, fontFamily: 'questrial', textAlign: 'center', marginBottom: 16 }}>
-                  {purchasedContent.length} {selectedContentType.toLowerCase()} from {selectedCreatorId === 'all' ? 'all creators' : creators.find(c => c.creatorAccountId === selectedCreatorId)?.creatorName || ''}
+                  {purchasedContent.length} {selectedContentType.toLowerCase()} from {selectedCreatorId === 'all' ? 'all creators' : creators.find(c => c.creatorId === selectedCreatorId)?.creatorName || ''}
                 </Text>
                 
                 {/* Preloading Progress Indicator */}
@@ -1195,7 +1195,7 @@ export default function Profile() {
                   No {selectedContentType.toLowerCase()} found
                 </Text>
                 <Text style={{ color: theme.textTertiary, fontSize: 14, fontFamily: 'questrial', textAlign: 'center', marginTop: 8 }}>
-                  {selectedCreatorId === 'all' ? 'You haven\'t purchased any content yet' : `No content from ${creators.find(c => c.creatorAccountId === selectedCreatorId)?.creatorName || ''}`}
+                  {selectedCreatorId === 'all' ? 'You haven\'t purchased any content yet' : `No content from ${creators.find(c => c.creatorId === selectedCreatorId)?.creatorName || ''}`}
                 </Text>
               </View>
             )}

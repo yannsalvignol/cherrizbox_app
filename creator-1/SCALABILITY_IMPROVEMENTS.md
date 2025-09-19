@@ -135,9 +135,9 @@ const syncChannels = async () => {
 
 ### 8. **Database Indexing (Backend)**
 Ensure these indexes exist in Appwrite:
-- `creatoraccountid` (for user queries)
+- `creatorId` (for user queries)
 - `created_at` (for sorting)
-- Composite: `[creatoraccountid, created_at]`
+- Composite: `[creatorId, created_at]`
 
 ### 9. **CDN for Static Assets**
 - Profile images should be served via CDN

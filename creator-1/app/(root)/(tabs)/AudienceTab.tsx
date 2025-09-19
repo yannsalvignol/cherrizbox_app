@@ -40,12 +40,12 @@ export default function AudienceTab({ refreshing, onRefresh }: AudienceTabProps)
       const { databases, config } = await import('@/lib/appwrite');
       const { Query } = await import('react-native-appwrite');
       
-      // Use the index on creatorAccountId to fetch all active subscriptions for this creator
+      // Use the index on creatorIdactive subscriptions for this creator
       const response = await databases.listDocuments(
         config.databaseId,
         config.activeSubscriptionsCollectionId,
         [
-          Query.equal('creatorAccountId', user.$id),
+          Query.equal('creatorId', user.$id),
           Query.equal('status', 'active')
         ]
       );

@@ -133,7 +133,7 @@ const getCachedUserDoc = async (userId: string, forceRefresh = false) => {
   // Return cached doc if still valid
   if (!forceRefresh && userDocCache && userDocCacheTime && 
       (now - userDocCacheTime) < USER_DOC_CACHE_TTL && 
-      userDocCache.creatoraccountid === userId) {
+      userDocCache.creatorId === userId) {
     console.log('📦 Using cached user document');
     return userDocCache;
   }
@@ -145,7 +145,7 @@ const getCachedUserDoc = async (userId: string, forceRefresh = false) => {
   const userDocs = await databases.listDocuments(
     config.databaseId,
     config.creatorCollectionId,
-    [Query.equal('creatoraccountid', userId)]
+    [Query.equal('creatorId', userId)]
   );
   
   if (userDocs.documents.length > 0) {
@@ -501,7 +501,7 @@ export const clearTokenCache = async (clearBackend = false, clearStorage = true)
       const userDocs = await databases.listDocuments(
         config.databaseId,
         config.creatorCollectionId,
-        [Query.equal('creatoraccountid', connectedUserId)]
+        [Query.equal('creatorId', connectedUserId)]
       );
       
       if (userDocs.documents.length > 0) {

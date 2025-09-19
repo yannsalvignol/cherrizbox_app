@@ -44,7 +44,7 @@ const ChangeUsernameScreen = () => {
         const userDocs = await databases.listDocuments(
           config.databaseId,
           config.creatorCollectionId,
-          [Query.equal('creatoraccountid', user.$id)]
+          [Query.equal('creatorId.$id', user.$id)]
         );
         
         if (userDocs.documents.length > 0) {

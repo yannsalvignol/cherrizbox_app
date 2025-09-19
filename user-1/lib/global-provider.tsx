@@ -51,7 +51,7 @@ interface AppwriteDocument extends Models.Document {
     planCurrency: string;
     planInterval: string;
     creatorName: string;
-    creatorAccountId: string;
+    creatorId: string;
     renewalDate: string;
     stripeSubscriptionId: string;
     endsAt?: string;
@@ -317,7 +317,7 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
       // Only pre-setup channels if Stream Chat is connected (meaning user has active subscriptions)
       const activeCreatorIds = filteredSubscriptions
         .filter(sub => sub.status === 'active')
-        .map(sub => sub.creatorAccountId);
+        .map(sub => sub.creatorId);
 
       if (activeCreatorIds.length > 0 && isStreamConnected) {
         console.log('🚀 Starting channel pre-setup for active creators...');
