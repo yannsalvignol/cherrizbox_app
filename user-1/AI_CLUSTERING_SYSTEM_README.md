@@ -38,8 +38,8 @@ Fan Messages → Intent Recognition → Focused Embeddings → Clustering Engine
 ```typescript
 interface Chat {
   id: string;
-  fanId: string;
-  proId: string;
+  userId: string;
+  creatorId: string;
   messages: Message[];
   metadata: {
     tags: string[];

@@ -122,7 +122,7 @@ export const AnswerForAllModal: React.FC<AnswerForAllModalProps> = ({
         JSON.stringify({
           clusterId: cluster.clusterId,
           canonicalAnswer: canonicalAnswer,
-          proId: currentUserId,
+          creatorId: currentUserId,
           affectedChats: affectedChats,
           fullMessage: cluster.fullMessage,
           questionTitle: cluster.title

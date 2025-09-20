@@ -11,8 +11,8 @@ import {
 export interface Cluster {
   $id: string;
   clusterId: string;
-  proId: string;
-  fanId: string;
+  creatorId: string;
+  userId: string;
   title: string;
   topic: string;
   representativeQuestions: string;
@@ -65,8 +65,8 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
 
   // Parse fan IDs to check if this is an aggregated cluster
   const isAggregated = React.useMemo(() => {
-    return cluster.fanId && cluster.fanId.includes(',');
-  }, [cluster.fanId]);
+    return cluster.userId && cluster.userId.includes(',');
+  }, [cluster.userId]);
 
   const handleAnswerForAll = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

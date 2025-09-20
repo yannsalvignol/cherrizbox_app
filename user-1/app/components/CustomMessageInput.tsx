@@ -96,19 +96,19 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
 
       // Only process messages from the current user (fan)
       if (event.message?.user?.id === userId && event.message?.text && event.message.text.trim()) {
-        // Derive proId from channel ID if not provided
-        const derivedProId = (creatorId && creatorId.trim().length > 0)
+        // Derive creatorId from channel ID if not provided
+        const derivedcreatorId = (creatorId && creatorId.trim().length > 0)
           ? creatorId
           : (currentChannel?.id?.startsWith('dm-') ? currentChannel.id.split('-')[1] : null);
 
-        console.log('🧩 [CustomMessageInput] proId resolution:', {
+        console.log('🧩 [CustomMessageInput] creatorId resolution:', {
           providedCreatorId: creatorId,
           channelId: currentChannel?.id,
-          derivedProId
+          derivedcreatorId
         });
 
-        if (!derivedProId) {
-          console.log('⚠️ [CustomMessageInput] Missing proId (creatorId); skipping clustering call.');
+        if (!derivedcreatorId) {
+          console.log('⚠️ [CustomMessageInput] Missing creatorId (creatorId); skipping clustering call.');
           return;
         }
         console.log('✅ [CustomMessageInput] Message from current user detected, sending to clustering...');
@@ -117,16 +117,16 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
           content: event.message.text.substring(0, 100) + (event.message.text.length > 100 ? '...' : ''),
           chatType: currentChatType,
           channelId: currentChannel.id,
-          fanId: userId,
-          creatorId: derivedProId
+          userId: userId,
+          creatorId: derivedcreatorId
         });
 
         sendToClusteringFunction({
           messageId: event.message.id,
           content: event.message.text,
           chatId: currentChannel.id,
-          fanId: userId,
-          proId: derivedProId,
+          userId: userId,
+          creatorId: derivedcreatorId,
           timestamp: Date.now(),
           messageType: 'text'
         });
@@ -515,8 +515,8 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
       messageId: messageData.messageId,
       content: messageData.content.substring(0, 100) + (messageData.content.length > 100 ? '...' : ''),
       chatId: messageData.chatId,
-      fanId: messageData.fanId,
-      proId: messageData.proId,
+      userId: messageData.userId,
+      creatorId: messageData.creatorId,
       timestamp: messageData.timestamp,
       messageType: messageData.messageType
     });

@@ -876,12 +876,12 @@ export default function Index() {
       const { databases, config } = await import('@/lib/appwrite');
       const { Query } = await import('react-native-appwrite');
       
-      // Fetch clusters where proId matches current user
+      // Fetch clusters where creatorId matches current user
       const clustersResponse = await databases.listDocuments(
         config.databaseId,
         'clusters', // Clusters collection ID
         [
-          Query.equal('proId', user.$id),
+          Query.equal('creatorId', user.$id),
           Query.orderDesc('$createdAt'),
           Query.limit(100)
         ]
@@ -918,7 +918,7 @@ export default function Index() {
           
           // Aggregate ONLY from pending documents
           const pendingAffectedChats = new Set<string>();
-          const pendingFanIds = new Set<string>();
+          const pendinguserIds = new Set<string>();
           let allQuestions: string[] = [];
           
           pendingDocs.forEach(doc => {
@@ -933,7 +933,7 @@ export default function Index() {
             }
             
             // Collect only pending fan IDs
-            pendingFanIds.add(doc.fanId);
+            pendinguserIds.add(doc.userId);
             
             // Collect all representative questions from pending docs
             try {
@@ -953,8 +953,8 @@ export default function Index() {
           const aggregatedCluster: Cluster = {
             $id: baseDoc.$id, // Use the first pending document's ID
             clusterId: clusterId,
-            proId: baseDoc.proId,
-            fanId: Array.from(pendingFanIds).join(','), // Store only pending fan IDs
+            creatorId: baseDoc.creatorId,
+            userId: Array.from(pendinguserIds).join(','), // Store only pending fan IDs
             title: baseDoc.title, // Use the title from the first pending document
             topic: baseDoc.topic,
             representativeQuestions: JSON.stringify(uniqueQuestions),
@@ -964,10 +964,10 @@ export default function Index() {
             fullMessage: baseDoc.fullMessage,
             $createdAt: baseDoc.$createdAt,
             $updatedAt: baseDoc.$updatedAt,
-            fanCount: pendingFanIds.size // Count of pending fans only
+            fanCount: pendinguserIds.size // Count of pending fans only
           } as Cluster & { fanCount: number };
           
-          console.log(`📊 [Clusters] Cluster ${clusterId}: ${pendingFanIds.size} pending, ${answeredDocs.length} answered`);
+          console.log(`📊 [Clusters] Cluster ${clusterId}: ${pendinguserIds.size} pending, ${answeredDocs.length} answered`);
           
           aggregatedClusters.push(aggregatedCluster);
         });

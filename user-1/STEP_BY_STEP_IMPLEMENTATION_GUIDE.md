@@ -86,7 +86,7 @@ export async function generateMessageEmbedding(messageContent) {
  * Store message with embedding (adapted from your insertTestData)
  * NOTE: This should be called AFTER intent recognition parses the message
  */
-export async function storeMessage(index, message, chatId, fanId, proId, intentData = null) {
+export async function storeMessage(index, message, chatId, userId, creatorId, intentData = null) {
     // Embedding is generated for the clean, parsed question (not the original complex message)
     const embedding = await generateMessageEmbedding(message.content);
     
@@ -99,8 +99,8 @@ export async function storeMessage(index, message, chatId, fanId, proId, intentD
         metadata: {
             messageId: message.id,
             chatId,
-            fanId,
-            proId,
+            userId,
+            creatorId,
             content: message.content, // The parsed question, not original message
             timestamp: message.timestamp,
             clusterId: null, // Will be set when assigned to cluster
@@ -206,18 +206,18 @@ export default async ({ req, res, log, error }) => {
     }
     
     try {
-        const { message, chatId, fanId, proId } = req.body;
+        const { message, chatId, userId, creatorId } = req.body;
         
         // Validate required fields
-        throwIfMissing({ message, chatId, fanId, proId }, ['message', 'chatId', 'fanId', 'proId']);
+        throwIfMissing({ message, chatId, userId, creatorId }, ['message', 'chatId', 'userId', 'creatorId']);
         
-        log(`Processing message from fan ${fanId} in chat ${chatId}`);
+        log(`Processing message from fan ${userId} in chat ${chatId}`);
         
         // NOTE: This is basic processing - will be enhanced with intent recognition in Week 3
         // For now, treat the entire message as one unit
         
         // Step 1: Store the message
-        const messageVectorId = await storeMessage(index, message, chatId, fanId, proId);
+        const messageVectorId = await storeMessage(index, message, chatId, userId, creatorId);
         
         // Step 2: Find similar messages
         const similarMessages = await findSimilarMessages(index, message.content);
@@ -341,12 +341,12 @@ const CLUSTERS_COLLECTION_ID = process.env.CLUSTERS_COLLECTION_ID;
 
 export class ClusterManager {
     
-    async createCluster(representativeMessage, proId) {
+    async createCluster(representativeMessage, creatorId) {
         const clusterId = generateClusterId();
         
         const cluster = {
             id: clusterId,
-            proId,
+            creatorId,
             title: await this.generateClusterTitle(representativeMessage),
             topic: await this.extractTopic(representativeMessage),
             representativeQuestions: [representativeMessage],
@@ -394,12 +394,12 @@ export class ClusterManager {
         );
     }
     
-    async getClustersByPro(proId) {
+    async getClustersByPro(creatorId) {
         return await databases.listDocuments(
             DATABASE_ID,
             CLUSTERS_COLLECTION_ID,
             [
-                Query.equal('proId', proId),
+                Query.equal('creatorId', creatorId),
                 Query.orderDesc('updatedAt')
             ]
         );
@@ -451,7 +451,7 @@ async function setupDatabase() {
         
         // Add attributes to clusters collection
         const clusterAttributes = [
-            { key: 'proId', type: 'string', required: true },
+            { key: 'creatorId', type: 'string', required: true },
             { key: 'title', type: 'string', required: true },
             { key: 'topic', type: 'string', required: true },
             { key: 'representativeQuestions', type: 'string', array: true },
@@ -498,15 +498,15 @@ export default async ({ req, res, log, error }) => {
     validateClusteringEnv();
     
     try {
-        const { proId } = req.query;
+        const { creatorId } = req.query;
         
-        if (!proId) {
-            return res.json({ error: 'proId is required' }, 400);
+        if (!creatorId) {
+            return res.json({ error: 'creatorId is required' }, 400);
         }
         
         if (req.method === 'GET') {
             // Get all clusters for this pro
-            const clusters = await clusterManager.getClustersByPro(proId);
+            const clusters = await clusterManager.getClustersByPro(creatorId);
             
             const dashboard = {
                 totalClusters: clusters.total,
@@ -675,11 +675,11 @@ export default async ({ req, res, log, error }) => {
     }
     
     try {
-        const { message, chatId, fanId, proId, chatHistory = [] } = req.body;
+        const { message, chatId, userId, creatorId, chatHistory = [] } = req.body;
         
-        throwIfMissing({ message, chatId, fanId, proId }, ['message', 'chatId', 'fanId', 'proId']);
+        throwIfMissing({ message, chatId, userId, creatorId }, ['message', 'chatId', 'userId', 'creatorId']);
         
-        log(`Processing enhanced message from fan ${fanId}`);
+        log(`Processing enhanced message from fan ${userId}`);
         
         // STEP 1: INTENT RECOGNITION FIRST (before any embedding)
         const intentAnalysis = await intentRecognizer.analyzeMessage(message.content, chatHistory);
@@ -692,7 +692,7 @@ export default async ({ req, res, log, error }) => {
                 content: question,
                 id: `${message.id}_q${intentAnalysis.questions.indexOf(question)}`,
                 timestamp: message.timestamp
-            }, chatId, fanId, proId, intentAnalysis);
+            }, chatId, userId, creatorId, intentAnalysis);
             
             results.push(questionResult);
         }
@@ -710,9 +710,9 @@ export default async ({ req, res, log, error }) => {
     }
 };
 
-async function processQuestion(question, chatId, fanId, proId, intentAnalysis) {
+async function processQuestion(question, chatId, userId, creatorId, intentAnalysis) {
     // STEP 1: Store the parsed question with intent metadata (embedding happens here)
-    const messageVectorId = await storeMessage(index, question, chatId, fanId, proId, intentAnalysis);
+    const messageVectorId = await storeMessage(index, question, chatId, userId, creatorId, intentAnalysis);
     
     // STEP 2: Find similar messages with topic filtering and higher threshold
     const similarMessages = await findSimilarMessages(
@@ -730,13 +730,13 @@ async function processQuestion(question, chatId, fanId, proId, intentAnalysis) {
             await clusterManager.addChatToCluster(clusterId, chatId, question.content);
         } else {
             // Create cluster and assign all similar messages
-            const cluster = await clusterManager.createCluster(question.content, proId);
+            const cluster = await clusterManager.createCluster(question.content, creatorId);
             clusterId = cluster.id;
             await updateMessagesCluster(index, similarMessages, clusterId);
         }
     } else {
         // Create new cluster
-        const cluster = await clusterManager.createCluster(question.content, proId);
+        const cluster = await clusterManager.createCluster(question.content, creatorId);
         clusterId = cluster.id;
     }
     
@@ -867,8 +867,8 @@ export class ClusterAnalytics {
         return outliers;
     }
     
-    async suggestClusterMerge(proId) {
-        const clusters = await this.clusterManager.getClustersByPro(proId);
+    async suggestClusterMerge(creatorId) {
+        const clusters = await this.clusterManager.getClustersByPro(creatorId);
         const mergeSuggestions = [];
         
         for (let i = 0; i < clusters.documents.length; i++) {
@@ -1336,7 +1336,7 @@ export class FanoutProcessor {
         this.batchSize = 10; // Process 10 replies at a time
     }
     
-    async processCanonicalAnswer(clusterId, canonicalAnswer, proId) {
+    async processCanonicalAnswer(clusterId, canonicalAnswer, creatorId) {
         try {
             // Get cluster details
             const cluster = await this.clusterManager.getCluster(clusterId);
@@ -1352,7 +1352,7 @@ export class FanoutProcessor {
             );
             
             // Store replies for review
-            const replyIds = await this.storeReplies(replies, clusterId, proId);
+            const replyIds = await this.storeReplies(replies, clusterId, creatorId);
             
             // Update cluster status
             await this.clusterManager.updateClusterStatus(clusterId, 'processing');
@@ -1403,7 +1403,7 @@ export class FanoutProcessor {
         ];
     }
     
-    async storeReplies(replies, clusterId, proId) {
+    async storeReplies(replies, clusterId, creatorId) {
         const replyIds = [];
         
         for (const reply of replies) {
@@ -1416,7 +1416,7 @@ export class FanoutProcessor {
                 conflicts: reply.conflicts || [],
                 tone: reply.tone,
                 status: reply.status,
-                proId,
+                creatorId,
                 createdAt: new Date().toISOString()
             };
             
@@ -1550,15 +1550,15 @@ export default async ({ req, res, log, error }) => {
         }
         
         if (path === '/submit-canonical' && method === 'POST') {
-            const { clusterId, canonicalAnswer, proId } = req.body;
+            const { clusterId, canonicalAnswer, creatorId } = req.body;
             
-            throwIfMissing({ clusterId, canonicalAnswer, proId }, 
-                          ['clusterId', 'canonicalAnswer', 'proId']);
+            throwIfMissing({ clusterId, canonicalAnswer, creatorId }, 
+                          ['clusterId', 'canonicalAnswer', 'creatorId']);
             
             const result = await fanoutProcessor.processCanonicalAnswer(
                 clusterId, 
                 canonicalAnswer, 
-                proId
+                creatorId
             );
             
             return res.json(result);
@@ -1934,7 +1934,7 @@ Your React Native app can now call these endpoints:
 
 ```typescript
 // Process incoming fan message
-const processMessage = async (message, chatId, fanId, proId) => {
+const processMessage = async (message, chatId, userId, creatorId) => {
   const response = await fetch(`${APPWRITE_ENDPOINT}/functions/clustering-system/executions`, {
     method: 'POST',
     headers: {
@@ -1945,8 +1945,8 @@ const processMessage = async (message, chatId, fanId, proId) => {
       path: '/process-message',
       message,
       chatId,
-      fanId,
-      proId
+      userId,
+      creatorId
     })
   });
   
@@ -1954,7 +1954,7 @@ const processMessage = async (message, chatId, fanId, proId) => {
 };
 
 // Get Pro dashboard
-const getDashboard = async (proId) => {
+const getDashboard = async (creatorId) => {
   const response = await fetch(`${APPWRITE_ENDPOINT}/functions/clustering-system/executions`, {
     method: 'POST',
     headers: {
@@ -1963,7 +1963,7 @@ const getDashboard = async (proId) => {
     },
     body: JSON.stringify({
       path: '/dashboard',
-      proId
+      creatorId
     })
   });
   

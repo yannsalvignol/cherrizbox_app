@@ -31,7 +31,7 @@ interface OneByOneModalProps {
 
 interface AffectedChat {
   chatId: string;
-  fanId: string;
+  userId: string;
   fanName?: string;
   fanAvatar?: string;
 }
@@ -65,20 +65,20 @@ export const OneByOneModal: React.FC<OneByOneModalProps> = ({
       console.log('📋 [OneByOne] Loading affected chats:', chatIds);
       
       // Parse fan IDs from cluster (comma-separated if aggregated)
-      const fanIds = cluster.fanId.split(',').map(id => id.trim());
+      const userIds = cluster.userId.split(',').map(id => id.trim());
       
       // Create chat objects
       const chats: AffectedChat[] = chatIds.map((chatId, index) => {
-        // Extract fan ID from chat ID (format: dm-proId-fanId)
+        // Extract fan ID from chat ID (format: dm-creatorId-userId)
         const parts = chatId.split('-');
-        const fanIdFromChat = parts[2] || fanIds[index] || '';
+        const userIdFromChat = parts[2] || userIds[index] || '';
         
         // Get cached user info if available
-        const cachedInfo = userProfileCache?.current.get(fanIdFromChat);
+        const cachedInfo = userProfileCache?.current.get(userIdFromChat);
         
         return {
           chatId,
-          fanId: fanIdFromChat,
+          userId: userIdFromChat,
           fanName: cachedInfo?.name || `Fan ${index + 1}`,
           fanAvatar: cachedInfo?.avatar || ''
         };
@@ -105,16 +105,16 @@ export const OneByOneModal: React.FC<OneByOneModalProps> = ({
       const { Query } = await import('react-native-appwrite');
       
       // Get unique fan IDs that need fetching
-      const fanIdsToFetch = [...new Set(chats.map(c => c.fanId))].filter(id => id);
+      const userIdsToFetch = [...new Set(chats.map(c => c.userId))].filter(id => id);
       
-      if (fanIdsToFetch.length === 0) return;
+      if (userIdsToFetch.length === 0) return;
       
-      console.log('🔍 [OneByOne] Fetching fan profiles for:', fanIdsToFetch);
+      console.log('🔍 [OneByOne] Fetching fan profiles for:', userIdsToFetch);
       
       const userResponse = await databases.listDocuments(
         config.databaseId,
         process.env.EXPO_PUBLIC_APPWRITE_USER_COLLECTION_ID!,
-        [Query.equal('accountId', fanIdsToFetch), Query.limit(100)]
+        [Query.equal('accountId', userIdsToFetch), Query.limit(100)]
       );
       
       // Create a map for quick lookup
@@ -125,11 +125,11 @@ export const OneByOneModal: React.FC<OneByOneModalProps> = ({
       
       // Update chats with fetched info
       const updatedChats = chats.map(chat => {
-        const userData = userMap.get(chat.fanId);
+        const userData = userMap.get(chat.userId);
         if (userData) {
           // Update cache if we have it
           if (userProfileCache?.current) {
-            userProfileCache.current.set(chat.fanId, {
+            userProfileCache.current.set(chat.userId, {
               name: userData.username || userData.accountId,
               avatar: userData.profileImageUri || userData.avatar || '',
               documentId: userData.$id,
@@ -158,18 +158,18 @@ export const OneByOneModal: React.FC<OneByOneModalProps> = ({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     
     // Update cluster status to answered
-    await updateClusterStatus(chat.fanId);
+    await updateClusterStatus(chat.userId);
     
     onClose();
     // Navigate to the chat
     router.push(`/chat/${chat.chatId}` as any);
   };
 
-  const updateClusterStatus = async (fanId: string) => {
+  const updateClusterStatus = async (userId: string) => {
     if (!cluster) return;
     
     try {
-      console.log('🔄 [OneByOne] Updating cluster status for fan:', fanId);
+      console.log('🔄 [OneByOne] Updating cluster status for fan:', userId);
       
       const { databases, config } = await import('@/lib/appwrite');
       const { Query } = await import('react-native-appwrite');
@@ -180,7 +180,7 @@ export const OneByOneModal: React.FC<OneByOneModalProps> = ({
         'clusters',
         [
           Query.equal('clusterId', cluster.clusterId),
-          Query.equal('fanId', fanId),
+          Query.equal('userId', userId),
           Query.limit(1)
         ]
       );
@@ -204,7 +204,7 @@ export const OneByOneModal: React.FC<OneByOneModalProps> = ({
         // Call the callback to refresh clusters in the parent
         onChatAnswered?.();
       } else {
-        console.warn('⚠️ [OneByOne] No cluster document found for fan:', fanId);
+        console.warn('⚠️ [OneByOne] No cluster document found for fan:', userId);
       }
     } catch (error) {
       console.error('❌ [OneByOne] Error updating cluster status:', error);
