@@ -5,7 +5,6 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import { Redirect, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import FormField from './components/FormField';
 import OtpInput from './components/OtpInput';
 
@@ -333,7 +332,7 @@ const App = () => {
     if (!loading && isLogged) return <Redirect href="/" />;
 
     return (
-        <SafeAreaView className="flex-1 bg-white">
+        <View className="flex-1 bg-white">
             {/* Custom Error Modal */}
             <Modal visible={showErrorModal} transparent animationType="fade">
                 <View style={{
@@ -426,8 +425,8 @@ const App = () => {
                 </View>
             </Modal>
 
-            <ScrollView contentContainerStyle={{ paddingTop: 12, paddingBottom: 24 }}>
-                <View className="px-2 pt-4 pb-8">
+            <ScrollView contentContainerStyle={{}}>
+                <View className="px-2 pt-20">
                     <TouchableOpacity onPress={() => verificationSent && setVerificationSent(false)} className="absolute top-4 left-4 z-10">
                         {verificationSent && <Ionicons name="arrow-back" size={24} color="black" />}
                     </TouchableOpacity>
@@ -581,7 +580,7 @@ const App = () => {
                     )}
                 </View>
             </ScrollView>
-        </SafeAreaView>
+        </View>
     );
 }
 

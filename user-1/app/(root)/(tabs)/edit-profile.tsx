@@ -156,7 +156,7 @@ export default function EditProfile() {
       if (globalProfile.phoneNumber) {
         phoneData = globalProfile.phoneNumber;
               if (phoneData.startsWith('+')) {
-                const country = countries.find(c => phoneData.startsWith(c.code));
+                const country = countries.find(c => phoneData.startsWith(c.code)) || otherRelevantCountries.find(c => phoneData.startsWith(c.code));
                 if (country) {
                   setSelectedCountry(country);
                   const phonePart = phoneData.substring(country.code.length);
@@ -174,13 +174,18 @@ export default function EditProfile() {
               setSelectedMonth(month);
               setSelectedDay(day);
               dateOfBirth = globalProfile.dateOfBirth;
-            }
+            } else {
+        // Set consistent default values when no date of birth exists
+        dateOfBirth = '2000-1-1';
+      }
 
-      // Store original values for comparison
+      // Store original values for comparison - ensure phone number is in raw format
+      const originalRawPhoneNumber = phoneData ? phoneData.replace(/\D/g, '').length > 0 ? phoneData.replace(/[^\d+]/g, '') : phoneData : '';
+      
       setOriginalValues({
         dateOfBirth,
         gender,
-        phoneNumber: phoneData,
+        phoneNumber: originalRawPhoneNumber,
         profileImage
       });
       setOriginalValuesInitialized(true);
@@ -195,10 +200,13 @@ export default function EditProfile() {
       return;
     }
 
+    // Get raw phone number without formatting for comparison
+    const currentRawPhoneNumber = phoneNumber ? `${selectedCountry.code}${phoneNumber.replace(/\D/g, '')}` : '';
+
     const currentValues = {
       dateOfBirth: `${selectedYear}-${selectedMonth}-${selectedDay}`,
       gender: selectedGender?.value || '',
-      phoneNumber: phoneNumber ? `${selectedCountry.code}${phoneNumber}` : '',
+      phoneNumber: currentRawPhoneNumber,
       profileImage: localProfileImage || ''
     };
 
@@ -207,7 +215,6 @@ export default function EditProfile() {
       currentValues.gender !== originalValues.gender ||
       currentValues.phoneNumber !== originalValues.phoneNumber ||
       currentValues.profileImage !== originalValues.profileImage;
-
     setHasUnsavedChanges(hasChanges);
   }, [selectedYear, selectedMonth, selectedDay, selectedGender, phoneNumber, selectedCountry, localProfileImage, originalValues, originalValuesInitialized]);
 

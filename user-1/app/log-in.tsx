@@ -4,7 +4,6 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { SignIn, login, loginWithApple } from '../lib/appwrite';
 import FormField from './components/FormField';
 
@@ -157,9 +156,9 @@ const LoginScreen = () => {
     };
 
     return (
-        <SafeAreaView className="flex-1 bg-white">
+        <View className="flex-1 bg-white">
             <ScrollView>
-                <View className="flex-1 px-4">
+                <View className="flex-1 px-4 pt-20">
                     <Text className="text-black font-['Urbanist-Bold'] text-4xl mt-[50px]">    
                         Welcome back! Glad to see you, Again!
                     </Text>
@@ -260,7 +259,7 @@ const LoginScreen = () => {
                     </View>
                 </View>
             </ScrollView>
-        </SafeAreaView>
+        </View>
     );
 }
 
