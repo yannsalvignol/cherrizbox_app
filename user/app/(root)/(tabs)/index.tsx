@@ -41,7 +41,7 @@ interface UserProfile {
 export default function Index() {
     const router = useRouter();
     const navigation = useNavigation();
-    const { theme } = useTheme();
+    const { theme, themeMode, setThemeMode } = useTheme();
     
     // Debug font loading on Android
     useEffect(() => {
@@ -166,6 +166,11 @@ export default function Index() {
             useNativeDriver: true,
         }).start();
     };
+
+    const handleThemeToggle = () => {
+        // Toggle between light and dark theme (same logic as settings)
+        setThemeMode(themeMode === 'light' ? 'dark' : 'light');
+    };
     
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: theme.backgroundTertiary }} edges={['top']}>
@@ -183,6 +188,7 @@ export default function Index() {
                 <TouchableOpacity
                     onPressIn={handleCherryIconPressIn}
                     onPressOut={handleCherryIconPressOut}
+                    onPress={handleThemeToggle}
                     activeOpacity={1}
                 >
                     <Animated.Image 

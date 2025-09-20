@@ -5,8 +5,8 @@ import { Theme as AppTheme } from './themes/lightTheme';
 export const getTheme = (appTheme: AppTheme): DeepPartial<Theme> => ({
   // Main color palette - now using dynamic theme values
   colors: {
-    black: appTheme.background,           // Main background color
-    white: 'white',                 // time stamp days color
+    black: 'black',           // (color of the text replies)
+    white:'white',                 // time stamp days color
     primary: appTheme.primary,            // Primary accent color (cherry red)
     grey: appTheme.text,   // time stamp color 
     grey_whisper: appTheme.cardBackground, // Card/bubble background color
@@ -29,6 +29,13 @@ export const getTheme = (appTheme: AppTheme): DeepPartial<Theme> => ({
     },
     inputBox: {
       color: 'black', // Text color in the input box
+      textAlignVertical: 'center',
+      paddingTop: 0,
+      paddingBottom: 0,
+      lineHeight: 22,
+      includeFontPadding: false,
+      textDecorationLine: 'none',
+      minHeight: 40,
     },
   },
   
@@ -71,7 +78,7 @@ export const getTheme = (appTheme: AppTheme): DeepPartial<Theme> => ({
   // Style for quoted reply previews (both in MessageInput header and in chat bubbles)
   reply: {
     container: {
-      backgroundColor: appTheme.cardBackground, // Reply preview background color
+      backgroundColor: 'transparent', // Reply preview background color
       borderWidth: 0,
       borderColor: 'transparent',
       paddingVertical: 4,
@@ -80,6 +87,14 @@ export const getTheme = (appTheme: AppTheme): DeepPartial<Theme> => ({
     },
     textContainer: {
       backgroundColor: 'transparent', // Text container background for replies
+    },
+    markdown: {
+      text: {
+        color: appTheme.textSecondary, // Reply text color
+      },
+      paragraph: {
+        color: appTheme.textSecondary, // Reply paragraph text color
+      },
     }
   },
 });

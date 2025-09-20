@@ -237,7 +237,7 @@ export const CustomPollComponent: React.FC<CustomPollComponentProps> = ({ messag
                   top: 0,
                   bottom: 0,
                   width: `${percentage}%`,
-                  backgroundColor: isVoted ? theme.primary + '40' : theme.backgroundSecondary,
+                  backgroundColor: isVoted ? `${theme.primary}40` : theme.backgroundSecondary,
                 }} />
               )}
               

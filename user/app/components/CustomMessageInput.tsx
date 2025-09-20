@@ -1,5 +1,6 @@
 import { uploadFileToAppwrite } from '@/lib/appwrite';
 import { formatPrice, getCurrencyInfo } from '@/lib/currency';
+import { getDailyMessageLimit, incrementDailyMessageCount } from '@/lib/daily-message-limits';
 import { useTheme } from '@/lib/themes/useTheme';
 import { createTipPaymentIntent } from '@/lib/tip-payment';
 import { Ionicons } from '@expo/vector-icons';
@@ -130,6 +131,20 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
           timestamp: Date.now(),
           messageType: 'text'
         });
+
+        // Increment daily message count after successful message
+        incrementDailyMessageCount(userId)
+          .then((result) => {
+            console.log('📈 [DailyLimits] Message count updated:', result);
+            if (result.success) {
+              setDailyMessageCount(result.newCount);
+              setCanSendMessage(result.newCount < 5);
+              setRemainingMessages(Math.max(0, 5 - result.newCount));
+            }
+          })
+          .catch((error) => {
+            console.error('❌ [DailyLimits] Failed to update message count:', error);
+          });
       } else {
         console.log('⏭️ [CustomMessageInput] Skipping message');
         if (event.message?.user?.id !== userId) {
@@ -151,6 +166,27 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
       currentChannel.off('message.new', handleNewMessage);
     };
   }, [currentChannel, currentChatType, isThreadInput, userId, creatorId]);
+
+  // Check daily message limits when component loads
+  React.useEffect(() => {
+    const checkLimits = async () => {
+      if (currentChatType === 'direct' && !isThreadInput && userId) {
+        console.log('🔍 [DailyLimits] Checking daily limits for user:', userId);
+        const limitInfo = await getDailyMessageLimit(userId);
+        setDailyMessageCount(limitInfo.count);
+        setCanSendMessage(limitInfo.canSend);
+        setRemainingMessages(limitInfo.remaining);
+        
+        console.log('📊 [DailyLimits] Current status:', {
+          count: limitInfo.count,
+          canSend: limitInfo.canSend,
+          remaining: limitInfo.remaining
+        });
+      }
+    };
+    
+    checkLimits();
+  }, [currentChatType, isThreadInput, userId]);
   const [showAttachmentModal, setShowAttachmentModal] = useState(false);
   const [showStripeSheet, setShowStripeSheet] = useState(false);
   const [pendingMessageData, setPendingMessageData] = useState<any>(null);
@@ -159,6 +195,9 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
   const [uploadFileName, setUploadFileName] = useState('');
   const [showMessageSentAnimation, setShowMessageSentAnimation] = useState(false);
   const [sentTipAmount, setSentTipAmount] = useState('');
+  const [dailyMessageCount, setDailyMessageCount] = useState(0);
+  const [canSendMessage, setCanSendMessage] = useState(true);
+  const [remainingMessages, setRemainingMessages] = useState(5);
 
   // Import tip payment logic from separate file
   const createTipPaymentIntentWrapper = async (amount: number, interval: string, creatorName: string, currency?: string) => {
@@ -597,34 +636,91 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
   // For direct messages, use custom message input with attachment button
   return (
     <View style={{ backgroundColor: theme.background, paddingBottom: 15 }}>
-            <MessageInput 
-        InputButtons={() => (
-          <TouchableOpacity
-            onPress={() => setShowAttachmentModal(true)}
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginRight: 8,
-            }}
-          >
-            <Ionicons name="add-circle-outline" size={36} color={theme.text} />
-          </TouchableOpacity>
-        )}
-        additionalTextInputProps={{
-          placeholder: 'Type a message...',
-          placeholderTextColor: theme.textSecondary,
-          style: {
-            fontSize: 16,
+      {/* Daily Message Limit Counter */}
+      {currentChatType === 'direct' && !isThreadInput && (
+        <View style={{
+          paddingHorizontal: 16,
+          paddingVertical: 8,
+          backgroundColor: theme.backgroundSecondary,
+          borderTopLeftRadius: 12,
+          borderTopRightRadius: 12,
+        }}>
+          <Text style={{
+            color: canSendMessage ? theme.textSecondary : theme.error,
+            fontSize: 12,
             fontFamily: 'questrial',
-            color: theme.text,
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-          }
-        }}
-      />
+            textAlign: 'center',
+          }}>
+            {canSendMessage 
+              ? `${dailyMessageCount}/5 messages sent today • ${remainingMessages} remaining`
+              : 'Daily message limit reached (5/5) • Try again tomorrow'
+            }
+          </Text>
+        </View>
+      )}
+      
+      <View style={{ position: 'relative' }}>
+        <MessageInput 
+          InputButtons={() => (
+            <TouchableOpacity
+              onPress={() => canSendMessage && setShowAttachmentModal(true)}
+              disabled={!canSendMessage}
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginRight: 8,
+                opacity: canSendMessage ? 1 : 0.3,
+              }}
+            >
+              <Ionicons name="add-circle-outline" size={36} color={canSendMessage ? theme.text : theme.textTertiary} />
+            </TouchableOpacity>
+          )}
+          additionalTextInputProps={{
+            placeholder: canSendMessage ? 'Type a message...' : 'Daily limit reached',
+            placeholderTextColor: theme.textSecondary,
+            multiline: true,
+            textAlignVertical: 'top',
+            scrollEnabled: false,
+            blurOnSubmit: false,
+            selectionColor: theme.textSecondary,
+            cursorColor: theme.textSecondary,
+            editable: canSendMessage,
+            style: {
+              fontSize: 16,
+              color: canSendMessage ? theme.text : theme.textTertiary,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              minHeight: 40,
+              maxHeight: 120,
+              lineHeight: 22,
+              includeFontPadding: false,
+              fontWeight: '400',
+              paddingTop: 14,
+              textAlign: 'left',
+              opacity: canSendMessage ? 1 : 0.6,
+            }
+          }}
+        />
+        
+        {/* Blocking Overlay when limit reached */}
+        {!canSendMessage && (
+          <View style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'transparent',
+            zIndex: 1000,
+            borderRadius: 12,
+          }} 
+          pointerEvents="auto"
+          />
+        )}
+      </View>
       
       {/* Attachment Modal with Preview */}
       <Modal

@@ -42,7 +42,7 @@ export const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = ({ client
     return (
       <View>
         {/* Show the message text if any */}
-        {message.text && message.text !== `📊 ${message.poll.name}` && (
+        {message.text && message.text !== `📊 ${message.poll?.name || ''}` && (
           <View style={{ marginBottom: 8 }}>
             <MessageSimple {...props} />
           </View>
@@ -152,17 +152,20 @@ export const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = ({ client
           marginLeft: -4,
           position: 'relative',
         }}>
-          {message.attachments?.map((attachment: any, index: number) => (
-            attachment?.type === 'custom_attachment' ? (
-              <View key={`custom-tip-container-${index}`} style={{ position: 'relative' }}>
-                <CustomTipAttachment 
-                  key={`custom-tip-${index}`}
-                  attachment={attachment}
-                />
-                <CustomReactionList />
-              </View>
-            ) : null
-          ))}
+          {message.attachments?.map((attachment: any, index: number) => {
+            if (attachment?.type === 'custom_attachment') {
+              return (
+                <View key={`custom-tip-container-${index}`} style={{ position: 'relative' }}>
+                  <CustomTipAttachment 
+                    key={`custom-tip-${index}`}
+                    attachment={attachment}
+                  />
+                  <CustomReactionList />
+                </View>
+              );
+            }
+            return null;
+          })}
 
         </View>
       </View>
@@ -192,17 +195,20 @@ export const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = ({ client
           marginLeft: -4,
           position: 'relative',
         }}>
-          {message.attachments?.map((attachment: any, index: number) => (
-            attachment?.type === 'paid_video' ? (
-              <View key={`paid-video-container-${index}`} style={{ position: 'relative' }}>
-                <PaidVideoAttachment 
-                  key={`paid-video-${index}`}
-                  attachment={attachment} 
-                />
-                <CustomReactionList />
-              </View>
-            ) : null
-          ))}
+          {message.attachments?.map((attachment: any, index: number) => {
+            if (attachment?.type === 'paid_video') {
+              return (
+                <View key={`paid-video-container-${index}`} style={{ position: 'relative' }}>
+                  <PaidVideoAttachment 
+                    key={`paid-video-${index}`}
+                    attachment={attachment} 
+                  />
+                  <CustomReactionList />
+                </View>
+              );
+            }
+            return null;
+          })}
 
         </View>
       </View>
@@ -227,17 +233,20 @@ export const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = ({ client
           marginRight:80,  // Add right margin for spacing from edge
           position: 'relative',
         }}>
-          {message.attachments?.map((attachment: any, index: number) => (
-            attachment?.type === 'blurry_file' ? (
-              <View key={`blurry-file-container-${index}`} style={{ position: 'relative' }}>
-                <BlurryFileAttachment 
-                  key={`blurry-file-${index}`}
-                  attachment={attachment} 
-                />
-                <CustomReactionList />
-              </View>
-            ) : null
-          ))}
+          {message.attachments?.map((attachment: any, index: number) => {
+            if (attachment?.type === 'blurry_file') {
+              return (
+                <View key={`blurry-file-container-${index}`} style={{ position: 'relative' }}>
+                  <BlurryFileAttachment 
+                    key={`blurry-file-${index}`}
+                    attachment={attachment} 
+                  />
+                  <CustomReactionList />
+                </View>
+              );
+            }
+            return null;
+          })}
 
         </View>
       </View>
@@ -268,17 +277,20 @@ export const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = ({ client
           position: 'relative',
         }}>
           {/* Render paid content attachments only (no text message) */}
-          {message.attachments?.map((attachment: any, index: number) => (
-            attachment?.type === 'paid_content' ? (
-              <View key={`paid-content-container-${index}`} style={{ position: 'relative' }}>
-                <PaidContentAttachment 
-                  key={`paid-content-${index}`}
-                  attachment={attachment} 
-                />
-                <CustomReactionList />
-              </View>
-            ) : null
-          ))}
+          {message.attachments?.map((attachment: any, index: number) => {
+            if (attachment?.type === 'paid_content') {
+              return (
+                <View key={`paid-content-container-${index}`} style={{ position: 'relative' }}>
+                  <PaidContentAttachment 
+                    key={`paid-content-${index}`}
+                    attachment={attachment} 
+                  />
+                  <CustomReactionList />
+                </View>
+              );
+            }
+            return null;
+          })}
 
         </View>
       </View>
