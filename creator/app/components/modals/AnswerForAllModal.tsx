@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -22,7 +23,7 @@ interface AnswerForAllModalProps {
   visible: boolean;
   cluster: Cluster | null;
   onClose: () => void;
-  onAnswerSent?: () => void;
+  onAnswerSent?: (affectedChannels: string[]) => void;
   currentUserId?: string;
 }
 
@@ -150,7 +151,7 @@ export const AnswerForAllModal: React.FC<AnswerForAllModalProps> = ({
         
         // Call callback and close after delay
         setTimeout(() => {
-          onAnswerSent?.();
+          onAnswerSent?.(affectedChats);
           // Reset states before closing
           setIsSuccess(false);
           setIsSending(false);
@@ -352,6 +353,20 @@ export const AnswerForAllModal: React.FC<AnswerForAllModalProps> = ({
                 }}>
                   Your Answer (AI will slightly adapt your answer to the context of each users text)
                 </Text>
+                <TouchableOpacity
+                  onPress={() => Keyboard.dismiss()}
+                  style={{
+                    padding: 8,
+                    marginLeft: 4,
+                    backgroundColor: theme.backgroundSecondary,
+                    borderRadius: 20,
+                    borderWidth: 1,
+                    borderColor: theme.border,
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="chevron-down" size={16} color={theme.textSecondary} />
+                </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => setShowAIInfo(true)}
                   style={{

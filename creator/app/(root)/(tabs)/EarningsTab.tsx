@@ -224,9 +224,15 @@ export default function EarningsTab({
             setWeeklyGoal(response.goals.weeklyGoal || 0);
           }
           if (response.kpis) {
-            // Update creator financials with the latest data
+            // Update creator financials with the latest data (including balance data)
             setCreatorFinancials(prev => ({
               ...prev,
+              // Balance data
+              stripeBalanceAvailable: response.kpis.stripeBalanceAvailable || 0,
+              stripeBalancePending: response.kpis.stripeBalancePending || 0,
+              payoutsInTransitAmount: response.kpis.payoutsInTransitAmount || 0,
+              payoutsPendingAmount: response.kpis.payoutsPendingAmount || 0,
+              // Earnings data
               todayEarnings: response.kpis.todayEarnings || 0,
               weekEarnings: response.kpis.weekEarnings || 0,
               dailyEarnings: JSON.stringify(response.kpis.dailyEarnings || {})
@@ -388,9 +394,15 @@ export default function EarningsTab({
   useEffect(() => {
     if (preloadedStripeData) {
       console.log('📈 [Earnings] Using preloaded Stripe KPI data');
-      // Update creator financials with the preloaded Stripe data
+      // Update creator financials with the preloaded Stripe data (including balance data)
       setCreatorFinancials(prev => ({
         ...prev,
+        // Balance data
+        stripeBalanceAvailable: preloadedStripeData.stripeBalanceAvailable || 0,
+        stripeBalancePending: preloadedStripeData.stripeBalancePending || 0,
+        payoutsInTransitAmount: preloadedStripeData.payoutsInTransitAmount || 0,
+        payoutsPendingAmount: preloadedStripeData.payoutsPendingAmount || 0,
+        // Earnings data
         todayEarnings: preloadedStripeData.todayEarnings || 0,
         weekEarnings: preloadedStripeData.weekEarnings || 0,
         dailyEarnings: JSON.stringify(preloadedStripeData.dailyEarnings || {})
@@ -824,7 +836,19 @@ export default function EarningsTab({
                   fontFamily: 'MuseoModerno-Regular',
                   marginBottom: 12,
                 }}>
-                  {formatPrice(dailyGoal, userCurrency)}
+                  {(() => {
+                    let todayEarnings = 0;
+                    try {
+                      const dailyEarnings = creatorFinancials?.dailyEarnings ? JSON.parse(creatorFinancials.dailyEarnings) : {};
+                      const today = new Date().toISOString().split('T')[0];
+                      todayEarnings = dailyEarnings[today] || 0;
+                    } catch (e) {
+                      todayEarnings = 0;
+                    }
+                    
+                    const displayGoal = dailyGoal > 0 ? dailyGoal : todayEarnings;
+                    return formatPrice(displayGoal, userCurrency);
+                  })()}
                 </Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   {(() => {
@@ -837,7 +861,8 @@ export default function EarningsTab({
                       todayEarnings = 0;
                     }
                     
-                    const goalReached = todayEarnings >= dailyGoal && dailyGoal > 0;
+                    const displayGoal = dailyGoal > 0 ? dailyGoal : todayEarnings;
+                    const goalReached = todayEarnings >= displayGoal && displayGoal > 0;
                     
                     return (
                       <Ionicons 
@@ -876,7 +901,8 @@ export default function EarningsTab({
                       } catch (e) {
                         todayEarnings = 0;
                       }
-                      return dailyGoal > 0 ? Math.round((todayEarnings / dailyGoal) * 100) : 0;
+                      const displayGoal = dailyGoal > 0 ? dailyGoal : todayEarnings;
+                      return displayGoal > 0 ? Math.round((todayEarnings / displayGoal) * 100) : 0;
                     })()}
                     size={60}
                     strokeWidth={4}
@@ -913,7 +939,18 @@ export default function EarningsTab({
                   fontFamily: 'MuseoModerno-Regular',
                   marginBottom: 12,
                 }}>
-                {formatPrice(weeklyGoal, userCurrency)}
+                  {(() => {
+                    let weekEarnings = 0;
+                    try {
+                      const dailyEarnings = creatorFinancials?.dailyEarnings ? JSON.parse(creatorFinancials.dailyEarnings) : {};
+                      weekEarnings = calculateTimeframeEarnings(dailyEarnings, 'weekly');
+                    } catch (e) {
+                      weekEarnings = 0;
+                    }
+                    
+                    const displayGoal = weeklyGoal > 0 ? weeklyGoal : weekEarnings;
+                    return formatPrice(displayGoal, userCurrency);
+                  })()}
                 </Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   {(() => {
@@ -925,7 +962,8 @@ export default function EarningsTab({
                       weekEarnings = 0;
                     }
                     
-                    const goalReached = weekEarnings >= weeklyGoal && weeklyGoal > 0;
+                    const displayGoal = weeklyGoal > 0 ? weeklyGoal : weekEarnings;
+                    const goalReached = weekEarnings >= displayGoal && displayGoal > 0;
                     
                     return (
                       <Ionicons 
@@ -962,7 +1000,8 @@ export default function EarningsTab({
                       } catch (e) {
                         weekEarnings = 0;
                       }
-                      return weeklyGoal > 0 ? Math.round((weekEarnings / weeklyGoal) * 100) : 0;
+                      const displayGoal = weeklyGoal > 0 ? weeklyGoal : weekEarnings;
+                      return displayGoal > 0 ? Math.round((weekEarnings / displayGoal) * 100) : 0;
                     })()}
                     size={60}
                     strokeWidth={4}

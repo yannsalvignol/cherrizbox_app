@@ -1091,9 +1091,15 @@ export default function Index() {
               setStripeBalanceData(response.kpis);
               console.log('📈 [Preload] KPIs preloaded for instant EarningsTab display');
           
-              // Update creator financials with the latest data
+              // Update creator financials with the latest data (including balance data)
               setCreatorFinancials((prev: any) => ({
                 ...prev,
+                // Balance data
+                stripeBalanceAvailable: response.kpis.stripeBalanceAvailable || 0,
+                stripeBalancePending: response.kpis.stripeBalancePending || 0,
+                payoutsInTransitAmount: response.kpis.payoutsInTransitAmount || 0,
+                payoutsPendingAmount: response.kpis.payoutsPendingAmount || 0,
+                // Earnings data
                 todayEarnings: response.kpis.todayEarnings || 0,
                 weekEarnings: response.kpis.weekEarnings || 0,
                 dailyEarnings: JSON.stringify(response.kpis.dailyEarnings || {})
@@ -1229,10 +1235,21 @@ export default function Index() {
                 setShowAnswerForAllModal(false);
                 setSelectedCluster(null);
               }}
-              onAnswerSent={() => {
+              onAnswerSent={(affectedChannels) => {
                 // Refresh clusters after answering
                 console.log('🔄 [Clusters] Refreshing after answer sent');
                 loadClusters();
+                
+                // Update affected channels to appear at the top (unless sorted by unread)
+                const currentTimestamp = new Date().toISOString();
+                console.log('📨 [Index] Updating channels after answer-for-all:', affectedChannels);
+                
+                affectedChannels.forEach(channelId => {
+                  handleChannelUpdate(channelId, {
+                    lastMessageAt: currentTimestamp,
+                    lastMessage: 'You sent an answer to this fan'
+                  });
+                });
               }}
               currentUserId={user?.$id}
             />
@@ -1385,6 +1402,11 @@ export default function Index() {
               }}
               onChannelUpdate={handleChannelUpdate}
               onTipCollected={handleTipCollected}
+              onChannelReorder={(channelId, newTimestamp) => {
+                // Handle channel reordering for real-time message updates
+                console.log(`🔄 [Index] Reordering channel ${channelId} with timestamp ${newTimestamp}`);
+                handleChannelUpdate(channelId, { lastMessageAt: newTimestamp });
+              }}
               clusters={clusters}
               isLoadingClusters={isLoadingClusters}
               onAnswerForAll={handleAnswerForAll}

@@ -4,12 +4,13 @@ import { useTheme } from '@/lib/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    FlatList,
-    Image,
-    RefreshControl,
-    Text,
-    View
+  ActivityIndicator,
+  FlatList,
+  Image,
+  RefreshControl,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { ChannelItem } from './ChannelItem';
 import type { Cluster } from './ClusterCard';
@@ -18,6 +19,8 @@ import { ClusterSection } from './ClusterSection';
 // Channel ordering utilities
 const isGroupChat = (channelId: string) => channelId.startsWith('creator-');
 const isDMChat = (channelId: string) => channelId.startsWith('dm-');
+
+type DMSortType = 'latest' | 'unread';
 
 const getChannelTimestamp = (channel: Channel): number => {
   if (!channel.lastMessageAt) return 0;
@@ -30,40 +33,33 @@ const sortChannelsByTime = (channels: Channel[]): Channel[] => {
   });
 };
 
+const sortChannelsByUnread = (channels: Channel[]): Channel[] => {
+  return [...channels].sort((a, b) => {
+    // First, sort by unread count (descending - channels with more unread messages first)
+    const aUnread = a.unreadCount || 0;
+    const bUnread = b.unreadCount || 0;
+    
+    if (aUnread !== bUnread) {
+      return bUnread - aUnread;
+    }
+    
+    // If unread counts are equal, sort by timestamp (most recent first)
+    return getChannelTimestamp(b) - getChannelTimestamp(a);
+  });
+};
+
 // Single source of truth for channel ordering
-const orderChannels = (channels: Channel[]): Channel[] => {
+const orderChannels = (channels: Channel[], dmSortType: DMSortType = 'latest'): Channel[] => {
   const groupChats = channels.filter(c => isGroupChat(c.id));
   const dmChats = channels.filter(c => isDMChat(c.id));
-  const sortedDMs = sortChannelsByTime(dmChats);
+  
+  const sortedDMs = dmSortType === 'unread' 
+    ? sortChannelsByUnread(dmChats)
+    : sortChannelsByTime(dmChats);
   
   return [...groupChats, ...sortedDMs];
 };
 
-// Merge real-time updates with existing order
-const mergeChannelUpdate = (
-  existingChannels: Channel[],
-  channelId: string,
-  updates: Partial<Channel>
-): Channel[] => {
-  const channelIndex = existingChannels.findIndex(c => c.id === channelId);
-  if (channelIndex === -1) return existingChannels;
-  
-  const updatedChannels = [...existingChannels];
-  updatedChannels[channelIndex] = {
-    ...existingChannels[channelIndex],
-    ...updates
-  };
-  
-  // If it's a DM with a new message, reorder DMs only
-  if (isDMChat(channelId) && updates.lastMessageAt) {
-    const groupChats = updatedChannels.filter(c => isGroupChat(c.id));
-    const dmChats = updatedChannels.filter(c => isDMChat(c.id));
-    const sortedDMs = sortChannelsByTime(dmChats);
-    return [...groupChats, ...sortedDMs];
-  }
-  
-  return updatedChannels;
-};
 
 interface ChannelListProps {
   channels: Channel[];
@@ -136,6 +132,9 @@ export const ChannelList: React.FC<ChannelListProps> = ({
   // Track real-time updates separately from base channels
   const [realtimeUpdates, setRealtimeUpdates] = useState<Map<string, Partial<Channel>>>(new Map());
   
+  // State for DM sorting preference
+  const [dmSortType, setDmSortType] = useState<DMSortType>('latest');
+  
   // Single source of truth: combine base channels with real-time updates and order them
   const orderedChannels = useMemo(() => {
     // Apply real-time updates to base channels
@@ -144,8 +143,8 @@ export const ChannelList: React.FC<ChannelListProps> = ({
       return updates ? { ...channel, ...updates } : channel;
     });
     
-    // Apply consistent ordering
-    const ordered = orderChannels(updatedChannels);
+    // Apply consistent ordering with current DM sort preference
+    const ordered = orderChannels(updatedChannels, dmSortType);
     
     // Only log in development or when there's a significant change
     if (process.env.NODE_ENV === 'development' && ordered.length !== channels.length) {
@@ -153,7 +152,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
     }
     
     return ordered;
-  }, [channels, realtimeUpdates]);
+  }, [channels, realtimeUpdates, dmSortType]);
   
   // Queue for pending channel loads to avoid setState during render
   const pendingChannelLoads = useRef<Set<string>>(new Set());
@@ -672,6 +671,9 @@ export const ChannelList: React.FC<ChannelListProps> = ({
                 paddingVertical: 20,
                 backgroundColor: theme.backgroundTertiary,
                 marginTop: clusters.length > 0 ? 8 : 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
               }}>
                 <Text style={{
                   color: theme.textTertiary,
@@ -683,6 +685,43 @@ export const ChannelList: React.FC<ChannelListProps> = ({
                 }}>
                   One-on-One Chats
                 </Text>
+                
+                {/* Sort Toggle */}
+                <TouchableOpacity
+                  onPress={() => setDmSortType(prev => prev === 'latest' ? 'unread' : 'latest')}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    backgroundColor: theme.backgroundSecondary,
+                    borderRadius: 16,
+                    borderWidth: 1,
+                    borderColor: theme.border,
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons 
+                    name={dmSortType === 'unread' ? 'notifications' : 'time'} 
+                    size={14} 
+                    color={theme.textSecondary} 
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text style={{
+                    color: theme.textSecondary,
+                    fontSize: 12,
+                    fontFamily: 'Urbanist-Medium',
+                    textTransform: 'capitalize',
+                  }}>
+                    {dmSortType === 'unread' ? 'Unread' : 'Latest'}
+                  </Text>
+                  <Ionicons 
+                    name="chevron-down" 
+                    size={12} 
+                    color={theme.textSecondary} 
+                    style={{ marginLeft: 4 }}
+                  />
+                </TouchableOpacity>
               </View>
             )}
             
