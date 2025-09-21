@@ -207,7 +207,7 @@ const LoginScreen = () => {
                         disabled={isSubmitting}
                     >
                         <Text style={{ color: 'white', textAlign: 'center', fontFamily: 'Urbanist-Light', fontSize: 20 }}>
-                            {isSubmitting ? 'Signing in & Caching Images...' : 'Login'}
+                            {isSubmitting ? 'Signing in...' : 'Login'}
                         </Text>
                     </TouchableOpacity>
 

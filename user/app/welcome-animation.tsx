@@ -15,7 +15,11 @@ export default function WelcomeAnimation() {
     const logoOpacity = useRef(new Animated.Value(0)).current;
     const welcomeOpacity = useRef(new Animated.Value(0)).current;
     const overlayOpacity = useRef(new Animated.Value(1)).current;
+    const loadingBarWidth = useRef(new Animated.Value(0)).current;
+    const loadingBarOpacity = useRef(new Animated.Value(0)).current;
     const [isReady, setIsReady] = useState(false);
+    const [loadingProgress, setLoadingProgress] = useState(0);
+    const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
     // iOS-compatible vibration function
     const triggerVibration = (pattern?: number | number[]) => {
@@ -60,6 +64,17 @@ export default function WelcomeAnimation() {
                     useNativeDriver: true,
                 }).start(() => {
                     triggerVibration([0, 50]);
+                    
+                    // Show loading bar after welcome text
+                    Animated.timing(loadingBarOpacity, {
+                        toValue: 1,
+                        duration: 200,
+                        useNativeDriver: true,
+                    }).start(() => {
+                        // Start smooth loading animation
+                        startSmoothLoading();
+                    });
+                    
                     setIsReady(true);
                 });
             });
@@ -68,21 +83,67 @@ export default function WelcomeAnimation() {
         startAnimation();
     }, []);
 
-    // Check if content is ready and dismiss animation
+    // Smooth loading animation function
+    const startSmoothLoading = () => {
+        let currentProgress = 0;
+        
+        progressInterval.current = setInterval(() => {
+            if (currentProgress < 95) {
+                // Simulate realistic loading with variable speed
+                const increment = Math.random() * 3 + 0.5; // Random between 0.5-3.5
+                currentProgress = Math.min(currentProgress + increment, 95);
+                
+                setLoadingProgress(Math.round(currentProgress));
+                
+                // Animate loading bar width
+                Animated.timing(loadingBarWidth, {
+                    toValue: currentProgress,
+                    duration: 150,
+                    useNativeDriver: false,
+                }).start();
+            }
+        }, 100); // Update every 100ms
+    };
+
+    // Clean up interval
+    useEffect(() => {
+        return () => {
+            if (progressInterval.current) {
+                clearInterval(progressInterval.current);
+            }
+        };
+    }, []);
+
+    // Check if content is ready and complete loading
     useEffect(() => {
         if (isReady && postsLoaded && imagesPreloaded) {
-            // Final vibration
-            triggerVibration([0, 100]);
+            // Complete the loading bar quickly
+            if (progressInterval.current) {
+                clearInterval(progressInterval.current);
+            }
             
-            // Navigate immediately - don't wait for Stream Chat if user has no subscriptions
-            router.replace('/(root)/(tabs)');
-            
-            // Fade out overlay
-            Animated.timing(overlayOpacity, {
-                toValue: 0,
-                duration: 200,
-                useNativeDriver: true,
-            }).start();
+            // Animate to 100% completion
+            setLoadingProgress(100);
+            Animated.timing(loadingBarWidth, {
+                toValue: 100,
+                duration: 300,
+                useNativeDriver: false,
+            }).start(() => {
+                // Final vibration
+                triggerVibration([0, 100]);
+                
+                // Short delay to show completion, then navigate
+                setTimeout(() => {
+                    router.replace('/(root)/(tabs)');
+                    
+                    // Fade out overlay
+                    Animated.timing(overlayOpacity, {
+                        toValue: 0,
+                        duration: 200,
+                        useNativeDriver: true,
+                    }).start();
+                }, 300);
+            });
         }
     }, [isReady, postsLoaded, imagesPreloaded]);
 
@@ -148,16 +209,58 @@ export default function WelcomeAnimation() {
                             Cherrizbox
                         </Text>
 
-                        <Text style={{
-                            fontSize: 18,
-                            color: '#FD6F3E',
-                            fontFamily: 'Urbanist-Medium',
-                            textAlign: 'center',
-                            opacity: 0.8,
-                        }}>
-                            Your content is ready! 🎉
-                        </Text>
+           
                         
+                        {/* Aesthetic Loading Bar */}
+                        <Animated.View
+                            style={{
+                                opacity: loadingBarOpacity,
+                                marginTop: 24,
+                                marginBottom: 16,
+                                width: 240,
+                                alignItems: 'center',
+                            }}
+                        >
+                            {/* Loading Bar Background */}
+                            <View
+                                style={{
+                                    width: '100%',
+                                    height: 3,
+                                    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                                    borderRadius: 2,
+                                    overflow: 'hidden',
+                                }}
+                            >
+                                {/* Loading Bar Fill */}
+                                <Animated.View
+                                    style={{
+                                        height: '100%',
+                                        backgroundColor: 'white',
+                                        borderRadius: 2,
+                                        width: loadingBarWidth.interpolate({
+                                            inputRange: [0, 100],
+                                            outputRange: ['0%', '100%'],
+                                        }),
+                                        shadowColor: 'white',
+                                        shadowOffset: { width: 0, height: 0 },
+                                        shadowOpacity: 0.5,
+                                        shadowRadius: 4,
+                                    }}
+                                />
+                            </View>
+                            
+                            {/* Progress Percentage */}
+                            <Text style={{
+                                fontSize: 12,
+                                color: 'rgba(255, 255, 255, 0.8)',
+                                fontFamily: 'Urbanist-Regular',
+                                marginTop: 8,
+                                letterSpacing: 0.5,
+                            }}>
+                                {Math.round(loadingProgress)}%
+                            </Text>
+                        </Animated.View>
+
                         {/* Show initialization status based on subscriptions */}
                         {creators.length > 0 ? (
                             <Text style={{
@@ -165,7 +268,6 @@ export default function WelcomeAnimation() {
                                 color: 'rgba(255, 255, 255, 0.6)',
                                 fontFamily: 'Urbanist-Regular',
                                 textAlign: 'center',
-                                marginTop: 16,
                             }}>
                                 {creators.filter(c => c.status === 'active').length > 0 
                                     ? `Setting up ${creators.filter(c => c.status === 'active').length} creator channels...`
@@ -178,7 +280,6 @@ export default function WelcomeAnimation() {
                                 color: 'rgba(255, 255, 255, 0.6)',
                                 fontFamily: 'Urbanist-Regular',
                                 textAlign: 'center',
-                                marginTop: 16,
                             }}>
                                 Loading your content...
                             </Text>

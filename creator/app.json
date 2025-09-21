@@ -144,7 +144,8 @@
       ],
       "@react-native-firebase/app",
       "@react-native-firebase/messaging",
-      "expo-web-browser"
+      "expo-web-browser",
+      "react-native-video"
     ],
     "experiments": {
       "typedRoutes": true

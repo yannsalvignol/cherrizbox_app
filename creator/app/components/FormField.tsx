@@ -36,6 +36,10 @@ const FormField = ({ title, value, handleChangeText, otherStyles, keyboardType, 
                     editable={editable}
                     onFocus={onFocus}
                     onBlur={onBlur}
+                    textAlignVertical="center"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    spellCheck={false}
                 />
                 {shouldShowPasswordToggle && (
                     <TouchableOpacity 

@@ -570,6 +570,16 @@ export async function createCreatorChannel(creatorId: string, creatorName: strin
     
     console.log(`🚀 [createCreatorChannel] Creating channel: ${channelId} for user: ${creatorId}`);
     
+    // Check if we're connected to Stream Chat
+    if (!isConnected) {
+      console.log('⚠️ [createCreatorChannel] Not connected to Stream Chat, attempting to connect...');
+      const connected = await connectUser(creatorId);
+      if (!connected) {
+        throw new Error('Failed to connect to Stream Chat');
+      }
+      console.log('✅ [createCreatorChannel] Stream Chat connection established');
+    }
+    
     // Create the channel for the creator's group chat
     const channel = client.channel('messaging', channelId, {
       members: [creatorId],

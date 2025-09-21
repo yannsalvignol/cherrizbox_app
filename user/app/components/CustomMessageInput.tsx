@@ -8,12 +8,15 @@ import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, Image, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { MessageInput } from 'stream-chat-react-native';
 import { MessageSentAnimation } from './MessageSentAnimation';
 import StripePaymentSheet from './StripePaymentSheet';
 import { UploadAnimation } from './UploadAnimation';
+import { UpgradeModal } from './modals/UpgradeModal';
 
 interface CustomMessageInputProps {
   currentChatType: string;
@@ -43,6 +46,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
   isThreadInput = false
 }) => {
   const { theme } = useTheme();
+  const router = useRouter();
   
   // Component initialization logging
   React.useEffect(() => {
@@ -75,13 +79,26 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
     }
   }, [currentChatType, isThreadInput, currentChannel?.id, userId, creatorId]);
 
-  // Set up message event listener for clustering
+  // Set up message event listener for clustering with enhanced reliability
   React.useEffect(() => {
     if (!currentChannel || currentChatType !== 'direct' || isThreadInput) {
+      console.log('🚫 [CustomMessageInput] Skipping listener setup:', {
+        hasChannel: !!currentChannel,
+        chatType: currentChatType,
+        isThreadInput,
+        reason: !currentChannel ? 'No channel' : currentChatType !== 'direct' ? 'Not direct chat' : 'Thread input'
+      });
       return;
     }
 
     console.log('🎧 [CustomMessageInput] Setting up message event listener...');
+    console.log('🔧 [CustomMessageInput] Listener configuration:', {
+      channelId: currentChannel.id,
+      channelType: currentChannel.type,
+      userId,
+      creatorId,
+      hasClusteringFunction: !!process.env.EXPO_PUBLIC_CLUSTERING_FUNCTION_ID
+    });
 
     const handleNewMessage = (event: any) => {
       console.log('📨 [CustomMessageInput] New message event received');
@@ -92,7 +109,8 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
         currentUserId: userId,
         isFromCurrentUser: event.message?.user?.id === userId,
         hasText: !!event.message?.text,
-        textLength: event.message?.text?.length || 0
+        textLength: event.message?.text?.length || 0,
+        timestamp: new Date().toISOString()
       });
 
       // Only process messages from the current user (fan)
@@ -109,9 +127,15 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
         });
 
         if (!derivedcreatorId) {
-          console.log('⚠️ [CustomMessageInput] Missing creatorId (creatorId); skipping clustering call.');
+          console.log('⚠️ [CustomMessageInput] Missing creatorId; skipping clustering call.');
           return;
         }
+
+        if (!process.env.EXPO_PUBLIC_CLUSTERING_FUNCTION_ID) {
+          console.log('⚠️ [CustomMessageInput] Missing clustering function ID; skipping clustering call.');
+          return;
+        }
+
         console.log('✅ [CustomMessageInput] Message from current user detected, sending to clustering...');
         console.log('🏷️ [CustomMessageInput] Message context:', {
           messageId: event.message.id,
@@ -122,6 +146,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
           creatorId: derivedcreatorId
         });
 
+        // Send to clustering function with error handling
         sendToClusteringFunction({
           messageId: event.message.id,
           content: event.message.text,
@@ -130,6 +155,9 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
           creatorId: derivedcreatorId,
           timestamp: Date.now(),
           messageType: 'text'
+        }).catch((error) => {
+          console.error('❌ [CustomMessageInput] Clustering function failed:', error);
+          // Don't prevent other operations from continuing
         });
 
         // Increment daily message count after successful message
@@ -156,14 +184,42 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
       }
     };
 
+    // Enhanced error handling for event listener setup
+    const handleConnectionChanged = (event: any) => {
+      console.log('🔄 [CustomMessageInput] Channel connection changed:', {
+        type: event.type,
+        channelId: currentChannel.id,
+        isConnected: event.isConnected,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Re-register listener if connection was restored
+      if (event.isConnected) {
+        console.log('🔄 [CustomMessageInput] Re-registering message listener after reconnection');
+        currentChannel.off('message.new', handleNewMessage);
+        currentChannel.on('message.new', handleNewMessage);
+      }
+    };
+
     // Listen for new messages
     currentChannel.on('message.new', handleNewMessage);
-    console.log('✅ [CustomMessageInput] Message event listener registered');
+    
+    // Listen for connection changes to re-establish listener if needed
+    currentChannel.on('connection.changed', handleConnectionChanged);
+    
+    console.log('✅ [CustomMessageInput] Message event listeners registered');
+    console.log('📊 [CustomMessageInput] Current channel state:', {
+      id: currentChannel.id,
+      type: currentChannel.type,
+      memberCount: Object.keys(currentChannel.state?.members || {}).length,
+      isConnected: currentChannel.state?.isConnected
+    });
 
     // Cleanup
     return () => {
-      console.log('🧹 [CustomMessageInput] Removing message event listener');
+      console.log('🧹 [CustomMessageInput] Removing message event listeners');
       currentChannel.off('message.new', handleNewMessage);
+      currentChannel.off('connection.changed', handleConnectionChanged);
     };
   }, [currentChannel, currentChatType, isThreadInput, userId, creatorId]);
 
@@ -198,6 +254,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
   const [dailyMessageCount, setDailyMessageCount] = useState(0);
   const [canSendMessage, setCanSendMessage] = useState(true);
   const [remainingMessages, setRemainingMessages] = useState(5);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Import tip payment logic from separate file
   const createTipPaymentIntentWrapper = async (amount: number, interval: string, creatorName: string, currency?: string) => {
@@ -546,8 +603,9 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
     );
   }
   
-  // Clustering function integration
-  const sendToClusteringFunction = async (messageData: any) => {
+  // Enhanced clustering function integration with retry logic
+  const sendToClusteringFunction = async (messageData: any, retryCount = 0) => {
+    const maxRetries = 2;
     const startTime = Date.now();
     console.log('🔗 [Clustering] Starting message processing...');
     console.log('📋 [Clustering] Message data:', {
@@ -557,7 +615,9 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
       userId: messageData.userId,
       creatorId: messageData.creatorId,
       timestamp: messageData.timestamp,
-      messageType: messageData.messageType
+      messageType: messageData.messageType,
+      attempt: retryCount + 1,
+      maxRetries: maxRetries + 1
     });
     
     try {
@@ -565,19 +625,30 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
       const CLUSTERING_FUNCTION_ID = process.env.EXPO_PUBLIC_CLUSTERING_FUNCTION_ID;
       
       if (!CLUSTERING_FUNCTION_ID) {
-        console.log('❌ [Clustering] Missing EXPO_PUBLIC_CLUSTERING_FUNCTION_ID');
-        return;
+        throw new Error('Missing EXPO_PUBLIC_CLUSTERING_FUNCTION_ID environment variable');
       }
       
       console.log('🚀 [Clustering] Calling Appwrite function...');
       console.log('🆔 [Clustering] Function ID:', CLUSTERING_FUNCTION_ID);
       
-      // Import functions from appwrite
-      const { functions } = await import('../../lib/appwrite');
-      const { ExecutionMethod } = await import('react-native-appwrite');
+      // Import functions from appwrite with error handling
+      let functions, ExecutionMethod;
+      try {
+        const appwriteImport = await import('../../lib/appwrite');
+        const appwriteSdkImport = await import('react-native-appwrite');
+        functions = appwriteImport.functions;
+        ExecutionMethod = appwriteSdkImport.ExecutionMethod;
+      } catch (importError) {
+        throw new Error(`Failed to import required modules: ${importError}`);
+      }
       
-      // Use the same pattern as your other function calls
-      const execution = await functions.createExecution(
+      // Validate messageData before sending
+      if (!messageData.messageId || !messageData.content || !messageData.userId || !messageData.creatorId) {
+        throw new Error('Invalid message data: missing required fields');
+      }
+      
+      // Use the same pattern as your other function calls with timeout
+      const executionPromise = functions.createExecution(
         CLUSTERING_FUNCTION_ID,
         JSON.stringify(messageData),
         false,
@@ -586,10 +657,16 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
         { 'Content-Type': 'application/json' }
       );
 
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Clustering function timeout (30s)')), 30000);
+      });
+
+      const execution = await Promise.race([executionPromise, timeoutPromise]) as any;
+
       const duration = Date.now() - startTime;
       console.log(`⏱️ [Clustering] Function completed in ${duration}ms`);
       console.log('📊 [Clustering] Execution status:', execution.status);
-      console.log('📄 [Clustering] Response body:', execution.responseBody);
       
       if (execution.status === 'completed') {
         try {
@@ -609,17 +686,26 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
               console.log(`   ${index + 1}. "${cluster.question}" → ${cluster.action} (Cluster: ${cluster.clusterId})`);
             });
           }
+          
+          return result; // Return success result
         } catch (parseError) {
           console.log('⚠️ [Clustering] Could not parse success response:', parseError);
+          console.log('📄 [Clustering] Raw response body:', execution.responseBody);
+          throw new Error(`Failed to parse clustering response: ${parseError}`);
         }
       } else {
         console.log('❌ [Clustering] Function execution failed:', execution.status);
+        let errorMessage = `Function execution failed with status: ${execution.status}`;
+        
         try {
           const errorData = JSON.parse(execution.responseBody);
           console.log('📄 [Clustering] Error details:', errorData);
+          errorMessage = errorData.message || errorMessage;
         } catch (e) {
           console.log('📄 [Clustering] Raw error response:', execution.responseBody);
         }
+        
+        throw new Error(errorMessage);
       }
       
     } catch (error: any) {
@@ -628,8 +714,28 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
       console.log('🔍 [Clustering] Error details:', {
         name: error?.name,
         message: error?.message,
-        stack: error?.stack?.split('\n')[0] // Just first line of stack
+        stack: error?.stack?.split('\n')[0], // Just first line of stack
+        attempt: retryCount + 1,
+        willRetry: retryCount < maxRetries
       });
+      
+      // Retry logic for transient errors
+      if (retryCount < maxRetries) {
+        const isRetryableError = error?.message?.includes('timeout') || 
+                                error?.message?.includes('network') ||
+                                error?.message?.includes('connection') ||
+                                error?.status >= 500;
+        
+        if (isRetryableError) {
+          console.log(`🔄 [Clustering] Retrying in ${(retryCount + 1) * 2}s...`);
+          await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
+          return sendToClusteringFunction(messageData, retryCount + 1);
+        }
+      }
+      
+      // Don't throw error to prevent breaking the message flow
+      console.log('💔 [Clustering] Final failure - clustering will be skipped for this message');
+      return null;
     }
   };
 
@@ -642,20 +748,86 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
           paddingHorizontal: 16,
           paddingVertical: 8,
           backgroundColor: theme.backgroundSecondary,
-          borderTopLeftRadius: 12,
-          borderTopRightRadius: 12,
         }}>
           <Text style={{
             color: canSendMessage ? theme.textSecondary : theme.error,
             fontSize: 12,
             fontFamily: 'questrial',
             textAlign: 'center',
+            marginBottom: (remainingMessages <= 1 || !canSendMessage) ? 8 : 0,
           }}>
             {canSendMessage 
               ? `${dailyMessageCount}/5 messages sent today • ${remainingMessages} remaining`
               : 'Daily message limit reached (5/5) • Try again tomorrow'
             }
           </Text>
+          
+          {/* Upgrade Button - Show when 1 or fewer messages remaining, or limit reached */}
+          {(remainingMessages <= 1 || !canSendMessage) && (
+            <TouchableOpacity
+              onPress={() => {
+                console.log('🚀 [Upgrade] Opening upgrade modal');
+                setShowUpgradeModal(true);
+              }}
+              style={{
+                borderRadius: 12,
+                overflow: 'hidden',
+                marginTop: 4,
+                shadowColor: theme.primary,
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.3,
+                shadowRadius: 4,
+                elevation: 4,
+              }}
+            >
+              <LinearGradient
+                colors={[theme.primary, theme.primaryDark]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  alignItems: 'center',
+                  flexDirection: 'row',
+                  justifyContent: 'center',
+                }}
+              >
+                <View style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  borderRadius: 12,
+                  width: 24,
+                  height: 24,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginRight: 8,
+                }}>
+                  <Ionicons 
+                    name="flash" 
+                    size={14} 
+                    color={theme.textInverse} 
+                  />
+                </View>
+                
+                <View style={{ flex: 1, alignItems: 'center' }}>
+                  <Text style={{
+                    color: theme.textInverse,
+                    fontSize: 14,
+                    fontFamily: 'Urbanist-Bold',
+                    fontWeight: 'bold',
+                    textAlign: 'center',
+                  }}>
+                    {!canSendMessage ? 'Get Unlimited Chats' : 'Upgrade for Unlimited'}
+                  </Text>
+                </View>
+                
+                <Ionicons 
+                  name="chevron-forward" 
+                  size={18} 
+                  color="rgba(255, 255, 255, 0.8)" 
+                />
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
         </View>
       )}
       
@@ -692,13 +864,13 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
               fontSize: 16,
               color: canSendMessage ? theme.text : theme.textTertiary,
               paddingHorizontal: 16,
-              paddingVertical: 12,
-              minHeight: 40,
-              maxHeight: 120,
-              lineHeight: 22,
+              paddingVertical: 8,
+              minHeight: 36,
+              maxHeight: 80,
+              lineHeight: 20,
               includeFontPadding: false,
               fontWeight: '400',
-              paddingTop: 14,
+              paddingTop: 10,
               textAlign: 'left',
               opacity: canSendMessage ? 1 : 0.6,
             }
@@ -1201,6 +1373,22 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
         currency={creatorCurrency}
                   createIntentFunc={createTipPaymentIntentWrapper}
         navigateOnSuccess={false} // Stay on chat screen
+      />
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        visible={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        onSelectPlan={(planType, amount) => {
+          console.log('🚀 [Upgrade] Selected plan:', { planType, amount });
+          setShowUpgradeModal(false);
+          // TODO: Add Stripe payment logic here
+          Alert.alert(
+            'Coming Soon',
+            `You selected the ${planType} plan for $${amount}. Payment integration will be added soon!`,
+            [{ text: 'OK' }]
+          );
+        }}
       />
     </View>
   );

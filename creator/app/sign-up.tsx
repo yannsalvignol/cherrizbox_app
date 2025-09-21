@@ -6,7 +6,6 @@ import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import FormField from './components/FormField';
 import OtpInput from './components/OtpInput';
 
 const PasswordCriteria = ({ password, isFocused }: { password: string; isFocused: boolean }) => {
@@ -296,19 +295,33 @@ const App = () => {
                             <Text className="text-black font-['Urbanist-Bold'] text-4xl mt-4">    
                                 Hello! Register to Cherrizbox <Text style={{ color: '#FD6F3E' }}>Creator</Text>.
                             </Text>
-                            <FormField 
-                                title="Username" 
-                                value={form.username}
-                                handleChangeText={(text) => setForm({ ...form, username: text })}
-                                otherStyles="mt-7" 
-                            />
-                            <FormField 
-                                title="Email" 
-                                value={form.email}
-                                handleChangeText={(text) => setForm({ ...form, email: text })}
-                                otherStyles="mt-7" 
-                                keyboardType="email-address" 
-                            />
+                            {/* Username field */}
+                            <View className="mt-7 flex-row items-center bg-[#ECECEC] rounded-lg">
+                                <TextInput
+                                    placeholder="Username"
+                                    value={form.username}
+                                    onChangeText={(text) => setForm({ ...form, username: text })}
+                                    className="flex-1 px-5 py-6 font-['Urbanist-Regular']"
+                                    placeholderTextColor="#9CA3AF"
+                                    autoCapitalize="none"
+                                    autoCorrect={false}
+                                    spellCheck={false}
+                                />
+                            </View>
+                            {/* Email field */}
+                            <View className="mt-7 flex-row items-center bg-[#ECECEC] rounded-lg">
+                                <TextInput
+                                    placeholder="Email"
+                                    value={form.email}
+                                    onChangeText={(text) => setForm({ ...form, email: text })}
+                                    className="flex-1 px-5 py-6 font-['Urbanist-Regular']"
+                                    placeholderTextColor="#9CA3AF"
+                                    keyboardType="email-address"
+                                    autoCapitalize="none"
+                                    autoCorrect={false}
+                                    spellCheck={false}
+                                />
+                            </View>
                             {/* Password field with eye icon */}
                             <View className="mt-7 flex-row items-center bg-[#ECECEC] rounded-lg">
                                 <TextInput
