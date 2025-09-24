@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.yannsalvignol.cherrizboxcreator",
-      "buildNumber": "11",
+      "buildNumber": "12",
       "googleServicesFile": "./GoogleService-Info.plist",
       "requireFullScreen": true,
       "usesAppleSignIn": true,
@@ -45,7 +45,7 @@
         "backgroundColor": "#FD6F3E"
       },
       "edgeToEdgeEnabled": true,
-      "versionCode": 6,
+      "versionCode": 7,
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "android.permission.RECORD_AUDIO",
