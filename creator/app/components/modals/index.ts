@@ -1,3 +1,4 @@
+export { AllClustersModal } from './AllClustersModal';
 export { AnswerForAllModal } from './AnswerForAllModal';
 export { BioModal } from './BioModal';
 export { CountryPickerModal } from './CountryPickerModal';

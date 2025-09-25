@@ -1,20 +1,21 @@
 import {
-    ChannelList,
-    SearchBar,
-    type Cluster
+  ChannelList,
+  SearchBar,
+  type Cluster
 } from '@/app/components/channels';
 
 import {
-    AnswerForAllModal,
-    CustomNotificationModal,
-    OneByOneModal,
-    SocialMediaVerificationModal
+  AllClustersModal,
+  AnswerForAllModal,
+  CustomNotificationModal,
+  OneByOneModal,
+  SocialMediaVerificationModal
 } from '@/app/components/modals';
 import { getUserProfile } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
 import {
-    filterChannels,
-    type Channel
+  filterChannels,
+  type Channel
 } from '@/lib/index-utils';
 import { client, connectUser } from '@/lib/stream-chat';
 import { useTheme } from '@/lib/useTheme';
@@ -68,6 +69,7 @@ export default function Index() {
     const [selectedCluster, setSelectedCluster] = useState<Cluster | null>(null);
     const [showOneByOneModal, setShowOneByOneModal] = useState(false);
     const [showAnswerForAllModal, setShowAnswerForAllModal] = useState(false);
+    const [showAllClustersModal, setShowAllClustersModal] = useState(false);
     
     // Preload financial data for EarningsTab
     const [creatorFinancials, setCreatorFinancials] = useState<any>(null);
@@ -1007,8 +1009,7 @@ export default function Index() {
 
   const handleViewAllClusters = () => {
     console.log('🚀 [Clusters] View all clusters');
-    // TODO: Navigate to all clusters screen
-    // router.push('/clusters');
+    setShowAllClustersModal(true);
   };
 
   // Preload creator financials for smooth EarningsTab experience
@@ -1252,6 +1253,16 @@ export default function Index() {
                 });
               }}
               currentUserId={user?.$id}
+            />
+            
+            {/* All Clusters Modal */}
+            <AllClustersModal
+              visible={showAllClustersModal}
+              clusters={clusters}
+              isLoading={isLoadingClusters}
+              onClose={() => setShowAllClustersModal(false)}
+              onAnswerForAll={handleAnswerForAll}
+              onAnswerOneByOne={handleAnswerOneByOne}
             />
             
             {/* Header */}
