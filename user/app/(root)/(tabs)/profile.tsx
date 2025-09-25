@@ -657,7 +657,7 @@ export default function Profile() {
           />
         </TouchableOpacity>
         
-        <Text style={{ color: theme.text, fontSize: 40, textAlign: 'center', flex: 1, fontFamily: 'MuseoModerno-Regular', letterSpacing: 1, marginTop: 8 }}>
+        <Text style={{ color: theme.text, fontSize: 40, textAlign: 'center', flex: 1, fontFamily: 'MuseoModerno-Regular', letterSpacing: 1, marginTop: 8 }} allowFontScaling={false}>
           cherrizbox
         </Text>
       </View>
@@ -688,7 +688,7 @@ export default function Profile() {
           )}
         </View>
         <View className="w-full px-6 relative">
-          <Text style={{ color: theme.text, fontSize: 20, textAlign: 'center', fontFamily: 'questrial' }}>
+          <Text style={{ color: theme.text, fontSize: 20, textAlign: 'center', fontFamily: 'questrial' }} allowFontScaling={false}>
             {user?.name || 'Profile Name'}
           </Text>
           <TouchableOpacity 
@@ -699,7 +699,7 @@ export default function Profile() {
           </TouchableOpacity>
         </View>
         <View className="flex-row items-center justify-center mb-4">
-          <Text style={{ color: theme.text, fontSize: 14, fontFamily: 'questrial' }}>
+          <Text style={{ color: theme.text, fontSize: 14, fontFamily: 'questrial' }} allowFontScaling={false}>
             {user?.email || 'email@example.com'}
           </Text>
           <Image 
@@ -725,7 +725,7 @@ export default function Profile() {
             }}
             onPress={() => router.push('/edit-profile')}
           >
-            <Text style={{ color: theme.text, fontFamily: 'questrial' }}>Edit Profile</Text>
+            <Text style={{ color: theme.text, fontFamily: 'questrial' }} allowFontScaling={false}>Edit Profile</Text>
             <Ionicons name="chevron-down-outline" size={16} color={theme.text} style={{ marginLeft: 8 }} />
           </TouchableOpacity>
           
@@ -742,7 +742,7 @@ export default function Profile() {
             }}
             onPress={() => router.push('/payment-methods')}
           >
-            <Text style={{ color: theme.text, fontFamily: 'questrial' }}>Payment Methods</Text>
+            <Text style={{ color: theme.text, fontFamily: 'questrial' }} allowFontScaling={false}>Payment Methods</Text>
           </TouchableOpacity>
           
           {/* Custom Content Type Toggle */}
@@ -777,7 +777,7 @@ export default function Profile() {
                 <Text style={{ 
                   fontFamily: 'questrial', 
                   color: !isPaidContent ? theme.textInverse : theme.textSecondary 
-                }}>
+                }} allowFontScaling={false}>
                   My Creators
                 </Text>
               </Pressable>
@@ -788,7 +788,7 @@ export default function Profile() {
                 <Text style={{ 
                   fontFamily: 'questrial', 
                   color: isPaidContent ? theme.textInverse : theme.textSecondary 
-                }}>
+                }} allowFontScaling={false}>
                   Paid Content
                 </Text>
               </Pressable>
@@ -931,7 +931,7 @@ export default function Profile() {
             })
           ) : (
             <View className="items-center justify-center py-8">
-              <Text style={{ color: theme.text, fontSize: 16, fontFamily: 'questrial', textAlign: 'center' }}>
+              <Text style={{ color: theme.text, fontSize: 16, fontFamily: 'questrial', textAlign: 'center' }} allowFontScaling={false}>
                 You haven't subscribed to any creators yet
               </Text>
             </View>
@@ -963,14 +963,14 @@ export default function Profile() {
                       borderColor: selectedContentType === contentType ? theme.cardBackground : theme.borderDark
                     }}
                   >
-                    <Text style={{ 
-                      color: selectedContentType === contentType ? theme.text : theme.textSecondary, 
-                      fontFamily: 'questrial', 
-                      fontSize: 16,
-                      fontWeight: selectedContentType === contentType ? '600' : 'normal'
-                    }}>
-                      {contentType}
-                    </Text>
+                        <Text style={{ 
+                          color: selectedContentType === contentType ? theme.text : theme.textSecondary, 
+                          fontFamily: 'questrial', 
+                          fontSize: 16,
+                          fontWeight: selectedContentType === contentType ? '600' : 'normal'
+                        }} allowFontScaling={false}>
+                          {contentType}
+                        </Text>
                   </Pressable>
                 ))}
               </View>
@@ -1002,7 +1002,7 @@ export default function Profile() {
                     fontFamily: 'questrial', 
                     fontSize: 16,
                     fontWeight: selectedCreatorId === 'all' ? '600' : 'normal'
-                  }}>
+                  }} allowFontScaling={false}>
                     All creators
                   </Text>
                 </Pressable>
@@ -1029,7 +1029,7 @@ export default function Profile() {
                         fontFamily: 'questrial', 
                         fontSize: 16,
                         fontWeight: selectedCreatorId === subscription.creatorId ? '600' : 'normal'
-                      }}>
+                      }} allowFontScaling={false}>
                         {subscription.creatorName}
                       </Text>
                     </Pressable>
@@ -1047,13 +1047,13 @@ export default function Profile() {
           >
             {isLoadingContent ? (
               <View className="items-center justify-center py-8">
-                <Text style={{ color: theme.textSecondary, fontSize: 16, fontFamily: 'questrial', textAlign: 'center' }}>
+                <Text style={{ color: theme.textSecondary, fontSize: 16, fontFamily: 'questrial', textAlign: 'center' }} allowFontScaling={false}>
                   Loading {selectedContentType.toLowerCase()}...
                 </Text>
               </View>
             ) : purchasedContent.length > 0 ? (
               <View style={{ paddingHorizontal: 8 }}>
-                <Text style={{ color: theme.textSecondary, fontSize: 14, fontFamily: 'questrial', textAlign: 'center', marginBottom: 16 }}>
+                <Text style={{ color: theme.textSecondary, fontSize: 14, fontFamily: 'questrial', textAlign: 'center', marginBottom: 16 }} allowFontScaling={false}>
                   {purchasedContent.length} {selectedContentType.toLowerCase()} from {selectedCreatorId === 'all' ? 'all creators' : creators.find(c => c.creatorId === selectedCreatorId)?.creatorName || ''}
                 </Text>
                 
@@ -1191,10 +1191,10 @@ export default function Profile() {
               </View>
             ) : (
               <View className="items-center justify-center py-8">
-                <Text style={{ color: theme.textSecondary, fontSize: 16, fontFamily: 'questrial', textAlign: 'center' }}>
+                <Text style={{ color: theme.textSecondary, fontSize: 16, fontFamily: 'questrial', textAlign: 'center' }} allowFontScaling={false}>
                   No {selectedContentType.toLowerCase()} found
                 </Text>
-                <Text style={{ color: theme.textTertiary, fontSize: 14, fontFamily: 'questrial', textAlign: 'center', marginTop: 8 }}>
+                <Text style={{ color: theme.textTertiary, fontSize: 14, fontFamily: 'questrial', textAlign: 'center', marginTop: 8 }} allowFontScaling={false}>
                   {selectedCreatorId === 'all' ? 'You haven\'t purchased any content yet' : `No content from ${creators.find(c => c.creatorId === selectedCreatorId)?.creatorName || ''}`}
                 </Text>
               </View>

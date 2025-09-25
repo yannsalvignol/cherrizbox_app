@@ -3,9 +3,9 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import React from 'react';
 import {
-  Text,
-  TouchableOpacity,
-  View
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 export interface Cluster {
@@ -108,7 +108,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
             fontWeight: 'bold',
             fontFamily: 'MuseoModerno-Regular',
             letterSpacing: 1,
-          }}>
+          }} allowFontScaling={false}>
             BOX AI
           </Text>
           {cluster.status === 'pending' && (
@@ -134,7 +134,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
           fontFamily: 'Urbanist-Bold',
           marginBottom: 6,
           lineHeight: 22,
-        }}>
+        }} allowFontScaling={false}>
           {cluster.title}
         </Text>
         
@@ -152,7 +152,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
               fontSize: 12,
               fontWeight: 'bold',
               fontFamily: 'Urbanist-Bold',
-            }}>
+            }} allowFontScaling={false}>
               {affectedChatsCount} {affectedChatsCount === 1 ? 'FAN' : 'FANS'}
             </Text>
           </View>
@@ -160,7 +160,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
             color: theme.textSecondary,
             fontSize: 13,
             fontFamily: 'Urbanist-Regular',
-          }}>
+          }} allowFontScaling={false}>
             asking{isAggregated ? ' similar questions' : ''}
           </Text>
         </View>
@@ -181,7 +181,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
             marginBottom: 10,
             textTransform: 'uppercase',
             letterSpacing: 0.5,
-          }}>
+          }} allowFontScaling={false}>
             Sample Questions
           </Text>
           {questions.slice(0, 2).map((question, index) => (
@@ -191,7 +191,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
                 fontSize: 13,
                 fontFamily: 'Urbanist-Regular',
                 marginRight: 8,
-              }}>
+              }} allowFontScaling={false}>
                 •
               </Text>
               <Text style={{
@@ -200,7 +200,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
                 fontFamily: 'Urbanist-Regular',
                 flex: 1,
                 lineHeight: 18,
-              }}>
+              }} allowFontScaling={false}>
                 {question}
               </Text>
             </View>
@@ -212,7 +212,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
               fontFamily: 'Urbanist-Regular',
               fontStyle: 'italic',
               marginTop: 6,
-            }}>
+            }} allowFontScaling={false}>
               +{questions.length - 2} more questions...
             </Text>
           )}
@@ -248,7 +248,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
             fontSize: 15,
             fontWeight: 'bold',
             fontFamily: 'Urbanist-Bold',
-          }}>
+          }} allowFontScaling={false}>
             Answer for All
           </Text>
         </TouchableOpacity>
@@ -278,7 +278,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
             fontSize: 15,
             fontWeight: 'bold',
             fontFamily: 'Urbanist-Bold',
-          }}>
+          }} allowFontScaling={false}>
             One by One
           </Text>
         </TouchableOpacity>

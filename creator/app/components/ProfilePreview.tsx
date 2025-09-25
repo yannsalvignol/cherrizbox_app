@@ -118,7 +118,7 @@ const ProfilePreview: React.FC<ProfilePreviewProps> = ({
             fontWeight: 'bold',
             fontFamily: 'questrial',
             textAlign: 'center'
-          }}>
+          }} allowFontScaling={false}>
             Pending validation
           </Text>
         </View>
@@ -168,7 +168,7 @@ const ProfilePreview: React.FC<ProfilePreviewProps> = ({
                 textAlign: 'center', 
                 marginBottom: 16,
                 fontFamily: 'questrial'
-              }}>
+              }} allowFontScaling={false}>
                 No Profile Photo Yet
               </Text>
 
@@ -177,22 +177,22 @@ const ProfilePreview: React.FC<ProfilePreviewProps> = ({
         )}
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' }}>
           <View style={{ width: '97%', height: '31%', backgroundColor: 'rgba(32, 32, 32, 0.92)', borderRadius: 40, padding: 20, alignItems: 'center', marginBottom: 15, alignSelf: 'center' }}>
-            <Text style={{ color: 'white', fontSize: 32, fontWeight: 'bold', textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }} numberOfLines={2}>
+            <Text style={{ color: 'white', fontSize: 32, fontWeight: 'bold', textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }} numberOfLines={2} allowFontScaling={false}>
               {name || 'Your name'}
             </Text>
             <View style={{ alignSelf: 'flex-start', marginTop: 5 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: 'rgba(255, 255, 255, 0.2)', paddingBottom: 8 }}>
                 <Ionicons name="location-sharp" size={20} color="white" style={{ marginRight: 10 }} />
-                <Text style={{ color: 'white', fontSize: 18, textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }}>
+                <Text style={{ color: 'white', fontSize: 18, textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }} allowFontScaling={false}>
                   {location || 'N/A'}
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 15 }}>
                 <View style={{ paddingTop: 10 }}>
-                  <Text style={{ color: 'white', fontSize: 24, textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }}>
+                  <Text style={{ color: 'white', fontSize: 24, textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }} allowFontScaling={false}>
                     {followerCount ?? 0}
                   </Text>
-                  <Text style={{ color: '#B9B9B9', fontSize: 18, textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial', marginTop: 8 }}>
+                  <Text style={{ color: '#B9B9B9', fontSize: 18, textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial', marginTop: 8 }} allowFontScaling={false}>
                     followers
                   </Text>
                 </View>
@@ -208,16 +208,16 @@ const ProfilePreview: React.FC<ProfilePreviewProps> = ({
                       transform: [{ scale: selectedPricing === 'monthly' ? 1.05 : 1 }]
                     }}
                   >
-                    <Text style={{ color: 'white', fontSize: 28, fontWeight: 'bold', textShadowColor: 'rgba(255, 255, 255, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }}>
+                    <Text style={{ color: 'white', fontSize: 28, fontWeight: 'bold', textShadowColor: 'rgba(255, 255, 255, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }} allowFontScaling={false}>
                       {formatPrice(monthlyPrice)}
                     </Text>
-                    <Text style={{ color: 'white', fontSize: 16, textShadowColor: 'rgba(255, 255, 255, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial', marginTop: 4 }}>
+                    <Text style={{ color: 'white', fontSize: 16, textShadowColor: 'rgba(255, 255, 255, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial', marginTop: 4 }} allowFontScaling={false}>
                       per month
                     </Text>
                   </TouchableOpacity>
                 </View>
                 <View style={{ justifyContent: 'center' }}>
-                  <Text style={{ color: '#B9B9B9', fontSize: 18, textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }}>
+                  <Text style={{ color: '#B9B9B9', fontSize: 18, textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }} allowFontScaling={false}>
                     or
                   </Text>
                 </View>
@@ -233,10 +233,10 @@ const ProfilePreview: React.FC<ProfilePreviewProps> = ({
                       transform: [{ scale: selectedPricing === 'yearly' ? 1.05 : 1 }]
                     }}
                   >
-                    <Text style={{ color: '#FD6F3E', fontSize: 28, fontWeight: 'bold', textShadowColor: 'rgba(251, 35, 85, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }}>
+                    <Text style={{ color: '#FD6F3E', fontSize: 28, fontWeight: 'bold', textShadowColor: 'rgba(251, 35, 85, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }} allowFontScaling={false}>
                       {formatPrice(yearlyPrice)}
                     </Text>
-                    <Text style={{ color: '#FD6F3E', fontSize: 16, textShadowColor: 'rgba(251, 35, 85, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial', marginTop: 4 }}>
+                    <Text style={{ color: '#FD6F3E', fontSize: 16, textShadowColor: 'rgba(251, 35, 85, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial', marginTop: 4 }} allowFontScaling={false}>
                       per year
                     </Text>
                   </TouchableOpacity>
@@ -262,7 +262,7 @@ const ProfilePreview: React.FC<ProfilePreviewProps> = ({
                 fontFamily: 'questrial',
                 textAlign: 'center',
                 flex: 1
-              }} numberOfLines={1}>
+              }} numberOfLines={1} allowFontScaling={false}>
                 {`Join ${name || 'this'}'s box`}
               </Text>
             </TouchableOpacity>

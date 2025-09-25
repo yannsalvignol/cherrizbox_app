@@ -194,7 +194,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
           textAlign: 'center',
           marginBottom: 4,
           fontFamily: 'Urbanist-Bold',
-        }}>
+        }} allowFontScaling={false}>
           {title}
         </Text>
         
@@ -204,7 +204,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
           textAlign: 'center',
           marginBottom: 16,
           fontFamily: 'Urbanist-Medium',
-        }}>
+        }} allowFontScaling={false}>
           Premium File Content
         </Text>
         
@@ -228,7 +228,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
             fontSize: 16,
             fontWeight: '700',
             fontFamily: 'Urbanist-Bold',
-          }}>
+          }} allowFontScaling={false}>
             Unlock for {formatPrice ? formatPrice(price, userCurrency) : `$${price.toFixed(2)}`}
           </Text>
         </TouchableOpacity>
@@ -247,7 +247,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
           fontWeight: '600',
           fontFamily: 'questrial',
           opacity: 0.8,
-        }}>
+        }} allowFontScaling={false}>
           {new Date(message.created_at).toLocaleTimeString([], { 
             hour: '2-digit', 
             minute: '2-digit',
@@ -346,7 +346,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
                 textAlign: 'center',
                 marginBottom: 6,
                 fontFamily: 'Urbanist-Bold',
-              }}>
+              }} allowFontScaling={false}>
                 {title || 'PDF Document'}
               </Text>
               
@@ -356,7 +356,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
                 textAlign: 'center',
                 marginBottom: 16,
                 fontFamily: 'Urbanist-Medium',
-              }}>
+              }} allowFontScaling={false}>
                 PDF File Ready
               </Text>
               
@@ -399,7 +399,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
                   fontSize: 15,
                   fontWeight: '700',
                   fontFamily: 'Urbanist-Bold',
-                }}>
+                }} allowFontScaling={false}>
                   Open File
                 </Text>
               </TouchableOpacity>
@@ -427,7 +427,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
                     fontSize: 12,
                     marginTop: 8,
                     fontFamily: 'Urbanist-Regular',
-                  }}>
+                  }} allowFontScaling={false}>
                     Loading text...
                   </Text>
                 </View>
@@ -437,7 +437,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
                   fontSize: 12,
                   fontFamily: 'Urbanist-Regular',
                   lineHeight: 16,
-                }}>
+                }} allowFontScaling={false}>
                   {fileContent || 'Unable to load file content'}
                 </Text>
               )}
@@ -458,7 +458,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
                 marginTop: 8,
                 textAlign: 'center',
                 fontFamily: 'Urbanist-SemiBold',
-              }}>
+              }} allowFontScaling={false}>
                 Audio File
               </Text>
               <Text style={{
@@ -467,7 +467,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
                 marginTop: 4,
                 textAlign: 'center',
                 fontFamily: 'Urbanist-Regular',
-              }}>
+              }} allowFontScaling={false}>
                 {fileExtension.toUpperCase()}
               </Text>
               {/* Audio player could be added here */}
@@ -499,7 +499,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
                   fontWeight: 'bold',
                   marginLeft: 4,
                   fontFamily: 'Urbanist-SemiBold',
-                }}>
+                }} allowFontScaling={false}>
                   Play Audio
                 </Text>
               </TouchableOpacity>
@@ -518,7 +518,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
                 marginTop: 8,
                 textAlign: 'center',
                 fontFamily: 'Urbanist-SemiBold',
-              }}>
+              }} allowFontScaling={false}>
                 {fileExtension.toUpperCase()} File
               </Text>
               <Text style={{
@@ -527,7 +527,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
                 marginTop: 4,
                 textAlign: 'center',
                 fontFamily: 'Urbanist-Regular',
-              }}>
+              }} allowFontScaling={false}>
                 Tap "Open File" to view
               </Text>
             </>
@@ -553,7 +553,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
             fontWeight: 'bold',
             marginLeft: 4,
             fontFamily: 'Urbanist-SemiBold',
-          }}>
+          }} allowFontScaling={false}>
             Unlocked
           </Text>
         </View>
@@ -596,7 +596,7 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
             fontWeight: '600',
             fontFamily: 'questrial',
             opacity: 0.8,
-          }}>
+          }} allowFontScaling={false}>
             {new Date(message.created_at).toLocaleTimeString([], { 
               hour: '2-digit', 
               minute: '2-digit',

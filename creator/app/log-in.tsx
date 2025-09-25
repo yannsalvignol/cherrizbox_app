@@ -6,7 +6,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Animated, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SignIn, login, loginWithApple } from '../lib/appwrite';
-import FormField from './components/FormField';
 
 const LoginScreen = () => {
     const router = useRouter();
@@ -252,17 +251,28 @@ const LoginScreen = () => {
         <SafeAreaView className="flex-1 bg-white">
             <ScrollView>
                 <View className="flex-1 px-4">
-                    <Text className="text-black font-['Urbanist-Bold'] text-4xl mt-[50px]">    
+                    <Text 
+                        className="text-black font-['Urbanist-Bold'] text-4xl mt-[50px]"
+                        allowFontScaling={false}
+                    >    
                         Welcome back! Glad to see you, Again!
                     </Text>
                     
-                    <FormField 
-                        title="Email" 
-                        value={form.email} 
-                        handleChangeText={(e: string) => setForm({...form, email: e})} 
-                        otherStyles="mt-7" 
-                        keyboardType="email-address" 
-                    />
+                    {/* Email field */}
+                    <View className="mt-7 flex-row items-center bg-[#ECECEC] rounded-lg">
+                        <TextInput
+                            placeholder="Email"
+                            value={form.email}
+                            onChangeText={(e) => setForm({ ...form, email: e })}
+                            className="flex-1 px-5 py-6 font-['Urbanist-Regular']"
+                            placeholderTextColor="#9CA3AF"
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            spellCheck={false}
+                            allowFontScaling={false}
+                        />
+                    </View>
                     {/* Custom password input with eye icon */}
                     <View className="mt-7 flex-row items-center bg-[#ECECEC] rounded-lg">
                         <TextInput
@@ -272,6 +282,7 @@ const LoginScreen = () => {
                             className="flex-1 px-5 py-6 font-['Urbanist-Regular']"
                             placeholderTextColor="#9CA3AF"
                             secureTextEntry={!showPassword}
+                            allowFontScaling={false}
                         />
                         <TouchableOpacity
                             className="px-4"
@@ -285,7 +296,11 @@ const LoginScreen = () => {
                         </TouchableOpacity>
                     </View>
                     {error ? (
-                        <Text style={{ color: '#ef4444' }} className="mt-2 text-center font-['Urbanist-SemiBold']">
+                        <Text 
+                            style={{ color: '#ef4444' }} 
+                            className="mt-2 text-center font-['Urbanist-SemiBold']"
+                            allowFontScaling={false}
+                        >
                             {error}
                         </Text>
                     ) : null}
@@ -294,7 +309,10 @@ const LoginScreen = () => {
                         className="self-end mt-2"
                         onPress={() => router.push('/forgot_password_loged_out')}
                     >
-                        <Text className="text-[#FD6F3E] font-['Urbanist-Bold']">
+                        <Text 
+                            className="text-[#FD6F3E] font-['Urbanist-Bold']"
+                            allowFontScaling={false}
+                        >
                             Forgot Password?
                         </Text>
                     </TouchableOpacity>
@@ -304,14 +322,20 @@ const LoginScreen = () => {
                         onPress={submit}
                         disabled={isSubmitting}
                     >
-                        <Text style={{ color: 'white', textAlign: 'center', fontFamily: 'Urbanist-Light', fontSize: 20 }}>
+                        <Text 
+                            style={{ color: 'white', textAlign: 'center', fontFamily: 'Urbanist-Light', fontSize: 20 }}
+                            allowFontScaling={false}
+                        >
                             {isSubmitting ? 'Signing in...' : 'Login'}
                         </Text>
                     </TouchableOpacity>
 
                     <View className="flex-row items-center justify-center mt-7">
                         <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }} />
-                        <Text style={{ color: '#9CA3AF', fontFamily: 'Urbanist-Bold', marginHorizontal: 16 }}>
+                        <Text 
+                            style={{ color: '#9CA3AF', fontFamily: 'Urbanist-Bold', marginHorizontal: 16 }}
+                            allowFontScaling={false}
+                        >
                             Or login with
                         </Text>
                         <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }} />
@@ -326,7 +350,10 @@ const LoginScreen = () => {
                             className="flex-row items-center justify-center bg-white py-4 rounded-3xl w-full mb-4 px-6 border border-gray-300"
                         >
                             <Ionicons name="logo-google" size={24} color="#000" style={{ marginRight: 12 }} />
-                            <Text style={{ color: '#000', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>
+                            <Text 
+                                style={{ color: '#000', fontFamily: 'Urbanist-Bold', fontSize: 16 }}
+                                allowFontScaling={false}
+                            >
                                 Continue with Google
                             </Text>
                         </TouchableOpacity>
@@ -344,18 +371,27 @@ const LoginScreen = () => {
                             ) : (
                                 <Ionicons name="logo-apple" size={24} color="#FFF" style={{ marginRight: 12 }} />
                             )}
-                            <Text style={{ color: '#FFF', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>
+                            <Text 
+                                style={{ color: '#FFF', fontFamily: 'Urbanist-Bold', fontSize: 16 }}
+                                allowFontScaling={false}
+                            >
                                 {isAppleLoading ? 'Signing in...' : 'Continue with Apple'}
                             </Text>
                         </TouchableOpacity>
                     </View>
 
                     <View className="flex-row justify-center items-center mt-1">
-                        <Text className="text-black font-['Urbanist-Bold']">
+                        <Text 
+                            className="text-black font-['Urbanist-Bold']"
+                            allowFontScaling={false}
+                        >
                             Don't have an account?{' '}
                         </Text>
                         <TouchableOpacity onPress={() => router.push('/landing')}>
-                            <Text className="text-[#FD6F3E] font-['Urbanist-Bold']">
+                            <Text 
+                                className="text-[#FD6F3E] font-['Urbanist-Bold']"
+                                allowFontScaling={false}
+                            >
                                 Register Now
                             </Text>
                         </TouchableOpacity>

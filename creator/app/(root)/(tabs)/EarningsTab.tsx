@@ -523,26 +523,10 @@ export default function EarningsTab({
                   top: 16,
                   right: 16,
                   zIndex: 1,
+                  padding: 4,
                 }}
               >
-                <View style={{
-                  width: 18,
-                  height: 18,
-                  borderRadius: 9,
-                  borderWidth: 1,
-                  borderColor: theme.text,
-                  backgroundColor: 'transparent',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                  <Text style={{
-                    color: theme.text,
-                    fontSize: 12,
-                    fontFamily: 'Urbanist-Bold',
-                  }}>
-                    i
-                  </Text>
-                </View>
+                <Ionicons name="information-circle-outline" size={20} color={theme.text} />
               </TouchableOpacity>
               
               {/* Centered content */}
@@ -552,14 +536,14 @@ export default function EarningsTab({
                   fontSize: 20,
                   fontFamily: 'MuseoModerno-Regular',
                   marginBottom: 8,
-                }}>
+                }} allowFontScaling={false}>
                   Available
                 </Text>
                 <Text style={{
                   color: theme.text,
                   fontSize: 28,
                   fontFamily: 'MuseoModerno-Regular',
-                }}>
+                }} allowFontScaling={false}>
                   {formatPrice(creatorFinancials?.stripeBalanceAvailable || 0, userCurrency)}
                 </Text>
               </View>
@@ -574,7 +558,7 @@ export default function EarningsTab({
                   minWidth: 180,
                   zIndex: 10,
                 }}>
-                  <Text style={{ color: theme.textInverse, fontSize: 12, fontFamily: 'Urbanist-Regular' }}>
+                  <Text style={{ color: theme.textInverse, fontSize: 12, fontFamily: 'Urbanist-Regular' }} allowFontScaling={false}>
                     Funds that are available for payout to your bank account.
                   </Text>
                 </View>
@@ -597,26 +581,10 @@ export default function EarningsTab({
                   top: 16,
                   right: 16,
                   zIndex: 1,
+                  padding: 4,
                 }}
               >
-                <View style={{
-                  width: 18,
-                  height: 18,
-                  borderRadius: 9,
-                  borderWidth: 1,
-                  borderColor: theme.text,
-                  backgroundColor: 'transparent',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                  <Text style={{
-                    color: theme.text,
-                    fontSize: 12,
-                    fontFamily: 'Urbanist-Bold',
-                  }}>
-                    i
-                  </Text>
-                </View>
+                <Ionicons name="information-circle-outline" size={20} color={theme.text} />
               </TouchableOpacity>
               
               {/* Centered content */}
@@ -626,14 +594,14 @@ export default function EarningsTab({
                   fontSize: 20,
                   fontFamily: 'MuseoModerno-Regular',
                   marginBottom: 8,
-                }}>
+                }} allowFontScaling={false}>
                   Pending
                 </Text>
                 <Text style={{
                   color: theme.text,
                   fontSize: 28,
                   fontFamily: 'MuseoModerno-Regular',
-                }}>
+                }} allowFontScaling={false}>
                   {formatPrice(creatorFinancials?.stripeBalancePending || 0, userCurrency)}
                 </Text>
               </View>
@@ -648,7 +616,7 @@ export default function EarningsTab({
                   minWidth: 180,
                   zIndex: 10,
                 }}>
-                  <Text style={{ color: 'black', fontSize: 12, fontFamily: 'Urbanist-Regular' }}>
+                  <Text style={{ color: theme.textInverse, fontSize: 12, fontFamily: 'Urbanist-Regular' }} allowFontScaling={false}>
                     Funds that are still being processed and will become available soon.
                   </Text>
                 </View>
@@ -674,26 +642,10 @@ export default function EarningsTab({
                   top: 16,
                   right: 16,
                   zIndex: 1,
+                  padding: 4,
                 }}
               >
-                <View style={{
-                  width: 18,
-                  height: 18,
-                  borderRadius: 9,
-                  borderWidth: 1,
-                  borderColor: theme.text,
-                  backgroundColor: 'transparent',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                  <Text style={{
-                    color: theme.text,
-                    fontSize: 12,
-                    fontFamily: 'Urbanist-Bold',
-                  }}>
-                    i
-                  </Text>
-                </View>
+                <Ionicons name="information-circle-outline" size={20} color={theme.text} />
               </TouchableOpacity>
               
               {/* Centered content */}
@@ -703,14 +655,14 @@ export default function EarningsTab({
                   fontSize: 20,
                   fontFamily: 'MuseoModerno-Regular',
                   marginBottom: 8,
-                }}>
+                }} allowFontScaling={false}>
                   Total
                 </Text>
                 <Text style={{
                   color: theme.text,
                   fontSize: 28,
                   fontFamily: 'MuseoModerno-Regular',
-                }}>
+                }} allowFontScaling={false}>
                   {formatPrice(
                     (creatorFinancials?.stripeBalanceAvailable || 0) + 
                     (creatorFinancials?.stripeBalancePending || 0),
@@ -729,7 +681,7 @@ export default function EarningsTab({
                   minWidth: 180,
                   zIndex: 10,
                 }}>
-                  <Text style={{ color: 'black', fontSize: 12, fontFamily: 'Urbanist-Regular' }}>
+                  <Text style={{ color: theme.textInverse, fontSize: 12, fontFamily: 'Urbanist-Regular' }} allowFontScaling={false}>
                     Combined total of available and pending funds in your account.
                   </Text>
                 </View>
@@ -752,26 +704,10 @@ export default function EarningsTab({
                   top: 16,
                   right: 16,
                   zIndex: 1,
+                  padding: 4,
                 }}
               >
-                <View style={{
-                  width: 18,
-                  height: 18,
-                  borderRadius: 9,
-                  borderWidth: 1,
-                  borderColor: theme.text,
-                  backgroundColor: 'transparent',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                  <Text style={{
-                    color: theme.text,
-                    fontSize: 12,
-                    fontFamily: 'Urbanist-Bold',
-                  }}>
-                    i
-                  </Text>
-                </View>
+                <Ionicons name="information-circle-outline" size={20} color={theme.text} />
               </TouchableOpacity>
               
               {/* Centered content */}
@@ -781,14 +717,14 @@ export default function EarningsTab({
                   fontSize: 20,
                   fontFamily: 'MuseoModerno-Regular',
                   marginBottom: 8,
-                }}>
+                }} allowFontScaling={false}>
                   In Transit
                 </Text>
                 <Text style={{
                   color: theme.text,
                   fontSize: 28,
                   fontFamily: 'MuseoModerno-Regular',
-                }}>
+                }} allowFontScaling={false}>
                   {formatPrice(creatorFinancials?.payoutsInTransitAmount || 0, userCurrency)}
                 </Text>
               </View>
@@ -803,7 +739,7 @@ export default function EarningsTab({
                   minWidth: 180,
                   zIndex: 10,
                 }}>
-                  <Text style={{ color: 'black', fontSize: 12, fontFamily: 'Urbanist-Regular' }}>
+                  <Text style={{ color: theme.textInverse, fontSize: 12, fontFamily: 'Urbanist-Regular' }} allowFontScaling={false}>
                     Funds that are currently being transferred to your bank account.
                   </Text>
                 </View>
@@ -827,7 +763,7 @@ export default function EarningsTab({
                   fontSize: 16,
                   fontFamily: 'MuseoModerno-Regular',
                   marginBottom: 4,
-                }}>
+                }} allowFontScaling={false}>
                   Today's Goal
                 </Text>
                 <Text style={{
@@ -876,7 +812,7 @@ export default function EarningsTab({
                     color: theme.text,
                     fontSize: 24,
                     fontFamily: 'MuseoModerno-Regular',
-                  }}>
+                  }} allowFontScaling={false}>
                     {(() => {
                       let todayEarnings = 0;
                       try {
@@ -930,7 +866,7 @@ export default function EarningsTab({
                   fontSize: 16,
                   fontFamily: 'MuseoModerno-Regular',
                   marginBottom: 4,
-                }}>
+                }} allowFontScaling={false}>
                   Weekly Goal
                 </Text>
                 <Text style={{
@@ -977,7 +913,7 @@ export default function EarningsTab({
                     color: theme.text,
                     fontSize: 24,
                     fontFamily: 'MuseoModerno-Regular',
-                  }}>
+                  }} allowFontScaling={false}>
                     {(() => {
                       let weekEarnings = 0;
                       try {
@@ -1029,29 +965,15 @@ export default function EarningsTab({
                 color: theme.text,
                 fontSize: 24,
                 fontFamily: 'MuseoModerno-Regular',
-              }}>
+              }} allowFontScaling={false}>
                 Total Earnings (Gross)
               </Text>
-              <TouchableOpacity onPress={() => setOpenInfoBubble(openInfoBubble === 'earnings' ? null : 'earnings')}>
-                <View style={{
-                  width: 20,
-                  height: 20,
-                  borderRadius: 10,
-                  borderWidth: 1,
-                  borderColor: theme.text,
-                  backgroundColor: 'transparent',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                  <Text style={{
-                    color: theme.text,
-                    fontSize: 14,
-                    fontFamily: 'Urbanist-Bold',
-                  }}>
-                    i
-                  </Text>
-                </View>
-              </TouchableOpacity>
+              <TouchableOpacity 
+              onPress={() => setOpenInfoBubble(openInfoBubble === 'earnings' ? null : 'earnings')}
+              style={{ padding: 4 }}
+            >
+              <Ionicons name="information-circle-outline" size={22} color={theme.text} />
+            </TouchableOpacity>
             </View>
             
 
@@ -1062,7 +984,7 @@ export default function EarningsTab({
                 fontSize: 40,
                 fontFamily: 'MuseoModerno-Regular',
                 marginBottom: 8,
-              }}>
+              }} allowFontScaling={false}>
                 {(() => {
                   let dailyEarnings = {};
                   try {
@@ -1078,7 +1000,7 @@ export default function EarningsTab({
                 color: theme.textTertiary,
                 fontSize: 14,
                 fontFamily: 'Urbanist-Regular',
-              }}>
+              }} allowFontScaling={false}>
                 {earningsTimeframe === 'weekly' && 'Last 7 days'}
                 {earningsTimeframe === 'monthly' && 'Last 30 days'}
                 {earningsTimeframe === 'yearly' && 'Last 365 days'}
@@ -1110,7 +1032,7 @@ export default function EarningsTab({
                     fontSize: 14,
                     textAlign: 'center',
                     textTransform: 'capitalize',
-                  }}>
+                  }} allowFontScaling={false}>
                     {timeframe}
                   </Text>
                 </TouchableOpacity>
@@ -1124,7 +1046,7 @@ export default function EarningsTab({
               fontFamily: 'MuseoModerno-Regular',
               textAlign: 'center',
               marginBottom: 16,
-            }}>
+            }} allowFontScaling={false}>
               {(() => {
                 let dailyEarnings = {};
                 try {
@@ -1188,7 +1110,7 @@ export default function EarningsTab({
                       fontSize: 14,
                       fontFamily: 'Urbanist-Regular',
                       textAlign: 'center',
-                    }}>
+                    }} allowFontScaling={false}>
                       No earnings data available yet.{'\n'}Chart will appear once you start earning.
                     </Text>
                   </View>
@@ -1207,7 +1129,7 @@ export default function EarningsTab({
                 minWidth: 200,
                 zIndex: 10,
               }}>
-                <Text style={{ color: 'white', fontSize: 12, fontFamily: 'Urbanist-Regular' }}>
+                <Text style={{ color: 'white', fontSize: 12, fontFamily: 'Urbanist-Regular' }} allowFontScaling={false}>
                   Your gross earnings before fees and taxes for the selected time period.
                 </Text>
               </View>
@@ -1239,28 +1161,16 @@ export default function EarningsTab({
                     fontSize: 18,
                     fontWeight: 'bold',
                     fontFamily: 'Urbanist-Bold'
-                  }}>
+                  }} allowFontScaling={false}>
                     Payment Status
                   </Text>
                   <TouchableOpacity
                     onPress={() => setShowPaymentStatusInfo(true)}
                     style={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: 12,
-                      backgroundColor: '#E0E0E0',
-                      alignItems: 'center',
-                      justifyContent: 'center'
+                      padding: 4,
                     }}
                   >
-                    <Text style={{
-                      color: theme.text,
-                      fontSize: 14,
-                      fontWeight: 'bold',
-                      fontFamily: 'Urbanist-Bold'
-                    }}>
-                      i
-                    </Text>
+                    <Ionicons name="information-circle-outline" size={22} color={theme.text} />
                   </TouchableOpacity>
                 </View>
 
@@ -1268,41 +1178,41 @@ export default function EarningsTab({
                 <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <Ionicons name="shield-checkmark-outline" size={20} color="#4CAF50" style={{ marginRight: 10 }} />
-                    <Text style={{ color: theme.text, fontFamily: 'Urbanist-Regular' }}>Setup Complete</Text>
+                    <Text style={{ color: theme.text, fontFamily: 'Urbanist-Regular' }} allowFontScaling={false}>Setup Complete</Text>
                   </View>
-                  <Text style={{ color: '#4CAF50', fontFamily: 'Urbanist-Bold' }}>Yes</Text>
+                  <Text style={{ color: '#4CAF50', fontFamily: 'Urbanist-Bold' }} allowFontScaling={false}>Yes</Text>
                 </View>
                 <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <Ionicons name={creatorFinancials.stripeConnectEnabled ? "card-outline" : "alert-circle-outline"} size={20} color={creatorFinancials.stripeConnectEnabled ? '#4CAF50' : '#F44336'} style={{ marginRight: 10 }} />
-                    <Text style={{ color: theme.text, fontFamily: 'Urbanist-Regular' }}>Payments Active</Text>
+                    <Text style={{ color: theme.text, fontFamily: 'Urbanist-Regular' }} allowFontScaling={false}>Payments Active</Text>
                   </View>
-                  <Text style={{ color: creatorFinancials.stripeConnectEnabled ? '#4CAF50' : '#F44336', fontFamily: 'Urbanist-Bold' }}>
+                  <Text style={{ color: creatorFinancials.stripeConnectEnabled ? '#4CAF50' : '#F44336', fontFamily: 'Urbanist-Bold' }} allowFontScaling={false}>
                     {creatorFinancials.stripeConnectEnabled ? 'Yes' : 'No'}
                   </Text>
                 </View>
                 <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <Ionicons name={creatorFinancials.stripeConnectPayoutsEnabled ? "cash-outline" : "alert-circle-outline"} size={20} color={creatorFinancials.stripeConnectPayoutsEnabled ? '#4CAF50' : '#F44336'} style={{ marginRight: 10 }} />
-                    <Text style={{ color: theme.text, fontFamily: 'Urbanist-Regular' }}>Payouts Active</Text>
+                    <Text style={{ color: theme.text, fontFamily: 'Urbanist-Regular' }} allowFontScaling={false}>Payouts Active</Text>
                   </View>
-                  <Text style={{ color: creatorFinancials.stripeConnectPayoutsEnabled ? '#4CAF50' : '#F44336', fontFamily: 'Urbanist-Bold' }}>
+                  <Text style={{ color: creatorFinancials.stripeConnectPayoutsEnabled ? '#4CAF50' : '#F44336', fontFamily: 'Urbanist-Bold' }} allowFontScaling={false}>
                     {creatorFinancials.stripeConnectPayoutsEnabled ? 'Yes' : 'No'}
                   </Text>
                 </View>
                 <View style={{ marginBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <Ionicons name={creatorFinancials.stripeConnectVerified ? "person-circle-outline" : "alert-circle-outline"} size={20} color={creatorFinancials.stripeConnectVerified ? '#4CAF50' : '#FF9800'} style={{ marginRight: 10 }} />
-                    <Text style={{ color: theme.text, fontFamily: 'Urbanist-Regular' }}>Account Verified</Text>
+                    <Text style={{ color: theme.text, fontFamily: 'Urbanist-Regular' }} allowFontScaling={false}>Account Verified</Text>
                   </View>
-                  <Text style={{ color: creatorFinancials.stripeConnectVerified ? '#4CAF50' : '#FF9800', fontFamily: 'Urbanist-Bold' }}>
+                  <Text style={{ color: creatorFinancials.stripeConnectVerified ? '#4CAF50' : '#FF9800', fontFamily: 'Urbanist-Bold' }} allowFontScaling={false}>
                     {creatorFinancials.stripeConnectVerified ? 'Yes' : 'Pending'}
                   </Text>
                 </View>
                 
                 {creatorFinancials.stripeConnectSetupDate && (
                   <View style={{ marginTop: 12, borderTopColor: '#333', borderTopWidth: 1, paddingTop: 12 }}>
-                    <Text style={{ color: '#888', fontFamily: 'Urbanist-Regular', fontSize: 12, textAlign: 'center' }}>
+                    <Text style={{ color: '#888', fontFamily: 'Urbanist-Regular', fontSize: 12, textAlign: 'center' }} allowFontScaling={false}>
                       Setup completed on: {new Date(creatorFinancials.stripeConnectSetupDate).toLocaleDateString()}
                     </Text>
                   </View>
@@ -1330,7 +1240,7 @@ export default function EarningsTab({
                   fontSize: 16,
                   fontFamily: 'Urbanist-Bold',
                   marginBottom: 4
-                }}>
+                }} allowFontScaling={false}>
                   Get Paid
                 </Text>
                 <Text style={{
@@ -1338,7 +1248,7 @@ export default function EarningsTab({
                   fontSize: 14,
                   fontFamily: 'Urbanist-Regular',
                   lineHeight: 20
-                }}>
+                }} allowFontScaling={false}>
                   Connect a Stripe account to start accepting payments and earning from your content.
                 </Text>
               </View>
@@ -1360,7 +1270,7 @@ export default function EarningsTab({
               }}
             >
               <Ionicons name="open-outline" size={20} color={theme.textInverse} style={{ marginRight: 8 }} />
-              <Text style={{ color: theme.textInverse, fontFamily: 'Urbanist-Bold', fontSize: 16 }}>
+              <Text style={{ color: theme.textInverse, fontFamily: 'Urbanist-Bold', fontSize: 16 }} allowFontScaling={false}>
                 View Dashboard
               </Text>
             </TouchableOpacity>
@@ -1413,7 +1323,7 @@ export default function EarningsTab({
                     fontWeight: 'bold',
                     fontFamily: 'Urbanist-Bold',
                     textAlign: 'left'
-                  }}>
+                  }} allowFontScaling={false}>
                     {isLoadingStripeConnect 
                       ? 'Connecting...' 
                       : ((missingChannelConditions.length > 1 || (missingChannelConditions.length === 1 && missingChannelConditions[0] !== 'Payment setup incomplete'))
@@ -1426,7 +1336,7 @@ export default function EarningsTab({
                     fontFamily: 'Urbanist-Regular',
                     textAlign: 'left',
                     marginTop: 2
-                  }}>
+                  }} allowFontScaling={false}>
                     {(missingChannelConditions.length > 1 || (missingChannelConditions.length === 1 && missingChannelConditions[0] !== 'Payment setup incomplete'))
                         ? 'Finish your profile setup to enable payments' 
                         : 'Connect with Stripe to get paid'}
@@ -1536,7 +1446,7 @@ export default function EarningsTab({
                 fontSize: 20,
                 fontWeight: 'bold',
                 fontFamily: 'Urbanist-Bold'
-              }}>
+              }} allowFontScaling={false}>
                 Payment Status Help
               </Text>
               <TouchableOpacity
@@ -1562,7 +1472,7 @@ export default function EarningsTab({
                 fontFamily: 'Urbanist-Regular',
                 lineHeight: 24,
                 marginBottom: 16
-              }}>
+              }} allowFontScaling={false}>
                 If any of your payment statuses show as inactive or pending, you can resolve the issues by accessing your Stripe dashboard.
               </Text>
               
@@ -1571,7 +1481,7 @@ export default function EarningsTab({
                 fontSize: 16,
                 fontFamily: 'Urbanist-Bold',
                 marginBottom: 8
-              }}>
+              }} allowFontScaling={false}>
                 What to do:
               </Text>
               
@@ -1580,7 +1490,7 @@ export default function EarningsTab({
                 fontSize: 15,
                 fontFamily: 'Urbanist-Regular',
                 lineHeight: 22
-              }}>
+              }} allowFontScaling={false}>
                 1. Press the "View Dashboard" button below{'\n'}
                 2. Complete any required verification steps{'\n'}
                 3. Provide any missing information{'\n'}
@@ -1603,7 +1513,7 @@ export default function EarningsTab({
                 fontSize: 16,
                 fontWeight: 'bold',
                 fontFamily: 'Urbanist-Bold'
-              }}>
+              }} allowFontScaling={false}>
                 Got it!
               </Text>
             </TouchableOpacity>

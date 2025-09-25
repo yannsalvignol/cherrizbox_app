@@ -19,7 +19,12 @@ const PasswordCriteria = ({ password, isFocused }: { password: string; isFocused
 
     return (
         <View className="mt-2 bg-gray-50 p-3 rounded-lg">
-            <Text className="text-sm font-['Urbanist-Bold'] text-gray-700 mb-2">Password Requirements:</Text>
+            <Text 
+                className="text-sm font-['Urbanist-Bold'] text-gray-700 mb-2"
+                allowFontScaling={false}
+            >
+                Password Requirements:
+            </Text>
             {criteria.map((criterion, index) => (
                 <View key={index} className="flex-row items-center mt-1">
                     {criterion.met ? (
@@ -27,7 +32,10 @@ const PasswordCriteria = ({ password, isFocused }: { password: string; isFocused
                     ) : (
                         <Ionicons name="close-circle" size={20} color="#ef4444" style={{ marginRight: 8 }} />
                     )}
-                    <Text className={`text-sm font-['Urbanist-Regular'] ${criterion.met ? 'text-green-600' : 'text-red-500'}`}>
+                    <Text 
+                        className={`text-sm font-['Urbanist-Regular'] ${criterion.met ? 'text-green-600' : 'text-red-500'}`}
+                        allowFontScaling={false}
+                    >
                         {criterion.label}
                     </Text>
                 </View>
@@ -250,8 +258,16 @@ const App = () => {
                     
                     {verificationSent ? (
                         <View className="items-center">
-                            <Text className="text-black font-['Urbanist-Bold'] text-3xl mt-12 text-center">Verify Your Email</Text>
-                            <Text className="text-gray-500 font-['Urbanist-Regular'] text-base mt-4 text-center">
+                            <Text 
+                                className="text-black font-['Urbanist-Bold'] text-3xl mt-12 text-center"
+                                allowFontScaling={false}
+                            >
+                                Verify Your Email
+                            </Text>
+                            <Text 
+                                className="text-gray-500 font-['Urbanist-Regular'] text-base mt-4 text-center"
+                                allowFontScaling={false}
+                            >
                                 We've sent a 6-digit code to {form.email}. Please enter it below.
                             </Text>
 
@@ -266,7 +282,11 @@ const App = () => {
                             </View>
 
                             {verificationError ? (
-                                <Text style={{ color: '#ef4444' }} className="mt-2 text-center font-['Urbanist-SemiBold']">
+                                <Text 
+                                    style={{ color: '#ef4444' }} 
+                                    className="mt-2 text-center font-['Urbanist-SemiBold']"
+                                    allowFontScaling={false}
+                                >
                                     {verificationError}
                                 </Text>
                             ) : null}
@@ -276,15 +296,26 @@ const App = () => {
                                 onPress={handleVerifyAndCreateAccount}
                                 disabled={isSubmitting || verificationCode.length !== 6}
                             >
-                                <Text style={{ color: 'white', textAlign: 'center', fontFamily: 'Urbanist-SemiBold', fontSize: 18 }}>
+                                <Text 
+                                    style={{ color: 'white', textAlign: 'center', fontFamily: 'Urbanist-SemiBold', fontSize: 18 }}
+                                    allowFontScaling={false}
+                                >
                                     {isSubmitting ? 'Verifying...' : 'Verify & Create Account'}
                                 </Text>
                             </TouchableOpacity>
 
                             <View className="flex-row items-center mt-6">
-                                <Text className="text-gray-500 font-['Urbanist-Regular']">Didn't receive a code?</Text>
+                                <Text 
+                                    className="text-gray-500 font-['Urbanist-Regular']"
+                                    allowFontScaling={false}
+                                >
+                                    Didn't receive a code?
+                                </Text>
                                 <TouchableOpacity onPress={handleSendVerification} disabled={resendDisabled || timer > 0}>
-                                    <Text className={`font-['Urbanist-Bold'] ml-2 ${resendDisabled || timer > 0 ? 'text-gray-400' : 'text-[#FD6F3E]'}`}>
+                                    <Text 
+                                        className={`font-['Urbanist-Bold'] ml-2 ${resendDisabled || timer > 0 ? 'text-gray-400' : 'text-[#FD6F3E]'}`}
+                                        allowFontScaling={false}
+                                    >
                                         Resend {timer > 0 ? `(${Math.floor(timer / 60)}:${(timer % 60).toString().padStart(2, '0')})` : ''}
                                     </Text>
                                 </TouchableOpacity>
@@ -292,8 +323,11 @@ const App = () => {
                         </View>
                     ) : (
                         <>
-                            <Text className="text-black font-['Urbanist-Bold'] text-4xl mt-4">    
-                                Hello! Register to Cherrizbox <Text style={{ color: '#FD6F3E' }}>Creator</Text>.
+                            <Text 
+                                className="text-black font-['Urbanist-Bold'] text-4xl mt-4"
+                                allowFontScaling={false}
+                            >    
+                                Hello! Register to Cherrizbox <Text style={{ color: '#FD6F3E' }} allowFontScaling={false}>Creator</Text>.
                             </Text>
                             {/* Username field */}
                             <View className="mt-7 flex-row items-center bg-[#ECECEC] rounded-lg">
@@ -306,6 +340,7 @@ const App = () => {
                                     autoCapitalize="none"
                                     autoCorrect={false}
                                     spellCheck={false}
+                                    allowFontScaling={false}
                                 />
                             </View>
                             {/* Email field */}
@@ -320,6 +355,7 @@ const App = () => {
                                     autoCapitalize="none"
                                     autoCorrect={false}
                                     spellCheck={false}
+                                    allowFontScaling={false}
                                 />
                             </View>
                             {/* Password field with eye icon */}
@@ -338,6 +374,7 @@ const App = () => {
                                     autoCapitalize="none"
                                     autoCorrect={false}
                                     spellCheck={false}
+                                    allowFontScaling={false}
                                 />
                                 <TouchableOpacity
                                     className="px-4"
@@ -365,6 +402,7 @@ const App = () => {
                                     autoCapitalize="none"
                                     autoCorrect={false}
                                     spellCheck={false}
+                                    allowFontScaling={false}
                                 />
                                 <TouchableOpacity
                                     className="px-4"
@@ -382,14 +420,20 @@ const App = () => {
                                 onPress={handleSendVerification}
                                 disabled={isSubmitting}
                             >
-                                <Text style={{ color: 'white', textAlign: 'center', fontFamily: 'Urbanist-Light', fontSize: 20 }}>
+                                <Text 
+                                    style={{ color: 'white', textAlign: 'center', fontFamily: 'Urbanist-Light', fontSize: 20 }}
+                                    allowFontScaling={false}
+                                >
                                     {isSubmitting ? 'Sending Code...' : 'Register'}
                                 </Text>
                             </TouchableOpacity>
 
                             <View className="flex-row items-center justify-center mt-7">
                                 <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }} />
-                                <Text style={{ color: '#9CA3AF', fontFamily: 'Urbanist-Bold', marginHorizontal: 16 }}>
+                                <Text 
+                                    style={{ color: '#9CA3AF', fontFamily: 'Urbanist-Bold', marginHorizontal: 16 }}
+                                    allowFontScaling={false}
+                                >
                                     Or register with
                                 </Text>
                                 <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }} />
@@ -404,7 +448,10 @@ const App = () => {
                                     className="flex-row items-center justify-center bg-white py-4 rounded-3xl w-full mb-4 px-6 border border-gray-300"
                                 >
                                     <Ionicons name="logo-google" size={24} color="#000" style={{ marginRight: 12 }} />
-                                    <Text style={{ color: '#000', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>
+                                    <Text 
+                                        style={{ color: '#000', fontFamily: 'Urbanist-Bold', fontSize: 16 }}
+                                        allowFontScaling={false}
+                                    >
                                         Continue with Google
                                     </Text>
                                 </TouchableOpacity>
@@ -426,7 +473,10 @@ const App = () => {
                                     ) : (
                                         <Ionicons name="logo-apple" size={24} color="#FFF" style={{ marginRight: 12 }} />
                                     )}
-                                    <Text style={{ color: '#FFF', fontFamily: 'Urbanist-Bold', fontSize: 16 }}>
+                                    <Text 
+                                        style={{ color: '#FFF', fontFamily: 'Urbanist-Bold', fontSize: 16 }}
+                                        allowFontScaling={false}
+                                    >
                                         {isAppleLoading ? 'Signing in...' : 'Continue with Apple'}
                                     </Text>
                                 </TouchableOpacity>

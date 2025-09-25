@@ -1292,7 +1292,7 @@ export default function Index() {
                             color: theme.text,
                             fontFamily: 'MuseoModerno-Regular',
                             textAlign: 'center',
-                        }}>
+                        }} allowFontScaling={false}>
                             cherrizbox
                         </Text>
                     </View>
@@ -1307,7 +1307,7 @@ export default function Index() {
                                 resizeMode="cover"
                             />
                         ) : (
-                            <Text style={{ fontSize: 24, color: theme.textInverse, fontWeight: 'bold' }}>
+                            <Text style={{ fontSize: 24, color: theme.textInverse, fontWeight: 'bold' }} allowFontScaling={false}>
                                 {user?.name?.[0] || 'U'}
                             </Text>
                         )}
@@ -1358,7 +1358,7 @@ export default function Index() {
                   fontSize: 14,
                   fontWeight: selectedTab === item.id ? 'bold' : 'normal',
                   fontFamily: selectedTab === item.id ? 'Urbanist-Bold' : 'Urbanist-Regular',
-                }}>
+                }} allowFontScaling={false}>
                   {item.label}
                 </Text>
               </View>
@@ -1455,7 +1455,7 @@ export default function Index() {
                     fontFamily: 'Urbanist-Bold',
                     marginBottom: 12,
                     textAlign: 'center'
-                  }}>
+                  }} allowFontScaling={false}>
                     Checking requirements...
                   </Text>
                   <ActivityIndicator size="large" color={theme.text} />
@@ -1515,7 +1515,7 @@ export default function Index() {
                       fontFamily: 'Urbanist-Bold',
                       marginBottom: 8,
                       textAlign: 'center'
-                    }}>
+                    }} allowFontScaling={false}>
                       Almost Ready! 🚀
                     </Text>
                     
@@ -1526,7 +1526,7 @@ export default function Index() {
                       fontFamily: 'Urbanist-Regular',
                       marginBottom: 24,
                       lineHeight: 22
-                    }}>
+                    }} allowFontScaling={false}>
                       You're just a few steps away from launching your creator channel! Complete these requirements to get started:
                     </Text>
                     
@@ -1573,7 +1573,7 @@ export default function Index() {
                             fontSize: 15, 
                             fontFamily: 'Urbanist-Medium',
                             flex: 1
-                          }}>
+                          }} allowFontScaling={false}>
                             {condition}
                           </Text>
                         </View>
@@ -1614,7 +1614,7 @@ export default function Index() {
                           color: theme.textInverse, 
                           fontSize: 17, 
                           fontFamily: 'Urbanist-Bold'
-                        }}>
+                        }} allowFontScaling={false}>
                                 Complete Setup
                         </Text>
                       </View>
@@ -1627,7 +1627,7 @@ export default function Index() {
                     textAlign: 'center',
                     fontFamily: 'Urbanist-Regular',
                     lineHeight: 20
-                  }}>
+                  }} allowFontScaling={false}>
                     Don't worry, this will only take a few minutes! 
                   </Text>
                 </>
@@ -1643,7 +1643,7 @@ export default function Index() {
                     fontFamily: 'Urbanist-Bold',
                     marginBottom: 16,
                     textAlign: 'center'
-                  }}>
+                  }} allowFontScaling={false}>
                     No channels yet 😢
                   </Text>
                   <Text style={{ 
@@ -1651,7 +1651,7 @@ export default function Index() {
                     fontSize: 18, 
                     textAlign: 'center',
                     fontFamily: 'Urbanist-Regular'
-                  }}>
+                  }} allowFontScaling={false}>
                     Start a conversation or create your group chat to get started!
                   </Text>
                 </>

@@ -242,7 +242,7 @@ export default function ChatScreen() {
             fontSize: 18, 
             marginBottom: 12,
             fontFamily: 'questrial'
-          }}>
+          }} allowFontScaling={false}>
             Loading chat...
           </Text>
           <ActivityIndicator size="large" color={appTheme.text} />
@@ -265,7 +265,7 @@ export default function ChatScreen() {
             fontFamily: 'Urbanist-Bold',
             marginBottom: 16,
             textAlign: 'center'
-          }}>
+          }} allowFontScaling={false}>
             Error Loading Chat 😢
           </Text>
           <Text style={{ 
@@ -274,7 +274,7 @@ export default function ChatScreen() {
             textAlign: 'center',
             marginBottom: 24,
             fontFamily: 'questrial'
-          }}>
+          }} allowFontScaling={false}>
             {error}
           </Text>
           <TouchableOpacity 
@@ -290,7 +290,7 @@ export default function ChatScreen() {
               color: appTheme.textInverse,
               fontFamily: 'Urbanist-Bold',
               fontSize: 16,
-            }}>
+            }} allowFontScaling={false}>
               Go Back
             </Text>
           </TouchableOpacity>
@@ -313,7 +313,7 @@ export default function ChatScreen() {
             fontFamily: 'Urbanist-Bold',
             marginBottom: 16,
             textAlign: 'center'
-          }}>
+          }} allowFontScaling={false}>
             Channel Not Found 😢
           </Text>
           <Text style={{ 
@@ -322,7 +322,7 @@ export default function ChatScreen() {
             textAlign: 'center',
             marginBottom: 24,
             fontFamily: 'questrial'
-          }}>
+          }} allowFontScaling={false}>
             The chat you're looking for doesn't exist or you don't have access to it.
           </Text>
           <TouchableOpacity 
@@ -338,7 +338,7 @@ export default function ChatScreen() {
               color: appTheme.textInverse,
               fontFamily: 'Urbanist-Bold',
               fontSize: 16,
-            }}>
+            }} allowFontScaling={false}>
               Go Back
             </Text>
           </TouchableOpacity>
@@ -375,7 +375,7 @@ export default function ChatScreen() {
               color: appTheme.text,
               fontFamily: 'MuseoModerno-Regular',
               textAlign: 'center',
-            }}>
+            }} allowFontScaling={false}>
               cherrizbox
               </Text>
 
@@ -392,7 +392,7 @@ export default function ChatScreen() {
                 resizeMode="cover"
               />
             ) : (
-              <Text className="text-xl text-white font-bold">
+              <Text className="text-xl text-white font-bold" allowFontScaling={false}>
                 {user?.name?.[0] || 'U'}
               </Text>
             )}
@@ -534,7 +534,7 @@ export default function ChatScreen() {
                             color: 'white',
                             fontSize: 14,
                             fontWeight: 'bold',
-                          }}>
+                          }} allowFontScaling={false}>
                             {user?.name?.[0]?.toUpperCase() || 'U'}
                           </Text>
                         )}
@@ -546,7 +546,7 @@ export default function ChatScreen() {
                         fontSize: 32,
                         fontWeight: 'bold',
                         fontFamily: 'MuseoModerno-Regular',
-                      }}>
+                      }} allowFontScaling={false}>
                         {photoCollectionData?.title || user?.name || 'Creator'}
                       </Text>
                     </View>
@@ -583,7 +583,7 @@ export default function ChatScreen() {
                           color: '#1A1A1A',
                           fontSize: 24,
                           fontWeight: 'bold',
-                        }}>
+                        }} allowFontScaling={false}>
                           $
                         </Text>
                       </TouchableOpacity>
@@ -688,7 +688,7 @@ export default function ChatScreen() {
                             fontSize: 30,
                             fontWeight: 'bold',
                             fontFamily: 'Urbanist-Bold',
-                          }}>
+                          }} allowFontScaling={false}>
                             CREATE POLL
                           </Text>
                         </TouchableOpacity>
@@ -733,7 +733,7 @@ export default function ChatScreen() {
                             fontSize: 30,
                             fontWeight: 'bold',
                             fontFamily: 'Urbanist-Bold',
-                          }}>
+                          }} allowFontScaling={false}>
                             PAID PHOTOS 
                           </Text>
                         </TouchableOpacity>
@@ -786,7 +786,7 @@ export default function ChatScreen() {
                             fontSize: 30,
                             fontWeight: 'bold',
                             fontFamily: 'Urbanist-Bold',
-                          }}>
+                          }} allowFontScaling={false}>
                             {uploadManager.file.isUploading ? 'Uploading Files...' : 'PAID FILES'}
                           </Text>
                         </TouchableOpacity>
@@ -838,7 +838,7 @@ export default function ChatScreen() {
                             fontSize: 30,
                             fontWeight: 'bold',
                             fontFamily: 'Urbanist-Bold',
-                          }}>
+                          }} allowFontScaling={false}>
                             {uploadManager.video.isUploading ? 'Uploading Videos...' : 'Paid Videos'}
                           </Text>
                         </TouchableOpacity>

@@ -628,7 +628,7 @@ export default function ChatScreen() {
                   fontSize: thread ? 20 : 40,
                   color: appTheme.text, 
                   fontFamily: thread ? 'questrial' : 'MuseoModerno-Regular'
-                }}>
+                }} allowFontScaling={false}>
                   {thread ? 'Thread' : 'cherrizbox'}
                 </Text>
               </View>

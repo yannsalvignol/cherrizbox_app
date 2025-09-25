@@ -26,8 +26,9 @@ interface StripePaymentSheetProps {
   amount: number;
   interval: 'month' | 'year';
   creatorName: string;
+  creatorId?: string;
   currency?: string;
-  createIntentFunc?: (amount:number, interval:string, creatorName:string, currency?:string)=>Promise<{clientSecret:string; stripeAccountId:string}>;
+  createIntentFunc?: (amount:number, interval:string, creatorName:string, creatorId?:string, currency?:string)=>Promise<{clientSecret:string; stripeAccountId:string}>;
   /**
    * When true (default) the component will navigate to /payment-success after a successful payment.
    * Pass false to suppress navigation (e.g. for in-chat purchases that should stay on the same screen).
@@ -132,7 +133,7 @@ const StripePaymentSheet: React.FC<StripePaymentSheetProps> = (props) => {
     if (!visible) return;
     setLoading(true);
     const func = props.createIntentFunc ?? initiatePaymentIntent;
-    func(amount, interval, creatorName, currency)
+    func(amount, interval, creatorName, props.creatorId, currency)
       .then(data => {
         setPaymentData(data);
       })
@@ -152,7 +153,7 @@ const StripePaymentSheet: React.FC<StripePaymentSheetProps> = (props) => {
         {paymentData && (
           <StripeProvider
             publishableKey={PUBLISHABLE_KEY}
-            stripeAccountId={paymentData.stripeAccountId}
+            {...(paymentData.stripeAccountId ? { stripeAccountId: paymentData.stripeAccountId } : {})}
             merchantIdentifier={merchantId}
           >
             <InnerSheet {...props} clientSecret={paymentData.clientSecret} stripeAccountId={paymentData.stripeAccountId} />

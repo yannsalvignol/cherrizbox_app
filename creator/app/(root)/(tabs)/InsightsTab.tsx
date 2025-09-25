@@ -174,7 +174,7 @@ export default function InsightsTab({ refreshing, onRefresh, preloadedFinancials
           fontSize: 18,
           marginBottom: 16,
           textAlign: 'center'
-        }}>
+        }} allowFontScaling={false}>
           Total Current Subscribers
         </Text>
       
@@ -185,7 +185,7 @@ export default function InsightsTab({ refreshing, onRefresh, preloadedFinancials
           fontSize: 48, 
           textAlign: 'center',
           marginBottom: 20
-        }}>
+        }} allowFontScaling={false}>
           {(typeof creatorFinancials?.number_of_monthly_subscribers === 'number' || typeof creatorFinancials?.number_of_yearly_subscriptions === 'number')
             ? ((creatorFinancials?.number_of_monthly_subscribers || 0) + (creatorFinancials?.number_of_yearly_subscriptions || 0))
             : '—'}
@@ -211,7 +211,7 @@ export default function InsightsTab({ refreshing, onRefresh, preloadedFinancials
                     color: '#4CAF50', 
                     fontFamily: 'MuseoModerno-Regular', 
                     fontSize: 24 
-                  }}>
+                  }} allowFontScaling={false}>
                     +{weeklyStats.gained}
                   </Text>
                 </View>
@@ -220,7 +220,7 @@ export default function InsightsTab({ refreshing, onRefresh, preloadedFinancials
                   fontFamily: 'MuseoModerno-Regular', 
                   fontSize: 12,
                   textAlign: 'center'
-                }}>
+                }} allowFontScaling={false}>
                   Gained this week
                 </Text>
               </View>
@@ -236,7 +236,7 @@ export default function InsightsTab({ refreshing, onRefresh, preloadedFinancials
                     color: '#F44336', 
                     fontFamily: 'MuseoModerno-Regular', 
                     fontSize: 24 
-                  }}>
+                  }} allowFontScaling={false}>
                     -{weeklyStats.lost}
                   </Text>
                 </View>
@@ -245,7 +245,7 @@ export default function InsightsTab({ refreshing, onRefresh, preloadedFinancials
                   fontFamily: 'MuseoModerno-Regular', 
                   fontSize: 12,
                   textAlign: 'center'
-                }}>
+                }} allowFontScaling={false}>
                   Lost this week
                 </Text>
               </View>
@@ -266,7 +266,7 @@ export default function InsightsTab({ refreshing, onRefresh, preloadedFinancials
           fontSize: 18,
           fontFamily: 'MuseoModerno-Regular',
           marginBottom: 16,
-        }}>
+        }} allowFontScaling={false}>
           Subscriber Growth
         </Text>
       
@@ -295,7 +295,7 @@ export default function InsightsTab({ refreshing, onRefresh, preloadedFinancials
                 fontSize: 14,
                 textAlign: 'center',
                 textTransform: 'capitalize',
-              }}>
+              }} allowFontScaling={false}>
                 {timeframe}
               </Text>
             </TouchableOpacity>
@@ -320,7 +320,7 @@ export default function InsightsTab({ refreshing, onRefresh, preloadedFinancials
                   fontSize: 36,
                   fontFamily: 'MuseoModerno-Regular',
                   marginBottom: 8,
-                }}>
+                }} allowFontScaling={false}>
                   {stats.net >= 0 ? '+' : ''}{stats.net}
                 </Text>
                 <Text style={{
@@ -328,7 +328,7 @@ export default function InsightsTab({ refreshing, onRefresh, preloadedFinancials
                   fontSize: 14,
                   fontFamily: 'MuseoModerno-Regular',
                   marginBottom: 8,
-                }}>
+                }} allowFontScaling={false}>
                   Net change (
                   {subscriberTimeframe === 'weekly' && 'last 7 days'}
                   {subscriberTimeframe === 'monthly' && 'last 30 days'}
@@ -339,14 +339,14 @@ export default function InsightsTab({ refreshing, onRefresh, preloadedFinancials
                     color: '#4CAF50',
                     fontSize: 14,
                     fontFamily: 'MuseoModerno-Regular',
-                  }}>
+                  }} allowFontScaling={false}>
                     +{stats.gained} gained
                   </Text>
                   <Text style={{
                     color: '#F44336',
                     fontSize: 14,
                     fontFamily: 'MuseoModerno-Regular',
-                  }}>
+                  }} allowFontScaling={false}>
                     -{stats.lost} lost
                   </Text>
                 </View>
@@ -387,7 +387,7 @@ export default function InsightsTab({ refreshing, onRefresh, preloadedFinancials
                   fontSize: 14,
                   fontFamily: 'MuseoModerno-Regular',
                   textAlign: 'center',
-                }}>
+                }} allowFontScaling={false}>
                   No subscriber data available yet.{'\n'}Chart will appear once you have subscriber activity.
                 </Text>
               </View>
@@ -404,7 +404,7 @@ export default function InsightsTab({ refreshing, onRefresh, preloadedFinancials
           fontSize: 20, 
           marginBottom: 16,
           textAlign: 'left'
-        }}>
+        }} allowFontScaling={false}>
           Content Purchases
         </Text>
       </View>
@@ -421,9 +421,9 @@ export default function InsightsTab({ refreshing, onRefresh, preloadedFinancials
             <View style={{ backgroundColor: theme.textTertiary, borderRadius: 8, padding: 6, marginBottom: 6 }}>
               <Ionicons name="image" size={16} color={theme.textInverse} />
             </View>
-            <Text style={{ color: theme.text, fontFamily: 'MuseoModerno-Regular', fontSize: 12, textAlign: 'center' }}>Photos</Text>
+            <Text style={{ color: theme.text, fontFamily: 'MuseoModerno-Regular', fontSize: 12, textAlign: 'center' }} allowFontScaling={false}>Photos</Text>
           </View>
-          <Text style={{ color: theme.textSecondary, fontFamily: 'MuseoModerno-Regular', fontSize: 20, textAlign: 'center' }}>
+          <Text style={{ color: theme.textSecondary, fontFamily: 'MuseoModerno-Regular', fontSize: 20, textAlign: 'center' }} allowFontScaling={false}>
             {creatorFinancials?.number_of_photos ?? '—'}
           </Text>
         </View>
@@ -439,9 +439,9 @@ export default function InsightsTab({ refreshing, onRefresh, preloadedFinancials
             <View style={{ backgroundColor: theme.textTertiary, borderRadius: 8, padding: 6, marginBottom: 6 }}>
               <Ionicons name="videocam" size={16} color={theme.textInverse} />
             </View>
-            <Text style={{ color: theme.text, fontFamily: 'MuseoModerno-Regular', fontSize: 12, textAlign: 'center' }}>Videos</Text>
+            <Text style={{ color: theme.text, fontFamily: 'MuseoModerno-Regular', fontSize: 12, textAlign: 'center' }} allowFontScaling={false}>Videos</Text>
           </View>
-          <Text style={{ color: theme.textSecondary, fontFamily: 'MuseoModerno-Regular', fontSize: 20, textAlign: 'center' }}>
+          <Text style={{ color: theme.textSecondary, fontFamily: 'MuseoModerno-Regular', fontSize: 20, textAlign: 'center' }} allowFontScaling={false}>
             {creatorFinancials?.number_of_videos ?? '—'}
           </Text>
         </View>
@@ -457,9 +457,9 @@ export default function InsightsTab({ refreshing, onRefresh, preloadedFinancials
             <View style={{ backgroundColor: theme.textTertiary, borderRadius: 8, padding: 6, marginBottom: 6 }}>
               <Ionicons name="document" size={16} color={theme.textInverse} />
             </View>
-            <Text style={{ color: theme.text, fontFamily: 'MuseoModerno-Regular', fontSize: 12, textAlign: 'center' }}>Files</Text>
+            <Text style={{ color: theme.text, fontFamily: 'MuseoModerno-Regular', fontSize: 12, textAlign: 'center' }} allowFontScaling={false}>Files</Text>
           </View>
-          <Text style={{ color: theme.textSecondary, fontFamily: 'MuseoModerno-Regular', fontSize: 20, textAlign: 'center' }}>
+          <Text style={{ color: theme.textSecondary, fontFamily: 'MuseoModerno-Regular', fontSize: 20, textAlign: 'center' }} allowFontScaling={false}>
             {creatorFinancials?.number_of_files ?? '—'}
           </Text>
         </View>

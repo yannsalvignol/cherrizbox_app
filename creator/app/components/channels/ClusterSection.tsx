@@ -2,10 +2,10 @@ import { useTheme } from '@/lib/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
-  ActivityIndicator,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { ClusterCard, type Cluster } from './ClusterCard';
 
@@ -89,7 +89,7 @@ export const ClusterSection: React.FC<ClusterSectionProps> = ({
           fontSize: 14,
           fontFamily: 'Urbanist-Regular',
           marginTop: 8,
-        }}>
+        }} allowFontScaling={false}>
           Loading message clusters...
         </Text>
       </View>
@@ -139,7 +139,7 @@ export const ClusterSection: React.FC<ClusterSectionProps> = ({
               fontFamily: 'MuseoModerno-Regular',
               textTransform: 'uppercase',
               letterSpacing: 1,
-            }}>
+            }} allowFontScaling={false}>
               AI GROUPED QUESTIONS
             </Text>
             <Text style={{
@@ -147,7 +147,7 @@ export const ClusterSection: React.FC<ClusterSectionProps> = ({
               fontSize: 13,
               fontFamily: 'Urbanist-Regular',
               marginTop: 2,
-            }}>
+            }} allowFontScaling={false}>
               {pendingClusters.length} group{pendingClusters.length !== 1 ? 's' : ''} • {totalFans} fan{totalFans !== 1 ? 's' : ''} waiting
             </Text>
           </View>
@@ -175,7 +175,7 @@ export const ClusterSection: React.FC<ClusterSectionProps> = ({
               fontSize: 12,
               fontFamily: 'Urbanist-Bold',
               marginRight: 4,
-            }}>
+            }} allowFontScaling={false}>
               See All
             </Text>
             <Ionicons name="arrow-forward" size={12} color={theme.textInverse} />
@@ -216,7 +216,7 @@ export const ClusterSection: React.FC<ClusterSectionProps> = ({
             color: theme.text,
             fontSize: 14,
             fontFamily: 'Urbanist-Bold',
-          }}>
+          }} allowFontScaling={false}>
             View {pendingClusters.length - maxDisplay} More Grouped Questions
           </Text>
         </TouchableOpacity>

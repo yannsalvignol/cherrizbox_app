@@ -1,5 +1,6 @@
 import { Client, Databases, ID, Query } from 'react-native-appwrite';
 import { config } from './appwrite';
+import { hasActiveChatSubscription } from './chat-subscription';
 
 // Collection ID for daily message limits
 const DAILY_LIMITS_COLLECTION_ID = process.env.EXPO_PUBLIC_DAILY_LIMITS_COLLECTION_ID;
@@ -10,6 +11,7 @@ interface DailyMessageLimit {
   date: string; // YYYY-MM-DD format
   totalMessages: number;
   lastMessageAt: string;
+  isPaid?: boolean; // Track if user has active subscription
   $createdAt?: string;
   $updatedAt?: string;
 }
@@ -28,11 +30,48 @@ const getTodayString = (): string => {
 // Get daily message count for user
 export const getDailyMessageLimit = async (
   userId: string
-): Promise<{ count: number; canSend: boolean; remaining: number }> => {
+): Promise<{ count: number; canSend: boolean; remaining: number; hasSubscription: boolean }> => {
   try {
+    // First check if user has an active subscription
+    const hasSubscription = await hasActiveChatSubscription(userId);
+    console.log('💳 [DailyLimits] User subscription status:', { userId, hasSubscription });
+    
+    // If user has subscription, they have unlimited messages but we still track count
+    if (hasSubscription) {
+      // Still get the message count for tracking purposes
+      if (!DAILY_LIMITS_COLLECTION_ID) {
+        return { count: 0, canSend: true, remaining: 999999, hasSubscription: true };
+      }
+
+      const today = getTodayString();
+      const response = await databases.listDocuments(
+        config.databaseId!,
+        DAILY_LIMITS_COLLECTION_ID,
+        [
+          Query.equal('userId', userId),
+          Query.equal('date', today),
+          Query.limit(1)
+        ]
+      );
+
+      let messageCount = 0;
+      if (response.documents.length > 0) {
+        messageCount = response.documents[0].totalMessages;
+      }
+
+      console.log('💳 [DailyLimits] Subscriber message count:', { messageCount, hasSubscription });
+
+      return { 
+        count: messageCount, 
+        canSend: true, 
+        remaining: 999999, // Large number to indicate unlimited
+        hasSubscription: true 
+      };
+    }
+
     if (!DAILY_LIMITS_COLLECTION_ID) {
       console.error('❌ [DailyLimits] Missing EXPO_PUBLIC_DAILY_LIMITS_COLLECTION_ID');
-      return { count: 0, canSend: true, remaining: 5 }; // Allow if not configured
+      return { count: 0, canSend: true, remaining: 5, hasSubscription: false }; // Allow if not configured
     }
 
     const today = getTodayString();
@@ -64,26 +103,33 @@ export const getDailyMessageLimit = async (
     console.log('✅ [DailyLimits] Limit check result:', { 
       count: messageCount, 
       canSend, 
-      remaining 
+      remaining,
+      hasSubscription 
     });
 
-    return { count: messageCount, canSend, remaining };
+    return { count: messageCount, canSend, remaining, hasSubscription };
 
   } catch (error) {
     console.error('❌ [DailyLimits] Error checking daily limit:', error);
     // Return permissive values on error to avoid blocking users
-    return { count: 0, canSend: true, remaining: 5 };
+    return { count: 0, canSend: true, remaining: 5, hasSubscription: false };
   }
 };
 
 // Increment message count for user
 export const incrementDailyMessageCount = async (
   userId: string
-): Promise<{ success: boolean; newCount: number }> => {
+): Promise<{ success: boolean; newCount: number; hasSubscription: boolean }> => {
   try {
+    // Check if user has subscription first
+    const hasSubscription = await hasActiveChatSubscription(userId);
+    
+    // Track message count for both subscribers and non-subscribers (for analytics)
+    console.log('💳 [DailyLimits] Tracking message count for user:', { userId, hasSubscription });
+
     if (!DAILY_LIMITS_COLLECTION_ID) {
       console.error('❌ [DailyLimits] Missing EXPO_PUBLIC_DAILY_LIMITS_COLLECTION_ID');
-      return { success: true, newCount: 1 }; // Allow if not configured
+      return { success: true, newCount: 1, hasSubscription: false }; // Allow if not configured
     }
 
     const today = getTodayString();
@@ -137,11 +183,11 @@ export const incrementDailyMessageCount = async (
       console.log('📊 [DailyLimits] Created new record:', { newCount });
     }
 
-    return { success: true, newCount };
+    return { success: true, newCount, hasSubscription };
 
   } catch (error) {
     console.error('❌ [DailyLimits] Error incrementing message count:', error);
-    return { success: false, newCount: 0 };
+    return { success: false, newCount: 0, hasSubscription: false };
   }
 };
 

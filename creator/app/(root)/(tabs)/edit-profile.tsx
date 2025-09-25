@@ -1072,7 +1072,7 @@ export default function EditProfile() {
             style={{ width: 48, height: 48, marginBottom: 16 }}
             resizeMode="contain"
           />
-          <Text style={{ color: theme.text, fontSize: 16, fontFamily: 'Urbanist-Medium' }}>Loading...</Text>
+          <Text style={{ color: theme.text, fontSize: 16, fontFamily: 'Urbanist-Medium' }} allowFontScaling={false}>Loading...</Text>
         </View>
       </SafeAreaView>
     );
@@ -1095,7 +1095,7 @@ export default function EditProfile() {
             color={theme.text} 
             style={{ marginRight: 4 }}
           />
-          <Text style={{ color: theme.text, fontSize: 21, marginLeft: 8, fontFamily: 'Nunito-Bold' }}>
+          <Text style={{ color: theme.text, fontSize: 21, marginLeft: 8, fontFamily: 'Nunito-Bold' }} allowFontScaling={false}>
               Edit Profile
           </Text>
         </TouchableOpacity>
@@ -1134,7 +1134,7 @@ export default function EditProfile() {
                 style={{ resizeMode: 'cover' }}
               />
             ) : (
-              <Text className="text-2xl font-bold" style={{ color: theme.textInverse }}>{name?.[0] || 'U'}</Text>
+              <Text className="text-2xl font-bold" style={{ color: theme.textInverse }} allowFontScaling={false}>{name?.[0] || 'U'}</Text>
             )}
             <TouchableOpacity 
               className="absolute bottom-0 right-0"
@@ -1174,7 +1174,7 @@ export default function EditProfile() {
               fontFamily: 'questrial',
               marginLeft: 8,
               fontWeight: '600'
-            }}>
+            }} allowFontScaling={false}>
               Preview
             </Text>
             </TouchableOpacity>
@@ -1258,8 +1258,8 @@ export default function EditProfile() {
               }}
               activeOpacity={0.7}
             >
-              <Text style={{ color: theme.text, fontSize: 20, marginRight: 8 }}>{selectedCountry.flag}</Text>
-              <Text style={{ color: theme.text, fontFamily: 'questrial', fontSize: 16 }}>{selectedCountry.code}</Text>
+              <Text style={{ color: theme.text, fontSize: 20, marginRight: 8 }} allowFontScaling={false}>{selectedCountry.flag}</Text>
+              <Text style={{ color: theme.text, fontFamily: 'questrial', fontSize: 16 }} allowFontScaling={false}>{selectedCountry.code}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               className="flex-row items-center rounded-lg px-5 py-5 flex-1"
@@ -1276,7 +1276,7 @@ export default function EditProfile() {
                 color={theme.textSecondary} 
                 style={{ marginRight: 12 }}
               />
-              <Text style={{ color: theme.text, fontFamily: 'Nunito-Regular', fontSize: 17, flex: 1 }}>
+              <Text style={{ color: theme.text, fontFamily: 'Nunito-Regular', fontSize: 17, flex: 1 }} allowFontScaling={false}>
                 {phoneNumber ? phoneNumber : 'Enter phone number'}
               </Text>
               <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
@@ -1308,7 +1308,7 @@ export default function EditProfile() {
                     fontFamily: 'questrial', 
                     fontSize: 17,
                     textAlign: 'center',
-                  }}>
+                  }} allowFontScaling={false}>
                     {gender.icon} {gender.label}
                   </Text>
                 </TouchableOpacity>
@@ -1334,7 +1334,7 @@ export default function EditProfile() {
                 fontFamily: 'Nunito-Regular', 
                 fontSize: 18, 
                 flex: 1 
-              }}>
+              }} allowFontScaling={false}>
                 {creatorName ? creatorName : 'Enter your creator name'}
               </Text>
               {showCreatorNameWarning ? (
@@ -1349,7 +1349,7 @@ export default function EditProfile() {
                     fontSize: 12, 
                     fontFamily: 'Urbanist-Light',
                     fontWeight: '600'
-                  }}>
+                  }} allowFontScaling={false}>
                     LOCKED
                   </Text>
                 </View>
@@ -1375,7 +1375,7 @@ export default function EditProfile() {
                     fontSize: 14, 
                     fontFamily: 'questrial',
                     flex: 1
-                  }}>
+                  }} allowFontScaling={false}>
                     Creator name cannot be changed once your channel is live. Contact support if needed.
                   </Text>
                 </View>
@@ -1396,11 +1396,11 @@ export default function EditProfile() {
             >
               <Ionicons name="document-text-outline" size={22} color={theme.textSecondary} style={{ marginRight: 10 }} />
               <View className="flex-1">
-                <Text style={{ color: theme.text, fontFamily: 'Nunito-Regular', fontSize: 18 }}>
+                <Text style={{ color: theme.text, fontFamily: 'Nunito-Regular', fontSize: 18 }} allowFontScaling={false}>
                   {bio ? bio : 'Tell us about yourself'}
                 </Text>
                 {bio && (
-                  <Text style={{ color: theme.textTertiary, fontSize: 14, marginTop: 4 }}>
+                  <Text style={{ color: theme.textTertiary, fontSize: 14, marginTop: 4 }} allowFontScaling={false}>
                     {bio.length}/300 characters
                   </Text>
                 )}
@@ -1421,7 +1421,7 @@ export default function EditProfile() {
               }}
             >
               <Ionicons name="location-outline" size={22} color={theme.textSecondary} style={{ marginRight: 10 }} />
-              <Text style={{ color: theme.text, fontFamily: 'Nunito-Regular', fontSize: 18, flex: 1 }}>
+              <Text style={{ color: theme.text, fontFamily: 'Nunito-Regular', fontSize: 18, flex: 1 }} allowFontScaling={false}>
                 {location ? location : 'Enter your location'}
               </Text>
               <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
@@ -1438,7 +1438,7 @@ export default function EditProfile() {
               onPress={() => setShowTopicsModal(true)}
             >
               <Ionicons name="chatbubble-ellipses-outline" size={22} color={theme.primary} style={{ marginRight: 10 }} />
-              <Text style={{ color: theme.text, fontFamily: 'Nunito-Regular', fontSize: 18 }}>
+              <Text style={{ color: theme.text, fontFamily: 'Nunito-Regular', fontSize: 18 }} allowFontScaling={false}>
                 {topics.length > 0 ? (
                   topics.length <= 3 
                     ? topics.join(', ')
@@ -1454,7 +1454,7 @@ export default function EditProfile() {
             >
               <View style={{ flex: 1, backgroundColor: theme.modalOverlay, justifyContent: 'center', alignItems: 'center' }}>
                 <View style={{ backgroundColor: theme.modalBackground, borderRadius: 24, padding: 24, width: '90%' }}>
-                  <Text style={{ color: theme.text, fontSize: 18, fontFamily: 'questrial', marginBottom: 16, textAlign: 'center' }}>
+                  <Text style={{ color: theme.text, fontSize: 18, fontFamily: 'questrial', marginBottom: 16, textAlign: 'center' }} allowFontScaling={false}>
                     Choose your topics
                   </Text>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -1480,7 +1480,7 @@ export default function EditProfile() {
                             borderColor: selected ? theme.primary : theme.borderDark,
                           }}
                         >
-                          <Text style={{ color: selected ? theme.textInverse : theme.text, fontFamily: 'questrial', fontSize: 15 }}>
+                          <Text style={{ color: selected ? theme.textInverse : theme.text, fontFamily: 'questrial', fontSize: 15 }} allowFontScaling={false}>
                             {topic}
                           </Text>
                         </TouchableOpacity>
@@ -1491,7 +1491,7 @@ export default function EditProfile() {
                     style={{ marginTop: 24, backgroundColor: theme.primary, borderRadius: 16, paddingVertical: 12 }}
                     onPress={() => setShowTopicsModal(false)}
                   >
-                    <Text style={{ color: theme.textInverse, fontSize: 16, fontFamily: 'questrial', textAlign: 'center', fontWeight: 'bold' }}>
+                    <Text style={{ color: theme.textInverse, fontSize: 16, fontFamily: 'questrial', textAlign: 'center', fontWeight: 'bold' }} allowFontScaling={false}>
                       Done
                     </Text>
                   </TouchableOpacity>
@@ -1509,7 +1509,7 @@ export default function EditProfile() {
               }}
             >
               <Ionicons name="card-outline" size={22} color={theme.primary} style={{ marginRight: 10 }} />
-              <Text style={{ color: theme.text, textAlign: 'center', fontFamily: 'questrial', fontSize: 18 }}>
+              <Text style={{ color: theme.text, textAlign: 'center', fontFamily: 'questrial', fontSize: 18 }} allowFontScaling={false}>
                 Subscriptions
               </Text>
             </TouchableOpacity>
@@ -1526,20 +1526,20 @@ export default function EditProfile() {
             onPress={handleUpdateProfile}
             disabled={saving || !profileImage}
           >
-            <Text style={{ color: theme.textInverse, textAlign: 'center', fontFamily: 'questrial', fontSize: 18 }}>
+            <Text style={{ color: theme.textInverse, textAlign: 'center', fontFamily: 'questrial', fontSize: 18 }} allowFontScaling={false}>
               {saving ? 'Updating...' : 'Update Profile'}
             </Text>
           </TouchableOpacity>
           {/* Show a message if no profile image */}
           {!profileImage && (
-            <Text style={{ color: theme.primary, textAlign: 'center', marginBottom: 8, fontFamily: 'questrial', fontWeight: '600' }}>
+            <Text style={{ color: theme.primary, textAlign: 'center', marginBottom: 8, fontFamily: 'questrial', fontWeight: '600' }} allowFontScaling={false}>
               Please add a profile picture to update your profile.
             </Text>
           )}
 
           {/* Success Message */}
           {successMessage && (
-            <Text style={{ color: theme.success, textAlign: 'center', marginTop: 8, fontFamily: 'questrial' }}>
+            <Text style={{ color: theme.success, textAlign: 'center', marginTop: 8, fontFamily: 'questrial' }} allowFontScaling={false}>
                 {successMessage}
             </Text>
           )}
@@ -1751,7 +1751,7 @@ export default function EditProfile() {
               fontFamily: 'Nunito-Bold', 
                   textAlign: 'center', 
               marginBottom: 8
-                }}>
+                }} allowFontScaling={false}>
               Saving Profile...
                 </Text>
             
@@ -1761,7 +1761,7 @@ export default function EditProfile() {
               fontFamily: 'Nunito-Regular', 
               textAlign: 'center',
               lineHeight: 20
-                  }}>
+                  }} allowFontScaling={false}>
               Please wait while we update your profile
                   </Text>
                 </View>
@@ -1799,7 +1799,7 @@ export default function EditProfile() {
               fontFamily: 'Nunito-Bold', 
               textAlign: 'center',
               marginBottom: 8
-            }}>
+            }} allowFontScaling={false}>
               Unsaved Changes
             </Text>
             
@@ -1810,7 +1810,7 @@ export default function EditProfile() {
                   textAlign: 'center',
               marginBottom: 24,
               lineHeight: 22
-            }}>
+            }} allowFontScaling={false}>
               You have unsaved changes that will be lost if you leave this page. Do you want to save your changes?
             </Text>
             
@@ -1829,7 +1829,7 @@ export default function EditProfile() {
                   color: theme.textSecondary, 
                     fontSize: 16, 
                   fontFamily: 'Nunito-SemiBold'
-                }}>
+                }} allowFontScaling={false}>
                   Discard
                 </Text>
                 </TouchableOpacity>
@@ -1849,7 +1849,7 @@ export default function EditProfile() {
                   color: !profileImage ? theme.textSecondary : theme.textInverse, 
                     fontSize: 16, 
                   fontFamily: 'Nunito-SemiBold'
-                }}>
+                }} allowFontScaling={false}>
                   {saving ? 'Saving...' : 'Save & Exit'}
                 </Text>
                 </TouchableOpacity>
@@ -1862,7 +1862,7 @@ export default function EditProfile() {
                 fontFamily: 'Nunito-Regular', 
                    textAlign: 'center', 
                 marginTop: 12
-              }}>
+              }} allowFontScaling={false}>
                 Profile picture required to save changes
                  </Text>
             )}

@@ -73,20 +73,20 @@ const LandingScreen = () => {
         <View style={styles.overlay}>
           <View style={styles.topContent}>
                          <View style={styles.textRow}>
-               <Text style={styles.cherrizbox}>Cherrizbox</Text>
+               <Text style={styles.cherrizbox} allowFontScaling={false}>Cherrizbox</Text>
              </View>
             
-            <Text style={styles.subtitle}>
+            <Text style={styles.subtitle} allowFontScaling={false}>
               Welcome to the ultimate creator platform
             </Text>
             
-            <Text style={styles.description}>
+            <Text style={styles.description} allowFontScaling={false}>
               Connect, create, and grow with fellow creators in a vibrant community designed just for you.
             </Text>
           </View>
 
           <View style={styles.bottomContent}>
-            <Text style={styles.networkQuestion}>
+            <Text style={styles.networkQuestion} allowFontScaling={false}>
               Tell us on what network you are a legend:
             </Text>
 
@@ -115,12 +115,15 @@ const LandingScreen = () => {
                     ) : (
                       <Ionicons name={network.icon as any} size={20} color={selectedNetwork === network.name ? 'white' : network.color} style={{ marginRight: 8 }} />
                     )}
-                    <Text style={{ 
-                      color: selectedNetwork === network.name ? 'white' : 'white', 
-                      fontFamily: 'Urbanist-Bold', 
-                      fontSize: 14,
-                      textAlign: 'center',
-                    }}>
+                    <Text 
+                      style={{ 
+                        color: selectedNetwork === network.name ? 'white' : 'white', 
+                        fontFamily: 'Urbanist-Bold', 
+                        fontSize: 14,
+                        textAlign: 'center',
+                      }}
+                      allowFontScaling={false}
+                    >
                       {network.name}
                     </Text>
                   </TouchableOpacity>
@@ -133,7 +136,7 @@ const LandingScreen = () => {
               onPress={() => router.push('/log-in')}
               activeOpacity={0.8}
             >
-              <Text style={styles.loginButtonText}>Already have an account? Log in</Text>
+              <Text style={styles.loginButtonText} allowFontScaling={false}>Already have an account? Log in</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -160,7 +163,7 @@ const LandingScreen = () => {
                </TouchableOpacity>
              </View>
              
-             <Text style={styles.modalSubtitle}>
+             <Text style={styles.modalSubtitle} allowFontScaling={false}>
                Enter your {selectedNetwork} username:
              </Text>
 
@@ -172,6 +175,7 @@ const LandingScreen = () => {
                onChangeText={setUsername}
                autoCapitalize="none"
                autoCorrect={false}
+               allowFontScaling={false}
              />
 
              <TouchableOpacity 
@@ -180,7 +184,7 @@ const LandingScreen = () => {
                activeOpacity={0.8}
                disabled={!username.trim()}
              >
-               <Text style={styles.modalCtaButtonText}>Continue</Text>
+               <Text style={styles.modalCtaButtonText} allowFontScaling={false}>Continue</Text>
                <Ionicons name="arrow-forward" size={20} color="white" style={styles.arrowIcon} />
              </TouchableOpacity>
            </View>

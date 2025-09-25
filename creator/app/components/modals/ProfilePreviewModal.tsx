@@ -83,7 +83,7 @@ export const ProfilePreviewModal: React.FC<ProfilePreviewModalProps> = ({
             paddingHorizontal: 16,
             paddingVertical: 8,
             borderRadius: 20
-          }}>
+          }} allowFontScaling={false}>
             Profile Preview
           </Text>
           

@@ -169,8 +169,8 @@ const WelcomeScreen = () => {
                         },
                     ]}
                 >
-                    <Text style={styles.welcomeText}>Welcome to</Text>
-                    <Text style={styles.cherrizboxText}>cherrizbox</Text>
+                    <Text style={styles.welcomeText} allowFontScaling={false}>Welcome to</Text>
+                    <Text style={styles.cherrizboxText} allowFontScaling={false}>cherrizbox</Text>
                 </Animated.View>
 
                 {/* Loading Dots */}

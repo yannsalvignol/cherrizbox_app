@@ -160,15 +160,20 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
           // Don't prevent other operations from continuing
         });
 
-        // Increment daily message count after successful message
+        // Increment daily message count after successful message (for tracking)
         incrementDailyMessageCount(userId)
           .then((result) => {
             console.log('📈 [DailyLimits] Message count updated:', result);
             if (result.success) {
               setDailyMessageCount(result.newCount);
-              setCanSendMessage(result.newCount < 5);
-              setRemainingMessages(Math.max(0, 5 - result.newCount));
+              if (!result.hasSubscription) {
+                // Only apply limits for non-subscribers
+                setCanSendMessage(result.newCount < 5);
+                setRemainingMessages(Math.max(0, 5 - result.newCount));
+              }
+              // For subscribers, we just update the count for display - no limits applied
             }
+            setHasSubscription(result.hasSubscription);
           })
           .catch((error) => {
             console.error('❌ [DailyLimits] Failed to update message count:', error);
@@ -223,6 +228,8 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
     };
   }, [currentChannel, currentChatType, isThreadInput, userId, creatorId]);
 
+  const [hasSubscription, setHasSubscription] = useState(false);
+  
   // Check daily message limits when component loads
   React.useEffect(() => {
     const checkLimits = async () => {
@@ -232,11 +239,13 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
         setDailyMessageCount(limitInfo.count);
         setCanSendMessage(limitInfo.canSend);
         setRemainingMessages(limitInfo.remaining);
+        setHasSubscription(limitInfo.hasSubscription);
         
         console.log('📊 [DailyLimits] Current status:', {
           count: limitInfo.count,
           canSend: limitInfo.canSend,
-          remaining: limitInfo.remaining
+          remaining: limitInfo.remaining,
+          hasSubscription: limitInfo.hasSubscription
         });
       }
     };
@@ -577,7 +586,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
           textAlign: 'center',
           fontWeight: '600',
           marginTop: -30,
-        }}>
+        }} allowFontScaling={false}>
           Tap to reply in a thread
         </Text>
       </View>
@@ -742,28 +751,92 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
   // For direct messages, use custom message input with attachment button
   return (
     <View style={{ backgroundColor: theme.background, paddingBottom: 15 }}>
-      {/* Daily Message Limit Counter */}
+      {/* Daily Message Limit Counter or Subscription Indicator */}
       {currentChatType === 'direct' && !isThreadInput && (
         <View style={{
           paddingHorizontal: 16,
           paddingVertical: 8,
           backgroundColor: theme.backgroundSecondary,
         }}>
-          <Text style={{
-            color: canSendMessage ? theme.textSecondary : theme.error,
-            fontSize: 12,
-            fontFamily: 'questrial',
-            textAlign: 'center',
-            marginBottom: (remainingMessages <= 1 || !canSendMessage) ? 8 : 0,
-          }}>
-            {canSendMessage 
-              ? `${dailyMessageCount}/5 messages sent today • ${remainingMessages} remaining`
-              : 'Daily message limit reached (5/5) • Try again tomorrow'
-            }
-          </Text>
+          {hasSubscription ? (
+            /* Unlimited Chat Subscription Indicator with Message Count */
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingVertical: 4,
+            }}>
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+              }}>
+                <View style={{
+                  backgroundColor: '#10b981',
+                  borderRadius: 8,
+                  width: 18,
+                  height: 18,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginRight: 6,
+                }}>
+                  <Ionicons 
+                    name="infinite" 
+                    size={12} 
+                    color="white" 
+                  />
+                </View>
+                <Text style={{
+                  color: '#10b981',
+                  fontSize: 12,
+                  fontFamily: 'Urbanist-SemiBold',
+                  fontWeight: '600',
+                }} allowFontScaling={false}>
+                  Unlimited Chats Active
+                </Text>
+                <View style={{
+                  backgroundColor: '#10b981',
+                  borderRadius: 4,
+                  paddingHorizontal: 4,
+                  paddingVertical: 1,
+                  marginLeft: 6,
+                }}>
+                  <Text style={{
+                    color: 'white',
+                    fontSize: 9,
+                    fontFamily: 'Urbanist-Bold',
+                    fontWeight: 'bold',
+                  }} allowFontScaling={false}>
+                    PRO
+                  </Text>
+                </View>
+              </View>
+              
+              {/* Message count for tracking */}
+              <Text style={{
+                color: theme.textTertiary,
+                fontSize: 11,
+                fontFamily: 'Urbanist-Medium',
+              }} allowFontScaling={false}>
+                {dailyMessageCount} sent today
+              </Text>
+            </View>
+          ) : (
+            <Text style={{
+              color: canSendMessage ? theme.textSecondary : theme.error,
+              fontSize: 12,
+              fontFamily: 'questrial',
+              textAlign: 'center',
+              marginBottom: (remainingMessages <= 1 || !canSendMessage) ? 8 : 0,
+            }} allowFontScaling={false}>
+              {canSendMessage 
+                ? `${dailyMessageCount}/5 messages sent today • ${remainingMessages} remaining`
+                : 'Daily message limit reached (5/5) • Try again tomorrow'
+              }
+            </Text>
+          )}
           
           {/* Upgrade Button - Show when 1 or fewer messages remaining, or limit reached */}
-          {(remainingMessages <= 1 || !canSendMessage) && (
+          {(remainingMessages <= 1 || !canSendMessage) && !hasSubscription && (
             <TouchableOpacity
               onPress={() => {
                 console.log('🚀 [Upgrade] Opening upgrade modal');
@@ -815,7 +888,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                     fontFamily: 'Urbanist-Bold',
                     fontWeight: 'bold',
                     textAlign: 'center',
-                  }}>
+                  }} allowFontScaling={false}>
                     {!canSendMessage ? 'Get Unlimited Chats' : 'Upgrade for Unlimited'}
                   </Text>
                 </View>
@@ -835,8 +908,8 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
         <MessageInput 
           InputButtons={() => (
             <TouchableOpacity
-              onPress={() => canSendMessage && setShowAttachmentModal(true)}
-              disabled={!canSendMessage}
+              onPress={() => (canSendMessage || hasSubscription) && setShowAttachmentModal(true)}
+              disabled={!canSendMessage && !hasSubscription}
               style={{
                 width: 40,
                 height: 40,
@@ -844,14 +917,14 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                 justifyContent: 'center',
                 alignItems: 'center',
                 marginRight: 8,
-                opacity: canSendMessage ? 1 : 0.3,
+                opacity: (canSendMessage || hasSubscription) ? 1 : 0.3,
               }}
             >
-              <Ionicons name="add-circle-outline" size={36} color={canSendMessage ? theme.text : theme.textTertiary} />
+              <Ionicons name="add-circle-outline" size={36} color={(canSendMessage || hasSubscription) ? theme.text : theme.textTertiary} />
             </TouchableOpacity>
           )}
           additionalTextInputProps={{
-            placeholder: canSendMessage ? 'Type a message...' : 'Daily limit reached',
+            placeholder: (canSendMessage || hasSubscription) ? 'Type a message...' : 'Daily limit reached',
             placeholderTextColor: theme.textSecondary,
             multiline: true,
             textAlignVertical: 'top',
@@ -859,10 +932,10 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
             blurOnSubmit: false,
             selectionColor: theme.textSecondary,
             cursorColor: theme.textSecondary,
-            editable: canSendMessage,
+            editable: canSendMessage || hasSubscription,
             style: {
               fontSize: 16,
-              color: canSendMessage ? theme.text : theme.textTertiary,
+              color: (canSendMessage || hasSubscription) ? theme.text : theme.textTertiary,
               paddingHorizontal: 16,
               paddingVertical: 8,
               minHeight: 36,
@@ -872,13 +945,13 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
               fontWeight: '400',
               paddingTop: 10,
               textAlign: 'left',
-              opacity: canSendMessage ? 1 : 0.6,
+              opacity: (canSendMessage || hasSubscription) ? 1 : 0.6,
             }
           }}
         />
         
         {/* Blocking Overlay when limit reached */}
-        {!canSendMessage && (
+        {!canSendMessage && !hasSubscription && (
           <View style={{
             position: 'absolute',
             top: 0,
@@ -1389,6 +1462,8 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
             [{ text: 'OK' }]
           );
         }}
+        creatorName={creatorName} // Pass creator name for payment routing
+        creatorId={creatorId} // Pass creator ID for payment routing
       />
     </View>
   );

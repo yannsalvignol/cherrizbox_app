@@ -205,7 +205,7 @@ const Property = () => {
           source={require('../../../assets/icon/loading-icon.png')} 
           style={{ width: 80, height: 80, marginBottom: 20 }} 
         />
-        <Text style={{ color: '#FD6F3E', fontSize: 18, fontFamily: 'questrial' }}>Loading...</Text>
+        <Text style={{ color: '#FD6F3E', fontSize: 18, fontFamily: 'questrial' }} allowFontScaling={false}>Loading...</Text>
       </View>
     );
   }
@@ -213,9 +213,9 @@ const Property = () => {
   if (!post) {
     return (
       <View style={{ flex: 1, backgroundColor: 'black', justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={{ color: 'white' }}>Post not found</Text>
+        <Text style={{ color: 'white' }} allowFontScaling={false}>Post not found</Text>
         <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 20 }}>
-          <Text style={{ color: '#FD6F3E', fontSize: 18 }}>Go Back</Text>
+          <Text style={{ color: '#FD6F3E', fontSize: 18 }} allowFontScaling={false}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -316,7 +316,7 @@ const Property = () => {
                         fontSize: 20, 
                         fontFamily: 'questrial',
                         flex: 1
-                      }} numberOfLines={1}>
+                      }} numberOfLines={1} allowFontScaling={false}>
                         About {titleParam || post?.title || 'Creator'}
                       </Text>
                     </View>
@@ -358,7 +358,7 @@ const Property = () => {
                             fontSize: 16, 
                             lineHeight: 24, 
                             fontFamily: 'questrial'
-                          }}>
+                          }} allowFontScaling={false}>
                             {post.Bio}
                           </Text>
                         </View>
@@ -377,14 +377,14 @@ const Property = () => {
                               fontSize: 24,
                               fontFamily: 'questrial',
                               marginBottom: 4
-                            }}>
+                            }} allowFontScaling={false}>
                               {followerCount}
                             </Text>
                             <Text style={{
                               color: '#B9B9B9',
                               fontSize: 13,
                               fontFamily: 'questrial'
-                            }}>
+                            }} allowFontScaling={false}>
                               Followers
                             </Text>
                           </View>
@@ -401,14 +401,14 @@ const Property = () => {
                               fontSize: 24,
                               fontFamily: 'questrial',
                               marginBottom: 4
-                            }} numberOfLines={1}>
+                            }} numberOfLines={1} allowFontScaling={false}>
                               {post.PhotosLocation || 'N/A'}
                             </Text>
                             <Text style={{
                               color: '#B9B9B9',
                               fontSize: 13,
                               fontFamily: 'questrial'
-                            }}>
+                            }} allowFontScaling={false}>
                               Location
                             </Text>
                           </View>
@@ -443,7 +443,7 @@ const Property = () => {
                           fontFamily: 'questrial',
                           textAlign: 'center',
                           marginBottom: 8
-                        }}>
+                        }} allowFontScaling={false}>
                           No bio available yet
                         </Text>
                         <Text style={{ 
@@ -451,7 +451,7 @@ const Property = () => {
                           fontSize: 14, 
                           fontFamily: 'questrial',
                           textAlign: 'center'
-                        }}>
+                        }} allowFontScaling={false}>
                           Check back later for updates
                         </Text>
                       </View>
@@ -478,7 +478,7 @@ const Property = () => {
                         color: 'white', 
                         fontSize: 16, 
                         fontFamily: 'questrial'
-                      }}>
+                      }} allowFontScaling={false}>
                         Close
                       </Text>
                     </TouchableOpacity>
@@ -515,13 +515,13 @@ const Property = () => {
                 padding: 20, 
                 alignItems: 'center'
               }}>
-                <Text style={{ color: 'white', fontSize: 32, fontFamily: 'MuseoModerno-Regular', textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8 }} numberOfLines={2}>
+                <Text style={{ color: 'white', fontSize: 32, fontFamily: 'MuseoModerno-Regular', textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8 }} numberOfLines={2} allowFontScaling={false}>
                   {titleParam || post.title || 'Untitled'}
                 </Text>
                 <View style={{ alignSelf: 'flex-start', marginTop: 5 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: 'rgba(255, 255, 255, 0.2)', paddingBottom: 8 }}>
                     <Image source={require('../../../assets/icon/localisation.png')} style={{ width: 16, height: 20, tintColor: 'white', marginRight: 10 }} />
-                    <Text style={{ color: 'white', fontSize: 18, textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }}>
+                    <Text style={{ color: 'white', fontSize: 18, textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }} allowFontScaling={false}>
                       {post.PhotosLocation || 'N/A'}
                     </Text>
                   </View>
@@ -532,10 +532,10 @@ const Property = () => {
                     marginTop: 15 
                   }}>
                     <View style={{ paddingTop: 10 }}>
-                      <Text style={{ color: 'white', fontSize: 24, textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }}>
+                      <Text style={{ color: 'white', fontSize: 24, textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }} allowFontScaling={false}>
                         {followerCount}
                       </Text>
-                      <Text style={{ color: '#B9B9B9', fontSize: 18, textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial', marginTop: 8 }}>
+                      <Text style={{ color: '#B9B9B9', fontSize: 18, textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial', marginTop: 8 }} allowFontScaling={false}>
                         followers
                       </Text>
                     </View>
@@ -551,16 +551,16 @@ const Property = () => {
                           transform: [{ scale: selectedPricing === 'monthly' ? 1.05 : 1 }]
                         }}
                       >
-                        <Text style={{ color: 'white', fontSize: 28, textShadowColor: 'rgba(255, 255, 255, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }}>
+                        <Text style={{ color: 'white', fontSize: 28, textShadowColor: 'rgba(255, 255, 255, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }} allowFontScaling={false}>
                           {formatPrice(JSON.parse(post.payment).monthlyPrice, post.currency || JSON.parse(post.payment).currency)}
                         </Text>
-                        <Text style={{ color: 'white', fontSize: 16, textShadowColor: 'rgba(255, 255, 255, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial', marginTop: 4 }}>
+                        <Text style={{ color: 'white', fontSize: 16, textShadowColor: 'rgba(255, 255, 255, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial', marginTop: 4 }} allowFontScaling={false}>
                           per month
                         </Text>
                       </TouchableOpacity>
                     </View>
                     <View style={{ justifyContent: 'center' }}>
-                      <Text style={{ color: '#B9B9B9', fontSize: 18, textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }}>
+                      <Text style={{ color: '#B9B9B9', fontSize: 18, textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }} allowFontScaling={false}>
                         or
                       </Text>
                     </View>
@@ -576,10 +576,10 @@ const Property = () => {
                           transform: [{ scale: selectedPricing === 'yearly' ? 1.05 : 1 }]
                         }}
                       >
-                        <Text style={{ color: '#FD6F3E', fontSize: 28, textShadowColor: 'rgba(251, 35, 85, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }}>
+                        <Text style={{ color: '#FD6F3E', fontSize: 28, textShadowColor: 'rgba(251, 35, 85, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial' }} allowFontScaling={false}>
                           {formatPrice(JSON.parse(post.payment).yearlyPrice, post.currency || JSON.parse(post.payment).currency)}
                         </Text>
-                        <Text style={{ color: '#FD6F3E', fontSize: 16, textShadowColor: 'rgba(251, 35, 85, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial', marginTop: 4 }}>
+                        <Text style={{ color: '#FD6F3E', fontSize: 16, textShadowColor: 'rgba(251, 35, 85, 0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 8, fontFamily: 'questrial', marginTop: 4 }} allowFontScaling={false}>
                           per year
                         </Text>
                       </TouchableOpacity>
@@ -605,7 +605,7 @@ const Property = () => {
                   {isProcessingPayment ? (
                     <>
                       <ActivityIndicator size="small" color="white" style={{ marginRight: 10 }} />
-                      <Text style={{ color: 'white', fontSize: 18, fontFamily: 'questrial' }}>
+                      <Text style={{ color: 'white', fontSize: 18, fontFamily: 'questrial' }} allowFontScaling={false}>
                         Processing...
                       </Text>
                     </>
@@ -616,7 +616,7 @@ const Property = () => {
                       fontFamily: 'questrial',
                       textAlign: 'center',
                       flex: 1
-                    }} numberOfLines={1}>
+                    }} numberOfLines={1} allowFontScaling={false}>
                       Join {titleParam || post.title || 'this'}'s box
                     </Text>
                   )}

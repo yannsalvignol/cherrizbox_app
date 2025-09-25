@@ -144,7 +144,7 @@ export default function AudienceTab({ refreshing, onRefresh }: AudienceTabProps)
           fontSize: 22, 
           fontWeight: 'bold', 
           fontFamily: 'Urbanist-Bold' 
-        }}>
+        }} allowFontScaling={false}>
           {sub.userName ? sub.userName[0]?.toUpperCase() : 
            (sub.customerEmail ? sub.customerEmail[0]?.toUpperCase() : 'U')}
         </Text>
@@ -156,14 +156,14 @@ export default function AudienceTab({ refreshing, onRefresh }: AudienceTabProps)
           color: theme.text, 
           fontFamily: 'Urbanist-Bold', 
           fontSize: 17 
-        }}>
+        }} allowFontScaling={false}>
           {sub.userName || sub.customerEmail || 'No name'}
         </Text>
         <Text style={{ 
           color: theme.textSecondary, 
           fontFamily: 'Urbanist-Regular', 
           fontSize: 14 
-        }}>
+        }} allowFontScaling={false}>
           {sub.customerEmail && sub.userName ? sub.customerEmail : ''}
         </Text>
       </View>
@@ -174,7 +174,7 @@ export default function AudienceTab({ refreshing, onRefresh }: AudienceTabProps)
           color: theme.text, 
           fontFamily: 'Urbanist-Bold', 
           fontSize: 14 
-        }}>
+        }} allowFontScaling={false}>
           {sub.planInterval ? 
             sub.planInterval.charAt(0).toUpperCase() + sub.planInterval.slice(1) : ''}
         </Text>
@@ -182,7 +182,7 @@ export default function AudienceTab({ refreshing, onRefresh }: AudienceTabProps)
           color: theme.warning, 
           fontFamily: 'Urbanist-Bold', 
           fontSize: 14 
-        }}>
+        }} allowFontScaling={false}>
           {sub.planAmount ? `$${(sub.planAmount / 100).toFixed(2)}` : ''}
         </Text>
       </View>
@@ -208,7 +208,7 @@ export default function AudienceTab({ refreshing, onRefresh }: AudienceTabProps)
         textAlign: 'center',
         fontFamily: 'Urbanist-Bold',
         marginBottom: 8
-      }}>
+      }} allowFontScaling={false}>
         No subscribers yet
       </Text>
       <Text style={{ 
@@ -217,7 +217,7 @@ export default function AudienceTab({ refreshing, onRefresh }: AudienceTabProps)
         textAlign: 'center',
         fontFamily: 'Urbanist-Regular',
         lineHeight: 20
-      }}>
+      }} allowFontScaling={false}>
         When users subscribe to your content, they'll appear here with their subscription details.
       </Text>
     </View>
@@ -239,7 +239,7 @@ export default function AudienceTab({ refreshing, onRefresh }: AudienceTabProps)
         color: theme.text, 
         fontFamily: 'Urbanist-Bold', 
         fontSize: 16 
-      }}>
+      }} allowFontScaling={false}>
         Loading subscribers...
       </Text>
     </View>
@@ -276,6 +276,7 @@ export default function AudienceTab({ refreshing, onRefresh }: AudienceTabProps)
               onChangeText={setAudienceSearch}
               autoCapitalize="none"
               autoCorrect={false}
+              allowFontScaling={false}
             />
             {audienceSearch.length > 0 && (
               <TouchableOpacity onPress={() => setAudienceSearch('')}>
@@ -315,7 +316,7 @@ export default function AudienceTab({ refreshing, onRefresh }: AudienceTabProps)
                 color: theme.text,
                 fontFamily: audienceFilter === tag.key ? 'Urbanist-Bold' : 'Urbanist-Regular',
                 fontSize: 14,
-              }}>
+              }} allowFontScaling={false}>
                 {tag.label}
               </Text>
             </TouchableOpacity>

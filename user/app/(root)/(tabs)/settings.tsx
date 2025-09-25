@@ -422,6 +422,7 @@ export default function Settings() {
             {renderSettingItem('Edit Profile', () => router.push('/edit-profile' as any))}
             {renderSettingItem('Change Password', handleChangePassword)}
             {renderSettingItem('Payment methods', () => router.push('/payment-methods'))}
+            {renderSettingItem('Manage Subscriptions', () => router.push('/manage-subscriptions'))}
             {renderSettingItem(isProcessingPushNotifications ? 'Push Notifications (Processing...)' : 'Push Notifications', null, true)}
             {renderSettingItem('Advanced Account Settings', () => setShowAdvancedSettings(!showAdvancedSettings), false, false, false, false, true)}
             

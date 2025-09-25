@@ -240,7 +240,7 @@ const LoadingScreen = () => {
       </Animated.View>
       <View style={styles.overlay}>
         <View style={styles.textRow}>
-          <Text style={styles.cherrizbox}>Cherrizbox</Text>
+          <Text style={styles.cherrizbox} allowFontScaling={false}>Cherrizbox</Text>
         </View>
       </View>
     </View>

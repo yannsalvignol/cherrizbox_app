@@ -53,6 +53,7 @@ export default function PaymentSuccess() {
     navigation.setOptions?.({ gestureEnabled: false });
     // Block hardware back button on Android
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => true);
+    
     return () => backHandler.remove();
   }, [navigation]);
 
@@ -253,7 +254,8 @@ export default function PaymentSuccess() {
             await Promise.all([refreshPosts(), refreshCreators()]);
             console.log('✅ Stream Chat initialization, channel setup, and data refresh completed');
             
-            // Simple navigation
+            // Clear navigation history and navigate to home
+            router.dismissAll();
             router.replace('/(root)/(tabs)');
           } catch (error) {
             console.error('❌ Error during Stream Chat initialization or data refresh:', error);
@@ -446,8 +448,8 @@ export default function PaymentSuccess() {
           </LinearGradient>
         </Animated.View>
         {/* Success text */}
-        <Text style={styles.title}>Payment Successful!</Text>
-        <Text style={styles.subtitle}>Your subscription is now active</Text>
+        <Text style={styles.title} allowFontScaling={false}>Payment Successful!</Text>
+        <Text style={styles.subtitle} allowFontScaling={false}>Your subscription is now active</Text>
         {/* Success details with staggered animations */}
         <View style={styles.detailsContainer}>
           <Animated.View 
@@ -460,7 +462,7 @@ export default function PaymentSuccess() {
             ]}
           >
             <Ionicons name="shield-checkmark" size={20} color="#18C07A" />
-            <Text style={styles.detailText}>Payment processed securely</Text>
+            <Text style={styles.detailText} allowFontScaling={false}>Payment processed securely</Text>
           </Animated.View>
           <Animated.View 
             style={[
@@ -472,7 +474,7 @@ export default function PaymentSuccess() {
             ]}
           >
             <Ionicons name="time" size={20} color="#FAFAFA" />
-            <Text style={styles.detailText}>Access granted immediately</Text>
+            <Text style={styles.detailText} allowFontScaling={false}>Access granted immediately</Text>
           </Animated.View>
           <Animated.View 
             style={[
@@ -484,7 +486,7 @@ export default function PaymentSuccess() {
             ]}
           >
             <Ionicons name="notifications" size={20} color="#FFFF00" />
-            <Text style={styles.detailText}>Confirmation sent to your email</Text>
+            <Text style={styles.detailText} allowFontScaling={false}>Confirmation sent to your email</Text>
           </Animated.View>
         </View>
         {/* Continue button removed */}

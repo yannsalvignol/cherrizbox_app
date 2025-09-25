@@ -210,7 +210,7 @@ export default function Index() {
                         color: theme.text,
                         fontFamily: 'MuseoModerno-Regular',
                         letterSpacing: 1
-                    }}>
+                    }} allowFontScaling={false}>
                         cherrizbox
                     </Text>
                 </View>
@@ -237,7 +237,7 @@ export default function Index() {
                                 fontSize: Platform.OS === 'android' ? 22 : 24, 
                                 color: theme.textInverse, 
                                 fontWeight: 'bold' 
-                            }}>
+                            }} allowFontScaling={false}>
                                 {user?.name?.[0] || 'U'}
                             </Text>
                         )}
@@ -282,14 +282,14 @@ export default function Index() {
                         fontFamily: 'Urbanist-Bold', 
                         fontSize: 18, 
                         marginBottom: 4 
-                    }}>
+                    }} allowFontScaling={false}>
                         {isSearchFocused ? 'Search Results' : 'For You'}
                     </Text>
                     
                     {loading || !postsLoaded ? (
                         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 60 }}>
                             <Image source={require('../../../assets/icon/loading-icon.png')} style={{ width: 60, height: 60, marginBottom: 16 }} />
-                            <Text style={{ color: theme.primary, fontSize: 18, marginBottom: 12 }}>Loading posts...</Text>
+                            <Text style={{ color: theme.primary, fontSize: 18, marginBottom: 12 }} allowFontScaling={false}>Loading posts...</Text>
                         </View>
                     ) : (filteredPosts.length > 0 || isSearchFocused) ? (
                         <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
@@ -354,13 +354,13 @@ export default function Index() {
                                         onPress={() => router.replace(`/properties/${post.$id}`)}
                                     >
                                         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                                            <Text style={{
-                                                fontFamily: 'Urbanist-Bold',
-                                                color: theme.text,
-                                                fontSize: 18
-                                            }}>
-                                                {post.title || 'Untitled'}
-                                            </Text>
+                            <Text style={{
+                                fontFamily: 'Urbanist-Bold',
+                                color: theme.text,
+                                fontSize: 18
+                            }} allowFontScaling={false}>
+                                {post.title || 'Untitled'}
+                            </Text>
                                             {post.type && (
                                                 <View style={{
                                                     marginLeft: 8,
@@ -369,13 +369,13 @@ export default function Index() {
                                                     backgroundColor: theme.primary,
                                                     borderRadius: 16
                                                 }}>
-                                                    <Text style={{
-                                                        color: theme.textInverse,
-                                                        fontSize: 12,
-                                                        fontFamily: 'Urbanist-Bold'
-                                                    }}>
-                                                        {post.type}
-                                                    </Text>
+                                    <Text style={{
+                                        color: theme.textInverse,
+                                        fontSize: 12,
+                                        fontFamily: 'Urbanist-Bold'
+                                    }} allowFontScaling={false}>
+                                        {post.type}
+                                    </Text>
                                                 </View>
                                             )}
                                         </View>
@@ -395,7 +395,7 @@ export default function Index() {
                                 fontFamily: 'Urbanist-Bold',
                                 marginBottom: 16,
                                 textAlign: 'center'
-                            }}>
+                            }} allowFontScaling={false}>
                                 No posts found 😢
                             </Text>
                             <Text style={{ 
@@ -403,7 +403,7 @@ export default function Index() {
                                 fontSize: 18, 
                                 textAlign: 'center',
                                 paddingHorizontal: 32
-                            }}>
+                            }} allowFontScaling={false}>
                                 {selectedTrends.length > 0 
                                     ? `We couldn't find any posts matching "${selectedTrends.join(', ')}"`
                                     : searchQuery 
