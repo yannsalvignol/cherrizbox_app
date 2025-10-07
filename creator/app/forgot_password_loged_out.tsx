@@ -3,17 +3,17 @@ import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    Modal,
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Modal,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-    codeBasedPasswordReset,
-    verifyCodeAndResetPassword,
+  codeBasedPasswordReset,
+  verifyCodeAndResetPassword,
 } from "../lib/appwrite";
 import FormField from "./components/FormField";
 import OtpInput from "./components/OtpInput";
@@ -66,11 +66,32 @@ const ForgotPasswordLoggedOut = () => {
     setIsLoading(true);
     setError("");
     try {
+      // Debug logging: capture env/function configuration and input
+      console.log('[ForgotPassword][SendCode] Start', {
+        email,
+        env: {
+          APPWRITE_ENDPOINT: process.env.EXPO_PUBLIC_APPWRITE_ENDPOINT,
+          PROJECT_ID: process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID,
+          EXPO_PUBLIC_CREATOR_REQUEST_PASSWORD_RESET_FUNCTION_ID: process.env.EXPO_PUBLIC_APPWRITE_PASSWORD_RESET_FUNCTION_ID,
+        },
+        timestamp: new Date().toISOString(),
+      });
+
       await codeBasedPasswordReset(email);
+      console.log('[ForgotPassword][SendCode] Success');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setStep(2); // Move to OTP verification
     } catch (e: any) {
-      setError(e.message || "An error occurred. Please try again.");
+      // Deep error logging to help diagnose "function with the requested ID could not be found"
+      console.error('[ForgotPassword][SendCode] Error', {
+        message: e?.message,
+        name: e?.name,
+        code: e?.code,
+        response: e?.response,
+        stack: e?.stack,
+      });
+      const friendlyMessage = e?.message || 'An error occurred. Please try again.';
+      setError(friendlyMessage);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsLoading(false);
@@ -86,11 +107,24 @@ const ForgotPasswordLoggedOut = () => {
     setIsLoading(true);
     setError("");
     try {
+      console.log('[ForgotPassword][VerifyCode] Start', {
+        email,
+        code,
+        timestamp: new Date().toISOString(),
+      });
       await verifyCodeAndResetPassword(email, code);
+      console.log('[ForgotPassword][VerifyCode] Success');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setStep(3); // Move to new password step
     } catch (e: any) {
-      setError(e.message || "Invalid code. Please try again.");
+      console.error('[ForgotPassword][VerifyCode] Error', {
+        message: e?.message,
+        name: e?.name,
+        code: e?.code,
+        response: e?.response,
+        stack: e?.stack,
+      });
+      setError(e?.message || "Invalid code. Please try again.");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsLoading(false);
@@ -117,11 +151,26 @@ const ForgotPasswordLoggedOut = () => {
     setIsLoading(true);
     setError("");
     try {
+      console.log('[ForgotPassword][ResetPassword] Start', {
+        email,
+        hasMinLength,
+        hasCapitalLetter,
+        hasSpecialChar,
+        timestamp: new Date().toISOString(),
+      });
       await verifyCodeAndResetPassword(email, code, password);
+      console.log('[ForgotPassword][ResetPassword] Success');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setShowSuccessModal(true);
     } catch (e: any) {
-      setError(e.message || "Failed to reset password. Please check your code.");
+      console.error('[ForgotPassword][ResetPassword] Error', {
+        message: e?.message,
+        name: e?.name,
+        code: e?.code,
+        response: e?.response,
+        stack: e?.stack,
+      });
+      setError(e?.message || "Failed to reset password. Please check your code.");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsLoading(false);

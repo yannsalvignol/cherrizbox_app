@@ -2,22 +2,31 @@ import { useGlobalContext } from '@/lib/global-provider';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { Image, ImageBackground, KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Image, ImageBackground, KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const LandingScreen = () => {
   const router = useRouter();
-  const { user } = useGlobalContext();
+  const globalContext = useGlobalContext();
+  const user = globalContext?.user;
   const [showUsernameModal, setShowUsernameModal] = useState(false);
   const [selectedNetwork, setSelectedNetwork] = useState('');
   const [username, setUsername] = useState('');
+  const [isNavigating, setIsNavigating] = useState(false);
 
-  // Handle navigation when user is logged in
+  // Handle navigation when user is logged in - with error handling
   useEffect(() => {
-    if (user) {
-      router.replace('/(root)/(tabs)');
+    if (user && !isNavigating && globalContext) {
+      try {
+        setIsNavigating(true);
+        router.replace('/(root)/(tabs)');
+      } catch (error) {
+        console.error('Navigation error:', error);
+        setIsNavigating(false);
+      }
     }
-  }, [user, router]);
+  }, [user, router, isNavigating, globalContext]);
 
   const networks = [
     { name: 'LinkedIn', icon: 'logo-linkedin', color: '#0077B5', type: 'ionicon' },
@@ -28,39 +37,61 @@ const LandingScreen = () => {
 
 
 
-  const handleContinue = () => {
-    if (username.trim()) {
-      // Trigger haptic feedback
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      
-      // Generate a 6-digit code
-      const socialMediaNumber = Math.floor(100000 + Math.random() * 900000).toString();
-      
-      // Close the modal
-      setShowUsernameModal(false);
-      
-      // Pass the selected network, username, and generated code to sign-up page
-      router.push({
-        pathname: '/sign-up',
-        params: {
-          socialMedia: selectedNetwork,
-          socialMediaUsername: username,
-          socialMediaNumber: socialMediaNumber
-        }
-      });
+  const handleContinue = useCallback(() => {
+    if (username.trim() && !isNavigating) {
+      try {
+        // Trigger haptic feedback
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        
+        // Generate a 6-digit code
+        const socialMediaNumber = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        // Close the modal
+        setShowUsernameModal(false);
+        
+        // Pass the selected network, username, and generated code to sign-up page
+        router.push({
+          pathname: '/sign-up',
+          params: {
+            socialMedia: selectedNetwork,
+            socialMediaUsername: username,
+            socialMediaNumber: socialMediaNumber
+          }
+        });
+      } catch (error) {
+        console.error('Navigation error in handleContinue:', error);
+      }
     }
-  };
+  }, [username, isNavigating, selectedNetwork, router]);
 
-  const handleNetworkSelection = (networkName: string) => {
-    setSelectedNetwork(networkName);
-    setShowUsernameModal(true);
-  };
+  const handleNetworkSelection = useCallback((networkName: string) => {
+    try {
+      setSelectedNetwork(networkName);
+      setShowUsernameModal(true);
+    } catch (error) {
+      console.error('Error in handleNetworkSelection:', error);
+    }
+  }, []);
 
-  const resetSelection = () => {
-    setSelectedNetwork('');
-    setUsername('');
-    setShowUsernameModal(false);
-  };
+  const resetSelection = useCallback(() => {
+    try {
+      setSelectedNetwork('');
+      setUsername('');
+      setShowUsernameModal(false);
+    } catch (error) {
+      console.error('Error in resetSelection:', error);
+    }
+  }, []);
+
+  // Show loading state if navigating or global context not ready
+  if (isNavigating || !globalContext) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color="#FD6F3E" />
+        <Text style={styles.loadingText} allowFontScaling={false}>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -390,6 +421,25 @@ const styles = StyleSheet.create({
     fontFamily: 'Urbanist-Bold',
     marginRight: 10,
   },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'black',
+  },
+  loadingText: {
+    color: 'white',
+    fontSize: 16,
+    fontFamily: 'Urbanist-Regular',
+    marginTop: 16,
+  },
 });
 
-export default LandingScreen; 
+const LandingScreenWithErrorBoundary = () => {
+  return (
+    <ErrorBoundary>
+      <LandingScreen />
+    </ErrorBoundary>
+  );
+};
+
+export default LandingScreenWithErrorBoundary; 

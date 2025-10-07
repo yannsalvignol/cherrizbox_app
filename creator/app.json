@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.yannsalvignol.cherrizboxcreator",
-      "buildNumber": "13",
+      "buildNumber": "15",
       "googleServicesFile": "./GoogleService-Info.plist",
       "requireFullScreen": true,
       "usesAppleSignIn": true,

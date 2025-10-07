@@ -5,6 +5,7 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from "react";
+import { Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "./global.css";
 
@@ -30,8 +31,13 @@ export default function RootLayout() {
     }
   }, [fontsLoaded]);
 
+  // Always render something, even if fonts aren't loaded yet
   if (!fontsLoaded) {
-    return null;
+    return (
+      <View style={{ flex: 1, backgroundColor: 'black', justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ color: 'white', fontSize: 24 }}>Loading...</Text>
+      </View>
+    );
   }
 
   return (
@@ -47,6 +53,7 @@ export default function RootLayout() {
               headerShown: false,
             }} 
           >
+            <Stack.Screen name="landing" options={{ animation: 'none' }} />
             <Stack.Screen name="chat/[id]" />
           </Stack>
         </GlobalProvider>
