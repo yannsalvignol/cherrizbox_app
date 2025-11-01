@@ -18,7 +18,7 @@ export default function Settings() {
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [isProcessingPushNotifications, setIsProcessingPushNotifications] = useState(false);
 
-  // Load push notification preference on component mount
+  // load saved notification settings
   useEffect(() => {
     const loadPushPreference = async () => {
       try {
@@ -27,7 +27,7 @@ export default function Settings() {
           setPushNotifications(JSON.parse(saved));
         }
       } catch (error) {
-        console.log('Error loading push notification preference:', error);
+        console.log('Failed to load notification settings:', error);
       }
     };
     loadPushPreference();
@@ -80,76 +80,69 @@ export default function Settings() {
 
       if (value) {
         // Enable push notifications
-        console.log('📱 [Settings] Enabling push notifications...');
-        console.log('📱 [Settings] Step 1: Importing Firebase messaging...');
+        console.log('turning on notifications...');
         
-        // Import Firebase messaging
+        // get firebase stuff
         const { getMessaging, getToken, requestPermission, AuthorizationStatus } = await import('@react-native-firebase/messaging');
-        console.log('📱 [Settings] Step 2: Firebase messaging imported successfully');
+        console.log('got firebase');
         
         // Request permission
-        console.log('📱 [Settings] Step 3: Requesting push notification permission...');
+        console.log('asking for permission...');
         const messaging = getMessaging();
         const authStatus = await requestPermission(messaging);
-        console.log('📱 [Settings] Step 4: Permission status received:', authStatus);
+        console.log('got permission status:', authStatus);
         
         const enabled =
           authStatus === AuthorizationStatus.AUTHORIZED ||
           authStatus === AuthorizationStatus.PROVISIONAL;
-        console.log('📱 [Settings] Step 5: Permission enabled:', enabled);
+        console.log('permission granted:', enabled);
 
         if (enabled) {
-          console.log('📱 [Settings] Step 6: Permission granted, proceeding with device registration...');
+          console.log('setting up device...');
           
-          // Re-register device with Stream Chat
+          // setup chat stuff
           const { client, getConnectedUserId, connectUser } = await import('../../../lib/stream-chat');
-          console.log('📱 [Settings] Step 7: Stream Chat modules imported');
+          console.log('got chat stuff');
           
           let connectedUserId = getConnectedUserId();
-          console.log('📱 [Settings] Step 8: Connected user ID:', connectedUserId);
+          console.log('user id:', connectedUserId);
           
           // If not connected, try to connect first
           if (!connectedUserId) {
-            console.log('📱 [Settings] Step 8.1: Stream Chat not connected, attempting to connect...');
+            console.log('not connected, trying to connect...');
             try {
               const { getCurrentUser } = await import('../../../lib/appwrite');
               const user = await getCurrentUser();
-              console.log('📱 [Settings] Step 8.2: Current user from Appwrite:', user?.$id);
+              console.log('got user:', user?.$id);
               
               if (user) {
-                console.log('📱 [Settings] Step 8.3: Connecting to Stream Chat...');
+                console.log('connecting to chat...');
                 const connected = await connectUser(user.$id);
-                console.log('📱 [Settings] Step 8.4: Stream Chat connection result:', connected);
+                console.log('connected:', connected);
                 
                 if (connected) {
                   connectedUserId = getConnectedUserId();
-                  console.log('📱 [Settings] Step 8.5: New connected user ID:', connectedUserId);
+                  console.log('new user id:', connectedUserId);
                 }
               } else {
-                console.log('❌ [Settings] Step 8.2 FAILED: No current user from Appwrite');
+                console.log('no user found');
               }
             } catch (connectionError: any) {
-              console.log('❌ [Settings] Step 8.3 FAILED: Stream Chat connection error:', connectionError);
+              console.log('failed to connect:', connectionError);
             }
           }
           
           if (connectedUserId) {
-            console.log('📱 [Settings] Step 9: Getting FCM token...');
+            console.log('getting token...');
             const fcmToken = await getToken(messaging);
-            console.log('📱 [Settings] Step 10: FCM token obtained:', fcmToken ? fcmToken.substring(0, 20) + '...' : 'null');
+            console.log('got token');
             
             if (fcmToken) {
               try {
-                console.log('📱 [Settings] Step 11: Calling client.addDevice...');
-                console.log('📱 [Settings] Parameters:', {
-                  token: fcmToken.substring(0, 20) + '...',
-                  provider: 'firebase',
-                  userId: connectedUserId,
-                  providerName: 'default'
-                });
+                console.log('adding device...');
                 
                 await client.addDevice(fcmToken, 'firebase', connectedUserId, 'default');
-                console.log('✅ [Settings] Step 12: Push notifications re-enabled successfully');
+                console.log('notifications enabled');
                 
                 Alert.alert(
                   'Push Notifications Enabled',
@@ -158,13 +151,8 @@ export default function Settings() {
                   { userInterfaceStyle: themeMode === 'dark' ? 'dark' : 'light' }
                 );
               } catch (error: any) {
-                console.log('❌ [Settings] Step 11 FAILED: Failed to re-register device:', error);
-                console.log('❌ [Settings] Error details:', {
-                  message: error?.message,
-                  code: error?.code,
-                  name: error?.name,
-                  stack: error?.stack
-                });
+                console.log('failed to setup device:', error);
+                console.log('error info:', error?.message);
                 
                 Alert.alert(
                   'Registration Failed',
@@ -174,7 +162,7 @@ export default function Settings() {
                 );
               }
             } else {
-              console.log('❌ [Settings] Step 10 FAILED: No FCM token available');
+              console.log('no token available');
               Alert.alert(
                 'Token Error',
                 'Could not get Firebase token. Please try again.',
@@ -183,7 +171,7 @@ export default function Settings() {
               );
             }
           } else {
-            console.log('❌ [Settings] Step 8 FAILED: No connected user ID');
+            console.log('not connected to chat');
             Alert.alert(
               'Connection Error',
               'Stream Chat is not connected. Please try again.',
@@ -280,17 +268,17 @@ export default function Settings() {
           text: 'Delete Account',
           style: 'destructive',
           onPress: async () => {
-            console.log('🗑️ Starting account deletion process...');
+            console.log('deleting account...');
             setIsDeletingAccount(true);
             
-            // Clear navigation history and navigate to delete screen
+            // go to delete screen
             router.dismissAll();
             router.replace('/delete');
             
             try {
               const result = await deleteAccount();
               
-              console.log('✅ Account deleted successfully:', result);
+              console.log('account deleted:', result);
               
               // Update global state to reflect that user is no longer logged in
               refetch();

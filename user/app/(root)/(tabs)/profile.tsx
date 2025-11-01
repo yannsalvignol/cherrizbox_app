@@ -16,7 +16,7 @@ import { useGlobalContext } from '../../../lib/global-provider'
 import { cancelSubscription } from '../../../lib/subscription'
 import { useTheme } from '../../../lib/themes/useTheme'
 
-// Temporary function definitions to work around import issues
+// temp fix - need to move this later
 const getPurchasedContent = async (
   userId: string, 
   contentType?: string, 
@@ -35,38 +35,37 @@ const getPurchasedContent = async (
       queries.push(Query.equal('creatorId', creatorId));
     }
     
-    console.log(`🔍 [DB Query] Filtering purchased content with:`, { userId, contentType, creatorId });
-    console.log(`🔍 [DB Query] Queries:`, queries.map(q => q.toString()));
+    console.log('Filtering content:', { userId, contentType, creatorId });
+    console.log('Query params:', queries.map(q => q.toString()));
 
     const response = await databases.listDocuments(
       config.databaseId!,
-      '686a99d3002ec49567b3', // Paid content purchases collection ID
+      '686a99d3002ec49567b3',
       queries
     );
     
-    console.log(`📊 [DB Result] Found ${response.documents.length} documents.`);
+    console.log('Found documents:', response.documents.length);
     
-    // First, let's see ALL documents for this user (without content type filter)
+    // Check all user purchases when filtering by content type
     if (contentType) {
-      console.log(`🔍 [DB Debug] Checking ALL purchases for user (no content type filter)...`);
       const allUserPurchases = await databases.listDocuments(
         config.databaseId!,
         '686a99d3002ec49567b3',
         [Query.equal('userId', userId)]
       );
-      console.log(`📊 [DB Debug] Total purchases for user: ${allUserPurchases.documents.length}`);
-      allUserPurchases.documents.forEach((doc, index) => {
-        console.log(`  -> All Doc ${index + 1}: ID=${doc.$id}, Type="${doc.contentType}", Title="${doc.title || 'N/A'}", CreatorId="${doc.creatorId || 'N/A'}"`);
+      console.log('Total user purchases:', allUserPurchases.documents.length);
+      allUserPurchases.documents.forEach(doc => {
+        console.log('Purchase:', doc.$id, doc.contentType, doc.title || 'untitled', doc.creatorId);
       });
     }
     
-    response.documents.forEach((doc, index) => {
-      console.log(`  -> Filtered Doc ${index + 1}: ID=${doc.$id}, Type="${doc.contentType}", Title="${doc.title || 'N/A'}", CreatorId="${doc.creatorId || 'N/A'}"`);
+    response.documents.forEach(doc => {
+      console.log('Content:', doc.$id, doc.contentType, doc.title || 'untitled', doc.creatorId);
     });
 
     return response.documents;
   } catch (error) {
-    console.error('❌ [DB Error] Error fetching purchased content:', error);
+    console.error('Failed to fetch content:', error);
     return [];
   }
 };
@@ -118,16 +117,13 @@ export default function Profile() {
   const cachedContentIds = useRef<Set<string>>(new Set());
   const hasPreloadedForCurrentContent = useRef<string>('');
 
-  // Cache directory for storing downloaded content
+  // where we store the downloads
   const CACHE_DIR = FileSystem.cacheDirectory + 'cherrybox_content/';
 
   useEffect(() => {
     loadUserData();
     initializeCache();
   }, []);
-
-  // Remove all useEffect/useFocusEffect that fetch profile image and the local profileImage state
-  // Use profileImage from context in the avatar
 
   useEffect(() => {
     if (isPaidContent && user) {
@@ -155,55 +151,48 @@ export default function Profile() {
     }
   }, [purchasedContent]);
 
-  // Initialize cache directory and load existing cached files
+  // setup cache stuff
   const initializeCache = async () => {
     try {
-      // Create cache directory if it doesn't exist
       const dirInfo = await FileSystem.getInfoAsync(CACHE_DIR);
       if (!dirInfo.exists) {
         await FileSystem.makeDirectoryAsync(CACHE_DIR, { intermediates: true });
       }
 
-      // Load existing cached files
       const cachedFiles = await FileSystem.readDirectoryAsync(CACHE_DIR);
       const cacheMap = new Map<string, string>();
       
       for (const file of cachedFiles) {
-        // Extract original URL hash from filename (we'll store it as hash.extension)
         const filePath = CACHE_DIR + file;
-        const fileKey = file.split('.')[0]; // Use hash as key
+        const fileKey = file.split('.')[0]; 
         cacheMap.set(fileKey, filePath);
       }
       
       setContentCache(cacheMap);
-      console.log(`Cache initialized with ${cachedFiles.length} files`);
-      
-      // Note: We don't populate cachedContentIds here since we don't have the content items yet
-      // It will be populated as items are accessed/cached during the session
+      console.log('Cache files:', cachedFiles.length);
     } catch (error) {
-      console.error('Cache initialization failed:', error);
+      console.error('Cache init error:', error);
     }
   };
 
-  // Generate cache key from URL
+  // makes url into number we can use for filename
   const getCacheKey = (url: string): string => {
-    // Simple hash function for URL
     let hash = 0;
     for (let i = 0; i < url.length; i++) {
       const char = url.charCodeAt(i);
       hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
+      hash = hash & hash;
     }
     return Math.abs(hash).toString();
   };
 
-  // Get file extension from content type
+  // figure out file type
   const getFileExtension = (contentType: string): string => {
     switch (contentType) {
       case 'image': return '.jpg';
       case 'video': return '.mp4';
       case 'pdf': return '.pdf';
-      case 'file': return '.pdf'; // fallback for old 'file' type
+      case 'file': return '.pdf'; // old stuff uses this
       default: return '.file';
     }
   };
@@ -216,29 +205,26 @@ export default function Profile() {
       const fileName = `${cacheKey}${extension}`;
       const localPath = CACHE_DIR + fileName;
 
-      // Check if already cached
+      // dont download if we already have it
       if (contentCache.has(cacheKey) || cachedContentIds.current.has(item.$id)) {
         return contentCache.get(cacheKey) || localPath;
       }
 
-      // Convert view URL to download URL
       const downloadUrl = item.imageUri.includes('/view?') 
         ? item.imageUri.replace('/view?', '/download?') 
         : item.imageUri;
 
-      // Download to cache
       const downloadResult = await FileSystem.downloadAsync(downloadUrl, localPath);
       
       if (downloadResult.status === 200) {
-        // Update cache map and tracking set
         setContentCache(prev => new Map(prev.set(cacheKey, localPath)));
         cachedContentIds.current.add(item.$id);
-        console.log(`Cached: ${item.contentType} - ${fileName}`);
+        console.log('Cached file:', fileName);
         return localPath;
       }
       return null;
     } catch (error) {
-      console.error(`Failed to cache item:`, error);
+      console.error('Cache error:', error);
       return null;
     }
   };
@@ -252,14 +238,13 @@ export default function Profile() {
     
     // Check if we already preloaded for this exact content set
     if (hasPreloadedForCurrentContent.current === contentKey) {
-      console.log('Already preloaded for this content set, skipping');
+      console.log('Content already loaded');
       return;
     }
 
-    // Check if all content is already cached using the ref
     const uncachedItems = purchasedContent.filter(item => !cachedContentIds.current.has(item.$id));
     if (uncachedItems.length === 0) {
-      console.log('All content already cached, skipping preload');
+      console.log('All items in cache');
       hasPreloadedForCurrentContent.current = contentKey;
       return;
     }
@@ -268,20 +253,17 @@ export default function Profile() {
     setPreloadProgress(0);
 
     try {
-      console.log(`Starting preload of ${uncachedItems.length} uncached items out of ${purchasedContent.length} total...`);
+      console.log('Loading items:', uncachedItems.length);
       
       for (let i = 0; i < uncachedItems.length; i++) {
         const item = uncachedItems[i];
         await cacheContentItem(item);
         setPreloadProgress(((i + 1) / uncachedItems.length) * 100);
-        
-        // Small delay to prevent overwhelming the device
         await new Promise(resolve => setTimeout(resolve, 100));
       }
       
-      // Mark this content set as preloaded
       hasPreloadedForCurrentContent.current = contentKey;
-      console.log('Preloading completed - all items cached');
+      console.log('Content loading done');
     } catch (error) {
       console.error('Preloading failed:', error);
     } finally {
@@ -308,7 +290,7 @@ export default function Profile() {
     }
   }, [isPaidContent, purchasedContent.length, selectedContentType, selectedCreatorId, isPreloading]);
 
-  // Cache cleanup - remove old files if cache gets too large
+  // Cache cleanup, remove old files if cache gets too large
   const cleanupCache = async () => {
     try {
       const cacheInfo = await FileSystem.getInfoAsync(CACHE_DIR);
@@ -388,24 +370,11 @@ export default function Profile() {
       
       const creatorId = selectedCreatorId === 'all' ? undefined : selectedCreatorId;
       
-      console.log(`🔍 [DEBUG] Loading content with params:`, {
-        userId: user.$id,
-        selectedContentType,
-        dbContentType,
-        selectedCreatorId,
-        creatorId
-      });
+      console.log('Loading user content:', user.$id, dbContentType, creatorId);
       
       const content = await getPurchasedContent(user.$id, dbContentType, creatorId);
       
-      console.log(`📊 [DEBUG] Raw content results:`, content);
-      console.log(`📋 [DEBUG] Content details:`, content.map(item => ({
-        id: item.$id,
-        contentType: item.contentType,
-        title: item.title,
-        creatorId: item.creatorId,
-        hasImageUri: !!item.imageUri
-      })));
+      console.log('Content loaded:', content.length);
       
       setPurchasedContent(content);
       
@@ -424,9 +393,9 @@ export default function Profile() {
       // Reset preload flag for new content
       hasPreloadedForCurrentContent.current = '';
       
-      console.log(`✅ [DEBUG] Final results: ${content.length} items loaded, ${cachedContentIds.current.size} already cached`);
+      console.log('Items in cache:', cachedContentIds.current.size);
     } catch (error) {
-      console.error('❌ [DEBUG] Error loading purchased content:', error);
+      console.error('Failed to load content:', error);
       setPurchasedContent([]);
     } finally {
       setIsLoadingContent(false);
@@ -570,7 +539,7 @@ export default function Profile() {
         }
       }
 
-      // Clean up the temporary file
+      // cleanup after sharing
       await FileSystem.deleteAsync(result.uri, { idempotent: true });
     } catch (error) {
       console.error('Error processing content:', error);
@@ -583,14 +552,14 @@ export default function Profile() {
     }
   };
 
-  // Get cached URL or original URL
+  // get the url for the content
   const getContentUrl = (item: any): string => {
     const cacheKey = getCacheKey(item.imageUri);
     const cachedPath = contentCache.get(cacheKey);
     return cachedPath || item.imageUri;
   };
 
-  // Generate video thumbnail
+  // make thumbnail for videos
   const generateVideoThumbnail = async (item: any): Promise<string | null> => {
     try {
       if (item.contentType !== 'video') return null;

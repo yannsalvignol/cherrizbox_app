@@ -7,7 +7,7 @@ import { Animated, Dimensions, Image, Text, TouchableOpacity, View } from 'react
 import { SafeImage } from './SafeImage';
 
 const { width } = Dimensions.get('window');
-const cardWidth = (width - 24) / 2; // Match the width from index.tsx
+const cardWidth = (width - 24) / 2;
 
 interface MediaItem {
     $id: string;
@@ -39,16 +39,11 @@ const PhotoCard = ({ photo, index = 0, scrollY, isSubscribed = false, isCancelle
     const imageUrl = photo.thumbnail || photo.imageUrl || photo.fileUrl || '';
     const cachedUrl = getCachedImageUrl(imageUrl);
 
-    // Add logging to check if the image is cached
     useEffect(() => {
         if (imageUrl) {
-            console.log(
-                `PhotoCard Title: ${photo.title || 'Untitled'}\n` +
-                `  - Original URL: ${imageUrl}\n` +
-                `  - Used URL: ${cachedUrl || 'undefined'}\n` +
-                `  - Is Cached: ${cachedUrl?.startsWith('file://') || false}\n` +
-                `------------------------------------`
-            );
+            console.log('photo:', photo.title);
+            console.log('url:', imageUrl);
+            console.log('cached:', cachedUrl?.startsWith('file://'));
         }
     }, [photo.title, imageUrl, cachedUrl]);
 
@@ -124,16 +119,15 @@ const PhotoCard = ({ photo, index = 0, scrollY, isSubscribed = false, isCancelle
 
     const handlePress = async () => {
         if (isSubscribed || isCancelled) {
-            // Clear badge count when entering chat
             try {
                 const notifee = (await import('@notifee/react-native')).default;
                 await notifee.setBadgeCount(0);
-                console.log('📱 [Push] Badge cleared when entering chat');
+                console.log('cleared notifications');
             } catch (error) {
-                console.log('📱 [Push] Failed to clear badge:', error);
+                console.log('failed to clear notifications:', error);
             }
 
-            // Get creator ID from name
+            // get creator id
             const creatorId = await getCreatorIdByName(photo.title || '');
             if (creatorId) {
                 // Redirect directly to group chat by default
@@ -200,12 +194,11 @@ const PhotoCard = ({ photo, index = 0, scrollY, isSubscribed = false, isCancelle
                                 resizeMode="cover"
                                 fallbackText={`${photo.title || 'Image'} not available`}
                                 onError={(error) => {
-                                    console.log(`❌ [PhotoCard] Image load error for ${photo.title}:`, error.nativeEvent.error);
-                                    console.log(`❌ [PhotoCard] Failed URL: ${cachedUrl}`);
-                                    console.log(`❌ [PhotoCard] Original URL: ${imageUrl}`);
+                                    console.log('image error:', error.nativeEvent.error);
+                                    console.log('failed url:', cachedUrl);
                                 }}
                                 onLoad={() => {
-                                    console.log(`✅ [PhotoCard] Image loaded successfully for ${photo.title}`);
+                                    console.log('loaded image:', photo.title);
                                 }}
                             />
                         ) : (

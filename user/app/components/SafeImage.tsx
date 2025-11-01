@@ -19,21 +19,21 @@ export const SafeImage: React.FC<SafeImageProps> = ({
   const [isLoading, setIsLoading] = useState(true);
 
   const handleError = (error: any) => {
-    console.log('❌ [SafeImage] Image failed to load:', error.nativeEvent?.error);
+    console.log('image failed:', error.nativeEvent?.error);
     setHasError(true);
     setIsLoading(false);
     onError?.(error);
   };
 
   const handleLoad = (event: any) => {
-    console.log('✅ [SafeImage] Image loaded successfully');
+    console.log('image loaded');
     setHasError(false);
     setIsLoading(false);
     onLoad?.(event);
   };
 
   const handleLoadStart = () => {
-    console.log('🔄 [SafeImage] Image loading started');
+    console.log('loading image...');
     setIsLoading(true);
     setHasError(false);
   };

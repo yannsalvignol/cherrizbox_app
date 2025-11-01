@@ -12,7 +12,7 @@ import SearchInput from '../../components/SearchInput';
 import Trending from '../../components/Trending';
 
 const { width } = Dimensions.get('window');
-const cardWidth = (width - 24) / 2; // Reduced padding from 32 to 24 for wider cards
+const cardWidth = (width - 24) / 2;
 
 interface Post {
     $id: string;
@@ -43,10 +43,9 @@ export default function Index() {
     const navigation = useNavigation();
     const { theme, themeMode, setThemeMode } = useTheme();
     
-    // Debug font loading on Android
     useEffect(() => {
-        console.log(`📱 Platform: ${Platform.OS}`);
-        console.log(`🔤 Font family will be: MuseoModerno-Regular`);
+        console.log('platform:', Platform.OS);
+        console.log('font:', 'MuseoModerno-Regular');
     }, []);
     const { user, profile, posts, loading, postsLoaded, refreshPosts, getCachedImageUrl, profileImage } = useGlobalContext();
     const [refreshing, setRefreshing] = useState(false);
@@ -58,15 +57,14 @@ export default function Index() {
     const [scrolling, setScrolling] = useState(false);
     const cherryIconScale = useRef(new Animated.Value(1)).current;
 
-    // Disable iOS swipe-back gesture on this screen
+    // no swipe back
     useEffect(() => {
       navigation.setOptions?.({ gestureEnabled: false });
     }, [navigation]);
 
     useEffect(() => {
       if (!loading) {
-        console.log('📱 [Index] Posts loaded:', posts.length);
-        console.log('📱 [Index] Sample post:', posts[0]);
+        console.log('posts:', posts.length);
         setFilteredPosts(posts);
       }
     }, [posts, loading]);

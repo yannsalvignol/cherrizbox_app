@@ -48,10 +48,9 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
   const { theme } = useTheme();
   const router = useRouter();
   
-  // Component initialization logging
   React.useEffect(() => {
-    console.log('🚀 [CustomMessageInput] Component initialized');
-    console.log('⚙️ [CustomMessageInput] Configuration:', {
+    console.log('component ready');
+    console.log('setup:', {
       currentChatType,
       isThreadInput,
       channelId: currentChannel?.id,
@@ -61,20 +60,18 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
       hasClusteringFunctionId: !!process.env.EXPO_PUBLIC_CLUSTERING_FUNCTION_ID
     });
     
-    // Log environment variables (without exposing sensitive data)
     if (!process.env.EXPO_PUBLIC_CLUSTERING_FUNCTION_ID) {
-      console.log('⚠️ [CustomMessageInput] Missing EXPO_PUBLIC_CLUSTERING_FUNCTION_ID');
+      console.log('missing clustering function id');
     }
     
-    // Log clustering eligibility
     const isEligibleForClustering = currentChatType === 'direct' && !isThreadInput;
-    console.log(`🎯 [CustomMessageInput] Clustering eligible: ${isEligibleForClustering}`);
+    console.log('clustering eligible:', isEligibleForClustering);
     if (!isEligibleForClustering) {
       if (currentChatType !== 'direct') {
-        console.log('   Reason: Not a direct message chat');
+        console.log('not direct chat');
       }
       if (isThreadInput) {
-        console.log('   Reason: Thread input mode');
+        console.log('is thread input');
       }
     }
   }, [currentChatType, isThreadInput, currentChannel?.id, userId, creatorId]);
@@ -82,17 +79,17 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
   // Set up message event listener for clustering with enhanced reliability
   React.useEffect(() => {
     if (!currentChannel || currentChatType !== 'direct' || isThreadInput) {
-      console.log('🚫 [CustomMessageInput] Skipping listener setup:', {
+      console.log('skipping setup:', {
         hasChannel: !!currentChannel,
         chatType: currentChatType,
         isThreadInput,
-        reason: !currentChannel ? 'No channel' : currentChatType !== 'direct' ? 'Not direct chat' : 'Thread input'
+        reason: !currentChannel ? 'no channel' : currentChatType !== 'direct' ? 'not direct chat' : 'thread input'
       });
       return;
     }
 
-    console.log('🎧 [CustomMessageInput] Setting up message event listener...');
-    console.log('🔧 [CustomMessageInput] Listener configuration:', {
+    console.log('setting up message listener...');
+    console.log('config:', {
       channelId: currentChannel.id,
       channelType: currentChannel.type,
       userId,
@@ -101,8 +98,8 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
     });
 
     const handleNewMessage = (event: any) => {
-      console.log('📨 [CustomMessageInput] New message event received');
-      console.log('📋 [CustomMessageInput] Event details:', {
+      console.log('message received');
+      console.log('message details:', {
         type: event.type,
         messageId: event.message?.id,
         userId: event.message?.user?.id,
@@ -113,31 +110,31 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
         timestamp: new Date().toISOString()
       });
 
-      // Only process messages from the current user (fan)
+      // Process user messages
       if (event.message?.user?.id === userId && event.message?.text && event.message.text.trim()) {
-        // Derive creatorId from channel ID if not provided
+        // Get creatorId from provided value or channel ID
         const derivedcreatorId = (creatorId && creatorId.trim().length > 0)
           ? creatorId
           : (currentChannel?.id?.startsWith('dm-') ? currentChannel.id.split('-')[1] : null);
 
-        console.log('🧩 [CustomMessageInput] creatorId resolution:', {
+        console.log('creatorId:', {
           providedCreatorId: creatorId,
           channelId: currentChannel?.id,
           derivedcreatorId
         });
 
         if (!derivedcreatorId) {
-          console.log('⚠️ [CustomMessageInput] Missing creatorId; skipping clustering call.');
+          console.log('missing creatorId - skipping clustering');
           return;
         }
 
         if (!process.env.EXPO_PUBLIC_CLUSTERING_FUNCTION_ID) {
-          console.log('⚠️ [CustomMessageInput] Missing clustering function ID; skipping clustering call.');
+          console.log('missing clustering function id - skipping');
           return;
         }
 
-        console.log('✅ [CustomMessageInput] Message from current user detected, sending to clustering...');
-        console.log('🏷️ [CustomMessageInput] Message context:', {
+        console.log('user message detected, clustering...');
+        console.log('message:', {
           messageId: event.message.id,
           content: event.message.text.substring(0, 100) + (event.message.text.length > 100 ? '...' : ''),
           chatType: currentChatType,
@@ -146,7 +143,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
           creatorId: derivedcreatorId
         });
 
-        // Send to clustering function with error handling
+        // Send for clustering
         sendToClusteringFunction({
           messageId: event.message.id,
           content: event.message.text,
@@ -156,64 +153,61 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
           timestamp: Date.now(),
           messageType: 'text'
         }).catch((error) => {
-          console.error('❌ [CustomMessageInput] Clustering function failed:', error);
-          // Don't prevent other operations from continuing
+          console.error('clustering failed:', error);
+          // Continue anyway
         });
 
-        // Increment daily message count after successful message (for tracking)
+        // Update daily message count
         incrementDailyMessageCount(userId)
           .then((result) => {
-            console.log('📈 [DailyLimits] Message count updated:', result);
+            console.log('count updated:', result);
             if (result.success) {
               setDailyMessageCount(result.newCount);
               if (!result.hasSubscription) {
-                // Only apply limits for non-subscribers
+                // Apply limits for non-subscribers
                 setCanSendMessage(result.newCount < 5);
                 setRemainingMessages(Math.max(0, 5 - result.newCount));
               }
-              // For subscribers, we just update the count for display - no limits applied
             }
             setHasSubscription(result.hasSubscription);
           })
           .catch((error) => {
-            console.error('❌ [DailyLimits] Failed to update message count:', error);
+            console.error('failed to update count:', error);
           });
       } else {
-        console.log('⏭️ [CustomMessageInput] Skipping message');
+        console.log('skipping message');
         if (event.message?.user?.id !== userId) {
-          console.log('   Reason: Message from other user');
+          console.log('from other user');
         }
         if (!event.message?.text || !event.message.text.trim()) {
-          console.log('   Reason: No text content');
+          console.log('no text content');
         }
       }
     };
 
     // Enhanced error handling for event listener setup
     const handleConnectionChanged = (event: any) => {
-      console.log('🔄 [CustomMessageInput] Channel connection changed:', {
+      console.log('connection changed:', {
         type: event.type,
         channelId: currentChannel.id,
         isConnected: event.isConnected,
         timestamp: new Date().toISOString()
       });
       
-      // Re-register listener if connection was restored
+      // Re-register listener on connection restore
       if (event.isConnected) {
-        console.log('🔄 [CustomMessageInput] Re-registering message listener after reconnection');
+        console.log('re-registering message listener');
         currentChannel.off('message.new', handleNewMessage);
         currentChannel.on('message.new', handleNewMessage);
       }
     };
 
-    // Listen for new messages
+    // Set up message listeners
     currentChannel.on('message.new', handleNewMessage);
-    
-    // Listen for connection changes to re-establish listener if needed
     currentChannel.on('connection.changed', handleConnectionChanged);
     
-    console.log('✅ [CustomMessageInput] Message event listeners registered');
-    console.log('📊 [CustomMessageInput] Current channel state:', {
+    console.log('event listeners set up');
+    console.log('channel state:', {
       id: currentChannel.id,
       type: currentChannel.type,
       memberCount: Object.keys(currentChannel.state?.members || {}).length,
@@ -222,7 +216,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
 
     // Cleanup
     return () => {
-      console.log('🧹 [CustomMessageInput] Removing message event listeners');
+      console.log('removing message listeners');
       currentChannel.off('message.new', handleNewMessage);
       currentChannel.off('connection.changed', handleConnectionChanged);
     };
@@ -234,14 +228,14 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
   React.useEffect(() => {
     const checkLimits = async () => {
       if (currentChatType === 'direct' && !isThreadInput && userId) {
-        console.log('🔍 [DailyLimits] Checking daily limits for user:', userId);
+        console.log('checking limits for:', userId);
         const limitInfo = await getDailyMessageLimit(userId);
         setDailyMessageCount(limitInfo.count);
         setCanSendMessage(limitInfo.canSend);
         setRemainingMessages(limitInfo.remaining);
         setHasSubscription(limitInfo.hasSubscription);
         
-        console.log('📊 [DailyLimits] Current status:', {
+        console.log('message limits:', {
           count: limitInfo.count,
           canSend: limitInfo.canSend,
           remaining: limitInfo.remaining,
@@ -274,17 +268,17 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
   const handlePaymentSuccess = async () => {
     try {
       if (!pendingMessageData || !currentChannel) {
-        console.error('❌ No pending message data or current channel');
+        console.error('missing data or channel');
         return;
       }
 
-      console.log('✅ Payment successful! Sending message...');
-      console.log('📤 Sending message with data:', JSON.stringify(pendingMessageData, null, 2));
+      console.log('payment success, sending message...');
+      console.log('message data:', JSON.stringify(pendingMessageData, null, 2));
       
       // Send the message that was prepared before payment
       await currentChannel.sendMessage(pendingMessageData);
       
-      console.log('✅ Message sent successfully after payment');
+      console.log('message sent after payment');
       
       // Store tip amount for success animation
       const tipAmountFormatted = formatPrice(pendingMessageData.attachments[0].tip_amount.toFixed(2), pendingMessageData.attachments[0].currency);
@@ -351,20 +345,20 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
   };
 
     const handleImagePicker = async () => {
-    console.log('🖼️ Starting image picker...');
+    console.log('starting image picker');
     try {
       // Request permissions
-      console.log('🔐 Requesting media library permissions...');
+      console.log('requesting media permissions');
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      console.log('📋 Permission status:', status);
+      console.log('permission status:', status);
       
       if (status !== 'granted') {
-        console.log('❌ Permission denied');
+        console.log('permission denied');
         Alert.alert('Permission needed', 'Please grant permission to access your photo library.');
         return;
       }
 
-      console.log('📱 Launching image library...');
+      console.log('opening image library');
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: false,
@@ -372,7 +366,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
         allowsMultipleSelection: false,
       });
 
-      console.log('📋 Image picker result:', {
+      console.log('picker result:', {
         canceled: result.canceled,
         assetsCount: result.assets?.length || 0,
         assets: result.assets
@@ -380,7 +374,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
-        console.log('📄 Selected asset:', {
+        console.log('selected:', {
           uri: asset.uri,
           type: asset.type,
           fileName: asset.fileName,
@@ -410,26 +404,26 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
         };
         
         setSelectedAttachment(attachmentData);
-        console.log('📱 Showing preview in same modal');
+        console.log('showing preview');
       } else {
-        console.log('❌ No asset selected or picker canceled');
+        console.log('no asset selected');
       }
     } catch (error) {
-      console.error('❌ Error picking image/video:', error);
+      console.error('error picking image:', error);
       Alert.alert('Error', 'Failed to pick image or video.');
     }
   };
 
     const handleDocumentPicker = async () => {
-    console.log('📄 Starting PDF document picker...');
+    console.log('starting pdf picker');
     try {
-      console.log('📱 Launching PDF document picker...');
+      console.log('launching pdf picker');
       const result = await DocumentPicker.getDocumentAsync({
         type: 'application/pdf',
         copyToCacheDirectory: true,
       });
 
-      console.log('📋 Document picker result:', {
+      console.log('picker result:', {
         canceled: result.canceled,
         assetsCount: result.assets?.length || 0,
         assets: result.assets
@@ -437,20 +431,20 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
-        console.log('📄 Selected document:', {
+        console.log('selected document:', {
           uri: asset.uri,
           name: asset.name,
           size: asset.size,
           mimeType: asset.mimeType
         });
         
-        // Copy file to permanent location to prevent it from being cleaned up
+        // Copy file to permanent location 
         const fileName = asset.name || `document_${Date.now()}`;
         const permanentUri = `${FileSystem.documentDirectory}${fileName}`;
         
-        console.log('📁 Copying file to permanent location...');
-        console.log('📁 From:', asset.uri);
-        console.log('📁 To:', permanentUri);
+        console.log('copying file');
+        console.log('from:', asset.uri);
+        console.log('to:', permanentUri);
         
         try {
           await FileSystem.copyAsync({
@@ -458,7 +452,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
             to: permanentUri
           });
           
-          console.log('✅ File copied successfully to permanent location');
+          console.log('file copied');
           
           const attachmentData = {
             uri: permanentUri, // Use permanent URI instead of temporary one
@@ -674,44 +668,42 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
       const execution = await Promise.race([executionPromise, timeoutPromise]) as any;
 
       const duration = Date.now() - startTime;
-      console.log(`⏱️ [Clustering] Function completed in ${duration}ms`);
-      console.log('📊 [Clustering] Execution status:', execution.status);
-      
-      if (execution.status === 'completed') {
-        try {
-          const result = JSON.parse(execution.responseBody);
-          console.log('✅ [Clustering] Success response:', {
-            success: result.success,
-            messageId: result.messageId,
-            totalQuestionsProcessed: result.totalQuestionsProcessed,
-            topic: result.intentAnalysis?.topic,
-            tone: result.intentAnalysis?.tone,
-            questionsFound: result.intentAnalysis?.questions?.length || 0
-          });
-          
-          if (result.clusteringResults && result.clusteringResults.length > 0) {
-            console.log('🔗 [Clustering] Clustering results:');
+        console.log(`completed in ${duration}ms`);
+        console.log('status:', execution.status);
+        
+        if (execution.status === 'completed') {
+          try {
+            const result = JSON.parse(execution.responseBody);
+            console.log('success:', {
+              success: result.success,
+              messageId: result.messageId,
+              totalQuestionsProcessed: result.totalQuestionsProcessed,
+              topic: result.intentAnalysis?.topic,
+              tone: result.intentAnalysis?.tone,
+              questionsFound: result.intentAnalysis?.questions?.length || 0
+            });          if (result.clusteringResults && result.clusteringResults.length > 0) {
+            console.log('clustering results:');
             result.clusteringResults.forEach((cluster: any, index: number) => {
-              console.log(`   ${index + 1}. "${cluster.question}" → ${cluster.action} (Cluster: ${cluster.clusterId})`);
+              console.log(`${index + 1}. "${cluster.question}" -> ${cluster.action} (cluster: ${cluster.clusterId})`);
             });
           }
           
-          return result; // Return success result
+          return result;
         } catch (parseError) {
-          console.log('⚠️ [Clustering] Could not parse success response:', parseError);
-          console.log('📄 [Clustering] Raw response body:', execution.responseBody);
-          throw new Error(`Failed to parse clustering response: ${parseError}`);
+          console.log('error parsing response:', parseError);
+          console.log('raw response:', execution.responseBody);
+          throw new Error(`failed to parse clustering response: ${parseError}`);
         }
       } else {
-        console.log('❌ [Clustering] Function execution failed:', execution.status);
-        let errorMessage = `Function execution failed with status: ${execution.status}`;
+        console.log('function failed:', execution.status);
+        let errorMessage = `function failed: ${execution.status}`;
         
         try {
           const errorData = JSON.parse(execution.responseBody);
-          console.log('📄 [Clustering] Error details:', errorData);
+          console.log('error details:', errorData);
           errorMessage = errorData.message || errorMessage;
         } catch (e) {
-          console.log('📄 [Clustering] Raw error response:', execution.responseBody);
+          console.log('raw error:', execution.responseBody);
         }
         
         throw new Error(errorMessage);
@@ -719,16 +711,16 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
       
     } catch (error: any) {
       const duration = Date.now() - startTime;
-      console.log(`❌ [Clustering] Function call failed after ${duration}ms:`, error);
-      console.log('🔍 [Clustering] Error details:', {
+      console.log(`function failed after ${duration}ms:`, error);
+      console.log('error details:', {
         name: error?.name,
         message: error?.message,
-        stack: error?.stack?.split('\n')[0], // Just first line of stack
+        stack: error?.stack?.split('\n')[0],
         attempt: retryCount + 1,
         willRetry: retryCount < maxRetries
       });
       
-      // Retry logic for transient errors
+      // retry for network errors
       if (retryCount < maxRetries) {
         const isRetryableError = error?.message?.includes('timeout') || 
                                 error?.message?.includes('network') ||
@@ -736,14 +728,14 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                                 error?.status >= 500;
         
         if (isRetryableError) {
-          console.log(`🔄 [Clustering] Retrying in ${(retryCount + 1) * 2}s...`);
+          console.log(`retrying in ${(retryCount + 1) * 2}s...`);
           await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
           return sendToClusteringFunction(messageData, retryCount + 1);
         }
       }
       
-      // Don't throw error to prevent breaking the message flow
-      console.log('💔 [Clustering] Final failure - clustering will be skipped for this message');
+      // skip clustering and continue message flow
+      console.log('failed - skipping clustering');
       return null;
     }
   };
