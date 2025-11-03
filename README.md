@@ -32,7 +32,7 @@ Cherrizbox empowers creators with large audiences to handle thousands of 1â€‘toâ
 ---
 | Main Page | Chat | Subscribtion |
 | --- | --- | --- |
-| ![Main](./docs/images/main.png) | ![Chat](./docs/images/chat.png) | ![Subscription](./docs/images/subscription.png) |
+| ![Main](./docs/images/main.PNG) | ![Chat](./docs/images/chat.PNG) | ![Subscription](./docs/images/subscription.PNG) |
 ## Key Features
 
 - AI Message Clustering: Similar questions are grouped so the creator answers once.
@@ -56,7 +56,7 @@ Learn more on our site: [cherrizbox.com](https://www.cherrizbox.com/)
 6) AI personalizes replies per fan and drafts them for review  
 7) Creator approves and sends in batch
 
-![Clustering Flow](./docs/images/clustering-flow.png)
+![Clustering Flow](./docs/images/clustering-flow.PNG)
 
 ---
 
@@ -86,6 +86,6 @@ Learn more on our site: [cherrizbox.com](https://www.cherrizbox.com/)
 
 | Earnings Dashboard | Chat | Profile |
 | --- | --- | --- |
-| ![Dashboard](./docs/images/earnings.png) | ![Clusters](./docs/images/chat2.png) | ![Reply Preview](./docs/images/profile.png) |
+| ![Dashboard](./docs/images/earnings.PNG) | ![Clusters](./docs/images/chat2.PNG) | ![Reply Preview](./docs/images/profile.PNG) |
 
 ---
