@@ -30,7 +30,9 @@ Cherrizbox is a social platform that lets fans text their favorite creators—an
 Cherrizbox empowers creators with large audiences to handle thousands of 1‑to‑1 conversations in a single click—seamlessly, authentically, and always in their own tone. The platform clusters similar fan messages and lets the creator write one canonical answer that is then personalized and sent back to each fan.
 
 ---
-
+| Main Page | Chat | Subscribtion |
+| --- | --- | --- |
+| ![Main](./docs/images/main.png) | ![Chat](./docs/images/chat.png) | ![Subscription](./docs/images/subscription.png) |
 ## Key Features
 
 - AI Message Clustering: Similar questions are grouped so the creator answers once.
@@ -60,7 +62,7 @@ Learn more on our site: [cherrizbox.com](https://www.cherrizbox.com/)
 
 ## Architecture
 
-![Architecture Diagram](./docs/images/architecture.png)
+
 
 - Intent Recognition → Focused Embeddings → Clustering Engine → Pro Dashboard → Canonical Answer → Personalization → Fan Replies
 - Core services and endpoints are documented in the AI system docs (see Developer Docs below).
@@ -69,8 +71,7 @@ Learn more on our site: [cherrizbox.com](https://www.cherrizbox.com/)
 
 ## Tech Stack
 
-- Frontend: React Native + Expo
-- Chat: Stream Chat
+- Frontend: React Native + Expo (CSS Tailwind library)
 - Backend: Appwrite
 - Vector DB: Upstash Vector
 - Embeddings: OpenAI text-embedding-3-small
@@ -81,10 +82,10 @@ Learn more on our site: [cherrizbox.com](https://www.cherrizbox.com/)
 
 ## Product Screenshots
 
-> Replace the image files in `./docs/images/` with your own PNGs.
 
-| Dashboard | Clusters | Reply Preview |
+
+| Earnings Dashboard | Chat | Profile |
 | --- | --- | --- |
-| ![Dashboard](./docs/images/dashboard.png) | ![Clusters](./docs/images/clusters.png) | ![Reply Preview](./docs/images/reply-preview.png) |
+| ![Dashboard](./docs/images/earnings.png) | ![Clusters](./docs/images/chat2.png) | ![Reply Preview](./docs/images/profile.png) |
 
 ---
