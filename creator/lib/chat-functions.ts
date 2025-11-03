@@ -198,7 +198,7 @@ export const handlePaidVideoCreation = async () => {
       return null;
     }
 
-    console.log('✅ Permission granted, opening video picker...');
+    console.log(' Permission granted, opening video picker...');
     
     // Use ImagePicker specifically for videos
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -212,14 +212,14 @@ export const handlePaidVideoCreation = async () => {
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
       const asset = result.assets[0];
-      console.log('✅ Video selected:', asset);
+      console.log(' Video selected:', asset);
       return asset.uri;
     } else {
-      console.log('❌ Video selection cancelled or failed');
+      console.log('   Video selection cancelled or failed');
       return null;
     }
   } catch (error) {
-    console.error('❌ Error in handlePaidVideoCreation:', error);
+    console.error('   Error in handlePaidVideoCreation:', error);
     Alert.alert('Error', `Failed to select video: ${error instanceof Error ? error.message : 'Unknown error'}`);
     return null;
   }
@@ -246,7 +246,7 @@ export const sendBlurryFile = async (
     setUploadProgress('Preparing file upload...');
     
     if (!channel) {
-      console.error('❌ No channel available');
+      console.error('   No channel available');
       Alert.alert('Error', 'No channel available');
       setUploadProgress('');
       setShowUploadModal(false);
@@ -255,7 +255,7 @@ export const sendBlurryFile = async (
     }
 
     if (!user?.$id) {
-      console.error('❌ No user ID available');
+      console.error('   No user ID available');
       Alert.alert('Error', 'User not authenticated. Please log in again.');
       setUploadProgress('');
       setShowUploadModal(false);
@@ -263,7 +263,7 @@ export const sendBlurryFile = async (
       return;
     }
 
-    console.log('✅ Channel and user available, preparing file...');
+    console.log(' Channel and user available, preparing file...');
     setUploadProgress('Preparing file for upload...');
 
     // Create a unique ID for this file
@@ -349,9 +349,9 @@ export const sendBlurryFile = async (
       setUploadProgress('Finalizing...');
       
     } catch (uploadError) {
-      console.error('❌ Error uploading file to Appwrite storage:', uploadError);
+      console.error('   Error uploading file to Appwrite storage:', uploadError);
       // Continue with local URI as fallback
-      console.log('⚠️ Falling back to local URI for file');
+      console.log('  Falling back to local URI for file');
       setUploadProgress('Preparing content...');
     }
 
@@ -374,7 +374,7 @@ export const sendBlurryFile = async (
       ],
     });
 
-    console.log('✅ Blurry file sent successfully with URL:', appwriteFileUrl);
+    console.log(' Blurry file sent successfully with URL:', appwriteFileUrl);
     setUploadProgress('File uploaded successfully!');
     
     // Success haptic feedback
@@ -388,7 +388,7 @@ export const sendBlurryFile = async (
     }, 2000);
 
   } catch (error) {
-    console.error('❌ Error sending blurry file:', error);
+    console.error('   Error sending blurry file:', error);
     setUploadProgress('');
     setShowUploadModal(false);
     setIsFileUploading(false);
@@ -475,7 +475,7 @@ export const handleSendAudio = async (audioUri: string, duration: number, channe
           fallback: 'Voice Message',
         }],
       });
-      console.log('✅ Voice message sent successfully with duration:', formattedDuration);
+      console.log(' Voice message sent successfully with duration:', formattedDuration);
     }
   } catch (error) {
     console.error('Error sending voice message:', error);
@@ -504,7 +504,7 @@ export const sendPaidVideo = async (
     setUploadProgress('Preparing video upload...');
 
     if (!channel) {
-      console.error('❌ No channel available');
+      console.error('   No channel available');
       Alert.alert('Error', 'No channel available');
       setUploadProgress('');
       setShowUploadModal(false);
@@ -513,7 +513,7 @@ export const sendPaidVideo = async (
     }
 
     if (!user?.$id) {
-      console.error('❌ No user ID available');
+      console.error('   No user ID available');
       Alert.alert('Error', 'User not authenticated. Please log in again.');
       setUploadProgress('');
       setShowUploadModal(false);
@@ -521,7 +521,7 @@ export const sendPaidVideo = async (
       return;
     }
 
-    console.log('✅ Channel and user available, preparing video...');
+    console.log(' Channel and user available, preparing video...');
     setUploadProgress('Preparing video for upload...');
 
     // Create a unique content ID for payment tracking
@@ -593,7 +593,7 @@ export const sendPaidVideo = async (
     // Send message with paid video attachment
     const sentMessage = await channel.sendMessage(messageData);
 
-    console.log('✅ Paid video sent successfully:', sentMessage);
+    console.log(' Paid video sent successfully:', sentMessage);
     setUploadProgress('Video uploaded successfully!');
     
     // Success haptic feedback
@@ -607,7 +607,7 @@ export const sendPaidVideo = async (
     }, 2000);
 
   } catch (error) {
-    console.error('❌ Error sending paid video:', error);
+    console.error('   Error sending paid video:', error);
     setUploadProgress('');
     setShowUploadModal(false);
     setIsVideoUploading(false);
@@ -647,7 +647,7 @@ export const handleCreatePoll = async (pollData: any, channel: any, client: any,
 
     // Step 2: Send a message with the poll_id
     const messageData = {
-      text: `📊 ${pollData.text}`,
+      text: `  ${pollData.text}`,
       poll_id: createdPoll.poll.id
     };
 
@@ -759,7 +759,7 @@ export const preloadAllThreadMessages = async (
           return { messageId: message.id, cached: true };
         }
         
-        console.log(`🔄 [ThreadPreload] Loading thread for message: ${message.id}`);
+        console.log(`   [ThreadPreload] Loading thread for message: ${message.id}`);
         
         // Load thread replies
         const threadReplies = await channel.getReplies(message.id, {
@@ -769,7 +769,7 @@ export const preloadAllThreadMessages = async (
         // Cache the thread messages
         threadMessagesCache.current.set(message.id, threadReplies.messages);
         
-        console.log(`✅ [ThreadPreload] Cached ${threadReplies.messages.length} messages for thread ${message.id}`);
+        console.log(` [ThreadPreload] Cached ${threadReplies.messages.length} messages for thread ${message.id}`);
         
         return {
           messageId: message.id,
@@ -778,7 +778,7 @@ export const preloadAllThreadMessages = async (
         };
         
       } catch (error) {
-        console.error(`❌ [ThreadPreload] Failed to load thread ${message.id}:`, error);
+        console.error(`   [ThreadPreload] Failed to load thread ${message.id}:`, error);
         return {
           messageId: message.id,
           error: error,
@@ -804,11 +804,11 @@ export const preloadAllThreadMessages = async (
       (result.status === 'fulfilled' && !result.value.success && !result.value.cached)
     ).length;
     
-    console.log(`🎯 [ThreadPreload] Results: ${successful} loaded, ${cached} cached, ${failed} failed`);
+    console.log(`  [ThreadPreload] Results: ${successful} loaded, ${cached} cached, ${failed} failed`);
     console.log(`💾 [ThreadPreload] Total threads in cache: ${threadMessagesCache.current.size}`);
     
   } catch (error) {
-    console.error('❌ [ThreadPreload] Error during thread preloading:', error);
+    console.error('   [ThreadPreload] Error during thread preloading:', error);
   }
 };
 
@@ -843,15 +843,15 @@ export const preloadVisibleImages = async (channel: any) => {
     console.log(`🖼️ [ImagePreload] Found ${uniqueImageUrls.length} unique images to preload`);
     
     if (uniqueImageUrls.length > 0) {
-      console.log(`🚀 [ImagePreload] Starting preload of ${uniqueImageUrls.length} images...`);
+      console.log(`  [ImagePreload] Starting preload of ${uniqueImageUrls.length} images...`);
       
              // Import and use the image cache for preloading
        const { chatImageCache } = await import('./image-cache');
       await chatImageCache.preloadImages(uniqueImageUrls);
       
-      console.log(`✅ [ImagePreload] Completed preloading ${uniqueImageUrls.length} images`);
+      console.log(` [ImagePreload] Completed preloading ${uniqueImageUrls.length} images`);
     }
   } catch (error) {
-    console.error('⚠️ [ImagePreload] Failed to preload images:', error);
+    console.error('  [ImagePreload] Failed to preload images:', error);
   }
 };

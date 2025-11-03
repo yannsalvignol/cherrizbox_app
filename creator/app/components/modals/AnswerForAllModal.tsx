@@ -86,7 +86,7 @@ export const AnswerForAllModal: React.FC<AnswerForAllModalProps> = ({
   const handleSendToAll = async () => {
     // Prevent multiple triggers
     if (isSending || isSuccess) {
-      console.log('⚠️ [AnswerForAll] Send already in progress or completed');
+      console.log('  [AnswerForAll] Send already in progress or completed');
       return;
     }
     
@@ -113,7 +113,7 @@ export const AnswerForAllModal: React.FC<AnswerForAllModalProps> = ({
     }, 500);
 
     try {
-      console.log('🚀 [AnswerForAll] Calling backend function...');
+      console.log('  [AnswerForAll] Calling backend function...');
       
       // Call the Appwrite function to handle everything
       const { ExecutionMethod } = await import('react-native-appwrite');
@@ -162,14 +162,14 @@ export const AnswerForAllModal: React.FC<AnswerForAllModalProps> = ({
         
         // Log partial success if any failed
         if (result.failedCount > 0) {
-          console.log('⚠️ [AnswerForAll] Partial success:', result.message);
+          console.log('  [AnswerForAll] Partial success:', result.message);
         }
       } else {
         throw new Error(result.message || 'Failed to send messages');
       }
       
     } catch (error) {
-      console.error('❌ [AnswerForAll] Error:', error);
+      console.error('   [AnswerForAll] Error:', error);
       if (progressInterval.current) clearInterval(progressInterval.current);
       setFakeProgress(0);
       Alert.alert('Error', 'Failed to send messages. Please try again.');

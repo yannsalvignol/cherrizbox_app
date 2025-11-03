@@ -289,26 +289,26 @@ export async function loginWithApple(authorizationCode: string, firstName?: stri
 export async function logout() {
     try {
         // First, delete the Appwrite session to prevent any new API calls
-        console.log('🔄 Deleting Appwrite session...');
+        console.log('   Deleting Appwrite session...');
         const result = await account.deleteSession("current");
-        console.log('✅ Appwrite session deleted');
+        console.log(' Appwrite session deleted');
         
         // Give a small delay to let React components detect the session change and unmount
         await new Promise(resolve => setTimeout(resolve, 100));
         
         // Clear in-memory profile cache from global provider
         try {
-            console.log('🔄 Clearing in-memory profile cache...');
+            console.log('   Clearing in-memory profile cache...');
             const { clearProfileCache } = await import('./global-provider');
             clearProfileCache();
-            console.log('✅ In-memory profile cache cleared');
+            console.log(' In-memory profile cache cleared');
         } catch (profileCacheError) {
             console.error('Error clearing profile cache:', profileCacheError);
         }
         
         // Clear Stream Chat connection and caches
         try {
-            console.log('🔄 Clearing Stream Chat connection and caches...');
+            console.log('   Clearing Stream Chat connection and caches...');
             const { disconnectUser, clearTokenCache } = await import('./stream-chat');
             
             // Disconnect from Stream Chat
@@ -317,7 +317,7 @@ export async function logout() {
             // Clear all caches (memory, AsyncStorage, but not backend since user might login again)
             await clearTokenCache(false, true);
             
-            console.log('✅ Stream Chat cleared successfully');
+            console.log(' Stream Chat cleared successfully');
         } catch (streamError) {
             console.error('Error clearing Stream Chat:', streamError);
             // Continue with logout even if Stream clearing fails
@@ -335,7 +335,7 @@ export async function logout() {
             ];
             
             await AsyncStorage.multiRemove(keysToRemove);
-            console.log('✅ App caches cleared from AsyncStorage');
+            console.log(' App caches cleared from AsyncStorage');
         } catch (cacheError) {
             console.error('Error clearing app caches:', cacheError);
         }
@@ -1057,7 +1057,7 @@ export const createPaidContentPaymentIntent = async (
     }
 ) => {
     try {
-        console.log('🚀 Starting createPaidContentPaymentIntent...');
+        console.log('  Starting createPaidContentPaymentIntent...');
         
         // Use the same function endpoint logic as your existing setup
         const FUNCTION_ID = process.env.EXPO_PUBLIC_STRIPE_FUNCTION_ID;
@@ -1073,12 +1073,12 @@ export const createPaidContentPaymentIntent = async (
         });
 
         if (!FUNCTION_ID) {
-            console.error('❌ Missing EXPO_PUBLIC_STRIPE_FUNCTION_ID');
+            console.error('   Missing EXPO_PUBLIC_STRIPE_FUNCTION_ID');
             throw new Error('EXPO_PUBLIC_STRIPE_FUNCTION_ID is not configured. Please set your function ID in environment variables.');
         }
 
         if (!config.endpoint) {
-            console.error('❌ Missing config.endpoint');
+            console.error('   Missing config.endpoint');
             throw new Error('Appwrite endpoint is not configured.');
         }
         
@@ -1100,7 +1100,7 @@ export const createPaidContentPaymentIntent = async (
             requestBody
         });
         
-        console.log('⏳ Making fetch request...');
+        console.log('  Making fetch request...');
         
         const response = await fetch(backendUrl, {
             method: 'POST',
@@ -1119,15 +1119,15 @@ export const createPaidContentPaymentIntent = async (
         });
 
         if (!response.ok) {
-            console.error('❌ Response not OK, reading error text...');
+            console.error('   Response not OK, reading error text...');
             const errorText = await response.text();
-            console.error('❌ Backend error response:', errorText);
+            console.error('   Backend error response:', errorText);
             throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
         }
 
-        console.log('✅ Response OK, parsing JSON...');
+        console.log(' Response OK, parsing JSON...');
         const data = await response.json();
-        console.log('📊 Backend response data:', data);
+        console.log('  Backend response data:', data);
         
         // Parse the actual response from Appwrite Function's responseBody
         let actualResponse;
@@ -1136,7 +1136,7 @@ export const createPaidContentPaymentIntent = async (
                 actualResponse = JSON.parse(data.responseBody);
                 console.log('📋 Parsed responseBody:', actualResponse);
             } catch (parseError) {
-                console.error('❌ Failed to parse responseBody:', parseError);
+                console.error('   Failed to parse responseBody:', parseError);
                 throw new Error('Invalid response format from backend');
             }
         } else {
@@ -1144,7 +1144,7 @@ export const createPaidContentPaymentIntent = async (
         }
         
         if (!actualResponse.success) {
-            console.error('❌ Backend returned success: false');
+            console.error('   Backend returned success: false');
             throw new Error(actualResponse.error || 'Failed to create payment intent');
         }
 
@@ -1277,17 +1277,17 @@ export const sendVerificationEmailViaFunction = async (email: string, code: stri
     
     const FUNCTION_ID = process.env.EXPO_PUBLIC_SEND_SIGNUP_EMAIL_FUNCTION_ID;
     if (!FUNCTION_ID) {
-        console.log(`❌ [sendVerificationEmailViaFunction] Function ID not configured`);
+        console.log(`   [sendVerificationEmailViaFunction] Function ID not configured`);
         throw new Error('Send signup email function ID not set');
     }
     
-    console.log(`✅ [sendVerificationEmailViaFunction] Function ID found: ${FUNCTION_ID}`);
+    console.log(` [sendVerificationEmailViaFunction] Function ID found: ${FUNCTION_ID}`);
     
     const requestBody = JSON.stringify({ email, code });
     console.log(`📤 [sendVerificationEmailViaFunction] Request body: ${requestBody}`);
     
     try {
-        console.log(`🚀 [sendVerificationEmailViaFunction] Executing Appwrite function...`);
+        console.log(`  [sendVerificationEmailViaFunction] Executing Appwrite function...`);
         const execution = await functions.createExecution(
             FUNCTION_ID,
             requestBody,
@@ -1298,18 +1298,18 @@ export const sendVerificationEmailViaFunction = async (email: string, code: stri
         );
         
         console.log(`📥 [sendVerificationEmailViaFunction] Function execution completed`);
-        console.log(`📊 [sendVerificationEmailViaFunction] Execution status: ${execution.status}`);
-        console.log(`📊 [sendVerificationEmailViaFunction] Response body: ${execution.responseBody}`);
+        console.log(`  [sendVerificationEmailViaFunction] Execution status: ${execution.status}`);
+        console.log(`  [sendVerificationEmailViaFunction] Response body: ${execution.responseBody}`);
         
         if (execution.status === 'failed') {
-            console.log(`❌ [sendVerificationEmailViaFunction] Function execution failed`);
+            console.log(`   [sendVerificationEmailViaFunction] Function execution failed`);
             let errorResponse;
             try {
                 errorResponse = JSON.parse(execution.responseBody);
                 console.log(`📋 [sendVerificationEmailViaFunction] Parsed error response:`, errorResponse);
             } catch (parseError) {
                 const errorMessage = parseError instanceof Error ? parseError.message : 'Unknown parsing error';
-                console.log(`❌ [sendVerificationEmailViaFunction] Failed to parse error response: ${errorMessage}`);
+                console.log(`   [sendVerificationEmailViaFunction] Failed to parse error response: ${errorMessage}`);
                 throw new Error('Failed to send verification email - invalid response format.');
             }
             throw new Error(errorResponse.error || 'Failed to send verification email.');
@@ -1321,16 +1321,16 @@ export const sendVerificationEmailViaFunction = async (email: string, code: stri
             console.log(`📋 [sendVerificationEmailViaFunction] Parsed response body:`, responseBody);
         } catch (parseError) {
             const errorMessage = parseError instanceof Error ? parseError.message : 'Unknown parsing error';
-            console.log(`❌ [sendVerificationEmailViaFunction] Failed to parse response body: ${errorMessage}`);
+            console.log(`   [sendVerificationEmailViaFunction] Failed to parse response body: ${errorMessage}`);
             throw new Error('Failed to send verification email - invalid response format.');
         }
         
         if (!responseBody.success) {
-            console.log(`❌ [sendVerificationEmailViaFunction] Response indicates failure:`, responseBody);
+            console.log(`   [sendVerificationEmailViaFunction] Response indicates failure:`, responseBody);
             throw new Error(responseBody.error || 'Failed to send verification email.');
         }
         
-        console.log(`✅ [sendVerificationEmailViaFunction] Email verification process completed successfully`);
+        console.log(` [sendVerificationEmailViaFunction] Email verification process completed successfully`);
         return responseBody;
         
     } catch (error) {
@@ -1378,11 +1378,11 @@ export const sendCreatorVerificationNotification = async (creatorData: {
     try {
         const FUNCTION_ID = process.env.EXPO_PUBLIC_CREATOR_VERIFICATION_FUNCTION_ID;
         if (!FUNCTION_ID) {
-            console.log(`❌ [sendCreatorVerificationNotification] Function ID not configured`);
+            console.log(`   [sendCreatorVerificationNotification] Function ID not configured`);
             throw new Error('Creator verification function ID not set');
         }
         
-        console.log(`✅ [sendCreatorVerificationNotification] Function ID found: ${FUNCTION_ID}`);
+        console.log(` [sendCreatorVerificationNotification] Function ID found: ${FUNCTION_ID}`);
         console.log(`📤 [sendCreatorVerificationNotification] Creator data:`, creatorData);
         
         const result = await functions.createExecution(

@@ -59,7 +59,7 @@ const CustomMessageInput = ({
               fontSize: 12,
               fontWeight: 'bold',
             }}>
-              📊 Poll
+                Poll
             </Text>
           </TouchableOpacity>
           

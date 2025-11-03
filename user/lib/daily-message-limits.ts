@@ -75,7 +75,7 @@ export const getDailyMessageLimit = async (
     }
 
     const today = getTodayString();
-    console.log('📊 [DailyLimits] Checking daily limit for:', { userId, today });
+    console.log('  [DailyLimits] Checking daily limit for:', { userId, today });
 
     // Query for today's record
     const response = await databases.listDocuments(
@@ -135,7 +135,7 @@ export const incrementDailyMessageCount = async (
     const today = getTodayString();
     const now = new Date().toISOString();
     
-    console.log('📈 [DailyLimits] Incrementing message count for:', { userId, today });
+    console.log('  [DailyLimits] Incrementing message count for:', { userId, today });
 
     // Query for today's record
     const response = await databases.listDocuments(
@@ -165,7 +165,7 @@ export const incrementDailyMessageCount = async (
         }
       );
       
-      console.log('📊 [DailyLimits] Updated existing record:', { newCount });
+      console.log('  [DailyLimits] Updated existing record:', { newCount });
     } else {
       // Create new record
       await databases.createDocument(
@@ -180,7 +180,7 @@ export const incrementDailyMessageCount = async (
         }
       );
       
-      console.log('📊 [DailyLimits] Created new record:', { newCount });
+      console.log('  [DailyLimits] Created new record:', { newCount });
     }
 
     return { success: true, newCount, hasSubscription };
@@ -223,7 +223,7 @@ export const resetDailyLimit = async (
         }
       );
       
-      console.log('🔄 [DailyLimits] Reset daily limit for:', { userId });
+      console.log('   [DailyLimits] Reset daily limit for:', { userId });
     }
 
     return true;

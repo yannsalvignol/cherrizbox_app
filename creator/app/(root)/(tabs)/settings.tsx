@@ -125,10 +125,10 @@ export default function Settings() {
                   console.log('📱 [Settings] Step 8.5: New connected user ID:', connectedUserId);
                 }
               } else {
-                console.log('❌ [Settings] Step 8.2 FAILED: No current user from Appwrite');
+                console.log('   [Settings] Step 8.2 FAILED: No current user from Appwrite');
               }
             } catch (connectionError: any) {
-              console.log('❌ [Settings] Step 8.3 FAILED: Stream Chat connection error:', connectionError);
+              console.log('   [Settings] Step 8.3 FAILED: Stream Chat connection error:', connectionError);
             }
           }
           
@@ -148,7 +148,7 @@ export default function Settings() {
                 });
                 
                 await client.addDevice(fcmToken, 'firebase', connectedUserId, 'default');
-                console.log('✅ [Settings] Step 12: Push notifications re-enabled successfully');
+                console.log(' [Settings] Step 12: Push notifications re-enabled successfully');
                 
                 Alert.alert(
                   'Push Notifications Enabled',
@@ -156,8 +156,8 @@ export default function Settings() {
                   [{ text: 'OK' }]
                 );
               } catch (error: any) {
-                console.log('❌ [Settings] Step 11 FAILED: Failed to re-register device:', error);
-                console.log('❌ [Settings] Error details:', {
+                console.log('   [Settings] Step 11 FAILED: Failed to re-register device:', error);
+                console.log('   [Settings] Error details:', {
                   message: error?.message,
                   code: error?.code,
                   name: error?.name,
@@ -171,7 +171,7 @@ export default function Settings() {
                 );
               }
             } else {
-              console.log('❌ [Settings] Step 10 FAILED: No FCM token available');
+              console.log('   [Settings] Step 10 FAILED: No FCM token available');
               Alert.alert(
                 'Token Error',
                 'Could not get Firebase token. Please try again.',
@@ -179,7 +179,7 @@ export default function Settings() {
               );
             }
           } else {
-            console.log('❌ [Settings] Step 8 FAILED: No connected user ID');
+            console.log('   [Settings] Step 8 FAILED: No connected user ID');
             Alert.alert(
               'Connection Error',
               'Stream Chat is not connected. Please try again.',
@@ -187,7 +187,7 @@ export default function Settings() {
             );
           }
         } else {
-          console.log('❌ [Settings] Step 5 FAILED: Permission denied, reverting toggle');
+          console.log('   [Settings] Step 5 FAILED: Permission denied, reverting toggle');
           // Permission denied, revert toggle
           setPushNotifications(false);
           await AsyncStorage.setItem('@push_notifications_enabled', JSON.stringify(false));
@@ -219,7 +219,7 @@ export default function Settings() {
             console.log('📱 [Settings] Disable Step 5: Calling client.removeDevice...');
             // Remove device from Stream Chat
             await client.removeDevice(fcmToken);
-            console.log('✅ [Settings] Disable Step 6: Push notifications disabled successfully');
+            console.log(' [Settings] Disable Step 6: Push notifications disabled successfully');
             
             Alert.alert(
               'Push Notifications Disabled',
@@ -227,7 +227,7 @@ export default function Settings() {
               [{ text: 'OK' }]
             );
           } else {
-            console.log('⚠️ [Settings] Disable Step 4 WARNING: No FCM token, but proceeding anyway');
+            console.log('  [Settings] Disable Step 4 WARNING: No FCM token, but proceeding anyway');
             Alert.alert(
               'Push Notifications Disabled',
               'Push notifications have been disabled in settings.',
@@ -235,8 +235,8 @@ export default function Settings() {
             );
           }
         } catch (error: any) {
-          console.log('❌ [Settings] Disable FAILED: Failed to remove device:', error);
-          console.log('❌ [Settings] Disable error details:', {
+          console.log('   [Settings] Disable FAILED: Failed to remove device:', error);
+          console.log('   [Settings] Disable error details:', {
             message: error?.message,
             code: error?.code,
             name: error?.name
@@ -250,7 +250,7 @@ export default function Settings() {
         }
       }
     } catch (error) {
-      console.error('❌ [Settings] Error toggling push notifications:', error);
+      console.error('   [Settings] Error toggling push notifications:', error);
       // Revert the toggle on error
       setPushNotifications(!value);
       await AsyncStorage.setItem('@push_notifications_enabled', JSON.stringify(!value));

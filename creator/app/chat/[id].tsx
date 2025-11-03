@@ -159,9 +159,9 @@ export default function ChatScreen() {
         // Mark all messages as read when opening the channel
         try {
           await channelInstance.markRead();
-          console.log(`✅ [ChatScreen] Marked channel ${channelId} as read`);
+          console.log(` [ChatScreen] Marked channel ${channelId} as read`);
         } catch (markReadError) {
-          console.error(`❌ [ChatScreen] Failed to mark channel ${channelId} as read:`, markReadError);
+          console.error(`   [ChatScreen] Failed to mark channel ${channelId} as read:`, markReadError);
         }
 
         setChannel(channelInstance);
@@ -186,7 +186,7 @@ export default function ChatScreen() {
         const profileImageUrl = await chatDataCache.getOrFetchProfileImage(
           user.$id,
           async () => {
-            console.log(`🔄 [ProfileImage] Fetching profile for user: ${user.$id}`);
+            console.log(`   [ProfileImage] Fetching profile for user: ${user.$id}`);
         const profile = await getUserProfile(user.$id);
             return profile?.profileImageUri || '';
           }
@@ -194,12 +194,12 @@ export default function ChatScreen() {
 
         if (profileImageUrl) {
           setProfileImage(profileImageUrl);
-          console.log('✅ [ProfileImage] Loaded profile image (cached):', profileImageUrl.substring(0, 60) + '...');
+          console.log(' [ProfileImage] Loaded profile image (cached):', profileImageUrl.substring(0, 60) + '...');
         } else {
-          console.log('❌ [ProfileImage] No profile image found');
+          console.log('   [ProfileImage] No profile image found');
         }
       } catch (error) {
-        console.error('❌ [ProfileImage] Error loading profile image:', error);
+        console.error('   [ProfileImage] Error loading profile image:', error);
       }
     };
 
@@ -434,36 +434,36 @@ export default function ChatScreen() {
                 
                 // The props ARE the attachment, not nested under 'attachment'
                 if (props?.type === 'custom_attachment') {
-                          console.log('✅ Rendering CustomAttachment for custom_attachment');
+                          console.log(' Rendering CustomAttachment for custom_attachment');
         return <CustomAttachment attachment={props} />;
                 }
                 
                 if (props?.type === 'custom_photo') {
-                  console.log('✅ Rendering CustomPhotoAttachment');
+                  console.log(' Rendering CustomPhotoAttachment');
                   return <CustomPhotoAttachment attachment={props} />;
                 }
                 
                 if (props?.type === 'custom_audio') {
-                  console.log('✅ Rendering CustomAudioAttachment');
+                  console.log(' Rendering CustomAudioAttachment');
                   return <CustomAudioAttachment attachment={props} />;
                 }
                 
                 if (props?.type === 'blurry_file') {
-                  console.log('✅ Rendering BlurryFileAttachment');
+                  console.log(' Rendering BlurryFileAttachment');
                   return <BlurryFileAttachment {...props} userCurrency={userCurrency} formatPrice={formatPrice} />;
                 }
                 
                 if (props?.type === 'paid_video') {
-                  console.log('✅ Rendering PaidVideoAttachment');
+                  console.log(' Rendering PaidVideoAttachment');
                   return <PaidVideoAttachment {...props} userCurrency={userCurrency} formatPrice={formatPrice} />;
                 }
                 
                 if (props?.type === 'paid_content') {
-                  console.log('✅ Rendering PaidContentAttachment for paid_content');
+                  console.log(' Rendering PaidContentAttachment for paid_content');
                   return <PaidContentAttachment {...props} userCurrency={userCurrency} formatPrice={formatPrice} />;
                 }
                 
-                console.log('🔄 Rendering PaidContentAttachment as fallback');
+                console.log('   Rendering PaidContentAttachment as fallback');
                 return <PaidContentAttachment {...props} userCurrency={userCurrency} formatPrice={formatPrice} />;
               }} // Add custom attachment component
             >

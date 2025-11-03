@@ -42,9 +42,9 @@ class ChatImageCache {
       // Clean up expired files
       await this.performCleanup();
       
-      console.log(`🚀 [ImageCache] Initialized with ${this.imageIndex.size} cached images`);
+      console.log(`  [ImageCache] Initialized with ${this.imageIndex.size} cached images`);
     } catch (error) {
-      console.error('❌ [ImageCache] Failed to initialize:', error);
+      console.error('   [ImageCache] Failed to initialize:', error);
     }
   }
 
@@ -74,7 +74,7 @@ class ChatImageCache {
         console.log(`📋 [ImageCache] Loaded ${this.imageIndex.size} items from index`);
       }
     } catch (error) {
-      console.error('⚠️ [ImageCache] Failed to load cache index:', error);
+      console.error('  [ImageCache] Failed to load cache index:', error);
       this.imageIndex.clear();
     }
   }
@@ -85,7 +85,7 @@ class ChatImageCache {
       const indexData = Object.fromEntries(this.imageIndex);
       await FileSystem.writeAsStringAsync(indexFilePath, JSON.stringify(indexData));
     } catch (error) {
-      console.error('⚠️ [ImageCache] Failed to save cache index:', error);
+      console.error('  [ImageCache] Failed to save cache index:', error);
     }
   }
 
@@ -110,7 +110,7 @@ class ChatImageCache {
           await FileSystem.deleteAsync(item.localPath, { idempotent: true });
           this.imageIndex.delete(key);
         } catch (error) {
-          console.error(`⚠️ [ImageCache] Failed to delete expired file ${key}:`, error);
+          console.error(`  [ImageCache] Failed to delete expired file ${key}:`, error);
         }
       }
     }
@@ -144,7 +144,7 @@ class ChatImageCache {
         freedSize += item.fileSize;
         removedCount++;
       } catch (error) {
-        console.error(`⚠️ [ImageCache] Failed to delete file during size cleanup:`, error);
+        console.error(`  [ImageCache] Failed to delete file during size cleanup:`, error);
       }
     }
 
@@ -180,19 +180,19 @@ class ChatImageCache {
         if (fileInfo.exists && !isExpired) {
           this.stats.hits++;
           this.updateCacheStats();
-          console.log(`✅ [ImageCache] Cache HIT (${Math.round(fileInfo.size! / 1024)}KB) - Age: ${Math.round((Date.now() - cachedItem.timestamp) / 1000)}s`);
+          console.log(` [ImageCache] Cache HIT (${Math.round(fileInfo.size! / 1024)}KB) - Age: ${Math.round((Date.now() - cachedItem.timestamp) / 1000)}s`);
           return cachedItem.localPath;
         } else if (isExpired) {
           console.log(`⏰ [ImageCache] Cache EXPIRED - removing`);
           this.imageIndex.delete(cacheKey);
         }
       } catch (error) {
-        console.error('⚠️ [ImageCache] Error checking cached file:', error);
+        console.error('  [ImageCache] Error checking cached file:', error);
         this.imageIndex.delete(cacheKey);
       }
     }
 
-    console.log(`❌ [ImageCache] Cache MISS - downloading...`);
+    console.log(`   [ImageCache] Cache MISS - downloading...`);
 
     // Handle local files (don't cache local images)
     if (imageUrl.startsWith('file://') || imageUrl.includes('ImagePicker') || imageUrl.includes('CameraPictures')) {
@@ -218,35 +218,35 @@ class ChatImageCache {
         await this.saveCacheIndex();
         this.updateCacheStats();
         
-        console.log(`✅ [ImageCache] Cached successfully (${Math.round(fileInfo.size! / 1024)}KB)`);
-        console.log(`📊 [ImageCache] Stats: ${this.stats.totalItems} items, ${Math.round(this.stats.totalSize / 1024)}KB, ${this.stats.hitRate.toFixed(1)}% hit rate`);
+        console.log(` [ImageCache] Cached successfully (${Math.round(fileInfo.size! / 1024)}KB)`);
+        console.log(`  [ImageCache] Stats: ${this.stats.totalItems} items, ${Math.round(this.stats.totalSize / 1024)}KB, ${this.stats.hitRate.toFixed(1)}% hit rate`);
         
         return downloadResult.uri;
       } else {
-        console.log(`❌ [ImageCache] Downloaded file is empty or invalid`);
+        console.log(`   [ImageCache] Downloaded file is empty or invalid`);
       }
     } catch (error) {
-      console.error('❌ [ImageCache] Download failed:', error);
+      console.error('   [ImageCache] Download failed:', error);
     }
 
     // Fallback to original URL
-    console.log(`🔄 [ImageCache] Falling back to original URL`);
+    console.log(`   [ImageCache] Falling back to original URL`);
     return imageUrl;
   }
 
   public async preloadImages(imageUrls: string[]): Promise<void> {
-    console.log(`🚀 [ImageCache] Preloading ${imageUrls.length} images...`);
+    console.log(`  [ImageCache] Preloading ${imageUrls.length} images...`);
     
     const preloadPromises = imageUrls.map(async (url) => {
       try {
         await this.getCachedImagePath(url);
       } catch (error) {
-        console.error(`⚠️ [ImageCache] Preload failed for: ${url}`, error);
+        console.error(`  [ImageCache] Preload failed for: ${url}`, error);
       }
     });
 
     await Promise.allSettled(preloadPromises);
-    console.log(`✅ [ImageCache] Preloading completed`);
+    console.log(` [ImageCache] Preloading completed`);
   }
 
   public async clearAllCache(): Promise<void> {
@@ -257,7 +257,7 @@ class ChatImageCache {
       await this.initializeCache();
       console.log(`🗑️ [ImageCache] Cache cleared completely`);
     } catch (error) {
-      console.error('❌ [ImageCache] Failed to clear cache:', error);
+      console.error('   [ImageCache] Failed to clear cache:', error);
     }
   }
 
@@ -280,7 +280,7 @@ setInterval(async () => {
   try {
     await (chatImageCache as any).performCleanup();
   } catch (error) {
-    console.error('⚠️ [ImageCache] Periodic cleanup failed:', error);
+    console.error('  [ImageCache] Periodic cleanup failed:', error);
   }
 }, 30 * 60 * 1000);
 
@@ -288,6 +288,6 @@ setInterval(async () => {
 if (__DEV__) {
   setInterval(() => {
     const stats = chatImageCache.getCacheStats();
-    console.log(`📊 [ImageCache] Stats: ${stats.totalItems} items, ${Math.round(stats.totalSize / 1024)}KB, ${stats.hitRate.toFixed(1)}% hit rate`);
+    console.log(`  [ImageCache] Stats: ${stats.totalItems} items, ${Math.round(stats.totalSize / 1024)}KB, ${stats.hitRate.toFixed(1)}% hit rate`);
   }, 2 * 60 * 1000);
 }

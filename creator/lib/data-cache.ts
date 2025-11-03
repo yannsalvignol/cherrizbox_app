@@ -78,7 +78,7 @@ class ChatDataCache {
     
     if (!entry) {
       this.metrics.missCount++;
-      console.log(`❌ [DataCache] MISS: ${key}`);
+      console.log(`   [DataCache] MISS: ${key}`);
       this.updateMetrics();
       return null;
     }
@@ -95,7 +95,7 @@ class ChatDataCache {
     }
 
     this.metrics.hitCount++;
-    console.log(`✅ [DataCache] HIT: ${key} (age: ${Math.round(age / 1000)}s)`);
+    console.log(` [DataCache] HIT: ${key} (age: ${Math.round(age / 1000)}s)`);
     this.updateMetrics();
     return entry.data as T;
   }
@@ -141,7 +141,7 @@ class ChatDataCache {
       return cached;
     }
 
-    console.log(`🔄 [DataCache] Fetching data for: ${key}`);
+    console.log(`   [DataCache] Fetching data for: ${key}`);
     const data = await fetchFunction();
     this.set(key, data, customTTL);
     return data;
@@ -248,7 +248,7 @@ class ChatDataCache {
 
   // Bulk operations
   public prefetchData(keyFunctionPairs: Array<{ key: string; fetchFn: () => Promise<any>; ttl?: number }>): void {
-    console.log(`🚀 [DataCache] Starting bulk prefetch of ${keyFunctionPairs.length} items`);
+    console.log(`  [DataCache] Starting bulk prefetch of ${keyFunctionPairs.length} items`);
     
     keyFunctionPairs.forEach(async ({ key, fetchFn, ttl }) => {
       try {
@@ -257,7 +257,7 @@ class ChatDataCache {
           this.set(key, data, ttl);
         }
       } catch (error) {
-        console.error(`⚠️ [DataCache] Prefetch failed for ${key}:`, error);
+        console.error(`  [DataCache] Prefetch failed for ${key}:`, error);
       }
     });
   }
@@ -287,6 +287,6 @@ if (__DEV__) {
   setInterval(() => {
     const metrics = chatDataCache.getCacheMetrics();
     const memoryKB = chatDataCache.getMemoryUsageEstimate();
-    console.log(`📊 [DataCache] Stats: ${metrics.totalEntries} entries, ${memoryKB}KB memory, ${metrics.hitRatio.toFixed(1)}% hit rate`);
+    console.log(`  [DataCache] Stats: ${metrics.totalEntries} entries, ${memoryKB}KB memory, ${metrics.hitRatio.toFixed(1)}% hit rate`);
   }, 3 * 60 * 1000); // Every 3 minutes
 }

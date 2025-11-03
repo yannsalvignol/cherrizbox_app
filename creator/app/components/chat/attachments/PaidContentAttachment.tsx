@@ -47,15 +47,15 @@ const PaidContentAttachment = (props: PaidContentAttachmentProps) => {
           user.$id,
           attachment.paid_content_id,
           async () => {
-            console.log(`🔄 [PurchaseStatus] Checking purchase for content: ${attachment.paid_content_id}`);
+            console.log(`   [PurchaseStatus] Checking purchase for content: ${attachment.paid_content_id}`);
             return await checkPaidContentPurchase(user.$id, attachment.paid_content_id);
           }
         );
         
         setIsUnlocked(hasPurchased);
-        console.log(`✅ [PurchaseStatus] Content ${attachment.paid_content_id}: ${hasPurchased ? 'UNLOCKED' : 'LOCKED'} (cached)`);
+        console.log(` [PurchaseStatus] Content ${attachment.paid_content_id}: ${hasPurchased ? 'UNLOCKED' : 'LOCKED'} (cached)`);
       } catch (error) {
-        console.error('❌ [PurchaseStatus] Error checking purchase status:', error);
+        console.error('   [PurchaseStatus] Error checking purchase status:', error);
         setIsUnlocked(false);
       }
     };
@@ -72,7 +72,7 @@ const PaidContentAttachment = (props: PaidContentAttachmentProps) => {
     // Update cache with new unlocked status
     if (user?.$id && attachment?.paid_content_id) {
       chatDataCache.setCachedPurchaseStatus(user.$id, attachment.paid_content_id, true);
-      console.log(`✅ [PurchaseStatus] Cache updated: content ${attachment.paid_content_id} now UNLOCKED`);
+      console.log(` [PurchaseStatus] Cache updated: content ${attachment.paid_content_id} now UNLOCKED`);
     }
     
     // Haptic feedback
@@ -89,7 +89,7 @@ const PaidContentAttachment = (props: PaidContentAttachmentProps) => {
     // Update cache with new unlocked status
     if (user?.$id && attachment?.paid_content_id) {
       chatDataCache.setCachedPurchaseStatus(user.$id, attachment.paid_content_id, true);
-      console.log(`✅ [PurchaseStatus] Cache updated: content ${attachment.paid_content_id} now UNLOCKED`);
+      console.log(` [PurchaseStatus] Cache updated: content ${attachment.paid_content_id} now UNLOCKED`);
     }
     
     // Haptic feedback

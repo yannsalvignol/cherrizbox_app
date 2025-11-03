@@ -99,7 +99,7 @@ const PhotoCard = ({ photo, index = 0, scrollY, isSubscribed = false, isCancelle
             // Navigate to chat
             // Navigate to the specific creator chat channel
             const channelId = `creator-${photo.creatorId}`;
-            console.log('🚀 [PhotoCard] Navigating to chat channel:', channelId);
+            console.log('  [PhotoCard] Navigating to chat channel:', channelId);
             router.push(`/chat/${channelId}` as any);
         } else {
             // Navigate to properties if not subscribed

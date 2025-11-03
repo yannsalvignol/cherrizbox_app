@@ -147,7 +147,7 @@ export default function EarningsTab({
         console.log('💰 [Earnings] Loaded user currency:', currency);
       }
     } catch (error) {
-      console.error('❌ [Earnings] Error loading user currency:', error);
+      console.error('   [Earnings] Error loading user currency:', error);
       setUserCurrency('USD'); // Default fallback
     }
   };
@@ -168,7 +168,7 @@ export default function EarningsTab({
 
       if (creatorResponse.documents.length > 0) {
         const creatorData = creatorResponse.documents[0];
-        console.log('📊 [Earnings] Creator financial data loaded:', {
+        console.log('  [Earnings] Creator financial data loaded:', {
           currentPeriodGross: creatorData.currentPeriodGross,
           previousPeriodGross: creatorData.previousPeriodGross,
           lifetimeGross: creatorData.lifetimeGross,
@@ -177,15 +177,15 @@ export default function EarningsTab({
           stripeConnectAccountId: creatorData.stripeConnectAccountId
         });
         setCreatorFinancials(creatorData as StripeConnectProfile);
-        console.log('✅ [Earnings] Loaded creator financial data.');
+        console.log(' [Earnings] Loaded creator financial data.');
         return creatorData;
       } else {
-        console.log('❌ [Earnings] No creator document found for this user.');
+        console.log('   [Earnings] No creator document found for this user.');
         setCreatorFinancials(null);
         return null;
       }
     } catch (error) {  
-      console.error('❌ [Earnings] Error loading creator financials:', error);
+      console.error('   [Earnings] Error loading creator financials:', error);
       setCreatorFinancials(null);
       return null;
     } finally {
@@ -205,14 +205,14 @@ export default function EarningsTab({
       const { ExecutionMethod } = await import('react-native-appwrite');
 
       // Trigger the backend to update the DB
-      console.log('🔄 [Earnings] Calling Stripe balance API for account:', creatorFinancials.stripeConnectAccountId);
+      console.log('   [Earnings] Calling Stripe balance API for account:', creatorFinancials.stripeConnectAccountId);
       const execution = await functions.createExecution(
         process.env.EXPO_PUBLIC_STRIPE_BALANCE_FUNCTION_ID!,
         JSON.stringify({ stripeConnectAccountId: creatorFinancials.stripeConnectAccountId }),
         true, '/get-balance', ExecutionMethod.POST,  // Changed to async
         { 'Content-Type': 'application/json' }
       );
-      console.log('📡 [Earnings] Stripe API execution result:', execution);
+      console.log('  [Earnings] Stripe API execution result:', execution);
 
       // Parse the response to get goals
       // With async execution, the response might not be immediately available
@@ -239,18 +239,18 @@ export default function EarningsTab({
             }));
           }
         } catch (e) {
-          console.log('⏳ [Earnings] Async execution in progress, data will be updated on next refresh');
+          console.log('  [Earnings] Async execution in progress, data will be updated on next refresh');
         }
       } else {
-        console.log('⏳ [Earnings] Async execution started, data will be updated in the background');
+        console.log('  [Earnings] Async execution started, data will be updated in the background');
       }
 
       // Refetch the data from our DB
-      console.log('🔄 [Earnings] Refetching creator financial data...');
+      console.log('   [Earnings] Refetching creator financial data...');
       await loadCreatorFinancials();
 
     } catch (error) {
-      console.error('❌ [Earnings] Error updating Stripe data:', error);
+      console.error('   [Earnings] Error updating Stripe data:', error);
       Alert.alert("Error", "Could not update your financial data. Please try again.");
     } finally {
       setIsLoadingFinancials(false);
@@ -261,7 +261,7 @@ export default function EarningsTab({
     if (isLoadingStripeConnect || creatorFinancials?.stripeConnectSetupComplete) return;
 
     setIsLoadingStripeConnect(true);
-    console.log('🚀 [Earnings] Starting Stripe Onboarding...');
+    console.log('  [Earnings] Starting Stripe Onboarding...');
     
     try {
       const { functions, databases, config } = await import('@/lib/appwrite');
@@ -288,7 +288,7 @@ export default function EarningsTab({
           console.log('📱 [Earnings] User phone number:', phoneNumber);
         }
       } catch (profileError) {
-        console.log('⚠️ [Earnings] Could not fetch user profile data, using defaults:', profileError);
+        console.log('  [Earnings] Could not fetch user profile data, using defaults:', profileError);
       }
       
       const result = await functions.createExecution(
@@ -309,7 +309,7 @@ export default function EarningsTab({
 
       const response = JSON.parse(result.responseBody);
       if (response.success && response.accountLinkUrl) {
-        console.log('✅ [Earnings] Got account link URL:', response.accountLinkUrl);
+        console.log(' [Earnings] Got account link URL:', response.accountLinkUrl);
         setStripeConnectUrl(response.accountLinkUrl);
         setShowStripeConnect(true);
         // Refresh data after onboarding attempt
@@ -320,7 +320,7 @@ export default function EarningsTab({
         throw new Error(response.error || 'Failed to create Stripe Connect account.');
       }
     } catch (error) {
-      console.error('❌ [Earnings] Error during Stripe onboarding:', error);
+      console.error('   [Earnings] Error during Stripe onboarding:', error);
       setShowNetworkErrorModal(true);
     } finally {
       setIsLoadingStripeConnect(false);
@@ -331,7 +331,7 @@ export default function EarningsTab({
     if (isLoadingStripeConnect || !creatorFinancials?.stripeConnectAccountId) return;
     
     setIsLoadingStripeConnect(true);
-    console.log('🚀 [Earnings] Opening Stripe Dashboard...');
+    console.log('  [Earnings] Opening Stripe Dashboard...');
 
     try {
       const { functions } = await import('@/lib/appwrite');
@@ -348,14 +348,14 @@ export default function EarningsTab({
 
       const response = JSON.parse(result.responseBody);
       if (response.success && response.url) {
-        console.log('✅ [Earnings] Got dashboard link URL:', response.url);
+        console.log(' [Earnings] Got dashboard link URL:', response.url);
         setStripeConnectUrl(response.url);
         setShowStripeConnect(true);
       } else {
         throw new Error(response.error || 'Failed to create dashboard link.');
       }
     } catch (error) {  
-      console.error('❌ [Earnings] Error opening Stripe dashboard:', error);
+      console.error('   [Earnings] Error opening Stripe dashboard:', error);
       setShowNetworkErrorModal(true);
     } finally {
       setIsLoadingStripeConnect(false);
@@ -365,7 +365,7 @@ export default function EarningsTab({
   // Update state when preloaded data changes
   useEffect(() => {
     if (preloadedFinancials) {
-      console.log('📊 [Earnings] Using preloaded financial data');
+      console.log('  [Earnings] Using preloaded financial data');
       setCreatorFinancials(preloadedFinancials);
     }
   }, [preloadedFinancials]);
@@ -379,21 +379,21 @@ export default function EarningsTab({
 
   useEffect(() => {
     if (preloadedDailyGoal !== undefined) {
-      console.log('🎯 [Earnings] Using preloaded daily goal:', preloadedDailyGoal);
+      console.log('  [Earnings] Using preloaded daily goal:', preloadedDailyGoal);
       setDailyGoal(preloadedDailyGoal);
     }
   }, [preloadedDailyGoal]);
 
   useEffect(() => {
     if (preloadedWeeklyGoal !== undefined) {
-      console.log('🎯 [Earnings] Using preloaded weekly goal:', preloadedWeeklyGoal);
+      console.log('  [Earnings] Using preloaded weekly goal:', preloadedWeeklyGoal);
       setWeeklyGoal(preloadedWeeklyGoal);
     }
   }, [preloadedWeeklyGoal]);
 
   useEffect(() => {
     if (preloadedStripeData) {
-      console.log('📈 [Earnings] Using preloaded Stripe KPI data');
+      console.log('  [Earnings] Using preloaded Stripe KPI data');
       // Update creator financials with the preloaded Stripe data (including balance data)
       setCreatorFinancials(prev => ({
         ...prev,
@@ -499,7 +499,7 @@ export default function EarningsTab({
             if (creatorFinancials?.stripeConnectSetupComplete && 
                 creatorFinancials?.currentPeriodGross === undefined && 
                 !isLoadingFinancials) {
-              console.log('🔄 [Earnings] Auto-initializing KPI data...');
+              console.log('   [Earnings] Auto-initializing KPI data...');
               handleUpdateStripeData();
             }
             return null;
@@ -1384,12 +1384,12 @@ export default function EarningsTab({
         }}
         onError={(syntheticEvent) => {
           const { nativeEvent } = syntheticEvent;
-          console.error('❌ [Earnings] WebView error:', nativeEvent);
+          console.error('   [Earnings] WebView error:', nativeEvent);
           setShowNetworkErrorModal(true);
         }}
         onHttpError={(syntheticEvent) => {
           const { nativeEvent } = syntheticEvent;
-          console.error('❌ [Earnings] WebView HTTP error:', nativeEvent);
+          console.error('   [Earnings] WebView HTTP error:', nativeEvent);
         }}
       />
 

@@ -219,10 +219,10 @@ export const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
                 resizeMode="contain"
                 onLoad={() => {
                   setIsLoading(false);
-                  console.log('✅ [ImageViewerModal] Image loaded successfully');
+                  console.log(' [ImageViewerModal] Image loaded successfully');
                 }}
                 onError={(error) => {
-                  console.error('❌ [ImageViewerModal] Image load failed:', error.nativeEvent);
+                  console.error('   [ImageViewerModal] Image load failed:', error.nativeEvent);
                   setIsLoading(false);
                   setHasError(true);
                 }}

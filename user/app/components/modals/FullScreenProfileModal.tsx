@@ -703,7 +703,7 @@ export const FullScreenProfileModal: React.FC<FullScreenProfileModalProps> = ({
                       alignItems: 'center',
                       marginBottom: 16
                     }}>
-                      <Text style={{ color: 'white', fontSize: 16 }}>⏳</Text>
+                      <Text style={{ color: 'white', fontSize: 16 }}> </Text>
                     </View>
                     <Text style={{ 
                       color: '#888', 

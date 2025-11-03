@@ -2,13 +2,13 @@
 
 ## Current Implementation Analysis
 
-### ✅ What's Already Good:
+###  What's Already Good:
 1. **Pagination**: Loading 30 channels at a time
 2. **Lazy Loading**: Load more on scroll
 3. **Stream Chat Backend**: Built for scale
 4. **Token Caching**: Reduces auth overhead
 
-### ⚠️ Bottlenecks for 5000+ Users:
+###   Bottlenecks for 5000+ Users:
 
 #### 1. WebSocket Connections
 **Problem**: Each watched channel maintains a WebSocket connection
@@ -22,7 +22,7 @@
 **Problem**: Keeping all channel data in state
 **Impact**: High memory usage, slow UI updates
 
-## 🚀 Scalability Solutions
+##   Scalability Solutions
 
 ### 1. **Implement Virtual Scrolling**
 ```typescript

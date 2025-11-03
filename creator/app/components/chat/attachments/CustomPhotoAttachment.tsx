@@ -42,10 +42,10 @@ const CustomPhotoAttachment: React.FC<CustomPhotoAttachmentProps> = ({ attachmen
         
         if (isMounted) {
           setCachedImageUri(cachedPath);
-          console.log(`✅ [CustomPhotoAttachment] Image ready: ${cachedPath === attachment.image_url ? 'original' : 'cached'}`);
+          console.log(` [CustomPhotoAttachment] Image ready: ${cachedPath === attachment.image_url ? 'original' : 'cached'}`);
         }
       } catch (error) {
-        console.error('❌ [CustomPhotoAttachment] Failed to load cached image:', error);
+        console.error('   [CustomPhotoAttachment] Failed to load cached image:', error);
         if (isMounted) {
           setCachedImageUri(attachment.image_url); // Fallback to original
         }
@@ -137,10 +137,10 @@ const CustomPhotoAttachment: React.FC<CustomPhotoAttachmentProps> = ({ attachmen
             resizeMode="cover"
             onLoad={() => {
               setIsLoading(false);
-              console.log(`✅ [CustomPhotoAttachment] Image rendered successfully`);
+              console.log(` [CustomPhotoAttachment] Image rendered successfully`);
             }}
             onError={(error) => {
-              console.error(`❌ [CustomPhotoAttachment] Image render failed:`, error.nativeEvent);
+              console.error(`   [CustomPhotoAttachment] Image render failed:`, error.nativeEvent);
               setIsLoading(false);
               setHasError(true);
             }}

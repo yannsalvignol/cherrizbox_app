@@ -132,7 +132,7 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
     if (cachedUri) {
       FileSystem.getInfoAsync(cachedUri).then(fileInfo => {
         if (!fileInfo.exists) {
-          console.log(`🔄 [ImageCache] Cached file missing, re-caching: ${remoteUrl.substring(0, 50)}...`);
+          console.log(`   [ImageCache] Cached file missing, re-caching: ${remoteUrl.substring(0, 50)}...`);
           delete imageDiskCache.current[remoteUrl];
           // Re-cache the image in the background
           cacheImage(remoteUrl).then(newUri => {
@@ -200,7 +200,7 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
 
   const initializeImageCache = async () => {
     try {
-      console.log('🔄 [ImageCache] Reading image cache from disk...');
+      console.log('   [ImageCache] Reading image cache from disk...');
       
       // Check app version to clear cache on updates
       const currentVersion = Constants.expoConfig?.version || '1.0.0';
@@ -320,7 +320,7 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
         .map(sub => sub.creatorId);
 
       if (activeCreatorIds.length > 0 && isStreamConnected) {
-        console.log('🚀 Starting channel pre-setup for active creators...');
+        console.log('  Starting channel pre-setup for active creators...');
         // Run channel pre-setup in background (don't await to avoid blocking UI)
         preSetupChannels(user.$id, activeCreatorIds).then((result) => {
           console.log(' Channel pre-setup completed:', result);
@@ -443,7 +443,7 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
           
           // Only initialize heavy processes if user has active subscriptions
           if (hasActiveSubscriptions) {
-            console.log('🚀 User has subscriptions - initializing Stream Chat and heavy processes');
+            console.log('  User has subscriptions - initializing Stream Chat and heavy processes');
             if (previousUserId.current) await disconnectUser();
             await connectUser(user.$id);
             setIsStreamConnected(true);

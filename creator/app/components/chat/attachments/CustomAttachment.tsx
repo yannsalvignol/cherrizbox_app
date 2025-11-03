@@ -53,18 +53,18 @@ const CustomAttachment = ({ attachment }: CustomAttachmentProps) => {
           if (isMounted) {
             setCachedImageUri(cachedPath);
             setIsLoading(false);
-            console.log(`✅ [CustomAttachment] Image ready: ${cachedPath === imageUrl ? 'original' : 'cached'}`);
+            console.log(` [CustomAttachment] Image ready: ${cachedPath === imageUrl ? 'original' : 'cached'}`);
           }
         } else {
           // Local file, use directly
           if (isMounted) {
             setCachedImageUri(imageUrl);
             setIsLoading(false);
-            console.log(`✅ [CustomAttachment] Local image ready`);
+            console.log(` [CustomAttachment] Local image ready`);
           }
         }
       } catch (error) {
-        console.error('❌ [CustomAttachment] Failed to load image:', error);
+        console.error('   [CustomAttachment] Failed to load image:', error);
         if (isMounted) {
           setHasError(true);
           setIsLoading(false);
@@ -98,10 +98,10 @@ const CustomAttachment = ({ attachment }: CustomAttachmentProps) => {
           dialogTitle: attachment?.title || 'Document',
           UTI: attachment?.mime_type === 'application/pdf' ? 'com.adobe.pdf' : undefined,
         });
-        console.log('✅ [CustomAttachment] Document shared successfully');
+        console.log(' [CustomAttachment] Document shared successfully');
       } else {
         // Fallback for older iOS versions or when sharing is not available
-        console.log('⚠️ [CustomAttachment] Sharing not available, trying to open with system');
+        console.log('  [CustomAttachment] Sharing not available, trying to open with system');
         const canOpen = await Linking.canOpenURL(documentUrl);
         if (canOpen) {
           await Linking.openURL(documentUrl);
@@ -110,7 +110,7 @@ const CustomAttachment = ({ attachment }: CustomAttachmentProps) => {
         }
       }
     } catch (error) {
-      console.error('❌ [CustomAttachment] Failed to share document:', error);
+      console.error('   [CustomAttachment] Failed to share document:', error);
       Alert.alert('Error', 'Failed to download document. Please try again.');
     }
   };
@@ -392,10 +392,10 @@ const CustomAttachment = ({ attachment }: CustomAttachmentProps) => {
                 resizeMode="cover"
                 onLoad={() => {
                   setIsLoading(false);
-                  console.log(`🎯 [CustomAttachment] Image rendered successfully`);
+                  console.log(`  [CustomAttachment] Image rendered successfully`);
                 }}
                 onError={(error) => {
-                  console.error('❌ [CustomAttachment] Image rendering failed:', error);
+                  console.error('   [CustomAttachment] Image rendering failed:', error);
                   setHasError(true);
                   setIsLoading(false);
                 }}

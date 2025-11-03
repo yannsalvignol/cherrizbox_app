@@ -28,17 +28,17 @@ const WelcomeScreen = () => {
 
         // Preload profile data early if user is logged in
         if (user) {
-            console.log('🚀 [Welcome] Preloading profile data during welcome screen');
+            console.log('  [Welcome] Preloading profile data during welcome screen');
             preloadProfileData()
                 .then(() => {
                     if (isMounted) {
-                        console.log('✅ [Welcome] Profile data preloading completed');
+                        console.log(' [Welcome] Profile data preloading completed');
                         setPreloadCompleted(true);
                     }
                 })
                 .catch(error => {
                     if (isMounted) {
-                        console.error('❌ [Welcome] Error preloading profile data:', error);
+                        console.error('   [Welcome] Error preloading profile data:', error);
                         setPreloadCompleted(true); // Continue anyway
                     }
                 });
@@ -123,7 +123,7 @@ const WelcomeScreen = () => {
     // Navigate when both minimum time has elapsed and preloading is complete
     useEffect(() => {
         if (minimumTimeElapsed && preloadCompleted) {
-            console.log('🚀 [Welcome] Minimum time elapsed and preload completed, navigating...');
+            console.log('  [Welcome] Minimum time elapsed and preload completed, navigating...');
             router.replace('/(root)/(tabs)');
         }
     }, [minimumTimeElapsed, preloadCompleted, router]);

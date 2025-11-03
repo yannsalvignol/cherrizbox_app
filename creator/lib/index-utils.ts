@@ -126,7 +126,7 @@ export const filterChannels = (channelList: Channel[], query: string, currentUse
   console.log(`🔍 [Search] Filtering ${channelList.length} channels with query: "${query}"`);
   
   if (!query.trim()) {
-    console.log('✅ [Search] Empty query, showing all channels');
+    console.log(' [Search] Empty query, showing all channels');
     return channelList;
   }
   
@@ -156,7 +156,7 @@ export const filterChannels = (channelList: Channel[], query: string, currentUse
     return false;
   });
   
-  console.log(`✅ [Search] Found ${filtered.length} matching channels`);
+  console.log(` [Search] Found ${filtered.length} matching channels`);
   return filtered;
 };
 

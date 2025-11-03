@@ -95,7 +95,7 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
     if (!user?.$id) return;
     
     try {
-      console.log('🔄 [Profile Cache] Preloading profile data for user:', user.$id);
+      console.log('   [Profile Cache] Preloading profile data for user:', user.$id);
       
       const { getUserProfile, getUserPhoto } = await import('./appwrite');
       
@@ -113,7 +113,7 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
         };
         
         setProfileCache(cacheData);
-        console.log('✅ [Profile Cache] Profile data cached successfully');
+        console.log(' [Profile Cache] Profile data cached successfully');
         
         // Also update currency if available
         if (profile.currency) {
@@ -121,14 +121,14 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
         }
       }
     } catch (error) {
-      console.error('❌ [Profile Cache] Error preloading profile data:', error);
+      console.error('   [Profile Cache] Error preloading profile data:', error);
     }
   }, [user?.$id]);
 
   const getCachedProfile = (): ProfileCache | null => {
     if (!profileCache) return null;
     
-    console.log('✅ [Profile Cache] Returning cached profile data');
+    console.log(' [Profile Cache] Returning cached profile data');
     return profileCache;
   };
 
@@ -141,7 +141,7 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
     if (!user?.$id) return;
     
     try {
-      console.log('🔄 [PhotoCollection] Loading photo collection data for user:', user.$id);
+      console.log('   [PhotoCollection] Loading photo collection data for user:', user.$id);
       
       const { databases, config } = await import('./appwrite');
       const { Query } = await import('react-native-appwrite');
@@ -168,13 +168,13 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
         };
         
         setPhotoCollectionData(photoData);
-        console.log('✅ [PhotoCollection] Photo collection data loaded:', photoData.title);
+        console.log(' [PhotoCollection] Photo collection data loaded:', photoData.title);
       } else {
         console.log('📸 [PhotoCollection] No photo document found for user');
         setPhotoCollectionData(null);
       }
     } catch (error) {
-      console.error('❌ [PhotoCollection] Error loading photo collection data:', error);
+      console.error('   [PhotoCollection] Error loading photo collection data:', error);
       setPhotoCollectionData(null);
     }
   }, [user?.$id]);
@@ -189,9 +189,9 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
   }, [user?.$id, loadPhotoCollectionData]);
 
   const refreshChannelConditions = async (forceRefresh = false) => {
-    console.log('🚀 [Global Currency] refreshChannelConditions called for user:', user?.$id, 'forceRefresh:', forceRefresh);
+    console.log('  [Global Currency] refreshChannelConditions called for user:', user?.$id, 'forceRefresh:', forceRefresh);
     if (!user?.$id) {
-      console.log('❌ [Global Currency] No user ID, returning early');
+      console.log('   [Global Currency] No user ID, returning early');
       return;
     }
     
@@ -200,19 +200,19 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
       
       // If forcing refresh or no cache, fetch from API
       if (forceRefresh) {
-        console.log('🔄 [Global Currency] Force refresh - clearing cache and loading from API...');
+        console.log('   [Global Currency] Force refresh - clearing cache and loading from API...');
         clearProfileCache();
       }
       
       const cached = getCachedProfile();
       
       if (cached && !forceRefresh) {
-        console.log('🔄 [Global Currency] Using cached profile data...');
+        console.log('   [Global Currency] Using cached profile data...');
         profile = cached.profile;
         userPhoto = cached.userPhoto;
       } else {
         // First check if all profile fields are filled (same as handleGoLive validation)
-        console.log('🔄 [Global Currency] Loading user profile from API...');
+        console.log('   [Global Currency] Loading user profile from API...');
         const { getUserProfile, getUserPhoto } = await import('./appwrite');
         
         try {
@@ -228,14 +228,14 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
               userPhoto,
               timestamp: Date.now()
             });
-            console.log('✅ [Global Currency] Fresh data cached successfully');
+            console.log(' [Global Currency] Fresh data cached successfully');
           }
         } catch (apiError) {
-          console.error('❌ [Global Currency] Error fetching profile data:', apiError);
+          console.error('   [Global Currency] Error fetching profile data:', apiError);
           // If API fails, try to use any existing cache as fallback
           const fallbackCached = profileCache;
           if (fallbackCached) {
-            console.log('⚠️ [Global Currency] Using fallback cached data due to API error');
+            console.log('  [Global Currency] Using fallback cached data due to API error');
             profile = fallbackCached.profile;
             userPhoto = fallbackCached.userPhoto;
           } else {
@@ -245,7 +245,7 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
       }
       
       if (!profile) {
-        console.log('❌ [Global Currency] No profile found');
+        console.log('   [Global Currency] No profile found');
         setMissingChannelConditions(['Profile setup incomplete']);
         return;
       }
@@ -256,10 +256,10 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
       console.log('🔍 [Global Currency] All profile keys:', Object.keys(profile));
       
       if (profile.currency) {
-        console.log('✅ [Global Currency] Setting currency to:', profile.currency);
+        console.log(' [Global Currency] Setting currency to:', profile.currency);
         setUserCurrency(profile.currency);
       } else {
-        console.log('⚠️ [Global Currency] No currency found in profile, keeping default USD');
+        console.log('  [Global Currency] No currency found in profile, keeping default USD');
         console.log('🔍 [Global Currency] Available fields:', Object.keys(profile));
       }
 
@@ -367,7 +367,7 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
         const { restoreConnectionState } = await import('./stream-chat');
         const restored = await restoreConnectionState();
         if (restored.isValid) {
-          console.log('🚀 [GlobalProvider] Connection state restored for user:', restored.userId);
+          console.log('  [GlobalProvider] Connection state restored for user:', restored.userId);
         }
       } catch (error) {
         console.log('Could not restore connection state:', error);
@@ -388,12 +388,12 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
           preloadStreamConnection(user.$id); // Fire and forget for early cache warming
           
           // First check if all profile fields are filled (same as handleGoLive validation)
-          console.log('🔄 [GlobalProvider] Loading user profile for Stream connection...');
+          console.log('   [GlobalProvider] Loading user profile for Stream connection...');
           const { getUserProfile, getUserPhoto } = await import('./appwrite');
           const profile = await getUserProfile(user.$id);
           
           if (!profile) {
-            console.log('⏳ [GlobalProvider] No profile found, skipping Stream Chat connection');
+            console.log('  [GlobalProvider] No profile found, skipping Stream Chat connection');
             if (isStreamConnected) {
               await disconnectUser();
               setIsStreamConnected(false);
@@ -406,10 +406,10 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
           console.log('🔍 [GlobalProvider Stream] Full profile data:', JSON.stringify(profile, null, 2));
           console.log('🔍 [GlobalProvider Stream] Profile currency field:', profile.currency);
           if (profile.currency) {
-            console.log('✅ [GlobalProvider Stream] Setting currency to:', profile.currency);
+            console.log(' [GlobalProvider Stream] Setting currency to:', profile.currency);
             setUserCurrency(profile.currency);
           } else {
-            console.log('⚠️ [GlobalProvider Stream] No currency found in profile, keeping default USD');
+            console.log('  [GlobalProvider Stream] No currency found in profile, keeping default USD');
             console.log('🔍 [GlobalProvider Stream] Available fields:', Object.keys(profile));
           }
 
@@ -466,7 +466,7 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
 
           // If profile is incomplete, skip Stream Chat connection
           if (missingProfileFields.length > 0) {
-            console.log('⏳ [GlobalProvider] Profile incomplete, skipping Stream Chat connection');
+            console.log('  [GlobalProvider] Profile incomplete, skipping Stream Chat connection');
             if (isStreamConnected) {
               await disconnectUser();
               setIsStreamConnected(false);
@@ -491,7 +491,7 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
                                  userDoc.stripeConnectSetupComplete === true;
             
             if (!conditionsMet) {
-              console.log('⏳ [GlobalProvider] Verification conditions not met, skipping Stream Chat connection');
+              console.log('  [GlobalProvider] Verification conditions not met, skipping Stream Chat connection');
               if (isStreamConnected) {
                 await disconnectUser();
                 setIsStreamConnected(false);
@@ -500,7 +500,7 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
               return;
             }
           } else {
-            console.log('⏳ [GlobalProvider] No user document found, skipping Stream Chat connection');
+            console.log('  [GlobalProvider] No user document found, skipping Stream Chat connection');
             if (isStreamConnected) {
               await disconnectUser();
               setIsStreamConnected(false);
@@ -510,7 +510,7 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
           }
           
           // Conditions are met, proceed with Stream Chat connection
-          console.log('✅ [GlobalProvider] All conditions met, proceeding with Stream Chat connection');
+          console.log(' [GlobalProvider] All conditions met, proceeding with Stream Chat connection');
           
           if (previousUserId.current && previousUserId.current !== user.$id) {
             try {
@@ -530,7 +530,7 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
             }
           }
         } catch (error) {
-          console.error('❌ [GlobalProvider] Error in Stream Chat connection:', error);
+          console.error('   [GlobalProvider] Error in Stream Chat connection:', error);
           setIsStreamConnected(false);
         }
       } else {
@@ -599,9 +599,9 @@ export const registerProfileCacheSetter = (setter: React.Dispatch<React.SetState
 export const clearProfileCache = () => {
   if (globalProfileCacheSetter) {
     globalProfileCacheSetter(null);
-    console.log('✅ [Profile Cache] Cleared in-memory cache');
+    console.log(' [Profile Cache] Cleared in-memory cache');
   } else {
-    console.warn('⚠️ [Profile Cache] Cache setter not registered, cannot clear');
+    console.warn('  [Profile Cache] Cache setter not registered, cannot clear');
   }
 };
 

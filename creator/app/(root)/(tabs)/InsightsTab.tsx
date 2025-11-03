@@ -96,7 +96,7 @@ export default function InsightsTab({ refreshing, onRefresh, preloadedFinancials
 
       if (creatorResponse.documents.length > 0) {
         const creatorData = creatorResponse.documents[0];
-        console.log('📊 [Insights] Creator financial data loaded:', {
+        console.log('  [Insights] Creator financial data loaded:', {
           currentPeriodGross: creatorData.currentPeriodGross,
           previousPeriodGross: creatorData.previousPeriodGross,
           lifetimeGross: creatorData.lifetimeGross,
@@ -105,13 +105,13 @@ export default function InsightsTab({ refreshing, onRefresh, preloadedFinancials
           stripeConnectAccountId: creatorData.stripeConnectAccountId
         });
         setCreatorFinancials(creatorData as StripeConnectProfile);
-        console.log('✅ [Insights] Loaded creator financial data.');
+        console.log(' [Insights] Loaded creator financial data.');
       } else {
-        console.log('❌ [Insights] No creator document found for this user.');
+        console.log('   [Insights] No creator document found for this user.');
         setCreatorFinancials(null);
       }
     } catch (error) {  
-      console.error('❌ [Insights] Error loading creator financials:', error);
+      console.error('   [Insights] Error loading creator financials:', error);
       setCreatorFinancials(null);
     } finally {
       setIsLoadingInsights(false);
@@ -121,7 +121,7 @@ export default function InsightsTab({ refreshing, onRefresh, preloadedFinancials
   // Update state when preloaded data changes
   useEffect(() => {
     if (preloadedFinancials) {
-      console.log('📊 [Insights] Using preloaded financial data');
+      console.log('  [Insights] Using preloaded financial data');
       setCreatorFinancials(preloadedFinancials);
     }
   }, [preloadedFinancials]);
@@ -129,7 +129,7 @@ export default function InsightsTab({ refreshing, onRefresh, preloadedFinancials
   // Load financial data when component mounts or user changes (fallback if no preloaded data)
   useEffect(() => {
     if (user?.$id && !preloadedFinancials) {
-      console.log('📊 [Insights] No preloaded data, loading financial data...');
+      console.log('  [Insights] No preloaded data, loading financial data...');
       loadCreatorFinancials();
     }
   }, [user?.$id, preloadedFinancials]);

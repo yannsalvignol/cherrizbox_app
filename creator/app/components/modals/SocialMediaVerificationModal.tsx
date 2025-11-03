@@ -62,7 +62,7 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
   // Handle post-verification setup (channel creation, photo upload, etc.)
   const handlePostVerificationSetup = async (userId: string) => {
     try {
-      console.log('🚀 [Verification] Starting post-verification setup...');
+      console.log('  [Verification] Starting post-verification setup...');
       
       const { databases, config } = await import('@/lib/appwrite');
       const { ID, Query } = await import('react-native-appwrite');
@@ -72,7 +72,7 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
       const profile = await getUserProfile(userId);
       
       if (!profile) {
-        console.error('❌ [Verification] No profile found for user');
+        console.error('   [Verification] No profile found for user');
         return;
       }
 
@@ -102,17 +102,17 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
             Bio: profile.ProfilesBio || ''
           }
         );
-        console.log('✅ [Verification] Created new photo document');
+        console.log(' [Verification] Created new photo document');
       } else {
-        console.log('✅ [Verification] Photo document already exists');
+        console.log(' [Verification] Photo document already exists');
       }
 
       // 2. Copy photo document to available collection
       try {
-        console.log('🔄 [Verification] Copying photo document to available collection...');
+        console.log('   [Verification] Copying photo document to available collection...');
         
         if (!config.photosAvailableToUsersCollectionId) {
-          console.log('⚠️ [Verification] Available collection not configured, skipping copy');
+          console.log('  [Verification] Available collection not configured, skipping copy');
         } else {
           const photoDocs = await databases.listDocuments(
             config.databaseId,
@@ -140,11 +140,11 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
                 ...(photoDoc.currency && { currency: photoDoc.currency })
               }
             );
-            console.log('✅ [Verification] Photo document copied to available collection');
+            console.log(' [Verification] Photo document copied to available collection');
           }
         }
       } catch (error) {
-        console.error('❌ [Verification] Error copying photo document:', error);
+        console.error('   [Verification] Error copying photo document:', error);
         // Don't fail the entire process
       }
 
@@ -166,32 +166,32 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
           profileImageUri: profile.profileImageUri || '',
           compressedThumbnail: profile.compressed_thumbnail || ''
         });
-        console.log('✅ [Verification] Verification notification sent');
+        console.log(' [Verification] Verification notification sent');
       } catch (error) {
-        console.error('❌ [Verification] Error sending notification:', error);
+        console.error('   [Verification] Error sending notification:', error);
         // Don't fail the entire process
       }
 
       // 4. Create the creator's group chat
       try {
-        console.log('🚀 [Verification] Creating creator channel...');
+        console.log('  [Verification] Creating creator channel...');
         const { createCreatorChannel } = await import('@/lib/stream-chat');
         const creatorDisplayName = profile.creatorsname || 'Creator';
         
         const channel = await createCreatorChannel(userId, creatorDisplayName);
-        console.log('✅ [Verification] Creator channel created successfully:', channel.id);
+        console.log(' [Verification] Creator channel created successfully:', channel.id);
         
         // Add a small delay to ensure channel is fully created
         await new Promise(resolve => setTimeout(resolve, 1000));
         
         return true;
       } catch (error) {
-        console.error('❌ [Verification] Error creating creator channel:', error);
+        console.error('   [Verification] Error creating creator channel:', error);
         return false;
       }
       
     } catch (error) {
-      console.error('❌ [Verification] Post-verification setup failed:', error);
+      console.error('   [Verification] Post-verification setup failed:', error);
       return false;
     }
   };
@@ -203,7 +203,7 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
     setIsCreatingChannel(true);
     
     try {
-      console.log('🚀 [Verification] Starting enhanced verification process...');
+      console.log('  [Verification] Starting enhanced verification process...');
       
       const { databases, config } = await import('@/lib/appwrite');
       const { Query } = await import('react-native-appwrite');
@@ -226,7 +226,7 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
         throw new Error('Invalid code. Please try again.');
       }
       
-      console.log('✅ [Verification] Code verified, updating account state...');
+      console.log(' [Verification] Code verified, updating account state...');
       
       // Code matches, update both social_media_number_correct and account_state
       await databases.updateDocument(
@@ -239,7 +239,7 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
         }
       );
       
-      console.log('✅ [Verification] Account state updated to ok');
+      console.log(' [Verification] Account state updated to ok');
       
       // Now handle post-verification setup (channel creation, etc.)
       const setupSuccess = await handlePostVerificationSetup(user.$id);
@@ -260,7 +260,7 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
           }]
         );
       } else {
-        console.log('⚠️ [Verification] Channel creation failed, but verification succeeded');
+        console.log('  [Verification] Channel creation failed, but verification succeeded');
         if (onVerificationSuccess) {
           onVerificationSuccess();
         }
@@ -268,7 +268,7 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
       }
       
     } catch (error) {
-      console.error('❌ [Verification] Enhanced verification failed:', error);
+      console.error('   [Verification] Enhanced verification failed:', error);
       setLocalError(error instanceof Error ? error.message : 'Verification failed. Please try again.');
     } finally {
       setIsCreatingChannel(false);

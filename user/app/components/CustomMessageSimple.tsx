@@ -42,7 +42,7 @@ export const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = ({ client
     return (
       <View>
         {/* Show the message text if any */}
-        {message.text && message.text !== `📊 ${message.poll?.name || ''}` && (
+        {message.text && message.text !== `  ${message.poll?.name || ''}` && (
           <View style={{ marginBottom: 8 }}>
             <MessageSimple {...props} />
           </View>

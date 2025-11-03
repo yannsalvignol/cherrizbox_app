@@ -49,10 +49,10 @@ export default function AudienceTab({ refreshing, onRefresh }: AudienceTabProps)
           Query.equal('status', 'active')
         ]
       );
-      console.log(`✅ [Audience] Loaded ${response.documents.length} subscribers`);
+      console.log(` [Audience] Loaded ${response.documents.length} subscribers`);
       setAudience(response.documents as Subscriber[]);
     } catch (error) {
-      console.error('❌ [Audience] Error loading audience:', error);
+      console.error('   [Audience] Error loading audience:', error);
       setAudience([]);
     } finally {
       setIsLoadingAudience(false);
@@ -92,7 +92,7 @@ export default function AudienceTab({ refreshing, onRefresh }: AudienceTabProps)
       filtered = filtered.slice().sort((a, b) => (a.planAmount || 0) - (b.planAmount || 0));
     }
     
-    console.log(`✅ [Audience] Filtered to ${filtered.length} subscribers`);
+    console.log(` [Audience] Filtered to ${filtered.length} subscribers`);
     setFilteredAudience(filtered);
   }, [audience, audienceSearch, audienceFilter]);
 

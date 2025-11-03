@@ -104,7 +104,7 @@ export async function cancelChatSubscription(subscriptionId: string) {
       email: currentUser.email
     };
 
-    console.log('📡 [ChatSubscription] Sending cancellation request to:', FUNCTION_ENDPOINT);
+    console.log('  [ChatSubscription] Sending cancellation request to:', FUNCTION_ENDPOINT);
     
     const response = await fetch(FUNCTION_ENDPOINT, {
       method: 'POST',
@@ -203,7 +203,7 @@ export async function createChatSubscriptionPaymentIntent(
       body: JSON.stringify(requestBody)
     });
 
-    console.log('📡 [ChatSubscription] Backend response status:', response.status);
+    console.log('  [ChatSubscription] Backend response status:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();

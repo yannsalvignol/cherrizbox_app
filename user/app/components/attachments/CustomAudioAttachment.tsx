@@ -70,7 +70,7 @@ export const CustomAudioAttachment: React.FC<CustomAudioAttachmentProps> = ({ at
             
             // Log less frequently to avoid console spam
             if (status.positionMillis && status.durationMillis && Math.floor(status.positionMillis / 1000) % 2 === 0) {
-              console.log('📊 Audio progress:', {
+              console.log('  Audio progress:', {
                 progress: `${Math.floor(status.positionMillis / 1000)}s / ${Math.floor(status.durationMillis / 1000)}s`,
                 percentage: `${Math.round((status.positionMillis / status.durationMillis) * 100)}%`
               });
@@ -101,7 +101,7 @@ export const CustomAudioAttachment: React.FC<CustomAudioAttachmentProps> = ({ at
   };
 
   const resetAudioState = async (audioSound: Audio.Sound) => {
-    console.log('🔄 Resetting all audio state and UI');
+    console.log('   Resetting all audio state and UI');
     setIsPlaying(false);
     setCurrentTime(0);
     stopSoundBarAnimation();

@@ -105,7 +105,7 @@ export const restoreConnectionState = async (): Promise<{
       userDocCache = userDoc;
       userDocCacheTime = Date.now();
       
-      console.log('✅ Connection state restored from AsyncStorage');
+      console.log(' Connection state restored from AsyncStorage');
       return { userId: lastUser, token, userDoc, isValid: true };
     }
     
@@ -151,7 +151,7 @@ const getCachedUserDoc = async (userId: string, forceRefresh = false) => {
   if (userDocs.documents.length > 0) {
     userDocCache = userDocs.documents[0];
     userDocCacheTime = now;
-    console.log('🔄 User document cached');
+    console.log('   User document cached');
     return userDocCache;
   }
   
@@ -161,11 +161,11 @@ const getCachedUserDoc = async (userId: string, forceRefresh = false) => {
 const getOrGenerateToken = async (userId: string): Promise<string> => {
   // Check if we have a valid cached token in memory
   if (tokenCache && isTokenValid(tokenCache, userId)) {
-    console.log('✅ Using memory cached token');
+    console.log(' Using memory cached token');
     return tokenCache.token;
   }
 
-  console.log('🔄 Getting Stream Chat token for user:', userId);
+  console.log('   Getting Stream Chat token for user:', userId);
   
   // Try to restore from AsyncStorage if not in memory
   try {
@@ -193,7 +193,7 @@ const getOrGenerateToken = async (userId: string): Promise<string> => {
     if (userDoc) {
       // Check if we have a stored Stream token
       if (userDoc.streamChatToken) {
-        console.log('✅ Found stored token in backend, reusing it');
+        console.log(' Found stored token in backend, reusing it');
         
         // Cache the token locally and in AsyncStorage
         const now = Date.now();
@@ -207,13 +207,13 @@ const getOrGenerateToken = async (userId: string): Promise<string> => {
         // Save to AsyncStorage for offline access
         await saveConnectionState(userId, userDoc.streamChatToken, userDoc);
         
-        console.log('✅ Backend token cached locally and in AsyncStorage');
+        console.log(' Backend token cached locally and in AsyncStorage');
         return userDoc.streamChatToken;
       }
     }
     
     // No stored token found, generate a new one
-    console.log('🔄 No stored token found, generating new token...');
+    console.log('   No stored token found, generating new token...');
     const tokenResult = await testStreamTokenGeneration();
     if (!tokenResult.success || !tokenResult.token) {
       throw new Error('Failed to generate Stream Chat token');
@@ -231,7 +231,7 @@ const getOrGenerateToken = async (userId: string): Promise<string> => {
       );
       // Update cache
       userDoc.streamChatToken = tokenResult.token;
-      console.log('✅ Token stored in backend successfully');
+      console.log(' Token stored in backend successfully');
     }
     
     // Cache the new token locally and in AsyncStorage
@@ -246,10 +246,10 @@ const getOrGenerateToken = async (userId: string): Promise<string> => {
     // Save to AsyncStorage
     await saveConnectionState(userId, tokenResult.token, userDoc);
     
-    console.log('✅ New token generated, stored in backend and AsyncStorage');
+    console.log(' New token generated, stored in backend and AsyncStorage');
     return tokenResult.token;
   } catch (error) {
-    console.error('❌ Error getting/generating token:', error);
+    console.error('   Error getting/generating token:', error);
     throw error;
   }
 };
@@ -259,13 +259,13 @@ export const connectUser = async (userId: string) => {
     try {
         // If already connected to the same user, don't reconnect
         if (isConnected && connectedUserId === userId) {
-            console.log('✅ User already connected, skipping reconnection');
+            console.log(' User already connected, skipping reconnection');
             return true;
         }
         
         // If there's an ongoing connection attempt, wait for it
         if (connectionPromise && connectedUserId === userId) {
-            console.log('⏳ Connection in progress, waiting...');
+            console.log('  Connection in progress, waiting...');
             return await connectionPromise;
         }
 
@@ -324,7 +324,7 @@ export const connectUser = async (userId: string) => {
                 client.setUser(userObject, token);
                 
                 isConnected = true;
-                console.log('✅ User connected successfully');
+                console.log(' User connected successfully');
 
                 // Register device for push notifications with Stream (FCM via Firebase)
                 // This will now call addDevice to complete the registration
@@ -419,7 +419,7 @@ const registerForPushWithStream = async (): Promise<void> => {
                 );
                 
                 pushRegistered = true;
-                console.log('[Push] ✅ Device successfully registered with Stream Chat!');
+                console.log('[Push]  Device successfully registered with Stream Chat!');
             } catch (error: any) {
                 console.log('[Push] Registration with provider name failed:', error?.message || error);
                 
@@ -433,10 +433,10 @@ const registerForPushWithStream = async (): Promise<void> => {
                     );
                     
                     pushRegistered = true;
-                    console.log('[Push] ✅ Device registered without provider name!');
+                    console.log('[Push]  Device registered without provider name!');
                 } catch (error2: any) {
                     console.log('[Push] Fallback also failed:', error2?.message || error2);
-                    console.log('[Push] ⚠️ Check Stream Dashboard push provider configuration');
+                    console.log('[Push]   Check Stream Dashboard push provider configuration');
                     
                     // Log debug info
                     console.log('[Push] Debug info:', {
@@ -460,9 +460,9 @@ const registerForPushWithStream = async (): Promise<void> => {
                 // Note: setLocalDevice can't be called after connection is established
                 // Just update with addDevice
                 await client.addDevice(newToken, 'firebase', connectedUserId!, 'default');
-                console.log('[Push] ✅ Device token refreshed and re-registered');
+                console.log('[Push]  Device token refreshed and re-registered');
             } catch (e) {
-                console.log('[Push] ❌ Error re-registering refreshed token', e);
+                console.log('[Push]    Error re-registering refreshed token', e);
             }
         });
     } catch (e) {
@@ -553,7 +553,7 @@ export const preloadStreamConnection = async (userId: string) => {
                 createdAt: now,
                 expiresAt: now + (365 * 24 * 60 * 60 * 1000)
             };
-            console.log('✅ Token preloaded into cache');
+            console.log(' Token preloaded into cache');
         }
         
         return true;
@@ -568,16 +568,16 @@ export async function createCreatorChannel(creatorId: string, creatorName: strin
     // Create a unique channel ID for this creator
     const channelId = `creator-${creatorId}`;
     
-    console.log(`🚀 [createCreatorChannel] Creating channel: ${channelId} for user: ${creatorId}`);
+    console.log(`  [createCreatorChannel] Creating channel: ${channelId} for user: ${creatorId}`);
     
     // Check if we're connected to Stream Chat
     if (!isConnected) {
-      console.log('⚠️ [createCreatorChannel] Not connected to Stream Chat, attempting to connect...');
+      console.log('  [createCreatorChannel] Not connected to Stream Chat, attempting to connect...');
       const connected = await connectUser(creatorId);
       if (!connected) {
         throw new Error('Failed to connect to Stream Chat');
       }
-      console.log('✅ [createCreatorChannel] Stream Chat connection established');
+      console.log(' [createCreatorChannel] Stream Chat connection established');
     }
     
     // Create the channel for the creator's group chat
@@ -587,14 +587,14 @@ export async function createCreatorChannel(creatorId: string, creatorName: strin
     });
 
     await channel.create();
-    console.log(`✅ [createCreatorChannel] Channel created: ${channelId}`);
+    console.log(` [createCreatorChannel] Channel created: ${channelId}`);
     
     // Explicitly add the creator as a member to ensure they're in the channel
     try {
       await channel.addMembers([creatorId]);
-      console.log(`✅ [createCreatorChannel] Added creator as member: ${creatorId}`);
+      console.log(` [createCreatorChannel] Added creator as member: ${creatorId}`);
     } catch (memberError) {
-      console.log(`⚠️ [createCreatorChannel] Member might already be added:`, memberError);
+      console.log(`  [createCreatorChannel] Member might already be added:`, memberError);
     }
     
     // Create an initial welcome message that will serve as the main thread
@@ -604,11 +604,11 @@ export async function createCreatorChannel(creatorId: string, creatorName: strin
       show_in_channel: true
     });
 
-    console.log(`✅ [createCreatorChannel] Welcome message sent successfully`);
-    console.log(`✅ [createCreatorChannel] Channel creation complete: ${channelId}`);
+    console.log(` [createCreatorChannel] Welcome message sent successfully`);
+    console.log(` [createCreatorChannel] Channel creation complete: ${channelId}`);
     return channel;
   } catch (error) {
-    console.error('❌ [createCreatorChannel] Error creating creator channel:', error);
+    console.error('   [createCreatorChannel] Error creating creator channel:', error);
     throw error;
   }
 }
@@ -616,7 +616,7 @@ export async function createCreatorChannel(creatorId: string, creatorName: strin
 // Create a direct message channel between two users
 export async function createDirectMessageChannel(user1Id: string, user2Id: string) {
   try {
-    console.log('🔄 Creating direct message channel...');
+    console.log('   Creating direct message channel...');
     console.log('📋 Channel creation details:', {
       user1Id,
       user2Id,
@@ -626,14 +626,14 @@ export async function createDirectMessageChannel(user1Id: string, user2Id: strin
 
     // Check if we're connected to Stream Chat
     if (!isConnected) {
-      console.log('⚠️ Not connected to Stream Chat, attempting to connect...');
+      console.log('  Not connected to Stream Chat, attempting to connect...');
       const connected = await connectUser(user1Id);
       if (!connected) {
         throw new Error('Failed to connect to Stream Chat');
       }
     }
 
-    console.log('✅ Stream Chat connection verified');
+    console.log(' Stream Chat connection verified');
     
     // Create a custom channel ID for direct messages with consistent format
     const channelId = createDMChannelId(user1Id, user2Id);
@@ -644,7 +644,7 @@ export async function createDirectMessageChannel(user1Id: string, user2Id: strin
       members: [user1Id, user2Id],
     });
 
-    console.log('📡 Calling channel.create()...');
+    console.log('  Calling channel.create()...');
     try {
       await channel.create();
     } catch (error: any) {
@@ -657,8 +657,8 @@ export async function createDirectMessageChannel(user1Id: string, user2Id: strin
       }
     }
     
-    console.log('✅ Direct message channel created successfully!');
-    console.log('📊 Channel info:', {
+    console.log(' Direct message channel created successfully!');
+    console.log('  Channel info:', {
       channelId: channel.id,
       channelType: channel.type,
       memberCount: Object.keys(channel.state.members).length,
@@ -667,7 +667,7 @@ export async function createDirectMessageChannel(user1Id: string, user2Id: strin
 
     return channel;
   } catch (error) {
-    console.error('❌ Error creating direct message channel:', error);
+    console.error('   Error creating direct message channel:', error);
     console.error('🔍 Error details:', {
       name: error instanceof Error ? error.name : 'Unknown',
       message: error instanceof Error ? error.message : 'Unknown error',

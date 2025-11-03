@@ -87,7 +87,7 @@ const CustomMessageSimple: React.FC<CustomMessageSimpleProps> = (props) => {
     return (
       <View style={{ marginLeft: receivedDmOffset }}>
         {/* Show the message text if any */}
-        {message.text && message.text !== `📊 ${message.poll.name}` && (
+        {message.text && message.text !== `  ${message.poll.name}` && (
           <View style={{ marginBottom: 8 }}>
             <MessageSimple {...messageSimpleProps} />
           </View>

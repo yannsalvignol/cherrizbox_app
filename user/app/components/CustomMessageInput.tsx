@@ -631,7 +631,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
         throw new Error('Missing EXPO_PUBLIC_CLUSTERING_FUNCTION_ID environment variable');
       }
       
-      console.log('🚀 [Clustering] Calling Appwrite function...');
+      console.log('  [Clustering] Calling Appwrite function...');
       console.log('🆔 [Clustering] Function ID:', CLUSTERING_FUNCTION_ID);
       
       // Import functions from appwrite with error handling
@@ -831,7 +831,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
           {(remainingMessages <= 1 || !canSendMessage) && !hasSubscription && (
             <TouchableOpacity
               onPress={() => {
-                console.log('🚀 [Upgrade] Opening upgrade modal');
+                console.log('  [Upgrade] Opening upgrade modal');
                 setShowUpgradeModal(true);
               }}
               style={{
@@ -1445,7 +1445,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
         visible={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
         onSelectPlan={(planType, amount) => {
-          console.log('🚀 [Upgrade] Selected plan:', { planType, amount });
+          console.log('  [Upgrade] Selected plan:', { planType, amount });
           setShowUpgradeModal(false);
           // TODO: Add Stripe payment logic here
           Alert.alert(

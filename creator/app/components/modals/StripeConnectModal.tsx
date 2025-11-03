@@ -118,7 +118,7 @@ export const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
                 // Ignore 404 errors for the return URL - this is expected
                 const { nativeEvent } = syntheticEvent;
                 if (nativeEvent.statusCode === 404 && nativeEvent.url?.includes('connect-return')) {
-                  console.log('🔄 [StripeConnect] Ignoring expected 404 for return URL');
+                  console.log('   [StripeConnect] Ignoring expected 404 for return URL');
                   return;
                 }
                 // Pass through other HTTP errors

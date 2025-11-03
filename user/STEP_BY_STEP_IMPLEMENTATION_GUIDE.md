@@ -13,7 +13,7 @@ Your current `query_upstash_vectors` project provides the perfect foundation:
 
 **We'll adapt this code for message clustering with intent recognition happening BEFORE embedding generation for optimal accuracy.**
 
-## 🎯 **Critical Architecture Decision: Intent-First Processing**
+##   **Critical Architecture Decision: Intent-First Processing**
 
 ### **Why Intent Recognition Must Come BEFORE Embedding:**
 
@@ -1830,7 +1830,7 @@ async function deployFunction() {
         );
         
         console.log(` Deployment created: ${deployment.$id}`);
-        console.log('🚀 Function deployed successfully!');
+        console.log('  Function deployed successfully!');
         
     } catch (error) {
         console.error('  Deployment failed:', error);

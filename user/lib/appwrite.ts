@@ -607,7 +607,7 @@ export const sendVerificationEmailViaFunction = async (email: string, code: stri
     console.log(`📤 [sendVerificationEmailViaFunction] Request body: ${requestBody}`);
     
     try {
-        console.log(`🚀 [sendVerificationEmailViaFunction] Executing Appwrite function...`);
+        console.log(`  [sendVerificationEmailViaFunction] Executing Appwrite function...`);
         const execution = await functions.createExecution(
             FUNCTION_ID,
             requestBody,
@@ -618,8 +618,8 @@ export const sendVerificationEmailViaFunction = async (email: string, code: stri
         );
         
         console.log(`📥 [sendVerificationEmailViaFunction] Function execution completed`);
-        console.log(`📊 [sendVerificationEmailViaFunction] Execution status: ${execution.status}`);
-        console.log(`📊 [sendVerificationEmailViaFunction] Response body: ${execution.responseBody}`);
+        console.log(`  [sendVerificationEmailViaFunction] Execution status: ${execution.status}`);
+        console.log(`  [sendVerificationEmailViaFunction] Response body: ${execution.responseBody}`);
         
         if (execution.status === 'failed') {
             console.log(`  [sendVerificationEmailViaFunction] Function execution failed`);
@@ -758,7 +758,7 @@ export const getSubscriptionCount = async (creatorName: string): Promise<number>
         );
 
         if (creators.documents.length === 0) {
-            console.log(`📊 [FollowerCount] Creator not found in database`);
+            console.log(`  [FollowerCount] Creator not found in database`);
             dataCache.setFollowerCount(creatorName, 0);
             return 0; // creator not found
         }
@@ -768,7 +768,7 @@ export const getSubscriptionCount = async (creatorName: string): Promise<number>
         const yearly  = typeof doc.number_of_yearly_subscriptions === 'number' ? doc.number_of_yearly_subscriptions : 0;
         const totalCount = monthly + yearly;
 
-        console.log(`📊 [FollowerCount] Database result: ${monthly} monthly + ${yearly} yearly = ${totalCount} total`);
+        console.log(`  [FollowerCount] Database result: ${monthly} monthly + ${yearly} yearly = ${totalCount} total`);
 
         // Cache the result for 5 minutes
         dataCache.setFollowerCount(creatorName, totalCount);
@@ -946,7 +946,7 @@ export const getCreatorIdByName = async (creatorName: string): Promise<string | 
             [Query.equal('title', creatorName)]
         );
         
-        console.log('📊 Found photos:', photos.documents.length);
+        console.log('  Found photos:', photos.documents.length);
         console.log('📋 Photo details:', photos.documents.map(p => ({
             creatorId: p.creatorId,
             title: p.title,
@@ -981,7 +981,7 @@ export const createPaidContentPaymentIntent = async (
     }
 ) => {
     try {
-        console.log('🚀 Starting createPaidContentPaymentIntent...');
+        console.log('  Starting createPaidContentPaymentIntent...');
         
         // Use the same function endpoint logic as your existing setup
         const FUNCTION_ID = process.env.EXPO_PUBLIC_STRIPE_FUNCTION_ID;
@@ -1024,7 +1024,7 @@ export const createPaidContentPaymentIntent = async (
             requestBody
         });
         
-        console.log('⏳ Making fetch request...');
+        console.log('  Making fetch request...');
         
         const response = await fetch(backendUrl, {
             method: 'POST',
@@ -1051,7 +1051,7 @@ export const createPaidContentPaymentIntent = async (
 
         console.log(' Response OK, parsing JSON...');
         const data = await response.json();
-        console.log('📊 Backend response data:', data);
+        console.log('  Backend response data:', data);
         
         // Parse the actual response from Appwrite Function's responseBody
         let actualResponse;
@@ -1169,7 +1169,7 @@ export const checkPaidContentPurchase = async (userId: string, contentId: string
         );
 
         const hasPurchased = response.documents.length > 0;
-        console.log(`📊 [PurchaseCheck] Database result: ${hasPurchased ? 'PURCHASED' : 'NOT PURCHASED'} (${response.documents.length} records)`);
+        console.log(`  [PurchaseCheck] Database result: ${hasPurchased ? 'PURCHASED' : 'NOT PURCHASED'} (${response.documents.length} records)`);
         
         // Cache the result for 2 minutes
         dataCache.setPurchaseStatus(userId, contentId, hasPurchased);
@@ -1228,7 +1228,7 @@ export const uploadFileToAppwrite = async (fileUri: string, fileName: string, mi
       throw new Error('File does not exist at the specified URI');
     }
 
-    console.log('📊 File Info:', fileInfo);
+    console.log('  File Info:', fileInfo);
 
     // Create a unique file ID
     const fileId = ID.unique();
@@ -1291,7 +1291,7 @@ export const checkIfEmailIsCreator = async (email: string): Promise<boolean> => 
         );
 
         const isCreator = creators.documents.length > 0;
-        console.log(`📊 Email check result: ${isCreator ? 'IS CREATOR' : 'NOT CREATOR'}`);
+        console.log(`  Email check result: ${isCreator ? 'IS CREATOR' : 'NOT CREATOR'}`);
         
         return isCreator;
     } catch (error) {
@@ -1316,7 +1316,7 @@ export const checkIfUserExists = async (email: string, username?: string): Promi
         );
 
         if (emailCheck.documents.length > 0) {
-            console.log('📊 User exists with this email');
+            console.log('  User exists with this email');
             return { exists: true, type: 'email' };
         }
 
@@ -1332,7 +1332,7 @@ export const checkIfUserExists = async (email: string, username?: string): Promi
             );
 
             if (usernameCheck.documents.length > 0) {
-                console.log('📊 User exists with this username');
+                console.log('  User exists with this username');
                 return { exists: true, type: 'username' };
             }
         }

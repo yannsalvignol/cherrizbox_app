@@ -64,7 +64,7 @@ export default function RootLayout() {
       console.log(' All fonts loaded successfully, including MuseoModerno-Regular');
       SplashScreen.hideAsync();
     } else {
-      console.log('⏳ Fonts still loading...');
+      console.log('  Fonts still loading...');
     }
   }, [fontsLoaded]);
 

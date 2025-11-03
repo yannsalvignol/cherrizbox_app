@@ -68,7 +68,7 @@ const CustomAudioAttachment = ({ attachment }: CustomAudioAttachmentProps) => {
             
             // Log less frequently to avoid console spam
             if (status.positionMillis && status.durationMillis && Math.floor(status.positionMillis / 1000) % 2 === 0) {
-              console.log('📊 Audio progress:', {
+              console.log('  Audio progress:', {
                 progress: `${Math.floor(status.positionMillis / 1000)}s / ${Math.floor(status.durationMillis / 1000)}s`,
                 percentage: `${Math.round((status.positionMillis / status.durationMillis) * 100)}%`
               });
@@ -99,7 +99,7 @@ const CustomAudioAttachment = ({ attachment }: CustomAudioAttachmentProps) => {
   };
 
   const resetAudioState = async (audioSound: Audio.Sound) => {
-    console.log('🔄 Resetting all audio state and UI');
+    console.log('   Resetting all audio state and UI');
     setIsPlaying(false);
     setCurrentTime(0);
     stopSoundBarAnimation();
@@ -319,18 +319,18 @@ const CustomAudioAttachment = ({ attachment }: CustomAudioAttachmentProps) => {
     event.stopPropagation();
     
     if (message) {
-      console.log('✅ [CustomAudioAttachment] Setting selected message for modal');
+      console.log(' [CustomAudioAttachment] Setting selected message for modal');
       
       try {
         // Access the global app state through a custom event system
         if ((global as any).chatScreenHandlers?.handleLongPressMessage) {
           (global as any).chatScreenHandlers.handleLongPressMessage({ message });
-          console.log('✅ [CustomAudioAttachment] Called global handler');
+          console.log(' [CustomAudioAttachment] Called global handler');
         } else {
-          console.log('⚠️ [CustomAudioAttachment] Global handlers not available');
+          console.log('  [CustomAudioAttachment] Global handlers not available');
         }
       } catch (error) {
-        console.log('⚠️ [CustomAudioAttachment] Error calling global handler:', error);
+        console.log('  [CustomAudioAttachment] Error calling global handler:', error);
       }
     }
   };

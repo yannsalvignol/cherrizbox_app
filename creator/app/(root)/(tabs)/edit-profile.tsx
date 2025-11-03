@@ -210,12 +210,12 @@ export default function EditProfile() {
           let profile, userPhoto;
           
           if (cached) {
-            console.log('✅ [Edit Profile] Using cached profile data');
+            console.log(' [Edit Profile] Using cached profile data');
             profile = cached.profile;
             userPhoto = cached.userPhoto;
             setLoading(false); // Set loading false immediately for cached data
           } else {
-            console.log('🔄 [Edit Profile] Loading profile data from API');
+            console.log('   [Edit Profile] Loading profile data from API');
             // Load profile data from Appwrite
             [profile, userPhoto] = await Promise.all([
               getUserProfile(globalUser.$id),

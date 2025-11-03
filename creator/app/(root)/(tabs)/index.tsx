@@ -141,14 +141,14 @@ export default function Index() {
       setUncollectedTips(prev => {
         const newSet = new Set(prev);
         newSet.delete(channelId);
-        console.log(`✅ [Index] Removed ${channelId} from uncollected tips`);
+        console.log(` [Index] Removed ${channelId} from uncollected tips`);
         return newSet;
       });
     };
 
     // Handle live channel updates from Stream Chat
     const handleChannelUpdate = useCallback((channelId: string, updates: Partial<Channel & { hasTip?: boolean }>) => {
-      console.log(`🔄 [Index] Updating channel ${channelId} with:`, updates);
+      console.log(`   [Index] Updating channel ${channelId} with:`, updates);
       
       // If this update includes a tip, add channel to uncollected tips
       if (updates.hasTip) {
@@ -183,16 +183,16 @@ export default function Index() {
 
   const loadChannels = async (loadMore = false) => {
     if (!user?.$id) {
-      console.log('⚠️ [Channels] No authenticated user, skipping channel load');
+      console.log('  [Channels] No authenticated user, skipping channel load');
       return;
     }
 
     try {
       if (!loadMore) {
-        console.log('🔄 [Channels] Starting initial load...');
+        console.log('   [Channels] Starting initial load...');
         setIsLoading(true);
       } else {
-        console.log(`🔄 [Channels] Loading more channels (offset: ${channelOffset})...`);
+        console.log(`   [Channels] Loading more channels (offset: ${channelOffset})...`);
         setIsLoadingMore(true);
       }
       
@@ -207,7 +207,7 @@ export default function Index() {
       );
       
       if (userDocs.documents.length === 0) {
-        console.log('⏳ [Channels] No user document found, skipping channel load');
+        console.log('  [Channels] No user document found, skipping channel load');
         setMissingChannelConditions(['Account setup incomplete']);
         setChannels([]);
         return;
@@ -221,14 +221,14 @@ export default function Index() {
       
       // If account_state is 'ok', conditions are already met, skip detailed checks
       if (userDoc.account_state === 'ok') {
-        console.log('✅ [Channels] Account state is ok, conditions already met, proceeding with channel load');
+        console.log(' [Channels] Account state is ok, conditions already met, proceeding with channel load');
         setChannelCreated(true);
       } else {
         // Only do detailed condition checks if account_state is not 'ok'
         console.log('🔍 [Channels] Account state not ok, checking conditions...');
         
         if (!profile) {
-          console.log('⏳ [Channels] No profile found, skipping channel load');
+          console.log('  [Channels] No profile found, skipping channel load');
           setMissingChannelConditions(['Profile setup incomplete']);
           setChannels([]);
           return;
@@ -287,7 +287,7 @@ export default function Index() {
 
         // If profile is incomplete, show missing profile fields
         if (missingProfileFields.length > 0) {
-          console.log('⏳ [Channels] Profile incomplete, skipping channel load');
+          console.log('  [Channels] Profile incomplete, skipping channel load');
           setMissingChannelConditions(missingProfileFields);
           setChannels([]);
           return;
@@ -298,7 +298,7 @@ export default function Index() {
                              userDoc.stripeConnectSetupComplete === true;
         
         if (!conditionsMet) {
-          console.log('⏳ [Channels] Verification conditions not met, skipping channel load');
+          console.log('  [Channels] Verification conditions not met, skipping channel load');
           // Update missing conditions for UI display
           const missingConditions: string[] = [];
           
@@ -337,8 +337,8 @@ export default function Index() {
       const filter = { members: { $in: [user.$id] } };
       const sort = [{ last_message_at: -1 }];
       
-      console.log(`📡 [Channels] Querying channels with filter:`, filter);
-      console.log(`📡 [Channels] Querying channels with limit: ${CHANNELS_PER_PAGE}, offset: ${loadMore ? channelOffset : 0}`);
+      console.log(`  [Channels] Querying channels with filter:`, filter);
+      console.log(`  [Channels] Querying channels with limit: ${CHANNELS_PER_PAGE}, offset: ${loadMore ? channelOffset : 0}`);
       const response = await client.queryChannels(filter, sort, {
         limit: CHANNELS_PER_PAGE,
         offset: loadMore ? channelOffset : 0,
@@ -348,7 +348,7 @@ export default function Index() {
       
       // Check if we have more channels to load
       if (response.length < CHANNELS_PER_PAGE) {
-        console.log('✅ [Channels] No more channels to load');
+        console.log(' [Channels] No more channels to load');
         setHasMoreChannels(false);
       }
 
@@ -367,7 +367,7 @@ export default function Index() {
         unreadCount: channel.countUnread(),
       }));
       
-      console.log(`🔄 [Channels] Transformed ${transformedChannels.length} channels`);
+      console.log(`   [Channels] Transformed ${transformedChannels.length} channels`);
       
       // Batch user profile fetching for DM channels
       const dmChannelsNeedingProfiles = transformedChannels.filter(channel => 
@@ -462,20 +462,20 @@ export default function Index() {
         const seenIds = new Set<string>();
         finalChannels = allChannels.filter(channel => {
           if (seenIds.has(channel.id)) {
-            console.log(`🔄 [Channels] Removing duplicate channel: ${channel.id}`);
+            console.log(`   [Channels] Removing duplicate channel: ${channel.id}`);
             return false;
           }
           seenIds.add(channel.id);
           return true;
         });
-        console.log(`📈 [Channels] Added ${uniqueChannels.length} new channels. After dedup: ${finalChannels.length} total channels`);
+        console.log(`  [Channels] Added ${uniqueChannels.length} new channels. After dedup: ${finalChannels.length} total channels`);
         setChannels(finalChannels);
         setChannelOffset(prev => prev + uniqueChannels.length);
       } else {
         finalChannels = uniqueChannels;
         setChannels(finalChannels);
         setChannelOffset(finalChannels.length);
-        console.log(`📈 [Channels] Set ${finalChannels.length} channels as initial load`);
+        console.log(`  [Channels] Set ${finalChannels.length} channels as initial load`);
       }
       
       // Update filtered channels for search
@@ -485,16 +485,16 @@ export default function Index() {
         setFilteredChannels(finalChannels);
       }
       
-      console.log(`✅ [Channels] Load complete: ${uniqueChannels.length} channels (Total: ${finalChannels.length})`);
+      console.log(` [Channels] Load complete: ${uniqueChannels.length} channels (Total: ${finalChannels.length})`);
         
         // If account state is 'ok' but no channels exist, trigger channel creation
         if (userDoc.account_state === 'ok' && finalChannels.length === 0 && !loadMore) {
-          console.log('🚀 [Channels] Account verified but no channels found, triggering channel creation...');
+          console.log('  [Channels] Account verified but no channels found, triggering channel creation...');
           await handleMissingChannelCreation(userDoc, profile);
         }
         
         } catch (error) {
-      console.error('❌ [Channels] Error loading channels:', error);
+      console.error('   [Channels] Error loading channels:', error);
         } finally {
             setIsLoading(false);
             setIsLoadingMore(false);
@@ -506,7 +506,7 @@ export default function Index() {
     if (!user?.$id || !profile) return;
     
     try {
-      console.log('🚀 [MissingChannels] Starting channel creation for verified account...');
+      console.log('  [MissingChannels] Starting channel creation for verified account...');
       
       const { databases, config } = await import('@/lib/appwrite');
       const { ID, Query } = await import('react-native-appwrite');
@@ -529,7 +529,7 @@ export default function Index() {
               yearlyPrice: parsedPayment.yearlyPrice?.toString() || '21'
             };
           } catch (e) {
-            console.log('⚠️ [MissingChannels] Error parsing payment data, using defaults');
+            console.log('  [MissingChannels] Error parsing payment data, using defaults');
           }
         }
         
@@ -549,15 +549,15 @@ export default function Index() {
             Bio: profile.ProfilesBio || ''
           }
         );
-        console.log('✅ [MissingChannels] Photo document created');
+        console.log(' [MissingChannels] Photo document created');
       } else {
-        console.log('✅ [MissingChannels] Photo document already exists');
+        console.log(' [MissingChannels] Photo document already exists');
       }
 
       // 2. Copy to available collection if configured
       try {
         if (config.photosAvailableToUsersCollectionId) {
-          console.log('🔄 [MissingChannels] Copying to available collection...');
+          console.log('   [MissingChannels] Copying to available collection...');
           
           const photoDocs = await databases.listDocuments(
             config.databaseId,
@@ -593,28 +593,28 @@ export default function Index() {
                   ...(photoDoc.currency && { currency: photoDoc.currency })
                 }
               );
-              console.log('✅ [MissingChannels] Photo copied to available collection');
+              console.log(' [MissingChannels] Photo copied to available collection');
             }
           }
         }
       } catch (error) {
-        console.error('❌ [MissingChannels] Error with available collection:', error);
+        console.error('   [MissingChannels] Error with available collection:', error);
       }
 
       // 3. Create creator channel
       try {
-        console.log('🚀 [MissingChannels] Creating creator channel...');
+        console.log('  [MissingChannels] Creating creator channel...');
         const { createCreatorChannel } = await import('@/lib/stream-chat');
         const creatorDisplayName = profile.creatorsname || user.name || 'Creator';
         
         const channel = await createCreatorChannel(user.$id, creatorDisplayName);
-        console.log('✅ [MissingChannels] Creator channel created successfully:', channel.id);
+        console.log(' [MissingChannels] Creator channel created successfully:', channel.id);
         
         // Wait a moment for channel to be fully created
         await new Promise(resolve => setTimeout(resolve, 1500));
         
         // Reload channels to show the new channel
-        console.log('🔄 [MissingChannels] Reloading channels to show new channel...');
+        console.log('   [MissingChannels] Reloading channels to show new channel...');
         await loadChannels(false);
         
         // Show success notification
@@ -622,12 +622,12 @@ export default function Index() {
         
         return true;
       } catch (error) {
-        console.error('❌ [MissingChannels] Error creating creator channel:', error);
+        console.error('   [MissingChannels] Error creating creator channel:', error);
         return false;
       }
       
     } catch (error) {
-      console.error('❌ [MissingChannels] Channel creation process failed:', error);
+      console.error('   [MissingChannels] Channel creation process failed:', error);
       return false;
         }
     };
@@ -653,7 +653,7 @@ export default function Index() {
     console.log(`👥 [Profiles] Need to fetch ${memberIdsToFetch.size} profiles (${userProfileCache.current.size} already cached)`);
     
     if (memberIdsToFetch.size === 0) {
-      console.log('✅ [Profiles] All profiles already cached, skipping fetch');
+      console.log(' [Profiles] All profiles already cached, skipping fetch');
       return;
     }
     
@@ -665,7 +665,7 @@ export default function Index() {
       const memberIdArray = Array.from(memberIdsToFetch);
       const batchSize = 100;
       
-      console.log(`📡 [Profiles] Fetching profiles in batches of ${batchSize}...`);
+      console.log(`  [Profiles] Fetching profiles in batches of ${batchSize}...`);
       
       for (let i = 0; i < memberIdArray.length; i += batchSize) {
         const batch = memberIdArray.slice(i, i + batchSize);
@@ -678,7 +678,7 @@ export default function Index() {
           [Query.equal('accountId', batch), Query.limit(batchSize)]
         );
         
-        console.log(`✅ [Profiles] Batch ${Math.floor(i/batchSize) + 1} returned ${userResponse.documents.length} profiles`);
+        console.log(` [Profiles] Batch ${Math.floor(i/batchSize) + 1} returned ${userResponse.documents.length} profiles`);
         
         // Update cache with fetched profiles
         for (const userData of userResponse.documents) {
@@ -703,9 +703,9 @@ export default function Index() {
         }
       }
       
-      console.log(`✅ [Profiles] Batch fetch complete. Cache size: ${userProfileCache.current.size} profiles`);
+      console.log(` [Profiles] Batch fetch complete. Cache size: ${userProfileCache.current.size} profiles`);
     } catch (error) {
-      console.error('❌ [Profiles] Error batch fetching user profiles:', error);
+      console.error('   [Profiles] Error batch fetching user profiles:', error);
     }
   };
 
@@ -742,7 +742,7 @@ export default function Index() {
               }
             );
             
-            console.log('✅ [SocialMedia] Code verified successfully, account_state set to ok');
+            console.log(' [SocialMedia] Code verified successfully, account_state set to ok');
             
             setShowInlineVerification(false);
             setSocialMediaCode('');
@@ -752,13 +752,13 @@ export default function Index() {
         } else {
           // Code doesn't match
           setVerificationError('Invalid code. Please try again.');
-          console.log('❌ [SocialMedia] Code verification failed');
+          console.log('   [SocialMedia] Code verification failed');
         }
       } else {
         setVerificationError('User document not found.');
       }
     } catch (error) {
-      console.error('❌ [SocialMedia] Error verifying code:', error);
+      console.error('   [SocialMedia] Error verifying code:', error);
       setVerificationError('An error occurred. Please try again.');
     } finally {
       setIsVerifyingCode(false);
@@ -817,13 +817,13 @@ export default function Index() {
         
           // Call the function in the background
           functions.createExecution(functionId, JSON.stringify(requestData))
-            .then(response => console.log('✅ Function execution response:', response))
-            .catch(error => console.error('❌ Function execution error:', error));
+            .then(response => console.log(' Function execution response:', response))
+            .catch(error => console.error('   Function execution error:', error));
       } else {
         showCustomNotification('User information not found.', 'error');
       }
     } catch (error) {
-      console.error('❌ [SocialMedia] Error resending code:', error);
+      console.error('   [SocialMedia] Error resending code:', error);
       showCustomNotification('An error occurred while sending the code. Please try again.', 'error');
     }
   };
@@ -835,9 +835,9 @@ export default function Index() {
       const profile = await getUserProfile(user.$id);
       if (profile && profile.profileImageUri) {
         setProfileImage(profile.profileImageUri);
-        console.log('✅ Loaded profile image:', profile.profileImageUri);
+        console.log(' Loaded profile image:', profile.profileImageUri);
         } else {
-        console.log('❌ No profile image found');
+        console.log('   No profile image found');
       }
     } catch (error) {
       console.error('Error loading profile image:', error);
@@ -874,7 +874,7 @@ export default function Index() {
     
     setIsLoadingClusters(true);
     try {
-      console.log('🔄 [Clusters] Loading message clusters for pro:', user.$id);
+      console.log('   [Clusters] Loading message clusters for pro:', user.$id);
       const { databases, config } = await import('@/lib/appwrite');
       const { Query } = await import('react-native-appwrite');
       
@@ -899,7 +899,7 @@ export default function Index() {
           groupedClusters.set(doc.clusterId, existing);
         });
         
-        console.log(`📊 [Clusters] Found ${groupedClusters.size} unique clusters from ${clustersResponse.documents.length} documents`);
+        console.log(`  [Clusters] Found ${groupedClusters.size} unique clusters from ${clustersResponse.documents.length} documents`);
         
         // Aggregate data for each unique clusterId
         const aggregatedClusters: Cluster[] = [];
@@ -969,7 +969,7 @@ export default function Index() {
             fanCount: pendinguserIds.size // Count of pending fans only
           } as Cluster & { fanCount: number };
           
-          console.log(`📊 [Clusters] Cluster ${clusterId}: ${pendinguserIds.size} pending, ${answeredDocs.length} answered`);
+          console.log(`  [Clusters] Cluster ${clusterId}: ${pendinguserIds.size} pending, ${answeredDocs.length} answered`);
           
           aggregatedClusters.push(aggregatedCluster);
         });
@@ -980,14 +980,14 @@ export default function Index() {
         );
         
         setClusters(aggregatedClusters);
-        console.log(`✅ [Clusters] Loaded ${aggregatedClusters.length} unique clusters`);
-        console.log('📊 [Clusters] Pending clusters:', aggregatedClusters.filter(c => c.status === 'pending').length);
+        console.log(` [Clusters] Loaded ${aggregatedClusters.length} unique clusters`);
+        console.log('  [Clusters] Pending clusters:', aggregatedClusters.filter(c => c.status === 'pending').length);
       } else {
         setClusters([]);
         console.log('ℹ️ [Clusters] No clusters found for this pro');
       }
     } catch (error) {
-      console.error('❌ [Clusters] Error loading clusters:', error);
+      console.error('   [Clusters] Error loading clusters:', error);
       setClusters([]);
     } finally {
       setIsLoadingClusters(false);
@@ -996,19 +996,19 @@ export default function Index() {
 
   // Handle cluster actions
   const handleAnswerForAll = async (cluster: Cluster) => {
-    console.log('🚀 [Clusters] Answer for all:', cluster.clusterId);
+    console.log('  [Clusters] Answer for all:', cluster.clusterId);
     setSelectedCluster(cluster);
     setShowAnswerForAllModal(true);
   };
 
   const handleAnswerOneByOne = async (cluster: Cluster) => {
-    console.log('🚀 [Clusters] Answer one by one:', cluster.clusterId);
+    console.log('  [Clusters] Answer one by one:', cluster.clusterId);
     setSelectedCluster(cluster);
     setShowOneByOneModal(true);
   };
 
   const handleViewAllClusters = () => {
-    console.log('🚀 [Clusters] View all clusters');
+    console.log('  [Clusters] View all clusters');
     setShowAllClustersModal(true);
   };
 
@@ -1029,7 +1029,7 @@ export default function Index() {
 
       if (creatorResponse.documents.length > 0) {
         const creatorData = creatorResponse.documents[0];
-        console.log('📊 [Preload] Creator financial data loaded:', {
+        console.log('  [Preload] Creator financial data loaded:', {
           currentPeriodGross: creatorData.currentPeriodGross,
           previousPeriodGross: creatorData.previousPeriodGross,
           lifetimeGross: creatorData.lifetimeGross,
@@ -1037,11 +1037,11 @@ export default function Index() {
         });
         setCreatorFinancials(creatorData);
         setInsightsFinancials(creatorData); // Also cache for InsightsTab
-        console.log('✅ [Preload] Financial data cached for EarningsTab and InsightsTab');
+        console.log(' [Preload] Financial data cached for EarningsTab and InsightsTab');
         
         // If Stripe is connected, also preload balance data
         if (creatorData.stripeConnectAccountId && creatorData.stripeConnectSetupComplete) {
-          console.log('💳 [Preload] Triggering Stripe balance preload...');
+          console.log('  [Preload] Triggering Stripe balance preload...');
           setTimeout(() => {
             loadStripeBalanceData(creatorData.stripeConnectAccountId);
           }, 500); // Small delay to avoid blocking main load
@@ -1049,12 +1049,12 @@ export default function Index() {
         
         return creatorData;
       } else {
-        console.log('❌ [Preload] No creator document found for this user.');
+        console.log('   [Preload] No creator document found for this user.');
         setCreatorFinancials(null);
         return null;
       }
         } catch (error) {  
-      console.error('❌ [Preload] Error loading creator financials:', error);
+      console.error('   [Preload] Error loading creator financials:', error);
       setCreatorFinancials(null);
       return null;
         } finally {
@@ -1065,7 +1065,7 @@ export default function Index() {
   // Preload Stripe balance data for instant EarningsTab display
   const loadStripeBalanceData = async (stripeAccountId: string, retryCount = 0) => {
     try {
-      console.log(`🔄 [Preload] Loading Stripe balance data for: ${stripeAccountId}${retryCount > 0 ? ` (retry ${retryCount})` : ''}`);
+      console.log(`   [Preload] Loading Stripe balance data for: ${stripeAccountId}${retryCount > 0 ? ` (retry ${retryCount})` : ''}`);
         const { functions } = await import('@/lib/appwrite');
         const { ExecutionMethod } = await import('react-native-appwrite');
 
@@ -1080,17 +1080,17 @@ export default function Index() {
         if (execution.responseBody && execution.responseBody !== '') {
           try {
             const response = JSON.parse(execution.responseBody);
-            console.log('📡 [Preload] Stripe balance response received');
+            console.log('  [Preload] Stripe balance response received');
 
             if (response.goals) {
               setDailyGoal(response.goals.dailyGoal || 0);
               setWeeklyGoal(response.goals.weeklyGoal || 0);
-              console.log('🎯 [Preload] Goals preloaded - Daily:', response.goals.dailyGoal, 'Weekly:', response.goals.weeklyGoal);
+              console.log('  [Preload] Goals preloaded - Daily:', response.goals.dailyGoal, 'Weekly:', response.goals.weeklyGoal);
             }
         
             if (response.kpis) {
               setStripeBalanceData(response.kpis);
-              console.log('📈 [Preload] KPIs preloaded for instant EarningsTab display');
+              console.log('  [Preload] KPIs preloaded for instant EarningsTab display');
           
               // Update creator financials with the latest data (including balance data)
               setCreatorFinancials((prev: any) => ({
@@ -1107,21 +1107,21 @@ export default function Index() {
               }));
             }
 
-            console.log('✅ [Preload] Stripe balance data loaded successfully');
+            console.log(' [Preload] Stripe balance data loaded successfully');
           } catch (e) {
-            console.log('⏳ [Preload] Async execution in progress, data will be updated in the background');
+            console.log('  [Preload] Async execution in progress, data will be updated in the background');
           }
         } else {
-          console.log('⏳ [Preload] Async execution started, data will be updated in the background');
+          console.log('  [Preload] Async execution started, data will be updated in the background');
         }
 
     } catch (error: any) {
-      console.error('❌ [Preload] Error loading Stripe balance data:', error);
+      console.error('   [Preload] Error loading Stripe balance data:', error);
       
       // Retry with exponential backoff if it's a timeout error
       if (retryCount < 2 && (error?.code === 408 || error?.message?.includes('timeout'))) {
         const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s
-        console.log(`🔄 [Preload] Retrying in ${delay}ms...`);
+        console.log(`   [Preload] Retrying in ${delay}ms...`);
         setTimeout(() => {
           loadStripeBalanceData(stripeAccountId, retryCount + 1);
         }, delay);
@@ -1141,19 +1141,19 @@ export default function Index() {
     // Load more channels when reaching the end of the list
     const handleLoadMore = () => {
       if (!isLoadingMore && hasMoreChannels && !searchQuery) {
-        console.log('📈 [LoadMore] Triggering load more...');
+        console.log('  [LoadMore] Triggering load more...');
         loadChannels(true);
       } else {
-        console.log(`📈 [LoadMore] Load more blocked - isLoadingMore: ${isLoadingMore}, hasMoreChannels: ${hasMoreChannels}, searchQuery: "${searchQuery}"`);
+        console.log(`  [LoadMore] Load more blocked - isLoadingMore: ${isLoadingMore}, hasMoreChannels: ${hasMoreChannels}, searchQuery: "${searchQuery}"`);
     }
   };
 
   const onRefresh = async () => {
-    console.log('🔄 [Refresh] Starting refresh...');
+    console.log('   [Refresh] Starting refresh...');
     setRefreshing(true);
     try {
       if (selectedTab === 'chats') {
-        console.log('🔄 [Refresh] Refreshing chats tab...');
+        console.log('   [Refresh] Refreshing chats tab...');
         // Reset pagination state
         setChannelOffset(0);
         setHasMoreChannels(true);
@@ -1167,7 +1167,7 @@ export default function Index() {
         ]);
       }
     } catch (error) {
-      console.error('❌ [Refresh] Error refreshing data:', error);
+      console.error('   [Refresh] Error refreshing data:', error);
     } finally {
       setRefreshing(false);
     }
@@ -1175,7 +1175,7 @@ export default function Index() {
 
   useEffect(() => {
     if (!user?.$id) {
-      console.log('⚠️ [Init] No authenticated user, clearing channels and skipping load');
+      console.log('  [Init] No authenticated user, clearing channels and skipping load');
       setChannels([]);
       setFilteredChannels([]);
       setClusters([]);
@@ -1184,11 +1184,11 @@ export default function Index() {
     }
     
     if (!channelsLoaded && user?.$id) {
-      console.log('🚀 [Init] Initial load triggered');
+      console.log('  [Init] Initial load triggered');
       loadChannels(false).then(() => {
         setChannelsLoaded(true);
         setFilteredChannels(channels);
-        console.log('✅ [Init] Initial load complete');
+        console.log(' [Init] Initial load complete');
       });
     }
     loadProfileImage();
@@ -1221,7 +1221,7 @@ export default function Index() {
               }}
               onChatAnswered={() => {
                 // Refresh clusters when a chat is answered
-                console.log('🔄 [Index] Refreshing clusters after one-by-one answer');
+                console.log('   [Index] Refreshing clusters after one-by-one answer');
                 loadClusters();
               }}
               currentUserId={user?.$id}
@@ -1238,12 +1238,12 @@ export default function Index() {
               }}
               onAnswerSent={(affectedChannels) => {
                 // Refresh clusters after answering
-                console.log('🔄 [Clusters] Refreshing after answer sent');
+                console.log('   [Clusters] Refreshing after answer sent');
                 loadClusters();
                 
                 // Update affected channels to appear at the top (unless sorted by unread)
                 const currentTimestamp = new Date().toISOString();
-                console.log('📨 [Index] Updating channels after answer-for-all:', affectedChannels);
+                console.log('  [Index] Updating channels after answer-for-all:', affectedChannels);
                 
                 affectedChannels.forEach(channelId => {
                   handleChannelUpdate(channelId, {
@@ -1415,7 +1415,7 @@ export default function Index() {
               onTipCollected={handleTipCollected}
               onChannelReorder={(channelId, newTimestamp) => {
                 // Handle channel reordering for real-time message updates
-                console.log(`🔄 [Index] Reordering channel ${channelId} with timestamp ${newTimestamp}`);
+                console.log(`   [Index] Reordering channel ${channelId} with timestamp ${newTimestamp}`);
                 handleChannelUpdate(channelId, { lastMessageAt: newTimestamp });
               }}
               clusters={clusters}
@@ -1516,7 +1516,7 @@ export default function Index() {
                       marginBottom: 8,
                       textAlign: 'center'
                     }} allowFontScaling={false}>
-                      Almost Ready! 🚀
+                      Almost Ready!  
                     </Text>
                     
                     <Text style={{ 

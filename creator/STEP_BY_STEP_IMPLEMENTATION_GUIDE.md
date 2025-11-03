@@ -5,24 +5,24 @@ This guide provides detailed implementation steps for building the AI-powered fa
 ## Your Existing Code Analysis
 
 Your current `query_upstash_vectors` project provides the perfect foundation:
-- ✅ Upstash Vector connection (`upstash.js`)
-- ✅ Vector storage and querying (`getRecommendedProduct`)
-- ✅ Metadata handling for products
-- ✅ Environment variable management (`utils.js`)
-- ✅ Appwrite function structure (`main.js`)
+-  Upstash Vector connection (`upstash.js`)
+-  Vector storage and querying (`getRecommendedProduct`)
+-  Metadata handling for products
+-  Environment variable management (`utils.js`)
+-  Appwrite function structure (`main.js`)
 
 **We'll adapt this code for message clustering with intent recognition happening BEFORE embedding generation for optimal accuracy.**
 
-## 🎯 **Critical Architecture Decision: Intent-First Processing**
+##   **Critical Architecture Decision: Intent-First Processing**
 
 ### **Why Intent Recognition Must Come BEFORE Embedding:**
 
-**❌ Suboptimal Flow:**
+**   Suboptimal Flow:**
 ```
 Complex Message → Embedding → Vector Storage → Poor Clustering (65% accuracy)
 ```
 
-**✅ Optimal Flow:**
+** Optimal Flow:**
 ```
 Complex Message → Intent Recognition → Focused Questions → Embeddings → Better Clustering (85%+ accuracy)
 ```
@@ -1675,7 +1675,7 @@ async function runIntegrationTest() {
     }
     
     const similar = await findSimilarMessages(index, 'How frequently should I work out my abs?');
-    console.log(`✅ Found ${similar.length} similar messages\n`);
+    console.log(` Found ${similar.length} similar messages\n`);
     
     // Test 2: Intent Recognition
     console.log('2. Testing Intent Recognition...');
@@ -1683,7 +1683,7 @@ async function runIntegrationTest() {
     const intent = await intentRecognizer.analyzeMessage(
         'How often should I train abs and what protein should I take?'
     );
-    console.log(`✅ Detected ${intent.questions.length} questions, topic: ${intent.topic}\n`);
+    console.log(` Detected ${intent.questions.length} questions, topic: ${intent.topic}\n`);
     
     // Test 3: Personalization
     console.log('3. Testing Personalization...');
@@ -1712,7 +1712,7 @@ async function runIntegrationTest() {
         mockChatHistories
     );
     
-    console.log(`✅ Generated ${replies.length} personalized replies`);
+    console.log(` Generated ${replies.length} personalized replies`);
     replies.forEach((reply, i) => {
         console.log(`   Chat ${i + 1}: ${reply.reply.substring(0, 100)}...`);
         console.log(`   Confidence: ${reply.confidence.toFixed(2)}, Conflicts: ${reply.conflicts.length}\n`);
@@ -1723,7 +1723,7 @@ async function runIntegrationTest() {
     const fanoutProcessor = new FanoutProcessor();
     
     // This would normally use real cluster data
-    console.log('✅ Fanout processor initialized\n');
+    console.log(' Fanout processor initialized\n');
     
     console.log('🎉 All tests completed successfully!');
 }
@@ -1769,7 +1769,7 @@ async function performanceTest() {
     await Promise.all(storagePromises);
     const storageTime = performance.now() - storageStart;
     
-    console.log(`✅ Stored ${messageCount} messages in ${storageTime.toFixed(2)}ms`);
+    console.log(` Stored ${messageCount} messages in ${storageTime.toFixed(2)}ms`);
     console.log(`   Average: ${(storageTime / messageCount).toFixed(2)}ms per message\n`);
     
     // Test 2: Similarity Search Performance
@@ -1783,7 +1783,7 @@ async function performanceTest() {
     const searchResults = await Promise.all(searchPromises);
     const searchTime = performance.now() - searchStart;
     
-    console.log(`✅ Completed 20 similarity searches in ${searchTime.toFixed(2)}ms`);
+    console.log(` Completed 20 similarity searches in ${searchTime.toFixed(2)}ms`);
     console.log(`   Average: ${(searchTime / 20).toFixed(2)}ms per search`);
     console.log(`   Average results per search: ${(searchResults.reduce((sum, r) => sum + r.length, 0) / 20).toFixed(1)}\n`);
     
@@ -1829,11 +1829,11 @@ async function deployFunction() {
             true // activate immediately
         );
         
-        console.log(`✅ Deployment created: ${deployment.$id}`);
-        console.log('🚀 Function deployed successfully!');
+        console.log(` Deployment created: ${deployment.$id}`);
+        console.log('  Function deployed successfully!');
         
     } catch (error) {
-        console.error('❌ Deployment failed:', error);
+        console.error('   Deployment failed:', error);
     }
 }
 

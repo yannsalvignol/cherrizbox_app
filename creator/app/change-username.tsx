@@ -64,16 +64,16 @@ const ChangeUsernameScreen = () => {
             }
           );
           
-          console.log('✅ Social media information updated successfully');
+          console.log(' Social media information updated successfully');
           
           // Navigate back to the main screen
           router.replace('/(root)/(tabs)');
         } else {
-          console.error('❌ User document not found');
+          console.error('   User document not found');
           // Handle error - maybe show an alert
         }
       } catch (error) {
-        console.error('❌ Error updating social media information:', error);
+        console.error('   Error updating social media information:', error);
         // Handle error - maybe show an alert
       }
     }

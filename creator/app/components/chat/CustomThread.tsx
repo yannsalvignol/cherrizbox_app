@@ -110,7 +110,7 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
             limit: 50, // Load up to 50 recent messages
           });
           
-          console.log('✅ [CustomThread] Loaded', threadReplies.messages.length, 'thread messages');
+          console.log(' [CustomThread] Loaded', threadReplies.messages.length, 'thread messages');
           
           // Cache the messages for future use
           if (threadMessagesCache?.current) {
@@ -126,7 +126,7 @@ export const CustomThread: React.FC<CustomThreadProps> = ({
           }, 200);
           
         } catch (error) {
-          console.error('❌ [CustomThread] Error loading thread messages:', error);
+          console.error('   [CustomThread] Error loading thread messages:', error);
         } finally {
           setIsLoadingThread(false);
         }

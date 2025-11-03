@@ -123,7 +123,7 @@ class ImageCacheManager {
       }
     } catch (error) {
       console.error('  [ImageCache] Failed to cache image:', error);
-      console.log(`🔄 [ImageCache] Falling back to original URI`);
+      console.log(`   [ImageCache] Falling back to original URI`);
     }
 
     // Fallback to original URI

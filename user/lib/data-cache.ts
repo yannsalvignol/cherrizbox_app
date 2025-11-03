@@ -15,7 +15,7 @@ class DataCacheManager {
       timestamp: Date.now(),
       ttl: ttl || this.defaultTTL
     });
-    console.log(`📊 [DataCache] Cache size: ${this.cache.size} items`);
+    console.log(`  [DataCache] Cache size: ${this.cache.size} items`);
   }
 
   get<T>(key: string): T | null {
@@ -71,7 +71,7 @@ class DataCacheManager {
     if (expiredKeys.length > 0) {
       console.log(`🧹 [DataCache] CLEANUP: Removing ${expiredKeys.length} expired entries`);
       expiredKeys.forEach(key => this.cache.delete(key));
-      console.log(`📊 [DataCache] Cache size after cleanup: ${this.cache.size} items`);
+      console.log(`  [DataCache] Cache size after cleanup: ${this.cache.size} items`);
     }
   }
 
@@ -130,12 +130,12 @@ setInterval(() => {
   const sizeBefore = dataCache.getSize();
   dataCache.cleanup();
   const sizeAfter = dataCache.getSize();
-  console.log(`📊 [DataCache] Periodic cleanup - Before: ${sizeBefore}, After: ${sizeAfter} items`);
+  console.log(`  [DataCache] Periodic cleanup - Before: ${sizeBefore}, After: ${sizeAfter} items`);
 }, 5 * 60 * 1000);
 
 // Show cache statistics every 2 minutes in development
 if (__DEV__) {
   setInterval(() => {
-    console.log(`📈 [DataCache] Stats - Total items: ${dataCache.getSize()}`);
+    console.log(`  [DataCache] Stats - Total items: ${dataCache.getSize()}`);
   }, 2 * 60 * 1000);
 }

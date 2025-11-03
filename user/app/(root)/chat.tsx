@@ -97,7 +97,7 @@ export default function ChatScreen() {
   useEffect(() => {
     if (creatorName && posts && posts.length > 0) {
       console.log('🔍 [ChatScreen] Looking for creator currency for:', creatorName);
-      console.log('📊 [ChatScreen] Available posts:', posts.length);
+      console.log('  [ChatScreen] Available posts:', posts.length);
       
       // Find the creator's post to get their currency (same logic as in [id].tsx)
       const creatorPost = posts.find((post: any) => 
@@ -138,7 +138,7 @@ export default function ChatScreen() {
       
       // Preload images for better performance on return
       if (creatorThumbnail) {
-        console.log(`🚀 [ChatScreen] Preloading creator thumbnail for next visit`);
+        console.log(`  [ChatScreen] Preloading creator thumbnail for next visit`);
         imageCache.getCachedImageUri(creatorThumbnail).catch(() => {
           // Silently fail, not critical
         });
@@ -189,7 +189,7 @@ export default function ChatScreen() {
   const preloadAllThreadMessages = async (channel: any) => {
     if (!channel || !channel.state.messages) return;
     
-    console.log('🚀 [ChatScreen] Starting thread preload for channel');
+    console.log('  [ChatScreen] Starting thread preload for channel');
     const messages = Object.values(channel.state.messages);
     
     // Find messages that have thread replies (reply_count > 0)
@@ -197,7 +197,7 @@ export default function ChatScreen() {
       msg.reply_count && msg.reply_count > 0
     );
     
-    console.log(`📊 [ChatScreen] Found ${messagesWithThreads.length} messages with threads`);
+    console.log(`  [ChatScreen] Found ${messagesWithThreads.length} messages with threads`);
     
     // Preload thread messages for each message with threads
     const preloadPromises = messagesWithThreads.map(async (message: any) => {
@@ -372,7 +372,7 @@ export default function ChatScreen() {
         try {
           // Check if channel is already watched (pre-setup)
           if (!groupChannel.state.isUpToDate) {
-            console.log('📡 Watching group channel (not pre-setup)...');
+            console.log('  Watching group channel (not pre-setup)...');
           await groupChannel.watch();
           } else {
             console.log(' Group channel already watched (pre-setup)');
@@ -400,7 +400,7 @@ export default function ChatScreen() {
         try {
           // Check if channel is already watched (pre-setup)
           if (!dmChannel.state.isUpToDate) {
-            console.log('📡 Watching DM channel (not pre-setup)...');
+            console.log('  Watching DM channel (not pre-setup)...');
           await dmChannel.watch();
           } else {
             console.log(' DM channel already watched (pre-setup)');
@@ -443,7 +443,7 @@ export default function ChatScreen() {
   const switchChatType = () => {
     const newChatType = currentChatType === 'group' ? 'direct' : 'group';
     setCurrentChatType(newChatType);
-    console.log('🔄 Switched to:', newChatType, 'chat');
+    console.log('   Switched to:', newChatType, 'chat');
   };
 
   // Function to switch chat type with haptic feedback (for toggle buttons)

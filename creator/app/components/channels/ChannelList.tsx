@@ -172,7 +172,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
 
   // Simplified function to update channel with new message timestamp
   const updateChannelTimestamp = useCallback((channelId: string, newTimestamp: string) => {
-    console.log(`🔄 [ChannelList] Updating timestamp for ${channelId}`);
+    console.log(`   [ChannelList] Updating timestamp for ${channelId}`);
     
     // Update real-time state
     setRealtimeUpdates(prev => {
@@ -206,13 +206,13 @@ export const ChannelList: React.FC<ChannelListProps> = ({
   const loadAndAddUnloadedChannel = useCallback(async (channelId: string, messageText: string, messageTimestamp: string) => {
     // Prevent duplicate loads
     if (pendingChannelLoads.current.has(channelId)) {
-      console.log(`⚠️ [ChannelList] Channel ${channelId} is already being loaded, skipping`);
+      console.log(`  [ChannelList] Channel ${channelId} is already being loaded, skipping`);
       return null;
     }
     
     pendingChannelLoads.current.add(channelId);
     try {
-      console.log(`🔄 [ChannelList] Loading unloaded channel: ${channelId}`);
+      console.log(`   [ChannelList] Loading unloaded channel: ${channelId}`);
       
       const streamChannel = client.channel('messaging', channelId);
       await streamChannel.watch();
@@ -248,7 +248,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
         memberAvatars
       };
       
-      console.log(`✅ [ChannelList] Successfully loaded unloaded channel: ${channelId}`);
+      console.log(` [ChannelList] Successfully loaded unloaded channel: ${channelId}`);
       
       // Update unread count for the new channel
       setLiveUnreadCounts(prev => {
@@ -267,7 +267,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
       return newChannel;
       
     } catch (error) {
-      console.error(`❌ [ChannelList] Failed to load unloaded channel ${channelId}:`, error);
+      console.error(`   [ChannelList] Failed to load unloaded channel ${channelId}:`, error);
       return null;
     } finally {
       // Remove from pending loads
@@ -282,7 +282,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
       const messageText = event.message?.text || '';
       const messageTimestamp = event.message?.created_at || new Date().toISOString();
       
-      console.log(`📨 [ChannelList] Global message received from channel: ${channelId}`);
+      console.log(`  [ChannelList] Global message received from channel: ${channelId}`);
       
       // Check if this channel is already in our channels list
       const isChannelLoaded = channels.some(ch => ch.id === channelId);
@@ -307,7 +307,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
 
     // Check if Stream Chat client is connected before setting up listeners
     if (!client.user) {
-      console.log('⚠️ [ChannelList] Stream Chat not connected, skipping listener setup');
+      console.log('  [ChannelList] Stream Chat not connected, skipping listener setup');
       return;
     }
 
@@ -317,7 +317,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
       return;
     }
 
-    console.log('🔄 [ChannelList] Setting up Stream Chat listeners');
+    console.log('   [ChannelList] Setting up Stream Chat listeners');
     listenersSetupRef.current = true;
     
     const unsubscribeFunctions: (() => void)[] = [];
@@ -335,13 +335,13 @@ export const ChannelList: React.FC<ChannelListProps> = ({
           try {
             unsubscribe();
           } catch (error) {
-            console.error('❌ [ChannelList] Error during global listener cleanup:', error);
+            console.error('   [ChannelList] Error during global listener cleanup:', error);
           }
         });
       };
     }
 
-    console.log('🔄 [ChannelList] Setting up individual channel listeners for', channels.length, 'channels');
+    console.log('   [ChannelList] Setting up individual channel listeners for', channels.length, 'channels');
     
     const watchedChannels = new Map<string, any>(); // Store channel instances
 
@@ -350,7 +350,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
     const BATCH_DELAY = 500; // 500ms between batches
     
     const processBatch = async (batch: any[], batchIndex: number) => {
-      console.log(`🔄 [ChannelList] Processing batch ${batchIndex + 1} with ${batch.length} channels`);
+      console.log(`   [ChannelList] Processing batch ${batchIndex + 1} with ${batch.length} channels`);
       
       const batchPromises = batch.map(async (channel, index) => {
         // Add small delay within batch
@@ -362,7 +362,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
                                 // Set up individual channel listeners
            const handleNewMessage = (event: any) => {
              if (event.user?.id !== currentUserId) {
-               console.log(`📨 [ChannelList] Individual listener - New message in ${channel.id}`);
+               console.log(`  [ChannelList] Individual listener - New message in ${channel.id}`);
                
                // Check if this message contains a tip
                const messageText = event.message?.text || '';
@@ -447,11 +447,11 @@ export const ChannelList: React.FC<ChannelListProps> = ({
           if (!streamChannel.initialized && !watchedChannels.has(channel.id)) {
             await streamChannel.watch();
             watchedChannels.set(channel.id, streamChannel);
-            console.log(`✅ [ChannelList] Successfully watching channel ${channel.id}`);
+            console.log(` [ChannelList] Successfully watching channel ${channel.id}`);
           }
           
         } catch (error: any) {
-          console.warn(`⚠️ [ChannelList] Failed to set up channel ${channel.id}:`, error.message);
+          console.warn(`  [ChannelList] Failed to set up channel ${channel.id}:`, error.message);
           // Continue with other channels
         }
       });
@@ -489,11 +489,11 @@ export const ChannelList: React.FC<ChannelListProps> = ({
             await new Promise(resolve => setTimeout(resolve, BATCH_DELAY));
           }
         } catch (error) {
-          console.error(`❌ [ChannelList] Error processing batch ${batchIndex}:`, error);
+          console.error(`   [ChannelList] Error processing batch ${batchIndex}:`, error);
         }
       }
       
-      console.log(`✅ [ChannelList] Completed setup for ${watchedChannels.size} channels`);
+      console.log(` [ChannelList] Completed setup for ${watchedChannels.size} channels`);
     };
 
     // Start processing channels
@@ -507,7 +507,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
         try {
           unsubscribe();
         } catch (error) {
-          console.error('❌ [ChannelList] Error during listener cleanup:', error);
+          console.error('   [ChannelList] Error during listener cleanup:', error);
         }
       });
     };

@@ -45,7 +45,7 @@ export default function PaymentSuccess() {
   // Log the creator name when component mounts
   useEffect(() => {
     const creatorNameStr = Array.isArray(creatorName) ? creatorName[0] : creatorName;
-    console.log('🎯 Payment Success Screen - Creator Name:', creatorNameStr);
+    console.log('  Payment Success Screen - Creator Name:', creatorNameStr);
   }, [creatorName]);
 
   useEffect(() => {
@@ -195,7 +195,7 @@ export default function PaymentSuccess() {
       // Background processing starts here
       (async () => {
           // Initialize Stream Chat and refresh data during animation completion
-          console.log('🔄 Initializing Stream Chat and refreshing data during animation...');
+          console.log('   Initializing Stream Chat and refreshing data during animation...');
           
           try {
             // Get current user for Stream Chat initialization
@@ -207,7 +207,7 @@ export default function PaymentSuccess() {
               // Push notifications are now handled automatically in stream-chat.ts during connection
               
               // Set up channels for ALL active subscriptions (like the global provider does)
-              console.log('🚀 Setting up channels for all active subscriptions...');
+              console.log('  Setting up channels for all active subscriptions...');
               try {
                 // Get fresh subscription data
                 const userSubscriptions = await getUserSubscriptions(user.$id);

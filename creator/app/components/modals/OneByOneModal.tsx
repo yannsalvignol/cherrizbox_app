@@ -92,7 +92,7 @@ export const OneByOneModal: React.FC<OneByOneModalProps> = ({
       }
       
     } catch (error) {
-      console.error('❌ [OneByOne] Error loading affected chats:', error);
+      console.error('   [OneByOne] Error loading affected chats:', error);
       setAffectedChats([]);
     } finally {
       setIsLoading(false);
@@ -147,10 +147,10 @@ export const OneByOneModal: React.FC<OneByOneModalProps> = ({
       });
       
       setAffectedChats(updatedChats);
-      console.log('✅ [OneByOne] Updated chats with fan profiles');
+      console.log(' [OneByOne] Updated chats with fan profiles');
       
     } catch (error) {
-      console.error('❌ [OneByOne] Error fetching fan profiles:', error);
+      console.error('   [OneByOne] Error fetching fan profiles:', error);
     }
   };
 
@@ -169,7 +169,7 @@ export const OneByOneModal: React.FC<OneByOneModalProps> = ({
     if (!cluster) return;
     
     try {
-      console.log('🔄 [OneByOne] Updating cluster status for fan:', userId);
+      console.log('   [OneByOne] Updating cluster status for fan:', userId);
       
       const { databases, config } = await import('@/lib/appwrite');
       const { Query } = await import('react-native-appwrite');
@@ -199,15 +199,15 @@ export const OneByOneModal: React.FC<OneByOneModalProps> = ({
           }
         );
         
-        console.log('✅ [OneByOne] Cluster status updated to answered');
+        console.log(' [OneByOne] Cluster status updated to answered');
         
         // Call the callback to refresh clusters in the parent
         onChatAnswered?.();
       } else {
-        console.warn('⚠️ [OneByOne] No cluster document found for fan:', userId);
+        console.warn('  [OneByOne] No cluster document found for fan:', userId);
       }
     } catch (error) {
-      console.error('❌ [OneByOne] Error updating cluster status:', error);
+      console.error('   [OneByOne] Error updating cluster status:', error);
       // Don't block navigation even if update fails
     }
   };

@@ -73,7 +73,7 @@ const CustomMessageAvatar = (props: CustomMessageAvatarProps) => {
         const profileImageUrl = await chatDataCache.getOrFetchProfileImage(
           userId,
           async () => {
-            console.log(`🔄 [MessageAvatar] Fetching profile for user: ${userId}`);
+            console.log(`   [MessageAvatar] Fetching profile for user: ${userId}`);
             
         if (!config.endpoint || !config.projectId || !config.databaseId || !config.profileCollectionId) {
               return '';
@@ -103,10 +103,10 @@ const CustomMessageAvatar = (props: CustomMessageAvatarProps) => {
 
         if (profileImageUrl) {
           setProfileImage(profileImageUrl);
-          console.log(`✅ [MessageAvatar] Profile image loaded (cached) for user: ${userId}`);
+          console.log(` [MessageAvatar] Profile image loaded (cached) for user: ${userId}`);
         }
       } catch (error) {
-        console.error('❌ [MessageAvatar] Error fetching user profile image:', error);
+        console.error('   [MessageAvatar] Error fetching user profile image:', error);
       }
     };
     

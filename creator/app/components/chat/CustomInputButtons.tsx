@@ -99,7 +99,7 @@ const CustomInputButtons: React.FC = () => {
             }],
           });
           
-          console.log('✅ Custom photo sent successfully with cloud URL');
+          console.log(' Custom photo sent successfully with cloud URL');
           
         } catch (uploadError) {
           console.error('Error uploading image to Appwrite storage:', uploadError);
@@ -115,10 +115,10 @@ const CustomInputButtons: React.FC = () => {
             }],
           });
           
-          console.log('✅ Custom photo sent with local URI fallback');
+          console.log(' Custom photo sent with local URI fallback');
         }
 
-        console.log('✅ Custom photo sent successfully');
+        console.log(' Custom photo sent successfully');
       }
     } catch (error) {
       console.error('Error picking image:', error);

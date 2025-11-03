@@ -226,7 +226,7 @@ const registerForPushWithStream = async (): Promise<void> => {
 // Pre-setup channels for all subscribed creators
 export const preSetupChannels = async (userId: string, creatorIds: string[]) => {
     try {
-        console.log('🚀 Pre-setting up channels for subscribed creators...');
+        console.log('  Pre-setting up channels for subscribed creators...');
         console.log('📋 Creator IDs to setup:', creatorIds);
 
         // Check if we're connected to Stream Chat
@@ -322,7 +322,7 @@ export const preSetupChannels = async (userId: string, creatorIds: string[]) => 
 // Create a direct message channel between two users
 export async function createDirectMessageChannel(user1Id: string, user2Id: string) {
   try {
-    console.log('🔄 Creating direct message channel...');
+    console.log('   Creating direct message channel...');
     console.log('📋 Channel creation details:', {
       user1Id,
       user2Id,
@@ -350,7 +350,7 @@ export async function createDirectMessageChannel(user1Id: string, user2Id: strin
       members: [user1Id, user2Id],
     });
 
-    console.log('📡 Calling channel.create()...');
+    console.log('  Calling channel.create()...');
     try {
       await channel.create();
     } catch (error: any) {
@@ -364,7 +364,7 @@ export async function createDirectMessageChannel(user1Id: string, user2Id: strin
     }
     
     console.log(' Direct message channel created successfully!');
-    console.log('📊 Channel info:', {
+    console.log('  Channel info:', {
       channelId: channel.id,
       channelType: channel.type,
       memberCount: Object.keys(channel.state.members).length,
