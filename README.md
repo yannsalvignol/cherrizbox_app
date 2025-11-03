@@ -56,7 +56,7 @@ Learn more on our site: [cherrizbox.com](https://www.cherrizbox.com/)
 6) AI personalizes replies per fan and drafts them for review  
 7) Creator approves and sends in batch
 
-![Clustering Flow](./docs/images/clustering-flow.PNG)
+![Clustering Flow](./docs/images/clustering-fow.PNG)
 
 ---
 
