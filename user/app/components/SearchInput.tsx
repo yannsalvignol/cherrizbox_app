@@ -69,7 +69,7 @@ const SearchInput = ({ onSearch, onFocus }: SearchInputProps) => {
                     flex: 1,
                     flexDirection: 'row',
                     alignItems: 'center',
-                    backgroundColor: theme.cardBackground,
+                    backgroundColor: '#ffffff',
                     paddingHorizontal: 20,
                     borderRadius: 25,
                     paddingVertical: Platform.OS === 'android' ? 12 : 16 

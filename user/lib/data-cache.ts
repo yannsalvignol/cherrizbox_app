@@ -21,19 +21,19 @@ class DataCacheManager {
   get<T>(key: string): T | null {
     const entry = this.cache.get(key);
     if (!entry) {
-      console.log(`❌ [DataCache] MISS: ${key}`);
+      console.log(`  [DataCache] MISS: ${key}`);
       return null;
     }
 
     const now = Date.now();
     const age = now - entry.timestamp;
     if (age > entry.ttl) {
-      console.log(`⚠️ [DataCache] EXPIRED: ${key} (age: ${Math.round(age / 1000)}s, TTL: ${Math.round(entry.ttl / 1000)}s)`);
+      console.log(`  [DataCache] EXPIRED: ${key} (age: ${Math.round(age / 1000)}s, TTL: ${Math.round(entry.ttl / 1000)}s)`);
       this.cache.delete(key);
       return null;
     }
 
-    console.log(`✅ [DataCache] HIT: ${key} (age: ${Math.round(age / 1000)}s)`);
+    console.log(` [DataCache] HIT: ${key} (age: ${Math.round(age / 1000)}s)`);
     return entry.data as T;
   }
 

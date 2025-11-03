@@ -294,14 +294,14 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
       setShowMessageSentAnimation(true);
       
     } catch (error) {
-      console.error('❌ Error sending message after payment:', error);
+      console.error('  Error sending message after payment:', error);
       Alert.alert('Error', `Payment was successful but failed to send message: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
   // Handle payment cancellation/failure
   const handlePaymentClose = () => {
-    console.log('💳 Payment cancelled or failed');
+    console.log('   Payment cancelled or failed');
     setShowStripeSheet(false);
     // Keep pending message data in case user wants to try again
   };
@@ -463,9 +463,9 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
           };
           
           setSelectedAttachment(attachmentData);
-          console.log('📱 Showing preview in same modal');
+          console.log('  Showing preview in same modal');
         } catch (copyError) {
-          console.error('❌ Failed to copy file to permanent location:', copyError);
+          console.error('  Failed to copy file to permanent location:', copyError);
           // Fallback to original URI if copy fails
           const attachmentData = {
             uri: asset.uri,
@@ -476,10 +476,10 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
           setSelectedAttachment(attachmentData);
         }
       } else {
-        console.log('❌ No document selected or picker canceled');
+        console.log('  No document selected or picker canceled');
       }
     } catch (error) {
-      console.error('❌ Error picking document:', error);
+      console.error('  Error picking document:', error);
       Alert.alert('Error', 'Failed to pick document.');
     }
   };
@@ -493,12 +493,12 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
       console.log('📋 Camera permission status:', status);
       
       if (status !== 'granted') {
-        console.log('❌ Camera permission denied');
+        console.log('  Camera permission denied');
         Alert.alert('Permission needed', 'Please grant permission to access your camera.');
         return;
       }
 
-      console.log('📱 Launching camera...');
+      console.log('  Launching camera...');
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: false,
         quality: 0.8,
@@ -543,12 +543,12 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
         };
         
         setSelectedAttachment(attachmentData);
-        console.log('📱 Showing preview in same modal');
+        console.log('  Showing preview in same modal');
       } else {
-        console.log('❌ No camera asset captured or canceled');
+        console.log('  No camera asset captured or canceled');
       }
     } catch (error) {
-      console.error('❌ Error taking photo/video:', error);
+      console.error('  Error taking photo/video:', error);
       Alert.alert('Error', 'Failed to take photo or video.');
     }
   };
@@ -1336,7 +1336,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                   <TouchableOpacity
                     onPress={async () => {
                       try {
-                        console.log('💳 Preparing Stripe payment for tip...');
+                        console.log('   Preparing Stripe payment for tip...');
                         
                         if (!selectedAttachment) {
                           Alert.alert('No attachment', 'Please select an attachment to send with your tip.');
@@ -1354,7 +1354,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                           mimeType
                         );
                         
-                        console.log('✅ File uploaded, URL:', appwriteFileUrl);
+                        console.log(' File uploaded, URL:', appwriteFileUrl);
                         
                         // Prepare message data but don't send yet - wait for payment
                         const messageData = {
@@ -1384,7 +1384,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                         setShowStripeSheet(true);
                         
                       } catch (error) {
-                        console.error('❌ Error preparing payment:', error);
+                        console.error('  Error preparing payment:', error);
                         Alert.alert('Error', `Failed to prepare payment: ${error instanceof Error ? error.message : 'Unknown error'}`);
                       }
                     }}

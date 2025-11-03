@@ -48,11 +48,11 @@ export async function hasActiveChatSubscription(userId: string): Promise<boolean
     );
 
     const hasSubscription = response.documents.length > 0;
-    console.log('✅ [ChatSubscription] User subscription status:', { userId, hasSubscription });
+    console.log(' [ChatSubscription] User subscription status:', { userId, hasSubscription });
     
     return hasSubscription;
   } catch (error) {
-    console.error('❌ [ChatSubscription] Error checking subscription status:', error);
+    console.error('  [ChatSubscription] Error checking subscription status:', error);
     return false;
   }
 }
@@ -80,7 +80,7 @@ export async function getActiveChatSubscription(userId: string): Promise<ChatSub
     
     return null;
   } catch (error) {
-    console.error('❌ [ChatSubscription] Error getting subscription details:', error);
+    console.error('  [ChatSubscription] Error getting subscription details:', error);
     return null;
   }
 }
@@ -118,7 +118,7 @@ export async function cancelChatSubscription(subscriptionId: string) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ [ChatSubscription] Cancellation failed:', errorText);
+      console.error('  [ChatSubscription] Cancellation failed:', errorText);
       throw new Error(`Failed to cancel subscription: ${response.status} ${response.statusText}`);
     }
 
@@ -131,7 +131,7 @@ export async function cancelChatSubscription(subscriptionId: string) {
       try {
         actualResponse = JSON.parse(result.responseBody);
       } catch (parseError) {
-        console.error('❌ [ChatSubscription] Failed to parse response body:', parseError);
+        console.error('  [ChatSubscription] Failed to parse response body:', parseError);
         throw new Error('Invalid response format from backend');
       }
     } else {
@@ -142,10 +142,10 @@ export async function cancelChatSubscription(subscriptionId: string) {
       throw new Error(actualResponse.error || 'Failed to cancel subscription');
     }
 
-    console.log('✅ [ChatSubscription] Subscription cancelled successfully');
+    console.log(' [ChatSubscription] Subscription cancelled successfully');
     return { success: true };
   } catch (error) {
-    console.error('❌ [ChatSubscription] Error in cancelChatSubscription:', error);
+    console.error('  [ChatSubscription] Error in cancelChatSubscription:', error);
     throw error;
   }
 }
@@ -186,7 +186,7 @@ export async function createChatSubscriptionPaymentIntent(
       email: currentUser.email
     };
 
-    console.log('💳 [ChatSubscription] Creating payment intent for chat subscription:', {
+    console.log('   [ChatSubscription] Creating payment intent for chat subscription:', {
       amount,
       interval,
       email: currentUser.email,
@@ -207,7 +207,7 @@ export async function createChatSubscriptionPaymentIntent(
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ [ChatSubscription] Backend error response:', errorText);
+      console.error('  [ChatSubscription] Backend error response:', errorText);
       throw new Error(`Function execution failed with status ${response.status}: ${errorText}`);
     }
 
@@ -221,7 +221,7 @@ export async function createChatSubscriptionPaymentIntent(
       // Check if this is an Appwrite function execution response
       if (data.responseBody) {
         const actualResponse = JSON.parse(data.responseBody);
-        console.log('✅ [ChatSubscription] Actual function response:', actualResponse);
+        console.log(' [ChatSubscription] Actual function response:', actualResponse);
         
         if (actualResponse.clientSecret) {
           // For platform subscriptions, stripeAccountId can be null
@@ -242,11 +242,11 @@ export async function createChatSubscriptionPaymentIntent(
         throw new Error('Missing client secret in payment response');
       }
     } catch (parseError) {
-      console.error('❌ [ChatSubscription] Failed to parse response:', parseError);
+      console.error('  [ChatSubscription] Failed to parse response:', parseError);
       throw new Error('Failed to process function response');
     }
   } catch (error) {
-    console.error('❌ [ChatSubscription] Payment intent creation error:', error);
+    console.error('  [ChatSubscription] Payment intent creation error:', error);
     if (error instanceof Error) {
       throw new Error(`Chat subscription payment failed: ${error.message}`);
     }

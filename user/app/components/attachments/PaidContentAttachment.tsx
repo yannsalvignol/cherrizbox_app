@@ -72,13 +72,13 @@ export const PaidContentAttachment: React.FC<PaidContentAttachmentProps> = ({ at
   };
 
   const handlePaymentSuccess = async () => {
-    console.log('💳 [PaidContent] Payment successful for paid content');
-    console.log('💳 [PaidContent] Invalidating cache for contentId:', attachment?.paid_content_id);
+    console.log('   [PaidContent] Payment successful for paid content');
+    console.log('   [PaidContent] Invalidating cache for contentId:', attachment?.paid_content_id);
     
     // Clear the purchase status from cache to force refresh
     if (user?.$id && attachment?.paid_content_id) {
       dataCache.delete(`purchase_${user.$id}_${attachment.paid_content_id}`);
-      console.log('✅ [PaidContent] Cache invalidated - next check will query database');
+      console.log(' [PaidContent] Cache invalidated - next check will query database');
     }
     
     setIsUnlocked(true);

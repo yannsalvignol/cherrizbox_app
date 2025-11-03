@@ -53,13 +53,13 @@ export default function ManageSubscriptions() {
       const chatSub = await getActiveChatSubscription(user.$id);
       if (chatSub) {
         setChatSubscriptions([chatSub as ChatSubscription]);
-        console.log('✅ [ManageSubscriptions] Found chat subscription:', chatSub.$id);
+        console.log(' [ManageSubscriptions] Found chat subscription:', chatSub.$id);
       } else {
         setChatSubscriptions([]);
         console.log('📭 [ManageSubscriptions] No active chat subscriptions found');
       }
     } catch (error) {
-      console.error('❌ [ManageSubscriptions] Error loading subscriptions:', error);
+      console.error('  [ManageSubscriptions] Error loading subscriptions:', error);
       setChatSubscriptions([]);
     } finally {
       setLoading(false);
@@ -100,7 +100,7 @@ export default function ManageSubscriptions() {
               // Reload subscriptions
               loadSubscriptions();
             } catch (error: any) {
-              console.error('❌ [ManageSubscriptions] Error cancelling subscription:', error);
+              console.error('  [ManageSubscriptions] Error cancelling subscription:', error);
               Alert.alert(
                 'Cancellation Failed',
                 `Failed to cancel subscription: ${error.message}`,
@@ -141,7 +141,7 @@ export default function ManageSubscriptions() {
               // Refresh creators list
               await refreshCreators();
             } catch (error: any) {
-              console.error('❌ [ManageSubscriptions] Error cancelling creator subscription:', error);
+              console.error('  [ManageSubscriptions] Error cancelling creator subscription:', error);
               Alert.alert(
                 'Cancellation Failed',
                 `Failed to cancel subscription: ${error.message}`,

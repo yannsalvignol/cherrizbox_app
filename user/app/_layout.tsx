@@ -15,23 +15,23 @@ if (Platform.OS !== 'web') {
   import('@react-native-firebase/messaging').then(({ getMessaging, setBackgroundMessageHandler }) => {
     const messaging = getMessaging();
     setBackgroundMessageHandler(messaging, async remoteMessage => {
-      console.log('📱 [Push] Message handled in background:', remoteMessage);
+      console.log('  [Push] Message handled in background:', remoteMessage);
       // The notification will be displayed automatically by the system
       // You can add custom logic here if needed
     });
   }).catch(error => {
-    console.log('📱 [Push] Background handler setup failed:', error);
+    console.log('  [Push] Background handler setup failed:', error);
   });
 
   // Clear badge count when app opens
   import('@notifee/react-native').then(({ default: notifee }) => {
     notifee.setBadgeCount(0).then(() => {
-      console.log('📱 [Push] Badge count cleared on app open');
+      console.log('  [Push] Badge count cleared on app open');
     }).catch(error => {
-      console.log('📱 [Push] Failed to clear badge:', error);
+      console.log('  [Push] Failed to clear badge:', error);
     });
   }).catch(error => {
-    console.log('📱 [Push] Notifee not available:', error);
+    console.log('  [Push] Notifee not available:', error);
   });
 }
 let StripeProvider: any;
@@ -61,7 +61,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (fontsLoaded) {
-      console.log('✅ All fonts loaded successfully, including MuseoModerno-Regular');
+      console.log(' All fonts loaded successfully, including MuseoModerno-Regular');
       SplashScreen.hideAsync();
     } else {
       console.log('⏳ Fonts still loading...');

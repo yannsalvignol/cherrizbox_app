@@ -10,17 +10,17 @@ import * as Sharing from 'expo-sharing';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Alert,
-  Animated,
-  Dimensions,
-  Image,
-  ImageBackground,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    Alert,
+    Animated,
+    Dimensions,
+    Image,
+    ImageBackground,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { Client, Databases, Query } from 'react-native-appwrite';
 
@@ -75,10 +75,10 @@ export const FullScreenProfileModal: React.FC<FullScreenProfileModalProps> = ({
         return fileUrl;
       }
       
-      console.log('❌ [PDF] Could not parse contentId:', contentId);
+      console.log('  [PDF] Could not parse contentId:', contentId);
       return null;
     } catch (error) {
-      console.error('❌ [PDF] Error getting file URL:', error);
+      console.error('  [PDF] Error getting file URL:', error);
       return null;
     }
   };
@@ -215,19 +215,19 @@ export const FullScreenProfileModal: React.FC<FullScreenProfileModalProps> = ({
       
       // Check memory cache first
       if (videoThumbnails.has(thumbnailKey)) {
-        console.log(`✅ [VideoThumbnail] Memory cache HIT`);
+        console.log(` [VideoThumbnail] Memory cache HIT`);
         return videoThumbnails.get(thumbnailKey) || null;
       }
 
       // Check persistent cache
       const cachedThumbnail = dataCache.get(`video_thumbnail_${item.$id}`) as string | null;
       if (cachedThumbnail) {
-        console.log(`✅ [VideoThumbnail] Persistent cache HIT - loading to memory`);
+        console.log(` [VideoThumbnail] Persistent cache HIT - loading to memory`);
         setVideoThumbnails(prev => new Map(prev.set(thumbnailKey, cachedThumbnail)));
         return cachedThumbnail;
       }
 
-      console.log(`❌ [VideoThumbnail] Cache MISS - generating new thumbnail...`);
+      console.log(`  [VideoThumbnail] Cache MISS - generating new thumbnail...`);
       
       const { uri } = await VideoThumbnails.getThumbnailAsync(item.imageUri, {
         time: 1000,
@@ -238,11 +238,11 @@ export const FullScreenProfileModal: React.FC<FullScreenProfileModalProps> = ({
       setVideoThumbnails(prev => new Map(prev.set(thumbnailKey, uri)));
       dataCache.set(`video_thumbnail_${item.$id}`, uri, 24 * 60 * 60 * 1000); // 24 hours
       
-      console.log(`✅ [VideoThumbnail] Generated and cached thumbnail (24h TTL)`);
+      console.log(` [VideoThumbnail] Generated and cached thumbnail (24h TTL)`);
       
       return uri;
     } catch (error) {
-      console.warn('❌ [VideoThumbnail] Failed to generate video thumbnail:', error);
+      console.warn('  [VideoThumbnail] Failed to generate video thumbnail:', error);
       return null;
     }
   };
@@ -308,7 +308,7 @@ export const FullScreenProfileModal: React.FC<FullScreenProfileModalProps> = ({
 
   const handleContentAction = async () => {
     if (!selectedContentItem) {
-      console.log('❌ [PDF] No selectedContentItem');
+      console.log('  [PDF] No selectedContentItem');
       return;
     }
 
@@ -355,7 +355,7 @@ export const FullScreenProfileModal: React.FC<FullScreenProfileModalProps> = ({
           Alert.alert('Sharing not available', 'Sharing is not available on this device');
         }
       } catch (error) {
-        console.error('❌ [PDF] Error sharing PDF:', error);
+        console.error('  [PDF] Error sharing PDF:', error);
         Alert.alert('Error', 'Failed to share PDF file. Please try again.');
       } finally {
         setIsProcessing(false);
@@ -660,7 +660,7 @@ export const FullScreenProfileModal: React.FC<FullScreenProfileModalProps> = ({
                       alignItems: 'center',
                       marginBottom: 12
                     }}>
-                      <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold' }}>📱</Text>
+                      <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold' }}> </Text>
                     </View>
                     <Text style={{ 
                       color: 'white', 
@@ -846,7 +846,7 @@ export const FullScreenProfileModal: React.FC<FullScreenProfileModalProps> = ({
                       alignItems: 'center',
                       marginBottom: 16
                     }}>
-                      <Text style={{ color: 'white', fontSize: 24 }}>📱</Text>
+                      <Text style={{ color: 'white', fontSize: 24 }}> </Text>
                     </View>
                     <Text style={{ 
                       color: '#888', 

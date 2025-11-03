@@ -78,12 +78,12 @@ const App = () => {
         });
         
         if (!form.username || !form.email || !form.password || !form.confirmPassword) {
-            console.log(`❌ [handleSendVerification] Missing required fields`);
+            console.log(`  [handleSendVerification] Missing required fields`);
             Alert.alert('Error', 'Please fill in all fields');
             return;
         }
         if (form.password !== form.confirmPassword) {
-            console.log(`❌ [handleSendVerification] Passwords do not match`);
+            console.log(`  [handleSendVerification] Passwords do not match`);
             Alert.alert('Error', 'Passwords do not match');
             return;
         }
@@ -99,7 +99,7 @@ const App = () => {
         });
 
         if (!hasMinLength || !hasCapitalLetter || !hasSpecialChar) {
-            console.log(`❌ [handleSendVerification] Password does not meet security requirements`);
+            console.log(`  [handleSendVerification] Password does not meet security requirements`);
             Alert.alert('Error', 'Password does not meet security requirements.');
             return;
         }
@@ -111,7 +111,7 @@ const App = () => {
             console.log(`🔍 [handleSendVerification] Checking if email is creator`);
             const isCreator = await checkIfEmailIsCreator(form.email);
             if (isCreator) {
-                console.log(`❌ [handleSendVerification] Email is creator - blocking signup`);
+                console.log(`  [handleSendVerification] Email is creator - blocking signup`);
                 Alert.alert(
                     'Account Already Exists',
                     'You already have an account on Cherrizbox app. You need to use a different address to use Cherrizbox Pro.',
@@ -125,7 +125,7 @@ const App = () => {
             console.log(`🔍 [handleSendVerification] Checking if user already exists`);
             const userCheck = await checkIfUserExists(form.email, form.username);
             if (userCheck.exists) {
-                console.log(`❌ [handleSendVerification] User already exists:`, userCheck.type);
+                console.log(`  [handleSendVerification] User already exists:`, userCheck.type);
                 const message = userCheck.type === 'email' 
                     ? 'An account with this email address already exists. Please use a different email or try logging in instead.'
                     : 'This username is already taken. Please choose a different username.';
@@ -142,7 +142,7 @@ const App = () => {
                 return;
             }
 
-            console.log(`✅ [handleSendVerification] User checks passed, moving to verification screen`);
+            console.log(` [handleSendVerification] User checks passed, moving to verification screen`);
             
             // Generate verification code
             const code = Math.floor(100000 + Math.random() * 900000).toString();
@@ -159,10 +159,10 @@ const App = () => {
             console.log(`📧 [handleSendVerification] Sending email in background...`);
             sendVerificationEmailViaFunction(form.email, code)
                 .then(() => {
-                    console.log(`✅ [handleSendVerification] Email sent successfully in background`);
+                    console.log(` [handleSendVerification] Email sent successfully in background`);
                 })
                 .catch((error) => {
-                    console.log(`❌ [handleSendVerification] Background email failed:`, error);
+                    console.log(`  [handleSendVerification] Background email failed:`, error);
                     // Show a subtle notification that email failed, but don't block the user
                     Alert.alert(
                         'Email Issue', 
@@ -172,7 +172,7 @@ const App = () => {
                 });
             
         } catch (error) {
-            console.log(`❌ [handleSendVerification] Process failed:`, error);
+            console.log(`  [handleSendVerification] Process failed:`, error);
             setIsSubmitting(false);
             setErrorRetryAction(() => handleSendVerification);
             setShowErrorModal(true);
@@ -202,7 +202,7 @@ const App = () => {
             router.dismissAll();
             router.replace('/welcome-animation');
         } catch (error) {
-            console.log('❌ [handleVerifyAndCreateAccount] Account creation failed:', error);
+            console.log('  [handleVerifyAndCreateAccount] Account creation failed:', error);
             
             if (error instanceof Error && error.message.includes('A user with the same id, email, or phone already exists')) {
                 // Show specific alert for duplicate user
@@ -364,7 +364,7 @@ const App = () => {
                             alignItems: 'center',
                             marginBottom: 16
                         }}>
-                            <Text style={{ fontSize: 28, color: 'white' }} allowFontScaling={false}>⚠️</Text>
+                            <Text style={{ fontSize: 28, color: 'white' }} allowFontScaling={false}> </Text>
                         </View>
                         
                         {/* Title */}

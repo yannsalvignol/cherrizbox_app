@@ -90,13 +90,13 @@ const BlurryFileAttachment = (props: BlurryFileAttachmentProps) => {
   };
 
   const handlePaymentSuccess = async () => {
-    console.log('💳 [BlurryFile] Payment successful for PDF content');
-    console.log('💳 [BlurryFile] Invalidating cache for contentId:', attachment?.paid_content_id);
+    console.log('   [BlurryFile] Payment successful for PDF content');
+    console.log('   [BlurryFile] Invalidating cache for contentId:', attachment?.paid_content_id);
     
     // Clear the purchase status from cache to force refresh
     if (user?.$id && attachment?.paid_content_id) {
       dataCache.delete(`purchase_${user.$id}_${attachment.paid_content_id}`);
-      console.log('✅ [BlurryFile] Cache invalidated - next check will query database');
+      console.log(' [BlurryFile] Cache invalidated - next check will query database');
     }
     
     setIsUnlocked(true);

@@ -180,7 +180,7 @@ export default function Settings() {
             );
           }
         } else {
-          console.log('❌ [Settings] Step 5 FAILED: Permission denied, reverting toggle');
+          console.log('  [Settings] Step 5 FAILED: Permission denied, reverting toggle');
           // Permission denied, revert toggle
           setPushNotifications(false);
           await AsyncStorage.setItem('@push_notifications_enabled', JSON.stringify(false));
@@ -194,24 +194,24 @@ export default function Settings() {
         }
       } else {
         // Disable push notifications
-        console.log('📱 [Settings] Disabling push notifications...');
-        console.log('📱 [Settings] Disable Step 1: Importing modules...');
+        console.log('  [Settings] Disabling push notifications...');
+        console.log('  [Settings] Disable Step 1: Importing modules...');
         
         try {
           const { client } = await import('../../../lib/stream-chat');
           const { getMessaging, getToken } = await import('@react-native-firebase/messaging');
-          console.log('📱 [Settings] Disable Step 2: Modules imported successfully');
+          console.log('  [Settings] Disable Step 2: Modules imported successfully');
           
-          console.log('📱 [Settings] Disable Step 3: Getting FCM token...');
+          console.log('  [Settings] Disable Step 3: Getting FCM token...');
           const messaging = getMessaging();
           const fcmToken = await getToken(messaging);
-          console.log('📱 [Settings] Disable Step 4: FCM token:', fcmToken ? fcmToken.substring(0, 20) + '...' : 'null');
+          console.log('  [Settings] Disable Step 4: FCM token:', fcmToken ? fcmToken.substring(0, 20) + '...' : 'null');
           
           if (fcmToken) {
-            console.log('📱 [Settings] Disable Step 5: Calling client.removeDevice...');
+            console.log('  [Settings] Disable Step 5: Calling client.removeDevice...');
             // Remove device from Stream Chat
             await client.removeDevice(fcmToken);
-            console.log('✅ [Settings] Disable Step 6: Push notifications disabled successfully');
+            console.log(' [Settings] Disable Step 6: Push notifications disabled successfully');
             
             Alert.alert(
               'Push Notifications Disabled',
@@ -220,7 +220,7 @@ export default function Settings() {
               { userInterfaceStyle: themeMode === 'dark' ? 'dark' : 'light' }
             );
           } else {
-            console.log('⚠️ [Settings] Disable Step 4 WARNING: No FCM token, but proceeding anyway');
+            console.log('  [Settings] Disable Step 4 WARNING: No FCM token, but proceeding anyway');
             Alert.alert(
               'Push Notifications Disabled',
               'Push notifications have been disabled in settings.',
@@ -229,8 +229,8 @@ export default function Settings() {
             );
           }
         } catch (error: any) {
-          console.log('❌ [Settings] Disable FAILED: Failed to remove device:', error);
-          console.log('❌ [Settings] Disable error details:', {
+          console.log('  [Settings] Disable FAILED: Failed to remove device:', error);
+          console.log('  [Settings] Disable error details:', {
             message: error?.message,
             code: error?.code,
             name: error?.name
@@ -287,7 +287,7 @@ export default function Settings() {
               router.replace('/delete?success=true');
               
             } catch (error: any) {
-              console.error('❌ Error deleting account:', error);
+              console.error('  Error deleting account:', error);
               
               // On error, go back to settings
               router.replace('/(root)/(tabs)/settings');

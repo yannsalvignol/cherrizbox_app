@@ -170,7 +170,7 @@ const registerForPushWithStream = async (): Promise<void> => {
                 );
                 
                 pushRegistered = true;
-                console.log('[Push] ✅ Device successfully registered with Stream Chat!');
+                console.log('[Push]  Device successfully registered with Stream Chat!');
             } catch (error: any) {
                 console.log('[Push] Registration with provider name failed:', error?.message || error);
                 
@@ -184,10 +184,10 @@ const registerForPushWithStream = async (): Promise<void> => {
                     );
                     
                     pushRegistered = true;
-                    console.log('[Push] ✅ Device registered without provider name!');
+                    console.log('[Push]  Device registered without provider name!');
                 } catch (error2: any) {
                     console.log('[Push] Fallback also failed:', error2?.message || error2);
-                    console.log('[Push] ⚠️ Check Stream Dashboard push provider configuration');
+                    console.log('[Push]   Check Stream Dashboard push provider configuration');
                     
                     // Log debug info
                     console.log('[Push] Debug info:', {
@@ -211,9 +211,9 @@ const registerForPushWithStream = async (): Promise<void> => {
                 // Note: setLocalDevice can't be called after connection is established
                 // Just update with addDevice
                 await client.addDevice(newToken, 'firebase', connectedUserId!, 'default');
-                console.log('[Push] ✅ Device token refreshed and re-registered');
+                console.log('[Push]  Device token refreshed and re-registered');
             } catch (e) {
-                console.log('[Push] ❌ Error re-registering refreshed token', e);
+                console.log('[Push]   Error re-registering refreshed token', e);
             }
         });
     } catch (e) {
@@ -231,14 +231,14 @@ export const preSetupChannels = async (userId: string, creatorIds: string[]) => 
 
         // Check if we're connected to Stream Chat
         if (!isConnected) {
-            console.log('⚠️ Not connected to Stream Chat, attempting to connect...');
+            console.log('  Not connected to Stream Chat, attempting to connect...');
             const connected = await connectUser(userId);
             if (!connected) {
                 throw new Error('Failed to connect to Stream Chat');
             }
         }
 
-        console.log('✅ Stream Chat connection verified for pre-setup');
+        console.log(' Stream Chat connection verified for pre-setup');
 
         const setupPromises = creatorIds.map(async (creatorId) => {
             try {
@@ -254,13 +254,13 @@ export const preSetupChannels = async (userId: string, creatorIds: string[]) => 
                         await groupChannel.addMembers([userId]);
                     }
                     
-                    console.log(`✅ Group channel setup successful for creator ${creatorId}:`, {
+                    console.log(` Group channel setup successful for creator ${creatorId}:`, {
                         channelId: groupChannel.id,
                         memberCount: Object.keys(groupChannel.state.members).length,
                         messageCount: groupChannel.state.messages ? Object.keys(groupChannel.state.messages).length : 0
                     });
                 } catch (groupError) {
-                    console.error(`❌ Error setting up group channel for creator ${creatorId}:`, groupError);
+                    console.error(`  Error setting up group channel for creator ${creatorId}:`, groupError);
                 }
 
                 // Setup DM channel with consistent ID format
@@ -282,18 +282,18 @@ export const preSetupChannels = async (userId: string, creatorIds: string[]) => 
                         await dmChannel.addMembers(membersToAdd);
                     }
                     
-                    console.log(`✅ DM channel setup successful for creator ${creatorId}:`, {
+                    console.log(` DM channel setup successful for creator ${creatorId}:`, {
                         channelId: dmChannel.id,
                         memberCount: Object.keys(dmChannel.state.members).length,
                         members: Object.keys(dmChannel.state.members)
                     });
                 } catch (dmError) {
-                    console.error(`❌ Error setting up DM channel for creator ${creatorId}:`, dmError);
+                    console.error(`  Error setting up DM channel for creator ${creatorId}:`, dmError);
                 }
 
                 return { creatorId, success: true };
             } catch (error) {
-                console.error(`❌ Error setting up channels for creator ${creatorId}:`, error);
+                console.error(`  Error setting up channels for creator ${creatorId}:`, error);
                 return { creatorId, success: false, error };
             }
         });
@@ -309,12 +309,12 @@ export const preSetupChannels = async (userId: string, creatorIds: string[]) => 
         });
 
         if (failed.length > 0) {
-            console.warn('⚠️ Failed channel setups:', failed);
+            console.warn('  Failed channel setups:', failed);
         }
 
         return { successful, failed };
     } catch (error) {
-        console.error('❌ Error in channel pre-setup:', error);
+        console.error('  Error in channel pre-setup:', error);
         throw error;
     }
 };
@@ -332,14 +332,14 @@ export async function createDirectMessageChannel(user1Id: string, user2Id: strin
 
     // Check if we're connected to Stream Chat
     if (!isConnected) {
-      console.log('⚠️ Not connected to Stream Chat, attempting to connect...');
+      console.log('  Not connected to Stream Chat, attempting to connect...');
       const connected = await connectUser(user1Id);
       if (!connected) {
         throw new Error('Failed to connect to Stream Chat');
       }
     }
 
-    console.log('✅ Stream Chat connection verified');
+    console.log(' Stream Chat connection verified');
     
     // Create a custom channel ID for direct messages with consistent format
     const channelId = createDMChannelId(user1Id, user2Id);
@@ -363,7 +363,7 @@ export async function createDirectMessageChannel(user1Id: string, user2Id: strin
       }
     }
     
-    console.log('✅ Direct message channel created successfully!');
+    console.log(' Direct message channel created successfully!');
     console.log('📊 Channel info:', {
       channelId: channel.id,
       channelType: channel.type,
@@ -373,7 +373,7 @@ export async function createDirectMessageChannel(user1Id: string, user2Id: strin
 
     return channel;
   } catch (error) {
-    console.error('❌ Error creating direct message channel:', error);
+    console.error('  Error creating direct message channel:', error);
     console.error('🔍 Error details:', {
       name: error instanceof Error ? error.name : 'Unknown',
       message: error instanceof Error ? error.message : 'Unknown error',
@@ -396,10 +396,10 @@ export const initializeStreamChatOnPaymentSuccess = async (userId: string) => {
             throw new Error('Failed to connect to Stream Chat after payment');
         }
 
-        console.log('✅ Stream Chat initialized successfully after payment (including push notifications)!');
+        console.log(' Stream Chat initialized successfully after payment (including push notifications)!');
         return true;
     } catch (error) {
-        console.error('❌ Error initializing Stream Chat on payment success:', error);
+        console.error('  Error initializing Stream Chat on payment success:', error);
         throw error;
     }
 }; 

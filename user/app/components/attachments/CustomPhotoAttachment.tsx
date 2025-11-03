@@ -41,10 +41,10 @@ export const CustomPhotoAttachment: React.FC<CustomPhotoAttachmentProps> = (prop
           console.log(`📷 [CustomPhotoAttachment] Loading image for attachment: ${attachment.image_url.substring(0, 50)}...`);
           const cached = await imageCache.getCachedImageUri(attachment.image_url);
           setCachedImageUri(cached);
-          console.log(`✅ [CustomPhotoAttachment] Image loaded successfully`);
+          console.log(` [CustomPhotoAttachment] Image loaded successfully`);
         }
       } catch (error) {
-        console.error('❌ [CustomPhotoAttachment] Failed to load cached image:', error);
+        console.error('  [CustomPhotoAttachment] Failed to load cached image:', error);
       }
     };
 
@@ -84,18 +84,18 @@ export const CustomPhotoAttachment: React.FC<CustomPhotoAttachmentProps> = (prop
     event.stopPropagation();
     
     if (message) {
-      console.log('✅ [CustomPhotoAttachment] Setting selected message for modal');
+      console.log(' [CustomPhotoAttachment] Setting selected message for modal');
       
       // Use the global handlers approach
       try {
         if (global.chatScreenHandlers && global.chatScreenHandlers.handleLongPressMessage) {
           global.chatScreenHandlers.handleLongPressMessage({ message });
-          console.log('✅ [CustomPhotoAttachment] Called global handler');
+          console.log(' [CustomPhotoAttachment] Called global handler');
       } else {
-          console.log('⚠️ [CustomPhotoAttachment] Global handlers not available');
+          console.log('  [CustomPhotoAttachment] Global handlers not available');
         }
     } catch (error) {
-        console.log('⚠️ [CustomPhotoAttachment] Error calling global handler:', error);
+        console.log('  [CustomPhotoAttachment] Error calling global handler:', error);
       }
     }
   };

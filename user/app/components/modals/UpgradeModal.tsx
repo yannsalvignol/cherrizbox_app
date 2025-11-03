@@ -533,7 +533,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
             setSelectedPlan(null);
           }}
           onSuccess={() => {
-            console.log('✅ [UpgradeModal] Chat subscription payment successful');
+            console.log(' [UpgradeModal] Chat subscription payment successful');
             // Hide Stripe sheet and show success state within the modal
             setShowStripeSheet(false);
             setShowSuccessState(true);

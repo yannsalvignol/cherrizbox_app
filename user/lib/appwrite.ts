@@ -462,11 +462,11 @@ export const getOrGenerateStreamChatToken = async (userId: string): Promise<stri
         // First, check if we have a cached token
         const userProfile = await getUserProfile(userId);
         if (userProfile?.streamChatToken) {
-            console.log('✅ Found cached Stream Chat token');
+            console.log(' Found cached Stream Chat token');
             return userProfile.streamChatToken;
         }
 
-        console.log('❌ No cached token found, generating new one...');
+        console.log('  No cached token found, generating new one...');
 
         // Generate new token using the existing function
         const tokenResult = await testStreamTokenGeneration();
@@ -474,7 +474,7 @@ export const getOrGenerateStreamChatToken = async (userId: string): Promise<stri
             throw new Error('Failed to generate Stream Chat token');
         }
 
-        console.log('✅ New Stream Chat token generated');
+        console.log(' New Stream Chat token generated');
 
         // Cache the token in the user document
         await updateUserProfile(userId, { 
@@ -486,7 +486,7 @@ export const getOrGenerateStreamChatToken = async (userId: string): Promise<stri
 
         return tokenResult.token;
     } catch (error) {
-        console.error('❌ Error getting/generating Stream Chat token:', error);
+        console.error('  Error getting/generating Stream Chat token:', error);
         throw error;
     }
 };
@@ -499,9 +499,9 @@ export const clearStreamChatToken = async (userId: string): Promise<void> => {
             userId, 
             streamChatToken: null 
         });
-        console.log('✅ Stream Chat token cleared');
+        console.log(' Stream Chat token cleared');
     } catch (error) {
-        console.error('❌ Error clearing Stream Chat token:', error);
+        console.error('  Error clearing Stream Chat token:', error);
         throw error;
     }
 };
@@ -597,11 +597,11 @@ export const sendVerificationEmailViaFunction = async (email: string, code: stri
     
     const FUNCTION_ID = process.env.EXPO_PUBLIC_SEND_SIGNUP_EMAIL_FUNCTION_ID;
     if (!FUNCTION_ID) {
-        console.log(`❌ [sendVerificationEmailViaFunction] Function ID not configured`);
+        console.log(`  [sendVerificationEmailViaFunction] Function ID not configured`);
         throw new Error('Send signup email function ID not set');
     }
     
-    console.log(`✅ [sendVerificationEmailViaFunction] Function ID found: ${FUNCTION_ID}`);
+    console.log(` [sendVerificationEmailViaFunction] Function ID found: ${FUNCTION_ID}`);
     
     const requestBody = JSON.stringify({ email, code });
     console.log(`📤 [sendVerificationEmailViaFunction] Request body: ${requestBody}`);
@@ -622,14 +622,14 @@ export const sendVerificationEmailViaFunction = async (email: string, code: stri
         console.log(`📊 [sendVerificationEmailViaFunction] Response body: ${execution.responseBody}`);
         
         if (execution.status === 'failed') {
-            console.log(`❌ [sendVerificationEmailViaFunction] Function execution failed`);
+            console.log(`  [sendVerificationEmailViaFunction] Function execution failed`);
             let errorResponse;
             try {
                 errorResponse = JSON.parse(execution.responseBody);
                 console.log(`📋 [sendVerificationEmailViaFunction] Parsed error response:`, errorResponse);
             } catch (parseError) {
                 const errorMessage = parseError instanceof Error ? parseError.message : 'Unknown parsing error';
-                console.log(`❌ [sendVerificationEmailViaFunction] Failed to parse error response: ${errorMessage}`);
+                console.log(`  [sendVerificationEmailViaFunction] Failed to parse error response: ${errorMessage}`);
                 throw new Error('Failed to send verification email - invalid response format.');
             }
             throw new Error(errorResponse.error || 'Failed to send verification email.');
@@ -641,16 +641,16 @@ export const sendVerificationEmailViaFunction = async (email: string, code: stri
             console.log(`📋 [sendVerificationEmailViaFunction] Parsed response body:`, responseBody);
         } catch (parseError) {
             const errorMessage = parseError instanceof Error ? parseError.message : 'Unknown parsing error';
-            console.log(`❌ [sendVerificationEmailViaFunction] Failed to parse response body: ${errorMessage}`);
+            console.log(`  [sendVerificationEmailViaFunction] Failed to parse response body: ${errorMessage}`);
             throw new Error('Failed to send verification email - invalid response format.');
         }
         
         if (!responseBody.success) {
-            console.log(`❌ [sendVerificationEmailViaFunction] Response indicates failure:`, responseBody);
+            console.log(`  [sendVerificationEmailViaFunction] Response indicates failure:`, responseBody);
             throw new Error(responseBody.error || 'Failed to send verification email.');
         }
         
-        console.log(`✅ [sendVerificationEmailViaFunction] Email verification process completed successfully`);
+        console.log(` [sendVerificationEmailViaFunction] Email verification process completed successfully`);
         return responseBody;
         
     } catch (error) {
@@ -737,14 +737,14 @@ export const getSubscriptionCount = async (creatorName: string): Promise<number>
         // Check cache first
         const cachedCount = dataCache.getFollowerCount(creatorName);
         if (cachedCount !== null) {
-            console.log(`✅ [FollowerCount] Cache HIT - ${cachedCount} followers`);
+            console.log(` [FollowerCount] Cache HIT - ${cachedCount} followers`);
             return cachedCount;
         }
 
-        console.log(`❌ [FollowerCount] Cache MISS - querying database...`);
+        console.log(`  [FollowerCount] Cache MISS - querying database...`);
 
         if (!config.creatorCollectionId) {
-            console.warn('⚠️ [FollowerCount] creatorCollectionId is not configured; falling back to 0 followers');
+            console.warn('  [FollowerCount] creatorCollectionId is not configured; falling back to 0 followers');
             return 0;
         }
 
@@ -776,7 +776,7 @@ export const getSubscriptionCount = async (creatorName: string): Promise<number>
         
         return totalCount;
     } catch (error) {
-        console.error("❌ [FollowerCount] Error getting subscription count:", error);
+        console.error("  [FollowerCount] Error getting subscription count:", error);
         return 0;
     }
 };
@@ -955,14 +955,14 @@ export const getCreatorIdByName = async (creatorName: string): Promise<string | 
         
         if (photos.documents.length > 0) {
             const creatorId = photos.documents[0].creatorId;
-            console.log('✅ Returning creator ID from photos collection (creatorId):', creatorId);
+            console.log(' Returning creator ID from photos collection (creatorId):', creatorId);
             return creatorId;
         }
         
-        console.log('❌ No creator found with title in photos collection:', creatorName);
+        console.log('  No creator found with title in photos collection:', creatorName);
         return null;
     } catch (error) {
-        console.error("❌ Error getting creator ID from photos collection:", error);
+        console.error("  Error getting creator ID from photos collection:", error);
         return null;
     }
 };
@@ -997,12 +997,12 @@ export const createPaidContentPaymentIntent = async (
         });
 
         if (!FUNCTION_ID) {
-            console.error('❌ Missing EXPO_PUBLIC_STRIPE_FUNCTION_ID');
+            console.error('  Missing EXPO_PUBLIC_STRIPE_FUNCTION_ID');
             throw new Error('EXPO_PUBLIC_STRIPE_FUNCTION_ID is not configured. Please set your function ID in environment variables.');
         }
 
         if (!config.endpoint) {
-            console.error('❌ Missing config.endpoint');
+            console.error('  Missing config.endpoint');
             throw new Error('Appwrite endpoint is not configured.');
         }
         
@@ -1043,13 +1043,13 @@ export const createPaidContentPaymentIntent = async (
         });
 
         if (!response.ok) {
-            console.error('❌ Response not OK, reading error text...');
+            console.error('  Response not OK, reading error text...');
             const errorText = await response.text();
-            console.error('❌ Backend error response:', errorText);
+            console.error('  Backend error response:', errorText);
             throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
         }
 
-        console.log('✅ Response OK, parsing JSON...');
+        console.log(' Response OK, parsing JSON...');
         const data = await response.json();
         console.log('📊 Backend response data:', data);
         
@@ -1060,7 +1060,7 @@ export const createPaidContentPaymentIntent = async (
                 actualResponse = JSON.parse(data.responseBody);
                 console.log('📋 Parsed responseBody:', actualResponse);
             } catch (parseError) {
-                console.error('❌ Failed to parse responseBody:', parseError);
+                console.error('  Failed to parse responseBody:', parseError);
                 throw new Error('Invalid response format from backend');
             }
         } else {
@@ -1068,7 +1068,7 @@ export const createPaidContentPaymentIntent = async (
         }
         
         if (!actualResponse.success) {
-            console.error('❌ Backend returned success: false');
+            console.error('  Backend returned success: false');
             throw new Error(actualResponse.error || 'Failed to create payment intent');
         }
 
@@ -1124,9 +1124,9 @@ export const recordPaidContentPurchase = async (
         try {
             const { dataCache } = await import('./data-cache');
             dataCache.delete(`purchase_${userId}_${contentId}`);
-            console.log('✅ [RecordPurchase] Cache invalidated for future checks');
+            console.log(' [RecordPurchase] Cache invalidated for future checks');
         } catch (cacheError) {
-            console.warn('⚠️ [RecordPurchase] Failed to invalidate cache:', cacheError);
+            console.warn('  [RecordPurchase] Failed to invalidate cache:', cacheError);
         }
 
         return purchaseRecord;
@@ -1148,14 +1148,14 @@ export const checkPaidContentPurchase = async (userId: string, contentId: string
         const cacheKey = `purchase_${userId}_${contentId}`;
         const cachedResult = dataCache.getPurchaseStatus(userId, contentId);
         if (cachedResult !== null) {
-            console.log(`✅ [PurchaseCheck] Cache HIT - user ${cachedResult ? 'HAS' : 'has NOT'} purchased content`);
+            console.log(` [PurchaseCheck] Cache HIT - user ${cachedResult ? 'HAS' : 'has NOT'} purchased content`);
             return cachedResult;
         }
 
-        console.log(`❌ [PurchaseCheck] Cache MISS - querying database...`);
+        console.log(`  [PurchaseCheck] Cache MISS - querying database...`);
 
         if (!config.paidContentPurchasesCollectionId) {
-            console.log("⚠️ [PurchaseCheck] Paid content purchases collection ID not configured");
+            console.log("  [PurchaseCheck] Paid content purchases collection ID not configured");
             return false;
         }
 
@@ -1177,7 +1177,7 @@ export const checkPaidContentPurchase = async (userId: string, contentId: string
         
         return hasPurchased;
     } catch (error) {
-        console.error('❌ [PurchaseCheck] Error checking paid content purchase:', error);
+        console.error('  [PurchaseCheck] Error checking paid content purchase:', error);
         return false;
     }
 };
@@ -1258,7 +1258,7 @@ export const uploadFileToAppwrite = async (fileUri: string, fileName: string, mi
       fileToUpload
     );
 
-    console.log('✅ File uploaded successfully:', uploadedFile);
+    console.log(' File uploaded successfully:', uploadedFile);
 
     // Get the file URL
     const fileUrl = storage.getFileView(storageToUse, uploadedFile.$id);
@@ -1266,7 +1266,7 @@ export const uploadFileToAppwrite = async (fileUri: string, fileName: string, mi
 
     return fileUrl.toString();
   } catch (error) {
-    console.error('❌ Error uploading file to Appwrite:', error);
+    console.error('  Error uploading file to Appwrite:', error);
     throw new Error(`Failed to upload file: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };
@@ -1277,7 +1277,7 @@ export const checkIfEmailIsCreator = async (email: string): Promise<boolean> => 
         console.log('🔍 Checking if email exists in creator collection:', email);
         
         if (!config.creatorCollectionId) {
-            console.warn('⚠️ Creator collection ID not configured');
+            console.warn('  Creator collection ID not configured');
             return false;
         }
 
@@ -1295,7 +1295,7 @@ export const checkIfEmailIsCreator = async (email: string): Promise<boolean> => 
         
         return isCreator;
     } catch (error) {
-        console.error('❌ Error checking creator email:', error);
+        console.error('  Error checking creator email:', error);
         return false; // In case of error, allow login to proceed
     }
 };
@@ -1337,10 +1337,10 @@ export const checkIfUserExists = async (email: string, username?: string): Promi
             }
         }
 
-        console.log('✅ User does not exist');
+        console.log(' User does not exist');
         return { exists: false };
     } catch (error) {
-        console.error('❌ Error checking if user exists:', error);
+        console.error('  Error checking if user exists:', error);
         return { exists: false }; // In case of error, allow signup to proceed
     }
 };
@@ -1418,24 +1418,24 @@ export async function deleteAccount() {
             throw new Error(result.error || 'Account deletion failed');
         }
         
-        console.log('✅ [deleteAccount] Account deleted successfully');
-        console.log(`✅ [deleteAccount] Cancelled ${result.subscriptionsCancelled} subscriptions`);
+        console.log(' [deleteAccount] Account deleted successfully');
+        console.log(` [deleteAccount] Cancelled ${result.subscriptionsCancelled} subscriptions`);
         
         // IMPORTANT: Clear the local session since the account was deleted on the server
         // This prevents the app from thinking the user is still logged in
         try {
             console.log('🗑️ [deleteAccount] Clearing local session...');
             await account.deleteSession("current");
-            console.log('✅ [deleteAccount] Local session cleared successfully');
+            console.log(' [deleteAccount] Local session cleared successfully');
         } catch (sessionError) {
             // Session might already be invalid due to account deletion, which is fine
-            console.log('⚠️ [deleteAccount] Session cleanup warning (this is normal):', sessionError);
+            console.log('  [deleteAccount] Session cleanup warning (this is normal):', sessionError);
         }
         
         return result;
         
     } catch (error: any) {
-        console.error('❌ [deleteAccount] Error deleting account:', error);
+        console.error('  [deleteAccount] Error deleting account:', error);
         throw new Error(error.message || 'Failed to delete account');
     }
 }

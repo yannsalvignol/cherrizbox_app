@@ -321,7 +321,7 @@ export const CustomAudioAttachment: React.FC<CustomAudioAttachmentProps> = ({ at
     event.stopPropagation();
     
     if (message) {
-      console.log('✅ [CustomAudioAttachment] Setting selected message for modal');
+      console.log(' [CustomAudioAttachment] Setting selected message for modal');
       
       // Use a more direct approach - find the ChatScreen's state setters
       // We'll use the message context's client to access the app state
@@ -330,12 +330,12 @@ export const CustomAudioAttachment: React.FC<CustomAudioAttachmentProps> = ({ at
         // Since we can't easily pass props down, we'll use a global reference
         if ((global as any).chatScreenHandlers?.handleLongPressMessage) {
           (global as any).chatScreenHandlers.handleLongPressMessage({ message });
-          console.log('✅ [CustomAudioAttachment] Called global handler');
+          console.log(' [CustomAudioAttachment] Called global handler');
         } else {
-          console.log('⚠️ [CustomAudioAttachment] Global handlers not available');
+          console.log('  [CustomAudioAttachment] Global handlers not available');
         }
       } catch (error) {
-        console.log('⚠️ [CustomAudioAttachment] Error calling global handler:', error);
+        console.log('  [CustomAudioAttachment] Error calling global handler:', error);
       }
     }
   };

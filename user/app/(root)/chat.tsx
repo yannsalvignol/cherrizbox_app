@@ -106,7 +106,7 @@ export default function ChatScreen() {
       );
       
       if (creatorPost) {
-        console.log('✅ [ChatScreen] Found creator post:', creatorPost.title);
+        console.log(' [ChatScreen] Found creator post:', creatorPost.title);
         
         // Extract currency from post data (same logic as in [id].tsx)
         const currency = creatorPost.currency || 
@@ -121,7 +121,7 @@ export default function ChatScreen() {
         setCreatorCurrency(currency.toLowerCase());
         setCreatorId(accountId);
       } else {
-        console.log('⚠️ [ChatScreen] Creator post not found, using defaults');
+        console.log('  [ChatScreen] Creator post not found, using defaults');
         setCreatorCurrency('usd');
         setCreatorId('');
       }
@@ -144,7 +144,7 @@ export default function ChatScreen() {
         });
       }
       
-      console.log(`✅ [ChatScreen] Cleanup completed`);
+      console.log(` [ChatScreen] Cleanup completed`);
     };
   }, [creatorThumbnail]);
   const [theme, setTheme] = useState(getTheme(appTheme));
@@ -208,11 +208,11 @@ export default function ChatScreen() {
         
         // Cache the thread messages
         threadMessagesCache.current.set(message.id, threadReplies.messages);
-        console.log(`✅ [ChatScreen] Cached ${threadReplies.messages.length} messages for thread ${message.id.substring(0, 8)}...`);
+        console.log(` [ChatScreen] Cached ${threadReplies.messages.length} messages for thread ${message.id.substring(0, 8)}...`);
         
         return threadReplies;
       } catch (error) {
-        console.error(`❌ [ChatScreen] Error preloading thread ${message.id}:`, error);
+        console.error(`  [ChatScreen] Error preloading thread ${message.id}:`, error);
         return null;
       }
     });
@@ -240,14 +240,14 @@ export default function ChatScreen() {
       const threadReplies = await currentChannel?.getReplies(message.id, {
         limit: 50,
       });
-      console.log('✅ [ChatScreen] Loaded thread messages on demand:', threadReplies?.messages?.length || 0);
+      console.log(' [ChatScreen] Loaded thread messages on demand:', threadReplies?.messages?.length || 0);
       
       // Cache for future use
       if (threadReplies?.messages) {
         threadMessagesCache.current.set(message.id, threadReplies.messages);
       }
     } catch (error) {
-      console.error('❌ [ChatScreen] Error loading thread messages:', error);
+      console.error('  [ChatScreen] Error loading thread messages:', error);
     }
   };
 
@@ -338,11 +338,11 @@ export default function ChatScreen() {
           setLoading(true);
           try {
             await connectUser(user.$id);
-            console.log('✅ Stream Chat connected successfully for chat screen');
+            console.log(' Stream Chat connected successfully for chat screen');
             // Update global state to reflect the connection
             setIsStreamConnected(true);
           } catch (error) {
-            console.error('❌ Failed to connect to Stream Chat:', error);
+            console.error('  Failed to connect to Stream Chat:', error);
             setError('Failed to connect to chat. Please try again.');
             setLoading(false);
           return;
@@ -375,10 +375,10 @@ export default function ChatScreen() {
             console.log('📡 Watching group channel (not pre-setup)...');
           await groupChannel.watch();
           } else {
-            console.log('✅ Group channel already watched (pre-setup)');
+            console.log(' Group channel already watched (pre-setup)');
           }
           setGroupChannel(groupChannel);
-          console.log('✅ Group channel loaded successfully:', {
+          console.log(' Group channel loaded successfully:', {
             channelId: groupChannel.id,
             memberCount: Object.keys(groupChannel.state.members).length,
             messageCount: groupChannel.state.messages ? Object.keys(groupChannel.state.messages).length : 0
@@ -403,10 +403,10 @@ export default function ChatScreen() {
             console.log('📡 Watching DM channel (not pre-setup)...');
           await dmChannel.watch();
           } else {
-            console.log('✅ DM channel already watched (pre-setup)');
+            console.log(' DM channel already watched (pre-setup)');
           }
           setDmChannel(dmChannel);
-          console.log('✅ DM channel loaded successfully:', {
+          console.log(' DM channel loaded successfully:', {
             channelId: dmChannel.id,
             memberCount: Object.keys(dmChannel.state.members).length,
             members: Object.keys(dmChannel.state.members)

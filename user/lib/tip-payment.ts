@@ -30,12 +30,12 @@ export const createTipPaymentIntent = async (
       const otherMember = members.find(memberId => memberId !== userId);
       if (otherMember) {
         actualCreatorId = otherMember;
-        console.log('✅ Found actual creator ID from channel:', actualCreatorId);
+        console.log(' Found actual creator ID from channel:', actualCreatorId);
       } else {
-        console.log('⚠️ Could not find other member, using creator name as fallback:', creatorName);
+        console.log('  Could not find other member, using creator name as fallback:', creatorName);
       }
     } else {
-      console.log('⚠️ No channel or members available, using creator name as fallback:', creatorName);
+      console.log('  No channel or members available, using creator name as fallback:', creatorName);
     }
     
     // Use the same structure as the working paid content function
@@ -74,7 +74,7 @@ export const createTipPaymentIntent = async (
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ Backend error response:', errorText);
+      console.error('  Backend error response:', errorText);
       throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
     }
 
@@ -86,7 +86,7 @@ export const createTipPaymentIntent = async (
       try {
         actualResponse = JSON.parse(data.responseBody);
       } catch (parseError) {
-        console.error('❌ Failed to parse responseBody:', parseError);
+        console.error('  Failed to parse responseBody:', parseError);
         throw new Error('Invalid response format from backend');
       }
     } else {
@@ -94,7 +94,7 @@ export const createTipPaymentIntent = async (
     }
     
     if (!actualResponse.success) {
-      console.error('❌ Backend returned success: false');
+      console.error('  Backend returned success: false');
       throw new Error(actualResponse.error || 'Failed to create payment intent');
     }
 

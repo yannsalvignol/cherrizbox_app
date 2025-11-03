@@ -34,7 +34,7 @@ export const getDailyMessageLimit = async (
   try {
     // First check if user has an active subscription
     const hasSubscription = await hasActiveChatSubscription(userId);
-    console.log('💳 [DailyLimits] User subscription status:', { userId, hasSubscription });
+    console.log('   [DailyLimits] User subscription status:', { userId, hasSubscription });
     
     // If user has subscription, they have unlimited messages but we still track count
     if (hasSubscription) {
@@ -59,7 +59,7 @@ export const getDailyMessageLimit = async (
         messageCount = response.documents[0].totalMessages;
       }
 
-      console.log('💳 [DailyLimits] Subscriber message count:', { messageCount, hasSubscription });
+      console.log('   [DailyLimits] Subscriber message count:', { messageCount, hasSubscription });
 
       return { 
         count: messageCount, 
@@ -70,7 +70,7 @@ export const getDailyMessageLimit = async (
     }
 
     if (!DAILY_LIMITS_COLLECTION_ID) {
-      console.error('❌ [DailyLimits] Missing EXPO_PUBLIC_DAILY_LIMITS_COLLECTION_ID');
+      console.error('  [DailyLimits] Missing EXPO_PUBLIC_DAILY_LIMITS_COLLECTION_ID');
       return { count: 0, canSend: true, remaining: 5, hasSubscription: false }; // Allow if not configured
     }
 
@@ -100,7 +100,7 @@ export const getDailyMessageLimit = async (
     const remaining = Math.max(0, 5 - messageCount);
     const canSend = messageCount < 5;
 
-    console.log('✅ [DailyLimits] Limit check result:', { 
+    console.log(' [DailyLimits] Limit check result:', { 
       count: messageCount, 
       canSend, 
       remaining,
@@ -110,7 +110,7 @@ export const getDailyMessageLimit = async (
     return { count: messageCount, canSend, remaining, hasSubscription };
 
   } catch (error) {
-    console.error('❌ [DailyLimits] Error checking daily limit:', error);
+    console.error('  [DailyLimits] Error checking daily limit:', error);
     // Return permissive values on error to avoid blocking users
     return { count: 0, canSend: true, remaining: 5, hasSubscription: false };
   }
@@ -125,10 +125,10 @@ export const incrementDailyMessageCount = async (
     const hasSubscription = await hasActiveChatSubscription(userId);
     
     // Track message count for both subscribers and non-subscribers (for analytics)
-    console.log('💳 [DailyLimits] Tracking message count for user:', { userId, hasSubscription });
+    console.log('   [DailyLimits] Tracking message count for user:', { userId, hasSubscription });
 
     if (!DAILY_LIMITS_COLLECTION_ID) {
-      console.error('❌ [DailyLimits] Missing EXPO_PUBLIC_DAILY_LIMITS_COLLECTION_ID');
+      console.error('  [DailyLimits] Missing EXPO_PUBLIC_DAILY_LIMITS_COLLECTION_ID');
       return { success: true, newCount: 1, hasSubscription: false }; // Allow if not configured
     }
 
@@ -186,7 +186,7 @@ export const incrementDailyMessageCount = async (
     return { success: true, newCount, hasSubscription };
 
   } catch (error) {
-    console.error('❌ [DailyLimits] Error incrementing message count:', error);
+    console.error('  [DailyLimits] Error incrementing message count:', error);
     return { success: false, newCount: 0, hasSubscription: false };
   }
 };
@@ -228,7 +228,7 @@ export const resetDailyLimit = async (
 
     return true;
   } catch (error) {
-    console.error('❌ [DailyLimits] Error resetting daily limit:', error);
+    console.error('  [DailyLimits] Error resetting daily limit:', error);
     return false;
   }
 };

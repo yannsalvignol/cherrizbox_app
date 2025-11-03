@@ -90,18 +90,18 @@ class ImageCacheManager {
     if (cachedItem) {
       const fileInfo = await FileSystem.getInfoAsync(cachedPath);
       if (fileInfo.exists && Date.now() - cachedItem.timestamp < this.maxAge) {
-        console.log(`✅ [ImageCache] Cache HIT - returning cached image (${Math.round(fileInfo.size! / 1024)}KB)`);
+        console.log(` [ImageCache] Cache HIT - returning cached image (${Math.round(fileInfo.size! / 1024)}KB)`);
         return cachedPath;
       } else {
-        console.log(`⚠️ [ImageCache] Cache EXPIRED - file age: ${Math.round((Date.now() - cachedItem.timestamp) / 1000)}s`);
+        console.log(`  [ImageCache] Cache EXPIRED - file age: ${Math.round((Date.now() - cachedItem.timestamp) / 1000)}s`);
       }
     } else {
-      console.log(`❌ [ImageCache] Cache MISS - downloading and caching...`);
+      console.log(`  [ImageCache] Cache MISS - downloading and caching...`);
     }
 
     // Check if it's a local file (can't download local files)
     if (originalUri.startsWith('file://') || originalUri.includes('/ImagePicker/')) {
-      console.log(`📱 [ImageCache] Local file detected, skipping cache: ${originalUri}`);
+      console.log(`  [ImageCache] Local file detected, skipping cache: ${originalUri}`);
       return originalUri;
     }
 
@@ -118,11 +118,11 @@ class ImageCacheManager {
           size: fileInfo.size || 0
         });
         await this.saveCacheIndex();
-        console.log(`✅ [ImageCache] Successfully cached (${Math.round(fileInfo.size! / 1024)}KB). Cache size: ${this.cache.size} items`);
+        console.log(` [ImageCache] Successfully cached (${Math.round(fileInfo.size! / 1024)}KB). Cache size: ${this.cache.size} items`);
         return downloadResult.uri;
       }
     } catch (error) {
-      console.error('❌ [ImageCache] Failed to cache image:', error);
+      console.error('  [ImageCache] Failed to cache image:', error);
       console.log(`🔄 [ImageCache] Falling back to original URI`);
     }
 

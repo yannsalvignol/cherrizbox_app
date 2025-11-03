@@ -221,7 +221,7 @@ export default function PaymentSuccess() {
                   
                   // Pre-setup channels for all active creators (like global provider does)
                   await preSetupChannels(user.$id, activeCreatorIds);
-                  console.log('✅ All channels pre-setup completed');
+                  console.log(' All channels pre-setup completed');
                   
                   // Verify specific DM channel for the creator from this payment exists
                   const creatorNameStr = Array.isArray(creatorName) ? creatorName[0] : creatorName;
@@ -229,36 +229,36 @@ export default function PaymentSuccess() {
                     try {
                       const specificCreatorId = await getCreatorIdByName(creatorNameStr);
                       if (specificCreatorId && specificCreatorId !== user.$id && activeCreatorIds.includes(specificCreatorId)) {
-                        console.log('✅ Payment creator channel already set up during pre-setup phase');
+                        console.log(' Payment creator channel already set up during pre-setup phase');
                         // No need to create again - preSetupChannels already handled this
                       } else if (specificCreatorId && specificCreatorId !== user.$id) {
                         console.log('💬 Creating direct message channel for payment creator (not in active list)...');
                         await createDirectMessageChannel(user.$id, specificCreatorId);
-                        console.log('✅ Direct message channel created for payment creator');
+                        console.log(' Direct message channel created for payment creator');
                       }
                     } catch (dmError) {
-                      console.error('❌ Error with specific DM channel:', dmError);
+                      console.error('  Error with specific DM channel:', dmError);
                       // Don't throw - not critical
                     }
                   }
                 } else {
-                  console.log('⚠️ No active creators found for channel setup');
+                  console.log('  No active creators found for channel setup');
                 }
               } catch (channelError) {
-                console.error('❌ Error setting up channels:', channelError);
+                console.error('  Error setting up channels:', channelError);
                 // Don't throw - continue with data refresh
               }
             }
 
             // Refresh posts and creators
             await Promise.all([refreshPosts(), refreshCreators()]);
-            console.log('✅ Stream Chat initialization, channel setup, and data refresh completed');
+            console.log(' Stream Chat initialization, channel setup, and data refresh completed');
             
             // Clear navigation history and navigate to home
             router.dismissAll();
             router.replace('/(root)/(tabs)');
           } catch (error) {
-            console.error('❌ Error during Stream Chat initialization or data refresh:', error);
+            console.error('  Error during Stream Chat initialization or data refresh:', error);
             // Still navigate away even if initialization fails
             router.replace('/(root)/(tabs)');
           }

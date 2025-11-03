@@ -138,9 +138,9 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
           cacheImage(remoteUrl).then(newUri => {
             imageDiskCache.current[remoteUrl] = newUri;
             saveImageCacheToDisk();
-            console.log(`✅ [ImageCache] Image re-cached successfully: ${remoteUrl.substring(0, 50)}...`);
+            console.log(` [ImageCache] Image re-cached successfully: ${remoteUrl.substring(0, 50)}...`);
           }).catch(error => {
-            console.error(`❌ [ImageCache] Failed to re-cache image: ${remoteUrl.substring(0, 50)}...`, error);
+            console.error(`  [ImageCache] Failed to re-cache image: ${remoteUrl.substring(0, 50)}...`, error);
           });
         }
       }).catch(() => {
@@ -158,9 +158,9 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
       cacheImage(remoteUrl).then(newUri => {
         imageDiskCache.current[remoteUrl] = newUri;
         saveImageCacheToDisk();
-        console.log(`✅ [ImageCache] New image cached: ${remoteUrl.substring(0, 50)}...`);
+        console.log(` [ImageCache] New image cached: ${remoteUrl.substring(0, 50)}...`);
       }).catch(error => {
-        console.log(`⚠️ [ImageCache] Failed to cache new image: ${remoteUrl.substring(0, 50)}...`, error);
+        console.log(`  [ImageCache] Failed to cache new image: ${remoteUrl.substring(0, 50)}...`, error);
       });
     }
     
@@ -177,7 +177,7 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
       await FileSystem.writeAsStringAsync(imageCachePath, JSON.stringify(imageDiskCache.current));
       console.log('💾 [ImageCache] Cache saved to disk');
     } catch (error) {
-      console.error('❌ [ImageCache] Failed to save cache to disk:', error);
+      console.error('  [ImageCache] Failed to save cache to disk:', error);
     }
   };
 
@@ -192,9 +192,9 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
         await FileSystem.deleteAsync(CACHE_DIR, { idempotent: true });
         await FileSystem.makeDirectoryAsync(CACHE_DIR, { intermediates: true });
       }
-      console.log('✅ [ImageCache] Image cache and files cleared successfully');
+      console.log(' [ImageCache] Image cache and files cleared successfully');
     } catch (error) {
-      console.error('❌ [ImageCache] Failed to clear image cache:', error);
+      console.error('  [ImageCache] Failed to clear image cache:', error);
     }
   };
 
@@ -208,7 +208,7 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
       const storedVersion = await AsyncStorage.getItem(versionKey);
       
       if (storedVersion !== currentVersion) {
-        console.log(`📱 [ImageCache] App updated from ${storedVersion} to ${currentVersion}, clearing cache...`);
+        console.log(`  [ImageCache] App updated from ${storedVersion} to ${currentVersion}, clearing cache...`);
         await clearImageCache();
         await AsyncStorage.setItem(versionKey, currentVersion);
         return;
@@ -219,13 +219,13 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
         const content = await FileSystem.readAsStringAsync(imageCachePath);
         if (content) {
           imageDiskCache.current = JSON.parse(content);
-          console.log(`✅ [ImageCache] Cache initialized with ${Object.keys(imageDiskCache.current).length} files.`);
+          console.log(` [ImageCache] Cache initialized with ${Object.keys(imageDiskCache.current).length} files.`);
         }
       } else {
         console.log('ℹ️ [ImageCache] No cache file found.');
       }
     } catch (error) {
-      console.error('❌ [ImageCache] Failed to initialize image cache:', error);
+      console.error('  [ImageCache] Failed to initialize image cache:', error);
       // Clear cache on error
       await clearImageCache();
     }
@@ -323,12 +323,12 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
         console.log('🚀 Starting channel pre-setup for active creators...');
         // Run channel pre-setup in background (don't await to avoid blocking UI)
         preSetupChannels(user.$id, activeCreatorIds).then((result) => {
-          console.log('✅ Channel pre-setup completed:', result);
+          console.log(' Channel pre-setup completed:', result);
         }).catch((error) => {
-          console.error('❌ Channel pre-setup failed:', error);
+          console.error('  Channel pre-setup failed:', error);
         });
       } else if (activeCreatorIds.length > 0) {
-        console.log('⚠️ Active subscriptions found but Stream Chat not connected - skipping channel pre-setup');
+        console.log('  Active subscriptions found but Stream Chat not connected - skipping channel pre-setup');
       }
     } catch (error) {
       console.error('Error loading creators:', error);
@@ -450,7 +450,7 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
             previousUserId.current = user.$id;
             loadPosts();
           } else {
-            console.log('⚠️ User has no active subscriptions - skipping Stream Chat initialization');
+            console.log('  User has no active subscriptions - skipping Stream Chat initialization');
             // Set basic states without heavy initialization
             setIsStreamConnected(false);
             previousUserId.current = user.$id;

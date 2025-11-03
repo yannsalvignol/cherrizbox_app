@@ -2,8 +2,8 @@ import { getCreatorIdByName } from '@/lib/appwrite';
 import { useGlobalContext } from '@/lib/global-provider';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef } from 'react';
-import { Animated, Dimensions, Image, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Dimensions, Image, Modal, Pressable, Text, TouchableOpacity, View } from 'react-native';
 import { SafeImage } from './SafeImage';
 
 const { width } = Dimensions.get('window');
@@ -35,6 +35,9 @@ const PhotoCard = ({ photo, index = 0, scrollY, isSubscribed = false, isCancelle
     const scaleAnim = useRef(new Animated.Value(1)).current;
     const opacityAnim = useRef(new Animated.Value(1)).current;
     const translateX = useRef(new Animated.Value(0)).current;
+    const [zoomVisible, setZoomVisible] = useState(false);
+    const zoomScale = useRef(new Animated.Value(0.9)).current;
+    const zoomOpacity = useRef(new Animated.Value(0)).current;
 
     const imageUrl = photo.thumbnail || photo.imageUrl || photo.fileUrl || '';
     const cachedUrl = getCachedImageUrl(imageUrl);
@@ -184,6 +187,25 @@ const PhotoCard = ({ photo, index = 0, scrollY, isSubscribed = false, isCancelle
                     onPress={handlePress}
                     onPressIn={handlePressIn}
                     onPressOut={handlePressOut}
+                    onLongPress={() => {
+                        // show zoom modal with a small scale+fade animation
+                        setZoomVisible(true);
+                        zoomScale.setValue(0.95);
+                        zoomOpacity.setValue(0);
+                        Animated.parallel([
+                            Animated.timing(zoomOpacity, {
+                                toValue: 1,
+                                duration: 180,
+                                useNativeDriver: true,
+                            }),
+                            Animated.spring(zoomScale, {
+                                toValue: 1,
+                                useNativeDriver: true,
+                                tension: 80,
+                                friction: 8,
+                            })
+                        ]).start();
+                    }}
                 >
                     <View style={{ borderRadius: 18, overflow: 'hidden', position: 'relative' }}>
                         {/* Image */}
@@ -275,6 +297,115 @@ const PhotoCard = ({ photo, index = 0, scrollY, isSubscribed = false, isCancelle
                         </View>
                     </View>
                 </TouchableOpacity>
+                {/* Zoom modal shown on long-press */}
+                <Modal
+                    visible={zoomVisible}
+                    transparent
+                    animationType="fade"
+                    onRequestClose={() => setZoomVisible(false)}
+                >
+                    <Pressable
+                        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' }}
+                        onPress={() => {
+                            // animate out and close
+                            Animated.parallel([
+                                Animated.timing(zoomOpacity, { toValue: 0, duration: 120, useNativeDriver: true }),
+                                Animated.timing(zoomScale, { toValue: 0.95, duration: 120, useNativeDriver: true }),
+                            ]).start(() => setZoomVisible(false));
+                        }}
+                    >
+                        {imageUrl ? (
+                            <Animated.View style={{ width: '96%', maxHeight: '86%', transform: [{ scale: zoomScale }], opacity: zoomOpacity, borderRadius: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.28, shadowRadius: 24, elevation: 16 }}>
+                                <LinearGradient
+                                    colors={['#232526', '#414345']}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={{ borderRadius: 20, padding: 2, width: '100%', height: '100%' }}
+                                >
+                                    <View style={{ borderRadius: 18, overflow: 'hidden', backgroundColor: '#18181b', width: '100%', height: '100%' }}>
+                                        <SafeImage
+                                            source={{ uri: cachedUrl }}
+                                            style={{ width: '100%', height: '100%' }}
+                                            resizeMode="cover"
+                                            fallbackText={`${photo.title || 'Image'} not available`}
+                                        />
+
+                                        {/* Creator name pill preserved in zoom modal */}
+                                        <View style={{
+                                            position: 'absolute',
+                                            bottom: 14,
+                                            left: 14,
+                                            borderRadius: 16,
+                                            paddingVertical: 8,
+                                            paddingHorizontal: 16,
+                                            maxWidth: '78%',
+                                            overflow: 'hidden',
+                                        }}>
+                                            {isSubscribed ? (
+                                                <View style={{
+                                                    position: 'absolute',
+                                                    top: 0,
+                                                    left: 0,
+                                                    right: 0,
+                                                    bottom: 0,
+                                                    borderRadius: 16,
+                                                    overflow: 'hidden',
+                                                }}>
+                                                    <Animated.View style={{
+                                                        position: 'absolute',
+                                                        top: 0,
+                                                        left: -60,
+                                                        right: -60,
+                                                        bottom: 0,
+                                                        transform: [{ translateX }],
+                                                    }}>
+                                                        <LinearGradient
+                                                            colors={['rgba(251, 35, 85, 0.7)', 'rgba(255, 215, 0, 0.7)', 'rgba(251, 35, 85, 0.7)']}
+                                                            start={{ x: 0, y: 0 }}
+                                                            end={{ x: 1, y: 0 }}
+                                                            style={{
+                                                                position: 'absolute',
+                                                                top: 0,
+                                                                left: 0,
+                                                                right: 0,
+                                                                bottom: 0,
+                                                            }}
+                                                        />
+                                                    </Animated.View>
+                                                </View>
+                                            ) : (
+                                                <View style={{
+                                                    position: 'absolute',
+                                                    top: 0,
+                                                    left: 0,
+                                                    right: 0,
+                                                    bottom: 0,
+                                                    backgroundColor: isCancelled ? 'rgba(244, 67, 54, 0.7)' : 'rgba(0,0,0,0.55)',
+                                                    borderRadius: 16,
+                                                }} />
+                                            )}
+                                            <Text style={{
+                                                color: '#fff',
+                                                fontSize: 18,
+                                                letterSpacing: 0.2,
+                                                textShadowColor: 'rgba(0,0,0,0.3)',
+                                                textShadowOffset: { width: 0, height: 1 },
+                                                textShadowRadius: 4,
+                                                fontFamily: 'MuseoModerno-Regular',
+                                            }} numberOfLines={1}>
+                                                {photoTitle}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                </LinearGradient>
+                            </Animated.View>
+                        ) : (
+                            <View style={{ padding: 24 }}>
+                                <Text style={{ color: '#fff' }}>No Image</Text>
+                            </View>
+                        )}
+                    </Pressable>
+                </Modal>
             </LinearGradient>
         </Animated.View>
     );

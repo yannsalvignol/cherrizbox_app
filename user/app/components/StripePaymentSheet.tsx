@@ -6,7 +6,6 @@ import { initiatePaymentIntent } from '../../lib/subscription';
 import { CherryLoadingIndicator } from './CherryLoadingIndicator';
 let StripeProvider: any, useStripe: any;
 if (Platform.OS !== 'web') {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const stripe = require('@stripe/stripe-react-native');
   StripeProvider = stripe.StripeProvider;
   useStripe = stripe.useStripe;
@@ -61,7 +60,7 @@ const InnerSheet: React.FC<StripePaymentSheetProps & {clientSecret: string; stri
     (async () => {
       // Check if Apple Pay is supported
       const isApplePaySupported = await isPlatformPaySupported();
-      console.log('🍎 Apple Pay Support Check:');
+      console.log(' Apple Pay Support Check:');
       console.log('  - Is Apple Pay Supported:', isApplePaySupported);
       console.log('  - Merchant ID from config:', merchantId);
       console.log('  - Full plugins config:', JSON.stringify(Constants.expoConfig?.plugins, null, 2));
@@ -87,7 +86,7 @@ const InnerSheet: React.FC<StripePaymentSheetProps & {clientSecret: string; stri
         return;
       }
       setInitializing(false);
-      console.log('💳 Presenting payment sheet...');
+      console.log('   Presenting payment sheet...');
       const { error: presentError } = await presentPaymentSheet();
       if (presentError) {
         // If user explicitly cancelled the sheet, just close silently
