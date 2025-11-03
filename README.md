@@ -30,9 +30,9 @@ Cherrizbox is a social platform that lets fans text their favorite creators—an
 Cherrizbox empowers creators with large audiences to handle thousands of 1‑to‑1 conversations in a single click—seamlessly, authentically, and always in their own tone. The platform clusters similar fan messages and lets the creator write one canonical answer that is then personalized and sent back to each fan.
 
 ---
-| Main Page | Chat | Subscribtion |
-| --- | --- | --- |
-| ![Main](./docs/images/main.PNG) | ![Chat](./docs/images/chat.PNG) | ![Subscription](./docs/images/subscription.PNG) |
+| Main Page | Chat | Subscribtion | Payment |
+| --- | --- | --- |--- |
+| ![Main](./docs/images/main.PNG) | ![Chat](./docs/images/chat.PNG) | ![Subscription](./docs/images/subscription.PNG) | ![Payment](./docs/images/payment.PNG) |
 ## Key Features
 
 - AI Message Clustering: Similar questions are grouped so the creator answers once.
