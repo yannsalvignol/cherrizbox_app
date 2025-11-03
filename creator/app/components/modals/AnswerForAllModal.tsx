@@ -135,7 +135,7 @@ export const AnswerForAllModal: React.FC<AnswerForAllModalProps> = ({
       );
       
       const result = JSON.parse(response.responseBody);
-      console.log('📦 [AnswerForAll] Backend response:', result);
+      console.log('  [AnswerForAll] Backend response:', result);
       
       if (result.success) {
         // Complete the progress bar

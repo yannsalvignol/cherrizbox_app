@@ -69,7 +69,7 @@ export default function Settings() {
     setIsTogglingPushNotifications(true);
     
     try {
-      console.log(`📱 [Settings] Starting push notification toggle to: ${value}`);
+      console.log(`  [Settings] Starting push notification toggle to: ${value}`);
       
       // Save preference to AsyncStorage
       await AsyncStorage.setItem('@push_notifications_enabled', JSON.stringify(value));
@@ -77,52 +77,52 @@ export default function Settings() {
 
       if (value) {
         // Enable push notifications
-        console.log('📱 [Settings] Enabling push notifications...');
-        console.log('📱 [Settings] Step 1: Importing Firebase messaging...');
+        console.log('  [Settings] Enabling push notifications...');
+        console.log('  [Settings] Step 1: Importing Firebase messaging...');
         
         // Import Firebase modules using modular API (same as stream-chat.ts)
         const { getMessaging, getToken, requestPermission, AuthorizationStatus } = await import('@react-native-firebase/messaging');
-        console.log('📱 [Settings] Step 2: Firebase messaging imported successfully');
+        console.log('  [Settings] Step 2: Firebase messaging imported successfully');
         
         // Get messaging instance using modular API
         const messaging = getMessaging();
         
         // Request permission
-        console.log('📱 [Settings] Step 3: Requesting push notification permission...');
+        console.log('  [Settings] Step 3: Requesting push notification permission...');
         const authStatus = await requestPermission(messaging);
-        console.log('📱 [Settings] Step 4: Permission status received:', authStatus);
+        console.log('  [Settings] Step 4: Permission status received:', authStatus);
         
         const enabled =
           authStatus === AuthorizationStatus.AUTHORIZED ||
           authStatus === AuthorizationStatus.PROVISIONAL;
-        console.log('📱 [Settings] Step 5: Permission enabled:', enabled);
+        console.log('  [Settings] Step 5: Permission enabled:', enabled);
 
         if (enabled) {
-          console.log('📱 [Settings] Step 6: Permission granted, proceeding with device registration...');
+          console.log('  [Settings] Step 6: Permission granted, proceeding with device registration...');
           
           // Re-register device with Stream Chat
           const { client, getConnectedUserId, connectUser } = await import('../../../lib/stream-chat');
-          console.log('📱 [Settings] Step 7: Stream Chat modules imported');
+          console.log('  [Settings] Step 7: Stream Chat modules imported');
           
           let connectedUserId = getConnectedUserId();
-          console.log('📱 [Settings] Step 8: Connected user ID:', connectedUserId);
+          console.log('  [Settings] Step 8: Connected user ID:', connectedUserId);
           
           // If not connected, try to connect first
           if (!connectedUserId) {
-            console.log('📱 [Settings] Step 8.1: Stream Chat not connected, attempting to connect...');
+            console.log('  [Settings] Step 8.1: Stream Chat not connected, attempting to connect...');
             try {
               const { getCurrentUser } = await import('../../../lib/appwrite');
               const user = await getCurrentUser();
-              console.log('📱 [Settings] Step 8.2: Current user from Appwrite:', user?.$id);
+              console.log('  [Settings] Step 8.2: Current user from Appwrite:', user?.$id);
               
               if (user) {
-                console.log('📱 [Settings] Step 8.3: Connecting to Stream Chat...');
+                console.log('  [Settings] Step 8.3: Connecting to Stream Chat...');
                 const connected = await connectUser(user.$id);
-                console.log('📱 [Settings] Step 8.4: Stream Chat connection result:', connected);
+                console.log('  [Settings] Step 8.4: Stream Chat connection result:', connected);
                 
                 if (connected) {
                   connectedUserId = getConnectedUserId();
-                  console.log('📱 [Settings] Step 8.5: New connected user ID:', connectedUserId);
+                  console.log('  [Settings] Step 8.5: New connected user ID:', connectedUserId);
                 }
               } else {
                 console.log('   [Settings] Step 8.2 FAILED: No current user from Appwrite');
@@ -133,14 +133,14 @@ export default function Settings() {
           }
           
           if (connectedUserId) {
-            console.log('📱 [Settings] Step 9: Getting FCM token...');
+            console.log('  [Settings] Step 9: Getting FCM token...');
             const fcmToken = await getToken(messaging);
-            console.log('📱 [Settings] Step 10: FCM token obtained:', fcmToken ? fcmToken.substring(0, 20) + '...' : 'null');
+            console.log('  [Settings] Step 10: FCM token obtained:', fcmToken ? fcmToken.substring(0, 20) + '...' : 'null');
             
             if (fcmToken) {
               try {
-                console.log('📱 [Settings] Step 11: Calling client.addDevice...');
-                console.log('📱 [Settings] Parameters:', {
+                console.log('  [Settings] Step 11: Calling client.addDevice...');
+                console.log('  [Settings] Parameters:', {
                   token: fcmToken.substring(0, 20) + '...',
                   provider: 'firebase',
                   userId: connectedUserId,
@@ -200,23 +200,23 @@ export default function Settings() {
         }
       } else {
         // Disable push notifications
-        console.log('📱 [Settings] Disabling push notifications...');
-        console.log('📱 [Settings] Disable Step 1: Importing modules...');
+        console.log('  [Settings] Disabling push notifications...');
+        console.log('  [Settings] Disable Step 1: Importing modules...');
         
         try {
           const { client } = await import('../../../lib/stream-chat');
           const { getMessaging, getToken } = await import('@react-native-firebase/messaging');
-          console.log('📱 [Settings] Disable Step 2: Modules imported successfully');
+          console.log('  [Settings] Disable Step 2: Modules imported successfully');
           
           // Get messaging instance using modular API
           const messaging = getMessaging();
           
-          console.log('📱 [Settings] Disable Step 3: Getting FCM token...');
+          console.log('  [Settings] Disable Step 3: Getting FCM token...');
           const fcmToken = await getToken(messaging);
-          console.log('📱 [Settings] Disable Step 4: FCM token:', fcmToken ? fcmToken.substring(0, 20) + '...' : 'null');
+          console.log('  [Settings] Disable Step 4: FCM token:', fcmToken ? fcmToken.substring(0, 20) + '...' : 'null');
           
           if (fcmToken) {
-            console.log('📱 [Settings] Disable Step 5: Calling client.removeDevice...');
+            console.log('  [Settings] Disable Step 5: Calling client.removeDevice...');
             // Remove device from Stream Chat
             await client.removeDevice(fcmToken);
             console.log(' [Settings] Disable Step 6: Push notifications disabled successfully');
@@ -263,7 +263,7 @@ export default function Settings() {
     } finally {
       // Always reset loading state
       setIsTogglingPushNotifications(false);
-      console.log('📱 [Settings] Push notification toggle process completed');
+      console.log('  [Settings] Push notification toggle process completed');
     }
   };
 

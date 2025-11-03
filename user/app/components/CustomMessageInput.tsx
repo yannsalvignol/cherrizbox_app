@@ -490,7 +490,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
       // Request permissions
       console.log('🔐 Requesting camera permissions...');
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      console.log('📋 Camera permission status:', status);
+      console.log('  Camera permission status:', status);
       
       if (status !== 'granted') {
         console.log('  Camera permission denied');
@@ -505,7 +505,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
       });
 
-      console.log('📋 Camera result:', {
+      console.log('  Camera result:', {
         canceled: result.canceled,
         assetsCount: result.assets?.length || 0,
         assets: result.assets
@@ -611,7 +611,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
     const maxRetries = 2;
     const startTime = Date.now();
     console.log('🔗 [Clustering] Starting message processing...');
-    console.log('📋 [Clustering] Message data:', {
+    console.log('  [Clustering] Message data:', {
       messageId: messageData.messageId,
       content: messageData.content.substring(0, 100) + (messageData.content.length > 100 ? '...' : ''),
       chatId: messageData.chatId,
@@ -1375,7 +1375,7 @@ export const CustomMessageInput: React.FC<CustomMessageInputProps> = ({
                           ],
                         };
 
-                        console.log('💾 Storing message data for after payment...');
+                        console.log('  Storing message data for after payment...');
                         
                         // Store message data for after successful payment
                         setPendingMessageData(messageData);

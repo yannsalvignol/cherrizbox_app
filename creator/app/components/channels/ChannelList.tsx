@@ -161,12 +161,12 @@ export const ChannelList: React.FC<ChannelListProps> = ({
   const clearAppBadgeOnView = () => {
     import('@notifee/react-native').then(({ default: notifee }) => {
       notifee.setBadgeCount(0).then(() => {
-        console.log('📱 [Badge] Badge count cleared on channel list view');
+        console.log('  [Badge] Badge count cleared on channel list view');
       }).catch(error => {
-        console.log('📱 [Badge] Failed to clear badge:', error);
+        console.log('  [Badge] Failed to clear badge:', error);
       });
     }).catch(error => {
-      console.log('📱 [Badge] Notifee not available:', error);
+      console.log('  [Badge] Notifee not available:', error);
     });
   };
 
@@ -313,7 +313,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
 
     // Prevent duplicate setup
     if (listenersSetupRef.current) {
-      console.log('ℹ️ [ChannelList] Listeners already set up, skipping');
+      console.log('  [ChannelList] Listeners already set up, skipping');
       return;
     }
 
@@ -328,7 +328,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
 
     // Only set up individual channel listeners if we have channels loaded
     if (channels.length === 0) {
-      console.log('📋 [ChannelList] No channels loaded yet, only global listener active');
+      console.log('  [ChannelList] No channels loaded yet, only global listener active');
       return () => {
         console.log('🧹 [ChannelList] Cleaning up global Stream Chat listeners');
         unsubscribeFunctions.forEach(unsubscribe => {
@@ -409,7 +409,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
                })
                
                if (isTipMessage) {
-                 console.log(`💰 [ChannelList] Tip message detected in ${channel.id}: ${messageText}`);
+                 console.log(`  [ChannelList] Tip message detected in ${channel.id}: ${messageText}`);
                }
              }
            };
@@ -778,7 +778,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
                 
                 // Mark as read in background (let ChatScreen handle the actual markRead call)
                 // This avoids duplicate API calls and rate limiting
-                console.log(`📱 [ChannelList] Optimistically marked ${channelId} as read`);
+                console.log(`  [ChannelList] Optimistically marked ${channelId} as read`);
                 
                 if (onChannelPress) {
                   onChannelPress(channelId);

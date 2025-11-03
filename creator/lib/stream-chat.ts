@@ -63,7 +63,7 @@ const saveConnectionState = async (userId: string, token: string, userDoc: any) 
       [`${STORAGE_KEYS.USER_DOC}_${userId}`, JSON.stringify(userDoc)],
     ]);
     
-    console.log('💾 Connection state saved to AsyncStorage');
+    console.log('  Connection state saved to AsyncStorage');
   } catch (error) {
     console.error('Error saving connection state:', error);
   }
@@ -134,7 +134,7 @@ const getCachedUserDoc = async (userId: string, forceRefresh = false) => {
   if (!forceRefresh && userDocCache && userDocCacheTime && 
       (now - userDocCacheTime) < USER_DOC_CACHE_TTL && 
       userDocCache.creatorId === userId) {
-    console.log('📦 Using cached user document');
+    console.log('  Using cached user document');
     return userDocCache;
   }
   
@@ -171,7 +171,7 @@ const getOrGenerateToken = async (userId: string): Promise<string> => {
   try {
     const storedToken = await AsyncStorage.getItem(`${STORAGE_KEYS.TOKEN}_${userId}`);
     if (storedToken) {
-      console.log('📱 Found token in AsyncStorage');
+      console.log('  Found token in AsyncStorage');
       // Restore to memory cache
       const now = Date.now();
       tokenCache = {
@@ -221,7 +221,7 @@ const getOrGenerateToken = async (userId: string): Promise<string> => {
     
     // Store the token in the backend for future use
     if (userDoc) {
-      console.log('💾 Storing new token in backend for future use...');
+      console.log('  Storing new token in backend for future use...');
       const { databases, config } = await import('./appwrite');
       await databases.updateDocument(
         config.databaseId,
@@ -475,7 +475,7 @@ const registerForPushWithStream = async (): Promise<void> => {
 // Function to clear token cache (useful for testing or manual refresh)
 export const clearTokenCache = async (clearBackend = false, clearStorage = true) => {
   tokenCache = null;
-  console.log('🗑️ Local token cache cleared');
+  console.log(' Local token cache cleared');
   
   // Clear AsyncStorage
   if (clearStorage && connectedUserId) {
@@ -486,7 +486,7 @@ export const clearTokenCache = async (clearBackend = false, clearStorage = true)
         `${STORAGE_KEYS.TOKEN}_${connectedUserId}`,
         `${STORAGE_KEYS.USER_DOC}_${connectedUserId}`,
       ]);
-      console.log('🗑️ AsyncStorage cleared');
+      console.log(' AsyncStorage cleared');
     } catch (error) {
       console.error('Error clearing AsyncStorage:', error);
     }
@@ -511,7 +511,7 @@ export const clearTokenCache = async (clearBackend = false, clearStorage = true)
           userDocs.documents[0].$id,
           { streamChatToken: null }
         );
-        console.log('🗑️ Backend token cleared');
+        console.log(' Backend token cleared');
       }
     } catch (error) {
       console.error('Error clearing backend token:', error);
@@ -617,7 +617,7 @@ export async function createCreatorChannel(creatorId: string, creatorName: strin
 export async function createDirectMessageChannel(user1Id: string, user2Id: string) {
   try {
     console.log('   Creating direct message channel...');
-    console.log('📋 Channel creation details:', {
+    console.log('  Channel creation details:', {
       user1Id,
       user2Id,
       isConnected,
@@ -638,7 +638,7 @@ export async function createDirectMessageChannel(user1Id: string, user2Id: strin
     // Create a custom channel ID for direct messages with consistent format
     const channelId = createDMChannelId(user1Id, user2Id);
     console.log('🏗️ Creating channel with custom ID:', channelId);
-    console.log('👥 Channel members:', [user1Id, user2Id]);
+    console.log('  Channel members:', [user1Id, user2Id]);
 
     const channel = client.channel('messaging', channelId, {
       members: [user1Id, user2Id],
@@ -668,7 +668,7 @@ export async function createDirectMessageChannel(user1Id: string, user2Id: strin
     return channel;
   } catch (error) {
     console.error('   Error creating direct message channel:', error);
-    console.error('🔍 Error details:', {
+    console.error('  Error details:', {
       name: error instanceof Error ? error.name : 'Unknown',
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined

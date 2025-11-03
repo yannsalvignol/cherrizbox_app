@@ -23,14 +23,14 @@ A comprehensive caching system designed to dramatically improve performance when
 ## System Architecture
 
 ```
-📦 Chat App Caching System
-├── 🖼️ Image Cache (lib/image-cache.ts)
+  Chat App Caching System
+├──  Image Cache (lib/image-cache.ts)
 │   ├── 100MB storage limit
 │   ├── 7-day expiration policy
 │   ├── LRU cleanup algorithm
 │   ├── Persistent storage with index
 │   └── Background preloading
-├── 💾 Data Cache (lib/data-cache.ts)
+├──   Data Cache (lib/data-cache.ts)
 │   ├── In-memory caching
 │   ├── Configurable TTL per data type
 │   ├── Get-or-fetch patterns
@@ -180,7 +180,7 @@ chatDataCache.invalidatePattern('purchase_');
 
 ### Debug Information
 ```
-🖼️ [ImageCache] Request: https://storage.example.com/image123...
+ [ImageCache] Request: https://storage.example.com/image123...
  [ImageCache] Cache HIT (245KB) - Age: 1245s
   [ImageCache] Stats: 67 items, 23.1MB, 89.3% hit rate
 ```

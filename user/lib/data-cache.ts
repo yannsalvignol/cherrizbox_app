@@ -9,7 +9,7 @@ class DataCacheManager {
   private defaultTTL: number = 5 * 60 * 1000; // 5 minutes
 
   set<T>(key: string, data: T, ttl?: number): void {
-    console.log(`💾 [DataCache] STORE: ${key} (TTL: ${Math.round((ttl || this.defaultTTL) / 1000)}s)`);
+    console.log(`  [DataCache] STORE: ${key} (TTL: ${Math.round((ttl || this.defaultTTL) / 1000)}s)`);
     this.cache.set(key, {
       data,
       timestamp: Date.now(),

@@ -110,12 +110,12 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
     // Clear badge count when opening a chat
     import('@notifee/react-native').then(({ default: notifee }) => {
       notifee.setBadgeCount(0).then(() => {
-        console.log('📱 [Badge] Badge count cleared on chat open');
+        console.log('  [Badge] Badge count cleared on chat open');
       }).catch(error => {
-        console.log('📱 [Badge] Failed to clear badge:', error);
+        console.log('  [Badge] Failed to clear badge:', error);
       });
     }).catch(error => {
-      console.log('📱 [Badge] Notifee not available:', error);
+      console.log('  [Badge] Notifee not available:', error);
     });
   };
 
@@ -364,7 +364,7 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
                 textShadowOffset: { width: 1, height: 1 },
                 textShadowRadius: 2
               }}>
-                💰
+                 
               </Text>
             </Animated.View>
           );

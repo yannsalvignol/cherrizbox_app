@@ -96,7 +96,7 @@ export default function ChatScreen() {
   // Fetch creator's currency from posts data
   useEffect(() => {
     if (creatorName && posts && posts.length > 0) {
-      console.log('🔍 [ChatScreen] Looking for creator currency for:', creatorName);
+      console.log('  [ChatScreen] Looking for creator currency for:', creatorName);
       console.log('  [ChatScreen] Available posts:', posts.length);
       
       // Find the creator's post to get their currency (same logic as in [id].tsx)
@@ -116,7 +116,7 @@ export default function ChatScreen() {
         // Extract creator account ID from post data
         const accountId = creatorPost.creatorId || creatorPost.accountId || '';
         
-        console.log('💰 [ChatScreen] Creator currency:', currency);
+        console.log('  [ChatScreen] Creator currency:', currency);
         console.log('👤 [ChatScreen] Creator ID:', accountId);
         setCreatorCurrency(currency.toLowerCase());
         setCreatorId(accountId);

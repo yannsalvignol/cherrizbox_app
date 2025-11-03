@@ -71,7 +71,7 @@ class ChatImageCache {
         
         // Update stats
         this.updateCacheStats();
-        console.log(`📋 [ImageCache] Loaded ${this.imageIndex.size} items from index`);
+        console.log(`  [ImageCache] Loaded ${this.imageIndex.size} items from index`);
       }
     } catch (error) {
       console.error('  [ImageCache] Failed to load cache index:', error);
@@ -151,7 +151,7 @@ class ChatImageCache {
     if (removedCount > 0) {
       await this.saveCacheIndex();
       this.updateCacheStats();
-      console.log(`📦 [ImageCache] Size cleanup: removed ${removedCount} files (${Math.round(freedSize / 1024)}KB freed)`);
+      console.log(`  [ImageCache] Size cleanup: removed ${removedCount} files (${Math.round(freedSize / 1024)}KB freed)`);
     }
   }
 
@@ -169,7 +169,7 @@ class ChatImageCache {
     const cachedItem = this.imageIndex.get(cacheKey);
     const localPath = `${this.cacheDirectory}${cacheKey}`;
 
-    console.log(`🖼️ [ImageCache] Request: ${imageUrl.substring(0, 60)}...`);
+    console.log(` [ImageCache] Request: ${imageUrl.substring(0, 60)}...`);
 
     // Check if cached file exists and is valid
     if (cachedItem) {
@@ -196,7 +196,7 @@ class ChatImageCache {
 
     // Handle local files (don't cache local images)
     if (imageUrl.startsWith('file://') || imageUrl.includes('ImagePicker') || imageUrl.includes('CameraPictures')) {
-      console.log(`📱 [ImageCache] Local file detected, returning original path`);
+      console.log(`  [ImageCache] Local file detected, returning original path`);
       return imageUrl;
     }
 
@@ -255,7 +255,7 @@ class ChatImageCache {
       this.imageIndex.clear();
       this.stats = { totalItems: 0, totalSize: 0, hitRate: 0, requests: 0, hits: 0 };
       await this.initializeCache();
-      console.log(`🗑️ [ImageCache] Cache cleared completely`);
+      console.log(` [ImageCache] Cache cleared completely`);
     } catch (error) {
       console.error('   [ImageCache] Failed to clear cache:', error);
     }

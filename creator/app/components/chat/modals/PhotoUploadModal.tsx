@@ -136,7 +136,7 @@ const PhotoUploadModal = ({ visible, progress }: PhotoUploadModalProps) => {
               elevation: 10,
               overflow: 'hidden',
             }}>
-              <Text style={{ fontSize: 36 }}>📸</Text>
+              <Text style={{ fontSize: 36 }}> </Text>
               
               {/* Shimmer overlay */}
               <Animated.View style={{
@@ -230,7 +230,7 @@ const PhotoUploadModal = ({ visible, progress }: PhotoUploadModalProps) => {
             textAlign: 'center',
             lineHeight: 16,
           }}>
-            📱 Keep the app open for best results
+              Keep the app open for best results
           </Text>
         </Animated.View>
       </View>

@@ -92,9 +92,9 @@ export const getDailyMessageLimit = async (
     
     if (response.documents.length > 0) {
       messageCount = response.documents[0].totalMessages;
-      console.log('📋 [DailyLimits] Found existing record:', { messageCount });
+      console.log('  [DailyLimits] Found existing record:', { messageCount });
     } else {
-      console.log('📋 [DailyLimits] No record found for today, starting fresh');
+      console.log('  [DailyLimits] No record found for today, starting fresh');
     }
 
     const remaining = Math.max(0, 5 - messageCount);

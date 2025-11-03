@@ -43,7 +43,7 @@ const CustomAttachment = ({ attachment }: CustomAttachmentProps) => {
       }
 
       try {
-        console.log(`🖼️ [CustomAttachment] Loading image: ${imageUrl.substring(0, 60)}...`);
+        console.log(` [CustomAttachment] Loading image: ${imageUrl.substring(0, 60)}...`);
         
         // Use image cache for Appwrite URLs, direct path for local URIs
         if (imageUrl.includes('appwrite') || imageUrl.startsWith('http')) {
@@ -278,7 +278,7 @@ const CustomAttachment = ({ attachment }: CustomAttachmentProps) => {
                 fontFamily: 'Urbanist-Bold',
                 marginRight: 3,
               }}>
-                💰
+                 
               </Text>
               <Text style={{
                 color: '#FFFFFF',
@@ -432,7 +432,7 @@ const CustomAttachment = ({ attachment }: CustomAttachmentProps) => {
                     fontFamily: 'Urbanist-Bold',
                     marginRight: 6,
                   }}>
-                    💰
+                     
                   </Text>
                   <Text style={{
                     color: '#FFFFFF',
@@ -572,7 +572,7 @@ const CustomAttachment = ({ attachment }: CustomAttachmentProps) => {
                       fontFamily: 'Urbanist-Bold',
                       marginRight: 6,
                     }}>
-                      💰
+                       
                     </Text>
                     <Text style={{
                       color: '#FFFFFF',

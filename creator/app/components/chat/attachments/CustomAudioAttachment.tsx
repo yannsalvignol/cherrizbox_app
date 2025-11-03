@@ -139,7 +139,7 @@ const CustomAudioAttachment = ({ attachment }: CustomAudioAttachmentProps) => {
     
     // Debug logging (less frequent)
     if (Math.floor(currentTime / 1000) % 3 === 0) {
-      console.log('🔍 Progress debug:', {
+      console.log('  Progress debug:', {
         currentTime: Math.round(currentTime / 1000),
         totalDuration: Math.round(totalDuration / 1000),
         progress: Math.round(progress * 100) + '%',

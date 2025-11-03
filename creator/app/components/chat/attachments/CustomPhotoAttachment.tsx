@@ -34,7 +34,7 @@ const CustomPhotoAttachment: React.FC<CustomPhotoAttachmentProps> = ({ attachmen
       }
 
       try {
-        console.log(`🖼️ [CustomPhotoAttachment] Loading image: ${attachment.image_url.substring(0, 60)}...`);
+        console.log(` [CustomPhotoAttachment] Loading image: ${attachment.image_url.substring(0, 60)}...`);
         
         // Get cached image path
         const { chatImageCache } = await import('../../../../lib/image-cache');

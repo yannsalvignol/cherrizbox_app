@@ -123,7 +123,7 @@ export const getChannelAvatar = (
  * Filter channels based on search query
  */
 export const filterChannels = (channelList: Channel[], query: string, currentUserId?: string) => {
-  console.log(`🔍 [Search] Filtering ${channelList.length} channels with query: "${query}"`);
+  console.log(`  [Search] Filtering ${channelList.length} channels with query: "${query}"`);
   
   if (!query.trim()) {
     console.log(' [Search] Empty query, showing all channels');

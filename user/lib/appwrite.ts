@@ -457,7 +457,7 @@ export const updateUserProfile = async (userId: string, data: ProfileData): Prom
 // Get or generate Stream Chat token with caching
 export const getOrGenerateStreamChatToken = async (userId: string): Promise<string> => {
     try {
-        console.log('🎫 Getting or generating Stream Chat token for user:', userId);
+        console.log(' Getting or generating Stream Chat token for user:', userId);
 
         // First, check if we have a cached token
         const userProfile = await getUserProfile(userId);
@@ -482,7 +482,7 @@ export const getOrGenerateStreamChatToken = async (userId: string): Promise<stri
             streamChatToken: tokenResult.token 
         });
 
-        console.log('💾 Stream Chat token cached successfully');
+        console.log('  Stream Chat token cached successfully');
 
         return tokenResult.token;
     } catch (error) {
@@ -494,7 +494,7 @@ export const getOrGenerateStreamChatToken = async (userId: string): Promise<stri
 // Clear cached Stream Chat token (useful for logout or token refresh)
 export const clearStreamChatToken = async (userId: string): Promise<void> => {
     try {
-        console.log('🗑️ Clearing cached Stream Chat token for user:', userId);
+        console.log(' Clearing cached Stream Chat token for user:', userId);
         await updateUserProfile(userId, { 
             userId, 
             streamChatToken: null 
@@ -626,7 +626,7 @@ export const sendVerificationEmailViaFunction = async (email: string, code: stri
             let errorResponse;
             try {
                 errorResponse = JSON.parse(execution.responseBody);
-                console.log(`📋 [sendVerificationEmailViaFunction] Parsed error response:`, errorResponse);
+                console.log(`  [sendVerificationEmailViaFunction] Parsed error response:`, errorResponse);
             } catch (parseError) {
                 const errorMessage = parseError instanceof Error ? parseError.message : 'Unknown parsing error';
                 console.log(`  [sendVerificationEmailViaFunction] Failed to parse error response: ${errorMessage}`);
@@ -638,7 +638,7 @@ export const sendVerificationEmailViaFunction = async (email: string, code: stri
         let responseBody;
         try {
             responseBody = JSON.parse(execution.responseBody);
-            console.log(`📋 [sendVerificationEmailViaFunction] Parsed response body:`, responseBody);
+            console.log(`  [sendVerificationEmailViaFunction] Parsed response body:`, responseBody);
         } catch (parseError) {
             const errorMessage = parseError instanceof Error ? parseError.message : 'Unknown parsing error';
             console.log(`  [sendVerificationEmailViaFunction] Failed to parse response body: ${errorMessage}`);
@@ -729,7 +729,7 @@ export const getProfilePictureUrl = (photoIdOrUri: string | null): string | null
 
 export const getSubscriptionCount = async (creatorName: string): Promise<number> => {
     try {
-        console.log(`👥 [FollowerCount] Getting count for creator: ${creatorName}`);
+        console.log(`  [FollowerCount] Getting count for creator: ${creatorName}`);
         
         // Import dataCache dynamically to avoid circular dependency
         const { dataCache } = await import('./data-cache');
@@ -772,7 +772,7 @@ export const getSubscriptionCount = async (creatorName: string): Promise<number>
 
         // Cache the result for 5 minutes
         dataCache.setFollowerCount(creatorName, totalCount);
-        console.log(`💾 [FollowerCount] Cached result for 5 minutes`);
+        console.log(`  [FollowerCount] Cached result for 5 minutes`);
         
         return totalCount;
     } catch (error) {
@@ -937,7 +937,7 @@ export const deleteExpiredSubscriptions = async (userId: string) => {
 
 export const getCreatorIdByName = async (creatorName: string): Promise<string | null> => {
     try {
-        console.log('🔍 getCreatorIdByName called with:', creatorName);
+        console.log('  getCreatorIdByName called with:', creatorName);
         
         // Query the photos collection to find the creator's creatorId
         const photos = await databases.listDocuments(
@@ -947,7 +947,7 @@ export const getCreatorIdByName = async (creatorName: string): Promise<string | 
         );
         
         console.log('  Found photos:', photos.documents.length);
-        console.log('📋 Photo details:', photos.documents.map(p => ({
+        console.log('  Photo details:', photos.documents.map(p => ({
             creatorId: p.creatorId,
             title: p.title,
             creatorsname: p.creatorsname
@@ -987,7 +987,7 @@ export const createPaidContentPaymentIntent = async (
         const FUNCTION_ID = process.env.EXPO_PUBLIC_STRIPE_FUNCTION_ID;
         const backendUrl = `${config.endpoint}/functions/${FUNCTION_ID}/executions`;
         
-        console.log('📋 Environment check:', {
+        console.log('  Environment check:', {
             functionId: FUNCTION_ID,
             endpoint: config.endpoint,
             backendUrl,
@@ -1058,7 +1058,7 @@ export const createPaidContentPaymentIntent = async (
         if (data.responseBody) {
             try {
                 actualResponse = JSON.parse(data.responseBody);
-                console.log('📋 Parsed responseBody:', actualResponse);
+                console.log('  Parsed responseBody:', actualResponse);
             } catch (parseError) {
                 console.error('  Failed to parse responseBody:', parseError);
                 throw new Error('Invalid response format from backend');
@@ -1118,7 +1118,7 @@ export const recordPaidContentPurchase = async (
             }
         );
 
-        console.log('💾 [RecordPurchase] Purchase recorded successfully');
+        console.log('  [RecordPurchase] Purchase recorded successfully');
         
         // Immediately invalidate the cache for this purchase to ensure fresh data
         try {
@@ -1173,7 +1173,7 @@ export const checkPaidContentPurchase = async (userId: string, contentId: string
         
         // Cache the result for 2 minutes
         dataCache.setPurchaseStatus(userId, contentId, hasPurchased);
-        console.log(`💾 [PurchaseCheck] Cached result for 2 minutes`);
+        console.log(`  [PurchaseCheck] Cached result for 2 minutes`);
         
         return hasPurchased;
     } catch (error) {
@@ -1242,7 +1242,7 @@ export const uploadFileToAppwrite = async (fileUri: string, fileName: string, mi
       uri: fileUri,
     };
 
-    console.log('📦 File to upload:', fileToUpload);
+    console.log('  File to upload:', fileToUpload);
 
     // Use Stream Chat storage bucket for general file uploads
     const storageToUse = config.streamChatStorageId || config.storageId;
@@ -1274,7 +1274,7 @@ export const uploadFileToAppwrite = async (fileUri: string, fileName: string, mi
 // Check if email exists in creator collection
 export const checkIfEmailIsCreator = async (email: string): Promise<boolean> => {
     try {
-        console.log('🔍 Checking if email exists in creator collection:', email);
+        console.log('  Checking if email exists in creator collection:', email);
         
         if (!config.creatorCollectionId) {
             console.warn('  Creator collection ID not configured');
@@ -1303,7 +1303,7 @@ export const checkIfEmailIsCreator = async (email: string): Promise<boolean> => 
 // Check if user already exists (email or username)
 export const checkIfUserExists = async (email: string, username?: string): Promise<{ exists: boolean; type?: 'email' | 'username' }> => {
     try {
-        console.log('🔍 Checking if user already exists:', { email, username });
+        console.log('  Checking if user already exists:', { email, username });
         
         // Check if email exists in users collection
         const emailCheck = await databases.listDocuments(
@@ -1375,13 +1375,13 @@ export async function ensureUserDocument() {
 
 export async function deleteAccount() {
     try {
-        console.log('🗑️ [deleteAccount] Starting account deletion process...');
+        console.log(' [deleteAccount] Starting account deletion process...');
         
         // Get current user
         const user = await account.get();
         const userId = user.$id;
         
-        console.log(`🗑️ [deleteAccount] Deleting account for user: ${userId}`);
+        console.log(` [deleteAccount] Deleting account for user: ${userId}`);
         
         // Get the delete account function ID from environment
         const DELETE_ACCOUNT_FUNCTION_ID = process.env.EXPO_PUBLIC_DELETE_ACCOUNT_FUNCTION_ID;
@@ -1403,14 +1403,14 @@ export async function deleteAccount() {
             }
         );
         
-        console.log('🗑️ [deleteAccount] Function execution response:', execution.responseBody);
+        console.log(' [deleteAccount] Function execution response:', execution.responseBody);
         
         // Parse the response
         let result;
         try {
             result = JSON.parse(execution.responseBody);
         } catch (parseError) {
-            console.error('🗑️ [deleteAccount] Error parsing response:', parseError);
+            console.error(' [deleteAccount] Error parsing response:', parseError);
             throw new Error('Invalid response from delete account function');
         }
         
@@ -1424,7 +1424,7 @@ export async function deleteAccount() {
         // IMPORTANT: Clear the local session since the account was deleted on the server
         // This prevents the app from thinking the user is still logged in
         try {
-            console.log('🗑️ [deleteAccount] Clearing local session...');
+            console.log(' [deleteAccount] Clearing local session...');
             await account.deleteSession("current");
             console.log(' [deleteAccount] Local session cleared successfully');
         } catch (sessionError) {

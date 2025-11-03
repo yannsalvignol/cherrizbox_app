@@ -164,9 +164,9 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
       });
     }
     
-    console.log(`🖼️ [ImageCache] URL: ${remoteUrl.substring(0, 50)}...`);
-    console.log(`🖼️ [ImageCache] Cached: ${cachedUri ? 'YES' : 'NO'}`);
-    console.log(`🖼️ [ImageCache] Using: ${cachedUri && cachedUri.startsWith('file://') ? 'CACHED' : 'ORIGINAL'}`);
+    console.log(` [ImageCache] URL: ${remoteUrl.substring(0, 50)}...`);
+    console.log(` [ImageCache] Cached: ${cachedUri ? 'YES' : 'NO'}`);
+    console.log(` [ImageCache] Using: ${cachedUri && cachedUri.startsWith('file://') ? 'CACHED' : 'ORIGINAL'}`);
     
     // Return cached version if available and valid, otherwise original
     return cachedUri || remoteUrl;
@@ -175,7 +175,7 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
   const saveImageCacheToDisk = async () => {
     try {
       await FileSystem.writeAsStringAsync(imageCachePath, JSON.stringify(imageDiskCache.current));
-      console.log('💾 [ImageCache] Cache saved to disk');
+      console.log('  [ImageCache] Cache saved to disk');
     } catch (error) {
       console.error('  [ImageCache] Failed to save cache to disk:', error);
     }
@@ -183,7 +183,7 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
 
   const clearImageCache = async () => {
     try {
-      console.log('🗑️ [ImageCache] Clearing image cache...');
+      console.log(' [ImageCache] Clearing image cache...');
       imageDiskCache.current = {};
       await FileSystem.deleteAsync(imageCachePath, { idempotent: true });
       // Also clear the cached image files
@@ -222,7 +222,7 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
           console.log(` [ImageCache] Cache initialized with ${Object.keys(imageDiskCache.current).length} files.`);
         }
       } else {
-        console.log('ℹ️ [ImageCache] No cache file found.');
+        console.log('  [ImageCache] No cache file found.');
       }
     } catch (error) {
       console.error('  [ImageCache] Failed to initialize image cache:', error);
@@ -439,7 +439,7 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
             sub.status === 'active' && (!sub.endsAt || new Date(sub.endsAt) > new Date())
           );
           
-          console.log('🔍 User has active subscriptions:', hasActiveSubscriptions);
+          console.log('  User has active subscriptions:', hasActiveSubscriptions);
           
           // Only initialize heavy processes if user has active subscriptions
           if (hasActiveSubscriptions) {

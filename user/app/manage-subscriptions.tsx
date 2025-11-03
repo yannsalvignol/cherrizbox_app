@@ -47,7 +47,7 @@ export default function ManageSubscriptions() {
     }
 
     try {
-      console.log('🔍 [ManageSubscriptions] Loading subscriptions for user:', user.$id);
+      console.log('  [ManageSubscriptions] Loading subscriptions for user:', user.$id);
       
       // Get active chat subscription
       const chatSub = await getActiveChatSubscription(user.$id);

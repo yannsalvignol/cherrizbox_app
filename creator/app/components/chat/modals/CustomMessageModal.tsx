@@ -712,7 +712,7 @@ const CustomMessageModal = ({ visible, onClose, message, onThreadReply, onEditMe
                           fontFamily: 'Urbanist-Bold',
                           marginRight: 6,
                         }}>
-                          💰
+                           
                         </Text>
                         <Text style={{
                           color: '#FFFFFF',

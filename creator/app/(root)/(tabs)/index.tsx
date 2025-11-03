@@ -155,7 +155,7 @@ export default function Index() {
         setUncollectedTips(prev => {
           const newSet = new Set(prev);
           newSet.add(channelId);
-          console.log(`💰 [Index] Added ${channelId} to uncollected tips`);
+          console.log(`  [Index] Added ${channelId} to uncollected tips`);
           return newSet;
         });
       }
@@ -225,7 +225,7 @@ export default function Index() {
         setChannelCreated(true);
       } else {
         // Only do detailed condition checks if account_state is not 'ok'
-        console.log('🔍 [Channels] Account state not ok, checking conditions...');
+        console.log('  [Channels] Account state not ok, checking conditions...');
         
         if (!profile) {
           console.log('  [Channels] No profile found, skipping channel load');
@@ -330,8 +330,8 @@ export default function Index() {
         await connectUser(user.$id);
       }
       
-      console.log('🔍 [Channels] Current client user:', client.user?.id);
-      console.log('🔍 [Channels] Client connected:', !!client.user);
+      console.log('  [Channels] Current client user:', client.user?.id);
+      console.log('  [Channels] Client connected:', !!client.user);
       
       // Query channels where the current user is a member
       const filter = { members: { $in: [user.$id] } };
@@ -344,7 +344,7 @@ export default function Index() {
         offset: loadMore ? channelOffset : 0,
       });
       
-      console.log(`📋 [Channels] Received ${response.length} channels from Stream Chat`);
+      console.log(`  [Channels] Received ${response.length} channels from Stream Chat`);
       
       // Check if we have more channels to load
       if (response.length < CHANNELS_PER_PAGE) {
@@ -375,7 +375,7 @@ export default function Index() {
       );
       
       if (dmChannelsNeedingProfiles.length > 0) {
-        console.log(`👥 [Channels] Batch fetching profiles for ${dmChannelsNeedingProfiles.length} DM channels`);
+        console.log(`  [Channels] Batch fetching profiles for ${dmChannelsNeedingProfiles.length} DM channels`);
         await batchFetchUserProfiles(dmChannelsNeedingProfiles);
       }
 
@@ -419,7 +419,7 @@ export default function Index() {
           setUncollectedTips(prev => {
             const newSet = new Set(prev);
             channelsWithTips.forEach(channelId => newSet.add(channelId));
-            console.log(`💰 [Index] Found ${channelsWithTips.length} channels with existing tips`);
+            console.log(`  [Index] Found ${channelsWithTips.length} channels with existing tips`);
             return newSet;
           });
         }
@@ -512,12 +512,12 @@ export default function Index() {
       const { ID, Query } = await import('react-native-appwrite');
       
       // 1. Create/update photo document if missing
-      console.log('📸 [MissingChannels] Checking photo document...');
+      console.log('  [MissingChannels] Checking photo document...');
       const { getUserPhoto } = await import('@/lib/appwrite');
       const userPhoto = await getUserPhoto(user.$id);
       
       if (!userPhoto) {
-        console.log('📸 [MissingChannels] Creating missing photo document...');
+        console.log('  [MissingChannels] Creating missing photo document...');
         
         // Get payment data from profile
         let paymentData = { monthlyPrice: '10', yearlyPrice: '21' };
@@ -637,7 +637,7 @@ export default function Index() {
     const now = Date.now();
     const memberIdsToFetch = new Set<string>();
     
-    console.log(`🔍 [Profiles] Analyzing ${dmChannels.length} DM channels for profile fetching...`);
+    console.log(`  [Profiles] Analyzing ${dmChannels.length} DM channels for profile fetching...`);
     
     // Collect all unique member IDs that need fetching
     for (const channel of dmChannels) {
@@ -650,7 +650,7 @@ export default function Index() {
       }
     }
     
-    console.log(`👥 [Profiles] Need to fetch ${memberIdsToFetch.size} profiles (${userProfileCache.current.size} already cached)`);
+    console.log(`  [Profiles] Need to fetch ${memberIdsToFetch.size} profiles (${userProfileCache.current.size} already cached)`);
     
     if (memberIdsToFetch.size === 0) {
       console.log(' [Profiles] All profiles already cached, skipping fetch');
@@ -670,7 +670,7 @@ export default function Index() {
       for (let i = 0; i < memberIdArray.length; i += batchSize) {
         const batch = memberIdArray.slice(i, i + batchSize);
         
-        console.log(`📦 [Profiles] Fetching batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(memberIdArray.length/batchSize)} (${batch.length} profiles)`);
+        console.log(`  [Profiles] Fetching batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(memberIdArray.length/batchSize)} (${batch.length} profiles)`);
         
         const userResponse = await databases.listDocuments(
           config.databaseId,
@@ -860,7 +860,7 @@ export default function Index() {
       if (userProfiles.documents.length > 0) {
         const currency = userProfiles.documents[0].currency || 'USD';
         setUserCurrency(currency);
-        console.log('💰 Loaded user currency:', currency);
+        console.log('  Loaded user currency:', currency);
       }
     } catch (error) {
       console.error('Error loading user currency:', error);
@@ -911,7 +911,7 @@ export default function Index() {
           
           // If no pending documents, skip this cluster
           if (pendingDocs.length === 0) {
-            console.log(`⏭️ [Clusters] Skipping cluster ${clusterId} - all fans answered`);
+            console.log(`  [Clusters] Skipping cluster ${clusterId} - all fans answered`);
             return;
           }
           
@@ -984,7 +984,7 @@ export default function Index() {
         console.log('  [Clusters] Pending clusters:', aggregatedClusters.filter(c => c.status === 'pending').length);
       } else {
         setClusters([]);
-        console.log('ℹ️ [Clusters] No clusters found for this pro');
+        console.log('  [Clusters] No clusters found for this pro');
       }
     } catch (error) {
       console.error('   [Clusters] Error loading clusters:', error);
@@ -1132,7 +1132,7 @@ export default function Index() {
 
     // Handle search input changes
     const handleSearchChange = (text: string) => {
-      console.log(`🔍 [Search] Search query changed: "${text}"`);
+      console.log(`  [Search] Search query changed: "${text}"`);
       setSearchQuery(text);
       const filtered = filterChannels(channels, text, user?.$id);
       setFilteredChannels(filtered);

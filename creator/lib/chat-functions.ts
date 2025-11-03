@@ -743,7 +743,7 @@ export const preloadAllThreadMessages = async (
       message?.reply_count && message.reply_count > 0
     );
     
-    console.log(`🔍 [ThreadPreload] Found ${messagesWithThreads.length} messages with threads`);
+    console.log(`  [ThreadPreload] Found ${messagesWithThreads.length} messages with threads`);
     
     if (messagesWithThreads.length === 0) {
       console.log('📝 [ThreadPreload] No threads found to preload');
@@ -805,7 +805,7 @@ export const preloadAllThreadMessages = async (
     ).length;
     
     console.log(`  [ThreadPreload] Results: ${successful} loaded, ${cached} cached, ${failed} failed`);
-    console.log(`💾 [ThreadPreload] Total threads in cache: ${threadMessagesCache.current.size}`);
+    console.log(`  [ThreadPreload] Total threads in cache: ${threadMessagesCache.current.size}`);
     
   } catch (error) {
     console.error('   [ThreadPreload] Error during thread preloading:', error);
@@ -820,7 +820,7 @@ export const preloadVisibleImages = async (channel: any) => {
     }
 
     const messages = Object.values(channel.state.messages);
-    console.log(`🔍 [ImagePreload] Scanning ${messages.length} messages for images...`);
+    console.log(`  [ImagePreload] Scanning ${messages.length} messages for images...`);
     
     // Extract image URLs from messages
     const imageUrls: string[] = [];
@@ -840,7 +840,7 @@ export const preloadVisibleImages = async (channel: any) => {
     
     // Remove duplicates
     const uniqueImageUrls = [...new Set(imageUrls)];
-    console.log(`🖼️ [ImagePreload] Found ${uniqueImageUrls.length} unique images to preload`);
+    console.log(` [ImagePreload] Found ${uniqueImageUrls.length} unique images to preload`);
     
     if (uniqueImageUrls.length > 0) {
       console.log(`  [ImagePreload] Starting preload of ${uniqueImageUrls.length} images...`);

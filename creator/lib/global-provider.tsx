@@ -133,7 +133,7 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
   };
 
   const clearProfileCache = () => {
-    console.log('🗑️ [Profile Cache] Manually clearing cache');
+    console.log(' [Profile Cache] Manually clearing cache');
     setProfileCache(null);
   };
 
@@ -170,7 +170,7 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
         setPhotoCollectionData(photoData);
         console.log(' [PhotoCollection] Photo collection data loaded:', photoData.title);
       } else {
-        console.log('📸 [PhotoCollection] No photo document found for user');
+        console.log('  [PhotoCollection] No photo document found for user');
         setPhotoCollectionData(null);
       }
     } catch (error) {
@@ -251,16 +251,16 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
       }
 
       // Load user currency from profile
-      console.log('🔍 [Global Currency] Full profile data:', JSON.stringify(profile, null, 2));
-      console.log('🔍 [Global Currency] Profile currency field:', profile.currency);
-      console.log('🔍 [Global Currency] All profile keys:', Object.keys(profile));
+      console.log('  [Global Currency] Full profile data:', JSON.stringify(profile, null, 2));
+      console.log('  [Global Currency] Profile currency field:', profile.currency);
+      console.log('  [Global Currency] All profile keys:', Object.keys(profile));
       
       if (profile.currency) {
         console.log(' [Global Currency] Setting currency to:', profile.currency);
         setUserCurrency(profile.currency);
       } else {
         console.log('  [Global Currency] No currency found in profile, keeping default USD');
-        console.log('🔍 [Global Currency] Available fields:', Object.keys(profile));
+        console.log('  [Global Currency] Available fields:', Object.keys(profile));
       }
 
       // Check if all profile fields are filled
@@ -403,14 +403,14 @@ export const GlobalProvider = ({ children }: GlobalProviderProps) => {
           }
 
           // Load user currency from profile (same as refreshChannelConditions)
-          console.log('🔍 [GlobalProvider Stream] Full profile data:', JSON.stringify(profile, null, 2));
-          console.log('🔍 [GlobalProvider Stream] Profile currency field:', profile.currency);
+          console.log('  [GlobalProvider Stream] Full profile data:', JSON.stringify(profile, null, 2));
+          console.log('  [GlobalProvider Stream] Profile currency field:', profile.currency);
           if (profile.currency) {
             console.log(' [GlobalProvider Stream] Setting currency to:', profile.currency);
             setUserCurrency(profile.currency);
           } else {
             console.log('  [GlobalProvider Stream] No currency found in profile, keeping default USD');
-            console.log('🔍 [GlobalProvider Stream] Available fields:', Object.keys(profile));
+            console.log('  [GlobalProvider Stream] Available fields:', Object.keys(profile));
           }
 
           // Check if all profile fields are filled

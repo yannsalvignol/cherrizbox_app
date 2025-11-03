@@ -92,7 +92,7 @@ const App = () => {
         const hasCapitalLetter = /[A-Z]/.test(form.password);
         const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(form.password);
 
-        console.log(`🔍 [handleSendVerification] Password validation:`, {
+        console.log(`  [handleSendVerification] Password validation:`, {
             hasMinLength,
             hasCapitalLetter,
             hasSpecialChar
@@ -108,7 +108,7 @@ const App = () => {
 
         try {
             // Check if email is a creator first
-            console.log(`🔍 [handleSendVerification] Checking if email is creator`);
+            console.log(`  [handleSendVerification] Checking if email is creator`);
             const isCreator = await checkIfEmailIsCreator(form.email);
             if (isCreator) {
                 console.log(`  [handleSendVerification] Email is creator - blocking signup`);
@@ -122,7 +122,7 @@ const App = () => {
             }
 
             // Check if user already exists
-            console.log(`🔍 [handleSendVerification] Checking if user already exists`);
+            console.log(`  [handleSendVerification] Checking if user already exists`);
             const userCheck = await checkIfUserExists(form.email, form.username);
             if (userCheck.exists) {
                 console.log(`  [handleSendVerification] User already exists:`, userCheck.type);

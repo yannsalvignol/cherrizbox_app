@@ -34,7 +34,7 @@ export default function AudienceTab({ refreshing, onRefresh }: AudienceTabProps)
 
   const loadAudience = async () => {
     if (!user?.$id) return;
-    console.log('👥 [Audience] Starting audience load...');
+    console.log('  [Audience] Starting audience load...');
     setIsLoadingAudience(true);
     try {
       const { databases, config } = await import('@/lib/appwrite');
@@ -68,7 +68,7 @@ export default function AudienceTab({ refreshing, onRefresh }: AudienceTabProps)
 
   // Update filteredAudience when audience, search, or filter changes
   useEffect(() => {
-    console.log(`🔍 [Audience] Filtering ${audience.length} subscribers with search: "${audienceSearch}", filter: ${audienceFilter}`);
+    console.log(`  [Audience] Filtering ${audience.length} subscribers with search: "${audienceSearch}", filter: ${audienceFilter}`);
     let filtered = audience;
     
     // Search filter

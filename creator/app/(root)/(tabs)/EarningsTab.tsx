@@ -144,7 +144,7 @@ export default function EarningsTab({
       if (userProfiles.documents.length > 0) {
         const currency = userProfiles.documents[0].currency || 'USD';
         setUserCurrency(currency);
-        console.log('💰 [Earnings] Loaded user currency:', currency);
+        console.log('  [Earnings] Loaded user currency:', currency);
       }
     } catch (error) {
       console.error('   [Earnings] Error loading user currency:', error);
@@ -283,9 +283,9 @@ export default function EarningsTab({
           userCurrency = profile.currency || 'USD';
           dateOfBirth = profile.dateOfBirth || null;
           phoneNumber = profile.phoneNumber || null;
-          console.log('💰 [Earnings] User currency:', userCurrency);
+          console.log('  [Earnings] User currency:', userCurrency);
           console.log('🎂 [Earnings] User date of birth:', dateOfBirth);
-          console.log('📱 [Earnings] User phone number:', phoneNumber);
+          console.log('  [Earnings] User phone number:', phoneNumber);
         }
       } catch (profileError) {
         console.log('  [Earnings] Could not fetch user profile data, using defaults:', profileError);
@@ -372,7 +372,7 @@ export default function EarningsTab({
 
   useEffect(() => {
     if (preloadedCurrency) {
-      console.log('💰 [Earnings] Using preloaded currency:', preloadedCurrency);
+      console.log('  [Earnings] Using preloaded currency:', preloadedCurrency);
       setUserCurrency(preloadedCurrency);
     }
   }, [preloadedCurrency]);

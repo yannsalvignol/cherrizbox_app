@@ -62,7 +62,7 @@ export const OneByOneModal: React.FC<OneByOneModalProps> = ({
     try {
       // Parse affected chats from cluster
       const chatIds = JSON.parse(cluster.affectedChats) as string[];
-      console.log('📋 [OneByOne] Loading affected chats:', chatIds);
+      console.log('  [OneByOne] Loading affected chats:', chatIds);
       
       // Parse fan IDs from cluster (comma-separated if aggregated)
       const userIds = cluster.userId.split(',').map(id => id.trim());
@@ -109,7 +109,7 @@ export const OneByOneModal: React.FC<OneByOneModalProps> = ({
       
       if (userIdsToFetch.length === 0) return;
       
-      console.log('🔍 [OneByOne] Fetching fan profiles for:', userIdsToFetch);
+      console.log('  [OneByOne] Fetching fan profiles for:', userIdsToFetch);
       
       const userResponse = await databases.listDocuments(
         config.databaseId,

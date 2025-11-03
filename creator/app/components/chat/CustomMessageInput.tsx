@@ -78,7 +78,7 @@ const CustomMessageInput = ({
               fontSize: 12,
               fontWeight: 'bold',
             }}>
-              📸 Paid Photos
+                Paid Photos
             </Text>
           </TouchableOpacity>
           

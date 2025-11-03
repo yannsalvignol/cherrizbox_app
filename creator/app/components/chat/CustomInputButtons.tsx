@@ -36,7 +36,7 @@ const CustomInputButtons: React.FC = () => {
    */
   const handleImagePick = async (): Promise<void> => {
     try {
-      console.log('📸 Opening custom image picker...');
+      console.log('  Opening custom image picker...');
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
@@ -46,7 +46,7 @@ const CustomInputButtons: React.FC = () => {
 
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
-        console.log('📸 Selected image:', asset.uri);
+        console.log('  Selected image:', asset.uri);
         
         if (!channel) {
           console.error('No channel available');
@@ -55,7 +55,7 @@ const CustomInputButtons: React.FC = () => {
 
         // Upload image to Appwrite storage first, then send message
         try {
-          console.log('📸 Starting image upload to Appwrite storage...');
+          console.log('  Starting image upload to Appwrite storage...');
           
           // Get file info to determine size
           const fileInfo = await fetch(asset.uri);
@@ -86,8 +86,8 @@ const CustomInputButtons: React.FC = () => {
           // Get the file URL from Appwrite
           const appwriteImageUrl = storage.getFileView(config.storageStreamChatId, uploadedFile.$id).toString();
           
-          console.log('📸 Image uploaded successfully to Appwrite:', uploadedFile.$id);
-          console.log('📸 Appwrite image URL:', appwriteImageUrl);
+          console.log('  Image uploaded successfully to Appwrite:', uploadedFile.$id);
+          console.log('  Appwrite image URL:', appwriteImageUrl);
           
           // Send message with the uploaded cloud URL
           await channel.sendMessage({

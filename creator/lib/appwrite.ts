@@ -31,8 +31,8 @@ export const config = {
 };
 
 // Debug logging for the new collection ID
-console.log('🔍 [Config] EXPO_PUBLIC_APPWRITE_PHOTOS_AVAILABLE_TO_USERS:', process.env.EXPO_PUBLIC_APPWRITE_PHOTOS_AVAILABLE_TO_USERS);
-console.log('🔍 [Config] photosAvailableToUsersCollectionId:', config.photosAvailableToUsersCollectionId);
+console.log('  [Config] EXPO_PUBLIC_APPWRITE_PHOTOS_AVAILABLE_TO_USERS:', process.env.EXPO_PUBLIC_APPWRITE_PHOTOS_AVAILABLE_TO_USERS);
+console.log('  [Config] photosAvailableToUsersCollectionId:', config.photosAvailableToUsersCollectionId);
 
 export const client = new Client();
 client
@@ -1063,7 +1063,7 @@ export const createPaidContentPaymentIntent = async (
         const FUNCTION_ID = process.env.EXPO_PUBLIC_STRIPE_FUNCTION_ID;
         const backendUrl = `${config.endpoint}/functions/${FUNCTION_ID}/executions`;
         
-        console.log('📋 Environment check:', {
+        console.log('  Environment check:', {
             functionId: FUNCTION_ID,
             endpoint: config.endpoint,
             backendUrl,
@@ -1134,7 +1134,7 @@ export const createPaidContentPaymentIntent = async (
         if (data.responseBody) {
             try {
                 actualResponse = JSON.parse(data.responseBody);
-                console.log('📋 Parsed responseBody:', actualResponse);
+                console.log('  Parsed responseBody:', actualResponse);
             } catch (parseError) {
                 console.error('   Failed to parse responseBody:', parseError);
                 throw new Error('Invalid response format from backend');
@@ -1306,7 +1306,7 @@ export const sendVerificationEmailViaFunction = async (email: string, code: stri
             let errorResponse;
             try {
                 errorResponse = JSON.parse(execution.responseBody);
-                console.log(`📋 [sendVerificationEmailViaFunction] Parsed error response:`, errorResponse);
+                console.log(`  [sendVerificationEmailViaFunction] Parsed error response:`, errorResponse);
             } catch (parseError) {
                 const errorMessage = parseError instanceof Error ? parseError.message : 'Unknown parsing error';
                 console.log(`   [sendVerificationEmailViaFunction] Failed to parse error response: ${errorMessage}`);
@@ -1318,7 +1318,7 @@ export const sendVerificationEmailViaFunction = async (email: string, code: stri
         let responseBody;
         try {
             responseBody = JSON.parse(execution.responseBody);
-            console.log(`📋 [sendVerificationEmailViaFunction] Parsed response body:`, responseBody);
+            console.log(`  [sendVerificationEmailViaFunction] Parsed response body:`, responseBody);
         } catch (parseError) {
             const errorMessage = parseError instanceof Error ? parseError.message : 'Unknown parsing error';
             console.log(`   [sendVerificationEmailViaFunction] Failed to parse response body: ${errorMessage}`);

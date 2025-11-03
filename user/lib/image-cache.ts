@@ -84,7 +84,7 @@ class ImageCacheManager {
     const cachedItem = this.cache.get(cacheKey);
     const cachedPath = `${this.cacheDir}${cacheKey}`;
 
-    console.log(`🖼️ [ImageCache] Requesting image: ${originalUri.substring(0, 80)}...`);
+    console.log(` [ImageCache] Requesting image: ${originalUri.substring(0, 80)}...`);
 
     // Check if cached file exists and is not expired
     if (cachedItem) {

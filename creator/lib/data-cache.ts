@@ -62,7 +62,7 @@ class ChatDataCache {
   // Core cache operations
   public set<T>(key: string, data: T, customTTL?: number): void {
     const ttl = customTTL || this.defaultTTL;
-    console.log(`💾 [DataCache] SET: ${key} (TTL: ${Math.round(ttl / 1000)}s)`);
+    console.log(`  [DataCache] SET: ${key} (TTL: ${Math.round(ttl / 1000)}s)`);
     
     this.cacheStore.set(key, {
       data,
@@ -117,7 +117,7 @@ class ChatDataCache {
     const deleted = this.cacheStore.delete(key);
     if (deleted) {
       this.updateMetrics();
-      console.log(`🗑️ [DataCache] DELETE: ${key}`);
+      console.log(` [DataCache] DELETE: ${key}`);
     }
     return deleted;
   }
@@ -127,7 +127,7 @@ class ChatDataCache {
     this.metrics.hitCount = 0;
     this.metrics.missCount = 0;
     this.updateMetrics();
-    console.log(`🗑️ [DataCache] CLEAR: All entries removed`);
+    console.log(` [DataCache] CLEAR: All entries removed`);
   }
 
   // Get-or-fetch pattern for easy integration
@@ -274,7 +274,7 @@ class ChatDataCache {
     keysToDelete.forEach(key => this.cacheStore.delete(key));
     this.updateMetrics();
     
-    console.log(`🗑️ [DataCache] Invalidated ${keysToDelete.length} entries matching pattern: ${pattern}`);
+    console.log(` [DataCache] Invalidated ${keysToDelete.length} entries matching pattern: ${pattern}`);
     return keysToDelete.length;
   }
 }

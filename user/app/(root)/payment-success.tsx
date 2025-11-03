@@ -217,7 +217,7 @@ export default function PaymentSuccess() {
                   .filter(id => id && id !== user.$id); // Filter out invalid IDs and self
                 
                 if (activeCreatorIds.length > 0) {
-                  console.log('📋 Setting up channels for active creators:', activeCreatorIds);
+                  console.log('  Setting up channels for active creators:', activeCreatorIds);
                   
                   // Pre-setup channels for all active creators (like global provider does)
                   await preSetupChannels(user.$id, activeCreatorIds);

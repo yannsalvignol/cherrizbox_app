@@ -77,12 +77,12 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
       }
 
       // 1. Create/update photo document
-      console.log('📸 [Verification] Checking photo document...');
+      console.log('  [Verification] Checking photo document...');
       const userPhoto = await getUserPhoto(userId);
       
       if (!userPhoto) {
         // Create new photo document
-        console.log('📸 [Verification] Creating new photo document...');
+        console.log('  [Verification] Creating new photo document...');
         await databases.createDocument(
           config.databaseId,
           config.photoCollectionId,

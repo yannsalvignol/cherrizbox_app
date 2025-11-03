@@ -33,7 +33,7 @@ interface ChatSubscription {
 export async function hasActiveChatSubscription(userId: string): Promise<boolean> {
   try {
     if (!CHAT_SUBSCRIPTIONS_COLLECTION_ID) {
-      console.log('📋 [ChatSubscription] Collection ID not configured, assuming no subscription');
+      console.log('  [ChatSubscription] Collection ID not configured, assuming no subscription');
       return false;
     }
 
@@ -123,7 +123,7 @@ export async function cancelChatSubscription(subscriptionId: string) {
     }
 
     const result = await response.json();
-    console.log('📋 [ChatSubscription] Cancellation response:', result);
+    console.log('  [ChatSubscription] Cancellation response:', result);
 
     // Parse the actual response from Appwrite Function's responseBody
     let actualResponse;
@@ -216,7 +216,7 @@ export async function createChatSubscriptionPaymentIntent(
 
     try {
       const data = JSON.parse(responseText);
-      console.log('📦 [ChatSubscription] Parsed response data:', data);
+      console.log('  [ChatSubscription] Parsed response data:', data);
       
       // Check if this is an Appwrite function execution response
       if (data.responseBody) {

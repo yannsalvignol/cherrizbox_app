@@ -227,7 +227,7 @@ const registerForPushWithStream = async (): Promise<void> => {
 export const preSetupChannels = async (userId: string, creatorIds: string[]) => {
     try {
         console.log('  Pre-setting up channels for subscribed creators...');
-        console.log('📋 Creator IDs to setup:', creatorIds);
+        console.log('  Creator IDs to setup:', creatorIds);
 
         // Check if we're connected to Stream Chat
         if (!isConnected) {
@@ -323,7 +323,7 @@ export const preSetupChannels = async (userId: string, creatorIds: string[]) => 
 export async function createDirectMessageChannel(user1Id: string, user2Id: string) {
   try {
     console.log('   Creating direct message channel...');
-    console.log('📋 Channel creation details:', {
+    console.log('  Channel creation details:', {
       user1Id,
       user2Id,
       isConnected,
@@ -344,7 +344,7 @@ export async function createDirectMessageChannel(user1Id: string, user2Id: strin
     // Create a custom channel ID for direct messages with consistent format
     const channelId = createDMChannelId(user1Id, user2Id);
     console.log('🏗️ Creating channel with custom ID:', channelId);
-    console.log('👥 Channel members:', [user1Id, user2Id]);
+    console.log('  Channel members:', [user1Id, user2Id]);
 
     const channel = client.channel('messaging', channelId, {
       members: [user1Id, user2Id],
@@ -374,7 +374,7 @@ export async function createDirectMessageChannel(user1Id: string, user2Id: strin
     return channel;
   } catch (error) {
     console.error('  Error creating direct message channel:', error);
-    console.error('🔍 Error details:', {
+    console.error('  Error details:', {
       name: error instanceof Error ? error.name : 'Unknown',
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined
