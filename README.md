@@ -32,7 +32,7 @@ Cherrizbox empowers creators with large audiences to handle thousands of 1â€‘toâ
 ---
 | Main Page | Chat | Subscribtion | Payment |
 | --- | --- | --- |--- |
-| ![Main](./docs/images/main.PNG) | ![Chat](./docs/images/chat.PNG) | ![Subscription](./docs/images/subscription.PNG) | ![Payment](./docs/images/payment.PNG) |
+| ![Main](./docs/images/main.PNG) | ![Chat](./docs/images/chat.PNG) | ![Subscription](./docs/images/subscription.PNG) | ![Payment](./docs/images/payment.png) |
 ## Key Features
 
 - AI Message Clustering: Similar questions are grouped so the creator answers once.
