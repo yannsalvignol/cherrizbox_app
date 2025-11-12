@@ -190,12 +190,12 @@ export default function Index() {
                     activeOpacity={1}
                 >
                     <Animated.Image 
-                        source={require('../../../assets/images/cherry-icon-low.png')}
+                        source={require('../../../assets/images/synopsisx-icon-low.png')}
                         style={{
                             width: Platform.OS === 'android' ? 52 : 56,
                             height: Platform.OS === 'android' ? 52 : 56,
                             borderRadius: Platform.OS === 'android' ? 9 : 10,
-                            backgroundColor: theme.cardBackground,
+                            backgroundColor: 'transparent',
                             transform: [{ scale: cherryIconScale }],
                         }}
                         resizeMode="contain"
@@ -209,7 +209,8 @@ export default function Index() {
                         fontFamily: 'MuseoModerno-Regular',
                         letterSpacing: 1
                     }} allowFontScaling={false}>
-                        cherrizbox
+                        OdysseyAI
+                        
                     </Text>
                 </View>
                 
