@@ -618,7 +618,7 @@ export default function Index() {
         await loadChannels(false);
         
         // Show success notification
-        showCustomNotification('Your creator channel has been created successfully! 🎉', 'success');
+        showCustomNotification('Your creator channel has been created successfully! ', 'success');
         
         return true;
       } catch (error) {

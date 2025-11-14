@@ -69,7 +69,7 @@ class DataCacheManager {
     }
 
     if (expiredKeys.length > 0) {
-      console.log(`🧹 [DataCache] CLEANUP: Removing ${expiredKeys.length} expired entries`);
+      console.log(`   [DataCache] CLEANUP: Removing ${expiredKeys.length} expired entries`);
       expiredKeys.forEach(key => this.cache.delete(key));
       console.log(`  [DataCache] Cache size after cleanup: ${this.cache.size} items`);
     }

@@ -479,7 +479,7 @@ const App = () => {
                     ) : (
                         <>
                     <Text className="text-black font-['Urbanist-Bold'] text-4xl mt-6" allowFontScaling={false}>    
-                        Hello! Register to get in the Cherrizbox.
+                        Hello! Register to get in SynopsisX.
                     </Text>
                     <View style={{ marginTop: 20 }}>
                         <FormField 

@@ -357,7 +357,7 @@ export default function ChatScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: appTheme.backgroundTertiary }} edges={['top']}>
       {/* Header */}
       <View className="flex-row items-center justify-between px-5 py-3" style={{ minHeight: 85, backgroundColor: appTheme.backgroundTertiary }}>
-        {/* Cherrizbox Logo */}
+        {/* SynopsisX Logo */}
         <TouchableOpacity onPress={() => router.back()}>
           <Image 
             source={require('../../assets/images/cherry-icon.png')}
@@ -366,7 +366,7 @@ export default function ChatScreen() {
           />
         </TouchableOpacity>
         
-        {/* Cherrizbox Logo and Text */}
+        {/* SynopsisX Logo and Text */}
         <View className="flex-row items-center">
           <View style={{ alignItems: 'center', justifyContent: 'center' }}>
             <Text style={{
@@ -376,7 +376,7 @@ export default function ChatScreen() {
               fontFamily: 'MuseoModerno-Regular',
               textAlign: 'center',
             }} allowFontScaling={false}>
-              cherrizbox
+              SynopsisX
               </Text>
 
           </View>

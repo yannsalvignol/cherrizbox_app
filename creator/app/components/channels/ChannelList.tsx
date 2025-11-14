@@ -330,7 +330,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
     if (channels.length === 0) {
       console.log('  [ChannelList] No channels loaded yet, only global listener active');
       return () => {
-        console.log('🧹 [ChannelList] Cleaning up global Stream Chat listeners');
+        console.log('   [ChannelList] Cleaning up global Stream Chat listeners');
         unsubscribeFunctions.forEach(unsubscribe => {
           try {
             unsubscribe();
@@ -501,7 +501,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
 
     // Cleanup function
     return () => {
-      console.log('🧹 [ChannelList] Cleaning up Stream Chat listeners');
+      console.log('   [ChannelList] Cleaning up Stream Chat listeners');
       listenersSetupRef.current = false;
       unsubscribeFunctions.forEach(unsubscribe => {
         try {

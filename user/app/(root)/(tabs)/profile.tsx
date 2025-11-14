@@ -627,7 +627,7 @@ export default function Profile() {
         </TouchableOpacity>
         
         <Text style={{ color: theme.text, fontSize: 40, textAlign: 'center', flex: 1, fontFamily: 'MuseoModerno-Regular', letterSpacing: 1, marginTop: 8 }} allowFontScaling={false}>
-          cherrizbox
+          SynopsisX
         </Text>
       </View>
 

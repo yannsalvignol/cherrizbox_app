@@ -246,7 +246,7 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
       
       if (setupSuccess) {
         Alert.alert(
-          'Channel Created! 🎉',
+          'Channel Created! ',
           'Your creator channel has been successfully created and is now under review. You\'ll be notified once it\'s approved!',
           [{ 
             text: 'OK', 

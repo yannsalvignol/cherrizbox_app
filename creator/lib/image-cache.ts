@@ -118,7 +118,7 @@ class ChatImageCache {
     if (expiredKeys.length > 0) {
       await this.saveCacheIndex();
       this.updateCacheStats();
-      console.log(`🧹 [ImageCache] Cleaned up ${expiredKeys.length} expired files (${Math.round(cleanupSize / 1024)}KB freed)`);
+      console.log(`   [ImageCache] Cleaned up ${expiredKeys.length} expired files (${Math.round(cleanupSize / 1024)}KB freed)`);
     }
 
     // Check if cache size is over limit and perform LRU cleanup

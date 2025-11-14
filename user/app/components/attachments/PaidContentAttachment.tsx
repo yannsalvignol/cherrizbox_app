@@ -108,7 +108,7 @@ export const PaidContentAttachment: React.FC<PaidContentAttachmentProps> = ({ at
     try {
       await Share.share({
         url: attachment?.image_url || '',
-        message: 'Shared from Cherrizbox - Exclusive Content'
+        message: 'Shared from SynopsisX - Exclusive Content'
       });
     } catch (error) {
       console.error('Error sharing image:', error);

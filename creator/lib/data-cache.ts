@@ -47,7 +47,7 @@ class ChatDataCache {
     if (expiredKeys.length > 0) {
       expiredKeys.forEach(key => this.cacheStore.delete(key));
       this.updateMetrics();
-      console.log(`🧹 [DataCache] Cleanup: removed ${expiredKeys.length} expired entries. Total: ${this.cacheStore.size} entries`);
+      console.log(`   [DataCache] Cleanup: removed ${expiredKeys.length} expired entries. Total: ${this.cacheStore.size} entries`);
     }
 
     this.metrics.lastCleanup = currentTime;

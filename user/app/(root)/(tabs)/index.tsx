@@ -209,8 +209,8 @@ export default function Index() {
                         fontFamily: 'MuseoModerno-Regular',
                         letterSpacing: 1
                     }} allowFontScaling={false}>
-                        OdysseyAI
-                        
+                        SynopsisX
+
                     </Text>
                 </View>
                 

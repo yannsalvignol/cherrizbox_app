@@ -131,7 +131,7 @@ export default function ChatScreen() {
   // Cleanup function for memory management
   useEffect(() => {
     return () => {
-      console.log(`🧹 [ChatScreen] Cleaning up on unmount...`);
+      console.log(`   [ChatScreen] Cleaning up on unmount...`);
       
       // Clean up data cache periodically when leaving chat
       dataCache.cleanup();
@@ -594,7 +594,7 @@ export default function ChatScreen() {
               </TouchableOpacity>
               )}
               
-              {/* Cherrizbox Icon - Positioned absolutely on the left */}
+              {/* SynopsisX Icon - Positioned absolutely on the left */}
               {!thread && (
                 <TouchableOpacity 
                   onPress={() => router.back()}
@@ -629,7 +629,7 @@ export default function ChatScreen() {
                   color: appTheme.text, 
                   fontFamily: thread ? 'questrial' : 'MuseoModerno-Regular'
                 }} allowFontScaling={false}>
-                  {thread ? 'Thread' : 'cherrizbox'}
+                  {thread ? 'Thread' : 'SynopsisX'}
                 </Text>
               </View>
               
@@ -852,7 +852,7 @@ export default function ChatScreen() {
                           fontFamily: 'MuseoModerno-Regular',
 
                     }}>
-                          Box
+                          Group
                     </Text>
                   </TouchableOpacity>
                   {/* Direct Message Button */}
@@ -888,7 +888,7 @@ export default function ChatScreen() {
                           fontFamily: 'MuseoModerno-Regular',
 
                     }}>
-                      One on One
+                      AI-Twin
                     </Text>
                   </TouchableOpacity>
                 </View>
