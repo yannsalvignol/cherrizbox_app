@@ -14,6 +14,6 @@ export const customReactions: ReactionData[] = [
   { type: "angry", Icon: () => React.createElement(Text, { style: { fontSize: 18 } }, "😡") },
   { type: "fire", Icon: () => React.createElement(Text, { style: { fontSize: 18 } }, "🔥") },
   { type: "100", Icon: () => React.createElement(Text, { style: { fontSize: 18 } }, "💯") },
-  { type: "party", Icon: () => React.createElement(Text, { style: { fontSize: 18 } }, "🎉") },
+  { type: "party", Icon: () => React.createElement(Text, { style: { fontSize: 18 } }, " ") },
   { type: "skull", Icon: () => React.createElement(Text, { style: { fontSize: 18 } }, "💀") },
 ];

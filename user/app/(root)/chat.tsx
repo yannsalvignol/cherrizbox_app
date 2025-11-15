@@ -52,7 +52,7 @@ const customReactions: ReactionData[] = [
   { type: "angry", Icon: () => <Text style={{ fontSize: 18 }}>😡</Text> },
   { type: "fire", Icon: () => <Text style={{ fontSize: 18 }}>🔥</Text> },
   { type: "100", Icon: () => <Text style={{ fontSize: 18 }}>💯</Text> },
-  { type: "party", Icon: () => <Text style={{ fontSize: 18 }}>🎉</Text> },
+  { type: "party", Icon: () => <Text style={{ fontSize: 18 }}> </Text> },
   { type: "skull", Icon: () => <Text style={{ fontSize: 18 }}>💀</Text> },
 ];
 
@@ -117,7 +117,7 @@ export default function ChatScreen() {
         const accountId = creatorPost.creatorId || creatorPost.accountId || '';
         
         console.log('  [ChatScreen] Creator currency:', currency);
-        console.log('👤 [ChatScreen] Creator ID:', accountId);
+        console.log('  [ChatScreen] Creator ID:', accountId);
         setCreatorCurrency(currency.toLowerCase());
         setCreatorId(accountId);
       } else {
@@ -220,7 +220,7 @@ export default function ChatScreen() {
     // Wait for all thread preloading to complete
     const results = await Promise.allSettled(preloadPromises);
     const successful = results.filter(r => r.status === 'fulfilled').length;
-    console.log(`🎉 [ChatScreen] Successfully preloaded ${successful}/${messagesWithThreads.length} threads`);
+    console.log(`  [ChatScreen] Successfully preloaded ${successful}/${messagesWithThreads.length} threads`);
   };
 
   // Preload thread messages when thread is set
@@ -363,7 +363,7 @@ export default function ChatScreen() {
           return;
         }
 
-        console.log('💬 Loading pre-setup channels for creator:', creatorId);
+        console.log('  Loading pre-setup channels for creator:', creatorId);
 
         // Use pre-setup group channel
         const groupChannelId = `creator-${creatorId}`;

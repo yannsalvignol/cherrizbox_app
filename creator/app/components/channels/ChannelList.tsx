@@ -380,7 +380,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
                  // Also update the ref for immediate access
                  liveUnreadCountsRef.current = newMap;
                  
-                 console.log(`🔢 [ChannelList] Unread count for ${channel.id}: ${currentCount} -> ${newCount}`);
+                 console.log(`  [ChannelList] Unread count for ${channel.id}: ${currentCount} -> ${newCount}`);
                  
                  // Notify parent component with the correct count
                  if (onChannelUpdate) {
@@ -522,7 +522,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
       initialCounts.set(channel.id, count);
       totalUnread += count;
     });
-    console.log(`🔢 [ChannelList] Initializing unread counts for ${channels.length} channels, total unread: ${totalUnread}`);
+    console.log(`  [ChannelList] Initializing unread counts for ${channels.length} channels, total unread: ${totalUnread}`);
     setLiveUnreadCounts(initialCounts);
     // Also update the ref
     liveUnreadCountsRef.current = initialCounts;

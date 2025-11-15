@@ -201,7 +201,7 @@ export default function PaymentSuccess() {
             // Get current user for Stream Chat initialization
             const user = await getCurrentUser();
             if (user) {
-              console.log('🎉 Initializing Stream Chat after successful payment...');
+              console.log('  Initializing Stream Chat after successful payment...');
               await initializeStreamChatOnPaymentSuccess(user.$id);
               
               // Push notifications are now handled automatically in stream-chat.ts during connection
@@ -232,7 +232,7 @@ export default function PaymentSuccess() {
                         console.log(' Payment creator channel already set up during pre-setup phase');
                         // No need to create again - preSetupChannels already handled this
                       } else if (specificCreatorId && specificCreatorId !== user.$id) {
-                        console.log('💬 Creating direct message channel for payment creator (not in active list)...');
+                        console.log('  Creating direct message channel for payment creator (not in active list)...');
                         await createDirectMessageChannel(user.$id, specificCreatorId);
                         console.log(' Direct message channel created for payment creator');
                       }

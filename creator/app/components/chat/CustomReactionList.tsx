@@ -25,7 +25,7 @@ const CustomReactionList: React.FC<CustomReactionListProps> = (props) => {
     angry: '😡',
     fire: '🔥',
     '100': '💯',
-    party: '🎉',
+    party: ' ',
     skull: '💀',
   };
 

@@ -69,8 +69,8 @@ const App = () => {
     }, [verificationSent, timer]);
 
     const handleSendVerification = async () => {
-        console.log(`📝 [handleSendVerification] Starting verification process`);
-        console.log(`📝 [handleSendVerification] Form data:`, { 
+        console.log(`   [handleSendVerification] Starting verification process`);
+        console.log(`   [handleSendVerification] Form data:`, { 
             username: form.username, 
             email: form.email, 
             passwordLength: form.password.length,
@@ -147,7 +147,7 @@ const App = () => {
             // Generate verification code
             const code = Math.floor(100000 + Math.random() * 900000).toString();
             setGeneratedCode(code);
-            console.log(`🔢 [handleSendVerification] Generated verification code: ${code}`);
+            console.log(`  [handleSendVerification] Generated verification code: ${code}`);
             
             // Immediately show verification screen
             setVerificationSent(true);
@@ -156,7 +156,7 @@ const App = () => {
             setIsSubmitting(false);
             
             // Send email in the background
-            console.log(`📧 [handleSendVerification] Sending email in background...`);
+            console.log(`  [handleSendVerification] Sending email in background...`);
             sendVerificationEmailViaFunction(form.email, code)
                 .then(() => {
                     console.log(` [handleSendVerification] Email sent successfully in background`);

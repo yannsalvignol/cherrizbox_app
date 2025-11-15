@@ -728,7 +728,7 @@ export const preloadAllThreadMessages = async (
   threadMessagesCache: React.MutableRefObject<Map<string, any[]>>
 ) => {
   if (!channel?.state?.messages) {
-    console.log('📝 [ThreadPreload] No channel messages to scan');
+    console.log('   [ThreadPreload] No channel messages to scan');
     return;
   }
 
@@ -746,7 +746,7 @@ export const preloadAllThreadMessages = async (
     console.log(`  [ThreadPreload] Found ${messagesWithThreads.length} messages with threads`);
     
     if (messagesWithThreads.length === 0) {
-      console.log('📝 [ThreadPreload] No threads found to preload');
+      console.log('   [ThreadPreload] No threads found to preload');
       return;
     }
     

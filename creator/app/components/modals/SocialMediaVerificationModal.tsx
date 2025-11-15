@@ -150,7 +150,7 @@ export const SocialMediaVerificationModal: React.FC<SocialMediaVerificationModal
 
       // 3. Send verification notification email
       try {
-        console.log('📧 [Verification] Sending verification notification...');
+        console.log('  [Verification] Sending verification notification...');
         const { sendCreatorVerificationNotification } = await import('@/lib/appwrite');
         await sendCreatorVerificationNotification({
           userId: userId,

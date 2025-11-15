@@ -24,7 +24,7 @@ export const createTipPaymentIntent = async (
     if (currentChannel && currentChannel.state?.members) {
       const members = Object.keys(currentChannel.state.members);
       console.log('  Channel members:', members);
-      console.log('👤 Current user ID:', userId);
+      console.log('  Current user ID:', userId);
       
       // Find the other participant (not the current user)
       const otherMember = members.find(memberId => memberId !== userId);

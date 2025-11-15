@@ -242,7 +242,7 @@ export const preSetupChannels = async (userId: string, creatorIds: string[]) => 
 
         const setupPromises = creatorIds.map(async (creatorId) => {
             try {
-                console.log(`🏗️ Setting up channels for creator: ${creatorId}`);
+                console.log(`   Setting up channels for creator: ${creatorId}`);
 
                 // Setup group channel
                 const groupChannelId = `creator-${creatorId}`;
@@ -302,7 +302,7 @@ export const preSetupChannels = async (userId: string, creatorIds: string[]) => 
         const successful = results.filter(r => r.success);
         const failed = results.filter(r => !r.success);
 
-        console.log(`🎉 Channel pre-setup completed:`, {
+        console.log(`  Channel pre-setup completed:`, {
             total: creatorIds.length,
             successful: successful.length,
             failed: failed.length
@@ -343,7 +343,7 @@ export async function createDirectMessageChannel(user1Id: string, user2Id: strin
     
     // Create a custom channel ID for direct messages with consistent format
     const channelId = createDMChannelId(user1Id, user2Id);
-    console.log('🏗️ Creating channel with custom ID:', channelId);
+    console.log('   Creating channel with custom ID:', channelId);
     console.log('  Channel members:', [user1Id, user2Id]);
 
     const channel = client.channel('messaging', channelId, {
@@ -386,7 +386,7 @@ export async function createDirectMessageChannel(user1Id: string, user2Id: strin
 // Initialize Stream Chat specifically for payment success
 export const initializeStreamChatOnPaymentSuccess = async (userId: string) => {
     try {
-        console.log('🎉 Initializing Stream Chat after successful payment for user:', userId);
+        console.log('  Initializing Stream Chat after successful payment for user:', userId);
         
         // Use the main connectUser function which handles everything properly
         // including push notifications, proper connection state, etc.

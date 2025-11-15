@@ -1111,7 +1111,7 @@ export const createPaidContentPaymentIntent = async (
             body: JSON.stringify(requestBody),
         });
 
-        console.log('📥 Received response:', {
+        console.log('   Received response:', {
             status: response.status,
             statusText: response.statusText,
             ok: response.ok,
@@ -1148,7 +1148,7 @@ export const createPaidContentPaymentIntent = async (
             throw new Error(actualResponse.error || 'Failed to create payment intent');
         }
 
-        console.log('🎉 Payment intent created successfully!');
+        console.log('  Payment intent created successfully!');
         return {
             clientSecret: actualResponse.clientSecret,
             paymentIntentId: actualResponse.paymentIntentId,
@@ -1272,8 +1272,8 @@ export const verifyCodeAndResetPassword = async (email: string, code: string, pa
 import { Alert } from 'react-native';
 
 export const sendVerificationEmailViaFunction = async (email: string, code: string) => {
-    console.log(`📧 [sendVerificationEmailViaFunction] Starting email verification process`);
-    console.log(`📧 [sendVerificationEmailViaFunction] Email: ${email}, Code: ${code}`);
+    console.log(`  [sendVerificationEmailViaFunction] Starting email verification process`);
+    console.log(`  [sendVerificationEmailViaFunction] Email: ${email}, Code: ${code}`);
     
     const FUNCTION_ID = process.env.EXPO_PUBLIC_SEND_SIGNUP_EMAIL_FUNCTION_ID;
     if (!FUNCTION_ID) {
@@ -1297,7 +1297,7 @@ export const sendVerificationEmailViaFunction = async (email: string, code: stri
             { 'Content-Type': 'application/json' }
         );
         
-        console.log(`📥 [sendVerificationEmailViaFunction] Function execution completed`);
+        console.log(`   [sendVerificationEmailViaFunction] Function execution completed`);
         console.log(`  [sendVerificationEmailViaFunction] Execution status: ${execution.status}`);
         console.log(`  [sendVerificationEmailViaFunction] Response body: ${execution.responseBody}`);
         

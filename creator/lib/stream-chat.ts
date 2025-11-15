@@ -637,7 +637,7 @@ export async function createDirectMessageChannel(user1Id: string, user2Id: strin
     
     // Create a custom channel ID for direct messages with consistent format
     const channelId = createDMChannelId(user1Id, user2Id);
-    console.log('🏗️ Creating channel with custom ID:', channelId);
+    console.log('   Creating channel with custom ID:', channelId);
     console.log('  Channel members:', [user1Id, user2Id]);
 
     const channel = client.channel('messaging', channelId, {
